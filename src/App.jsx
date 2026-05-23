@@ -1,0 +1,2923 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+
+/* ─────────────────────────────────────────────
+   DESIGN SYSTEM — Bloomberg × Palantir × OpenAI
+   "Institutional AI Governance Operating System"
+───────────────────────────────────────────── */
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+`;
+
+/* Token system — deep graphite, muted violet, institutional calm */
+const T = {
+  /* Surfaces */
+  bg:      "#090B10",   /* deep graphite base */
+  s1:      "#0E1117",   /* primary surface */
+  s2:      "#131720",   /* card surface */
+  s3:      "#181D28",   /* elevated card */
+  s4:      "#1D2230",   /* input/table row */
+  s5:      "#222840",   /* hover state */
+  /* Borders */
+  border:  "#1E2536",   /* primary border — very subtle */
+  borderB: "#28304A",   /* medium border */
+  borderC: "#323C58",   /* strong border */
+  /* Typography */
+  ink:     "#F1F3F9",   /* primary text — off-white */
+  ink2:    "#A8B0CC",   /* secondary text */
+  ink3:    "#636B8A",   /* muted text */
+  ink4:    "#3A4260",   /* very muted */
+  ink5:    "#1E2536",   /* near-invisible */
+  /* Role accents — restrained, institutional */
+  ciso:  "#5B7FE8", cisoL: "#0D1530",
+  caio:  "#7C5CDB", caioL: "#130D2E",
+  cio:   "#2BA88A", cioL:  "#081C17",
+  cdpo:  "#C8842A", cdpoL: "#221408",
+  cgo:   "#3B8FD4", cgoL:  "#091525",
+  /* Semantic */
+  red:    "#C94040", redL:   "#1A0909",
+  amber:  "#C8842A", amberL: "#221408",
+  green:  "#2BA86A", greenL: "#081A0F",
+  blue:   "#5B7FE8", blueL:  "#0D1530",
+  violet: "#7C5CDB", violetL:"#130D2E",
+  teal:   "#2BA88A", tealL:  "#081C17",
+};
+
+const RC  = r => T[r]      || T.blue;
+const RCL = r => T[r+"L"]  || T.blueL;
+
+/* ─────────────────────────────────────────────
+   GLOBAL CSS
+───────────────────────────────────────────── */
+const CSS = `
+${FONTS}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:15px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+body{background:${T.bg};color:${T.ink};font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0em;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:${T.border};border-radius:8px;}
+::-webkit-scrollbar-thumb:hover{background:${T.borderB};}
+button,select,input,textarea{font-family:'Plus Jakarta Sans',sans-serif;}
+input:focus,textarea:focus,select:focus{outline:none;}
+input::placeholder,textarea::placeholder{color:${T.ink4};}
+select option{background:${T.s3};color:${T.ink};}
+@keyframes up   {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fade {from{opacity:0}to{opacity:1}}
+@keyframes spin {to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+`;
+
+
+/* ─────────────────────────────────────────────
+   ROLES
+───────────────────────────────────────────── */
+const ROLES = {
+  ciso:{id:"ciso",label:"CISO",title:"Chief Information Security Officer",name:"Jordan Sinclair",initials:"JS",frameworks:["ISO 27001","NIST CSF","SOC 2","GDPR"]},
+  caio:{id:"caio",label:"CAIO",title:"Chief AI Officer",name:"Aisha Patel",initials:"AP",frameworks:["ISO 42001","EU AI Act","NIST AI RMF","GDPR Art.22"]},
+  cio: {id:"cio", label:"CIO", title:"Chief Information Officer",name:"Marcus Reid",initials:"MR",frameworks:["ISO 27001","NIST CSF","GDPR","SOC 2"]},
+  cdpo:{id:"cdpo",label:"CDPO",title:"Chief Data Privacy Officer",name:"Niamh Lynch",initials:"NL",frameworks:["GDPR","ISO 27701","CCPA/CPRA","ePrivacy"]},
+  cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
+};
+
+/* ─────────────────────────────────────────────
+   NAVIGATION
+───────────────────────────────────────────── */
+const NAV = [
+  {id:"home",      icon:"⊞", label:"Dashboard"},
+  {id:"onboard",   icon:"◎", label:"Start Here"},
+  {id:"strategy",  icon:"◈", label:"Strategy"},
+  {id:"playbook",  icon:"☰", label:"Playbook"},
+  {id:"compliance",icon:"◉", label:"Compliance"},
+  {id:"checklists",icon:"☑", label:"ISO Checklists"},
+  {id:"hitl",      icon:"⚡", label:"HITL Queue"},
+  {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
+  {id:"aiia",      icon:"◬", label:"Impact Assessment (AIIA)"},
+  {id:"impl",      icon:"⊕", label:"ISO 42001 Implementation"},
+  {id:"roadmap",   icon:"⬢", label:"Roadmap"},
+  {id:"templates", icon:"◐", label:"Templates"},
+  {id:"reports",   icon:"▣", label:"Reports"},
+];
+
+/* ─────────────────────────────────────────────
+   ISO 42001 CLAUSE CHECKLIST DATA
+   (From BCAA UK training material)
+───────────────────────────────────────────── */
+const ISO42001_CHECKLIST = [
+  {clause:"4.1", title:"Context of the Organisation", items:[
+    {id:"4_1_1", text:"Internal context documented: governance structures, AI objectives, capabilities, culture", done:false},
+    {id:"4_1_2", text:"External context documented: legal, regulatory, market, ethical, societal factors", done:false},
+    {id:"4_1_3", text:"Climate change and sustainability relevance assessed for AI strategy", done:false},
+    {id:"4_1_4", text:"SWOT/PESTLE analysis conducted and documented", done:false},
+    {id:"4_1_5", text:"Organisation's role defined: AI provider, producer, deployer, or partner", done:false},
+  ]},
+  {clause:"4.2", title:"Interested Parties", items:[
+    {id:"4_2_1", text:"All internal interested parties identified (management, staff, IT, legal, compliance)", done:false},
+    {id:"4_2_2", text:"All external interested parties identified (customers, regulators, suppliers, public)", done:false},
+    {id:"4_2_3", text:"Needs and expectations of each party documented and analysed", done:false},
+    {id:"4_2_4", text:"Stakeholder needs integrated into AIMS planning and objectives", done:false},
+  ]},
+  {clause:"4.3", title:"Scope of the AIMS", items:[
+    {id:"4_3_1", text:"AI systems, processes and services within scope clearly defined", done:false},
+    {id:"4_3_2", text:"Organisational units and locations included in scope documented", done:false},
+    {id:"4_3_3", text:"AI-related risks, obligations, and objectives within scope clarified", done:false},
+    {id:"4_3_4", text:"Interfaces and dependencies with other systems and processes identified", done:false},
+    {id:"4_3_5", text:"Scope documented, approved and communicated to stakeholders", done:false},
+  ]},
+  {clause:"4.4", title:"AI Management System (AIMS)", items:[
+    {id:"4_4_1", text:"AIMS established and implemented with documented processes and controls", done:false},
+    {id:"4_4_2", text:"AIMS actively operated across all relevant functions and AI lifecycle stages", done:false},
+    {id:"4_4_3", text:"Continuous monitoring of AIMS effectiveness and compliance in place", done:false},
+    {id:"4_4_4", text:"Continual improvement mechanisms established", done:false},
+  ]},
+  {clause:"5.1", title:"Leadership & Commitment", items:[
+    {id:"5_1_1", text:"Top management actively engaged in AI governance and strategy alignment", done:false},
+    {id:"5_1_2", text:"AI policy established, communicated and supported by leadership", done:false},
+    {id:"5_1_3", text:"Resources allocated: financial, technological, and human", done:false},
+    {id:"5_1_4", text:"Culture of trust, ethical AI practices, and continual learning fostered", done:false},
+    {id:"5_1_5", text:"Clear roles, responsibilities, and authorities for AI oversight defined", done:false},
+  ]},
+  {clause:"5.2", title:"AI Policy", items:[
+    {id:"5_2_1", text:"AI policy documented with purpose, scope, guiding principles, and prohibited uses", done:false},
+    {id:"5_2_2", text:"Policy addresses ethics, fairness, transparency, accountability, and non-discrimination", done:false},
+    {id:"5_2_3", text:"Policy aligned with other organisational policies (security, privacy, quality)", done:false},
+    {id:"5_2_4", text:"Policy reviewed at least annually or upon significant changes", done:false},
+    {id:"5_2_5", text:"High-risk AI safeguards documented and included in policy", done:false},
+  ]},
+  {clause:"5.3", title:"Roles, Responsibilities & Authorities", items:[
+    {id:"5_3_1", text:"CAIO or equivalent AI governance lead appointed", done:false},
+    {id:"5_3_2", text:"AI Risk Manager role defined and assigned", done:false},
+    {id:"5_3_3", text:"AI Ethics Officer role defined and assigned", done:false},
+    {id:"5_3_4", text:"AI Compliance Officer role defined and assigned", done:false},
+    {id:"5_3_5", text:"Cross-functional governance team established (engineering, legal, risk, HR)", done:false},
+    {id:"5_3_6", text:"RACI matrix for AI governance activities documented", done:false},
+  ]},
+  {clause:"6.1", title:"Risk & Opportunity Planning", items:[
+    {id:"6_1_1", text:"AI risk assessment process defined with acceptance criteria", done:false},
+    {id:"6_1_2", text:"Risks identified across technical, ethical, legal, and operational dimensions", done:false},
+    {id:"6_1_3", text:"Risk scoring methodology (likelihood × impact) documented", done:false},
+    {id:"6_1_4", text:"Risk treatment options selected (avoid, reduce, transfer, accept)", done:false},
+    {id:"6_1_5", text:"Opportunities for responsible AI identified and planned for", done:false},
+  ]},
+  {clause:"6.2", title:"AI Objectives & Planning", items:[
+    {id:"6_2_1", text:"AI objectives defined, measurable, and aligned with AI policy", done:false},
+    {id:"6_2_2", text:"Plans for achieving objectives documented with owners, timelines, resources", done:false},
+    {id:"6_2_3", text:"Objectives communicated to relevant functions", done:false},
+  ]},
+  {clause:"7.1", title:"Resources", items:[
+    {id:"7_1_1", text:"Human resources with AI expertise identified and allocated", done:false},
+    {id:"7_1_2", text:"Data resources documented: provenance, categories, quality, retention", done:false},
+    {id:"7_1_3", text:"Tooling resources for development, testing, validation, monitoring available", done:false},
+    {id:"7_1_4", text:"Computing infrastructure documented (cloud, on-premise, edge)", done:false},
+  ]},
+  {clause:"7.2", title:"Competence", items:[
+    {id:"7_2_1", text:"Competence requirements for AI roles defined", done:false},
+    {id:"7_2_2", text:"Training programmes established for AI governance and ethics", done:false},
+    {id:"7_2_3", text:"Evidence of competence maintained (certifications, training records)", done:false},
+  ]},
+  {clause:"7.3", title:"Awareness", items:[
+    {id:"7_3_1", text:"AI policy and objectives communicated to all relevant staff", done:false},
+    {id:"7_3_2", text:"Staff aware of their contribution to AIMS effectiveness", done:false},
+    {id:"7_3_3", text:"Awareness programme covers ethical AI and responsible use", done:false},
+  ]},
+  {clause:"8.1", title:"Operational Planning & Control", items:[
+    {id:"8_1_1", text:"Processes needed to meet AI requirements established and controlled", done:false},
+    {id:"8_1_2", text:"Criteria for AI processes defined and performance monitored", done:false},
+    {id:"8_1_3", text:"Outsourced AI processes identified and controlled", done:false},
+    {id:"8_1_4", text:"Change management process for AI systems established", done:false},
+  ]},
+  {clause:"8.2", title:"AI Risk Assessment", items:[
+    {id:"8_2_1", text:"AI risk assessments performed at planned intervals", done:false},
+    {id:"8_2_2", text:"Results of risk assessments documented and retained", done:false},
+    {id:"8_2_3", text:"Risk assessments triggered by significant changes to AI systems", done:false},
+  ]},
+  {clause:"8.3", title:"AI Risk Treatment", items:[
+    {id:"8_3_1", text:"Risk treatment plan documented with controls selected from Annex A", done:false},
+    {id:"8_3_2", text:"Statement of Applicability (SoA) prepared for Annex A controls", done:false},
+    {id:"8_3_3", text:"Residual risk assessed and accepted by risk owner", done:false},
+  ]},
+  {clause:"8.4", title:"AI System Design & Development", items:[
+    {id:"8_4_1", text:"AI system objectives and requirements clearly defined", done:false},
+    {id:"8_4_2", text:"Data requirements and quality criteria specified", done:false},
+    {id:"8_4_3", text:"Human oversight mechanisms designed into system architecture", done:false},
+    {id:"8_4_4", text:"Fairness and bias mitigation measures applied during design", done:false},
+    {id:"8_4_5", text:"Explainability and transparency requirements addressed", done:false},
+  ]},
+  {clause:"8.5", title:"AI System Deployment & Operation", items:[
+    {id:"8_5_1", text:"Deployment plan validated against all compliance requirements", done:false},
+    {id:"8_5_2", text:"User-facing transparency notices in place before go-live", done:false},
+    {id:"8_5_3", text:"Incident reporting channels for AI concerns established", done:false},
+    {id:"8_5_4", text:"Kill-switch / emergency stop mechanism implemented", done:false},
+  ]},
+  {clause:"9.1", title:"Monitoring, Measurement & Evaluation", items:[
+    {id:"9_1_1", text:"AI system performance monitored against defined metrics", done:false},
+    {id:"9_1_2", text:"Bias monitoring and fairness testing scheduled", done:false},
+    {id:"9_1_3", text:"Compliance with AI policy and objectives evaluated", done:false},
+    {id:"9_1_4", text:"Results of evaluation documented and reported to leadership", done:false},
+  ]},
+  {clause:"9.2", title:"Internal Audit", items:[
+    {id:"9_2_1", text:"Internal audit programme established for the AIMS", done:false},
+    {id:"9_2_2", text:"Audit criteria, scope, frequency, and methods defined", done:false},
+    {id:"9_2_3", text:"Auditors selected to ensure objectivity and impartiality", done:false},
+    {id:"9_2_4", text:"Audit results reported to relevant management", done:false},
+  ]},
+  {clause:"9.3", title:"Management Review", items:[
+    {id:"9_3_1", text:"Management review of AIMS conducted at planned intervals", done:false},
+    {id:"9_3_2", text:"Review considers audit results, performance, stakeholder feedback", done:false},
+    {id:"9_3_3", text:"Decisions and actions from review documented", done:false},
+  ]},
+  {clause:"10.1", title:"Nonconformity & Corrective Action", items:[
+    {id:"10_1_1", text:"Nonconformities identified, documented, and investigated", done:false},
+    {id:"10_1_2", text:"Root cause analysis performed for significant nonconformities", done:false},
+    {id:"10_1_3", text:"Corrective actions implemented and verified for effectiveness", done:false},
+  ]},
+  {clause:"10.2", title:"Continual Improvement", items:[
+    {id:"10_2_1", text:"Opportunities for AIMS improvement systematically identified", done:false},
+    {id:"10_2_2", text:"Improvement initiatives linked to AI policy objectives", done:false},
+    {id:"10_2_3", text:"Evidence of continual improvement maintained", done:false},
+  ]},
+];
+
+const ISO27001_CHECKLIST = [
+  {clause:"A.5", title:"Organisational Controls", items:[
+    {id:"27_5_1",text:"Information security policies defined, approved by management",done:true},
+    {id:"27_5_2",text:"Information security roles and responsibilities assigned",done:true},
+    {id:"27_5_3",text:"Segregation of duties implemented for critical functions",done:false},
+    {id:"27_5_4",text:"Management responsibilities for information security communicated",done:true},
+  ]},
+  {clause:"A.8", title:"Asset Management", items:[
+    {id:"27_8_1",text:"Inventory of assets maintained with identified owners",done:false},
+    {id:"27_8_2",text:"Assets classified by confidentiality, integrity, availability",done:false},
+    {id:"27_8_3",text:"Acceptable use policy for information assets documented",done:true},
+    {id:"27_8_4",text:"Return of assets enforced upon employment termination",done:true},
+  ]},
+  {clause:"A.9", title:"Access Control", items:[
+    {id:"27_9_1",text:"Access control policy established and documented",done:true},
+    {id:"27_9_2",text:"User access provisioning and de-provisioning process in place",done:true},
+    {id:"27_9_3",text:"Privileged access rights managed and reviewed",done:false},
+    {id:"27_9_4",text:"Secret authentication information managed securely",done:true},
+  ]},
+  {clause:"A.12",title:"Operations Security", items:[
+    {id:"27_12_1",text:"Documented operating procedures for security operations",done:true},
+    {id:"27_12_2",text:"Change management process established and enforced",done:true},
+    {id:"27_12_3",text:"Malware protection deployed across all endpoints",done:true},
+    {id:"27_12_4",text:"Vulnerability management programme active",done:false},
+  ]},
+];
+
+const GDPR_CHECKLIST = [
+  {clause:"Art.5", title:"Principles of Processing", items:[
+    {id:"gdpr_5_1",text:"Lawfulness, fairness, transparency confirmed for all processing activities",done:true},
+    {id:"gdpr_5_2",text:"Purpose limitation documented per processing activity",done:true},
+    {id:"gdpr_5_3",text:"Data minimisation principle applied and verified",done:false},
+    {id:"gdpr_5_4",text:"Accuracy measures implemented and maintained",done:true},
+  ]},
+  {clause:"Art.30",title:"Records of Processing Activities", items:[
+    {id:"gdpr_30_1",text:"Processing register maintained and kept up to date",done:true},
+    {id:"gdpr_30_2",text:"All processing activities documented with full details",done:false},
+    {id:"gdpr_30_3",text:"Lawful basis recorded for each processing activity",done:false},
+    {id:"gdpr_30_4",text:"Retention periods documented and enforced",done:true},
+  ]},
+  {clause:"Art.35",title:"Data Protection Impact Assessment", items:[
+    {id:"gdpr_35_1",text:"DPIA threshold assessment performed for high-risk processing",done:false},
+    {id:"gdpr_35_2",text:"DPIAs completed for all mandatory processing activities",done:false},
+    {id:"gdpr_35_3",text:"DPIA results reviewed and approved by DPO",done:false},
+    {id:"gdpr_35_4",text:"6-monthly DPIA review cycle established",done:false},
+  ]},
+];
+
+const CHECKLISTS_MAP = {
+  caio: [{key:"iso42001", label:"ISO 42001 AIMS", data:ISO42001_CHECKLIST}],
+  ciso: [{key:"iso27001", label:"ISO 27001", data:ISO27001_CHECKLIST}],
+  cio:  [{key:"iso27001", label:"ISO 27001", data:ISO27001_CHECKLIST}],
+  cdpo: [{key:"gdpr", label:"GDPR", data:GDPR_CHECKLIST}],
+  cgo:  [{key:"iso42001", label:"ISO 42001 AIMS", data:ISO42001_CHECKLIST},{key:"iso27001", label:"ISO 27001", data:ISO27001_CHECKLIST},{key:"gdpr", label:"GDPR", data:GDPR_CHECKLIST}],
+};
+
+/* ─────────────────────────────────────────────
+   PLAYBOOK DATA
+───────────────────────────────────────────── */
+const PLAYBOOK = {
+  caio:[
+    {id:1,title:"LLM v2 Production Deployment",priority:"Critical",status:"Awaiting Approval",due:"May 10",fw:"EU AI Act Art.6",owner:"You (CAIO)",collab:"CISO, Legal, Engineering",hitl:true,desc:"Customer-facing LLM for support automation. High-Risk under EU AI Act Art.6. Bias assessment passed (95.2% fairness). Transparency docs 80% complete — Art.13 disclosure pending before go-live."},
+    {id:2,title:"EU AI Act Art.9 Risk Management System",priority:"Critical",status:"In Progress",due:"May 30",fw:"EU AI Act",owner:"You (CAIO)",collab:"GRC, Legal",hitl:false,desc:"Mandatory risk management system for all High-Risk AI systems. Requires ISO 42001 Clause 8.2/8.3 alignment and documented treatment plans."},
+    {id:3,title:"AI Model Inventory — Risk Classification",priority:"High",status:"In Progress",due:"May 25",fw:"ISO 42001 C.8.4",owner:"AI Governance Lead",collab:"You (CAIO), All BUs",hitl:false,desc:"17 production models. 3 unclassified under EU AI Act risk tiers. ISO 42001 Clause 8.4 requires all system objectives documented before deployment."},
+    {id:4,title:"Model Card Documentation Suite",priority:"Medium",status:"In Progress",due:"Jun 5",fw:"ISO 42001",owner:"ML Engineering",collab:"You (CAIO), Product",hitl:false,desc:"Standardised model cards for all 17 production models per ISO 42001 Annex A data documentation requirements. 7 of 17 complete."},
+    {id:5,title:"AI Transparency Report Q2 2026",priority:"High",status:"Scheduled",due:"Jun 30",fw:"EU AI Act Art.13",owner:"You (CAIO)",collab:"Comms, Legal",hitl:true,desc:"Mandatory public transparency report per EU AI Act Art.13. Covers AI systems in use, training data sources, human oversight mechanisms, known limitations."},
+  ],
+  ciso:[
+    {id:1,title:"GDPR Art.35 DPIA — Analytics Platform",priority:"Critical",status:"Overdue",due:"May 2",fw:"GDPR Art.35",owner:"You (CISO)",collab:"DPO, Legal",hitl:true,desc:"Processing >10,000 EU data subjects with behavioural profiling. Active GDPR violation — platform live without completed DPIA. 2 days overdue."},
+    {id:2,title:"ISO 27001 Annex A.8.2 Gap Remediation",priority:"High",status:"In Progress",due:"May 20",fw:"ISO 27001 A.8",owner:"GRC Manager",collab:"You (CISO), IT Ops",hitl:false,desc:"143 assets — 47 unclassified. Closing A.8.2 gap before Q3 certification audit. Asset classification taxonomy in review."},
+    {id:3,title:"Vendor Security Assessment — Stripe",priority:"High",status:"In Progress",due:"May 9",fw:"SOC 2",owner:"You (CISO)",collab:"Legal, Procurement",hitl:false,desc:"Quarterly security review of payment processor. Reviewing SOC 2 Type II report, penetration test results, and contractual obligations."},
+    {id:4,title:"Incident Response Playbook v3",priority:"Medium",status:"In Review",due:"May 15",fw:"NIST CSF",owner:"SecOps Lead",collab:"You (CISO), Legal",hitl:true,desc:"Annual update incorporating Q1 incident lessons. Adds ransomware scenario and updated escalation chains. All reviews complete — awaiting CISO approval."},
+    {id:5,title:"Zero Trust Architecture Phase 2",priority:"High",status:"Scheduled",due:"May 28",fw:"NIST CSF",owner:"IT Architect",collab:"You (CISO), CIO",hitl:false,desc:"Microsegmentation and identity verification across all cloud workloads. 847 endpoints in scope. CIO co-owns budget sign-off."},
+  ],
+  cio:[
+    {id:1,title:"EU Data Residency Remediation — S3",priority:"Critical",status:"Overdue",due:"May 1",fw:"GDPR Art.46",owner:"Cloud Architect",collab:"You (CIO), CISO",hitl:true,desc:"3 S3 buckets storing EU PII in us-east-1. No transfer mechanism — GDPR Art.46 violation. AWS DataSync migration to eu-west-1 ready. 48h execution."},
+    {id:2,title:"Zero Trust Phase 2 — Sign-off",priority:"Critical",status:"Awaiting Approval",due:"May 8",fw:"NIST CSF",owner:"You (CIO)",collab:"CISO, IT Ops",hitl:true,desc:"847 endpoints. $340k pre-approved. CISO approved security architecture. Implementation window closes May 15 for Q3 audit readiness."},
+    {id:3,title:"FY25 IT Strategic Roadmap Review",priority:"High",status:"In Progress",due:"May 20",fw:"Internal",owner:"You (CIO)",collab:"CFO, All VPs",hitl:false,desc:"5 of 34 initiatives at risk. Cloud migration and AI infrastructure budget lines need executive discussion before Q3 commitment."},
+    {id:4,title:"Vendor Contract Renewal — ServiceNow",priority:"High",status:"Overdue",due:"Apr 30",fw:"SOC 2",owner:"Procurement",collab:"You (CIO), Finance",hitl:false,desc:"$1.2M ACV 3-year renewal. Legal reviewing updated DPA. Security questionnaire submitted. Operating on expired contract — risk of service disruption."},
+    {id:5,title:"Disaster Recovery Test Q2",priority:"Medium",status:"Scheduled",due:"Jun 15",fw:"ISO 27001 A.17",owner:"IT Ops Lead",collab:"You (CIO), CISO",hitl:false,desc:"Full failover across 3 regions. RTO target: 4 hours. Last test: 6.5 hours — improvement required before Q3 audit."},
+  ],
+  cdpo:[
+    {id:1,title:"GDPR Art.35 DPIA — Analytics Platform",priority:"Critical",status:"Overdue",due:"May 2",fw:"GDPR Art.35",owner:"You (CDPO)",collab:"CISO, Legal",hitl:true,desc:"Platform live without DPIA. Processing >10k EU data subjects via behavioural profiling. Active Art.35 violation — supervisory authority risk. 2 days overdue."},
+    {id:2,title:"Data Processing Register Audit",priority:"High",status:"In Progress",due:"May 20",fw:"GDPR Art.30",owner:"You (CDPO)",collab:"All Dept Heads",hitl:false,desc:"143 processing activities. 12 have no confirmed lawful basis under Art.6. Full audit and BU sign-off required before next DPA enquiry window."},
+    {id:3,title:"DSR Queue — 4 Approaching Deadline",priority:"Critical",status:"Urgent",due:"Various",fw:"GDPR Art.12",owner:"You (CDPO)",collab:"Legal, IT Ops",hitl:false,desc:"4 data subject access requests approaching 30-day GDPR deadline. Two require manual extraction from legacy CRM — technical team engaged."},
+    {id:4,title:"US Vendor SCC Review",priority:"High",status:"In Progress",due:"May 30",fw:"GDPR Art.46",owner:"Privacy Team",collab:"You (CDPO), Legal",hitl:true,desc:"8 US vendors processing EU personal data. Post-Schrems II SCCs required. 3 TIAs complete. 5 pending — processing pause notices drafted."},
+    {id:5,title:"Privacy by Design — Q3 Product Launch",priority:"Medium",status:"Scheduled",due:"Jun 10",fw:"GDPR Art.25",owner:"You (CDPO)",collab:"Product, Engineering",hitl:false,desc:"Mandatory PbD review for Q3 product feature. Checklist must be signed off before design approval. ISO 27701 alignment required."},
+  ],
+  cgo:[
+    {id:1,title:"Enterprise GRC Framework Rollout",priority:"Critical",status:"In Progress",due:"May 31",fw:"COBIT 5 / COSO ERM",owner:"You (CGO)",collab:"CISO, CAIO, CIO, CDPO",hitl:true,desc:"Deploying unified GRC framework across all five governance domains. COBIT 5 process model mapped to enterprise risk appetite. Cross-functional sign-off required from all role leads."},
+    {id:2,title:"Board Governance Report — Q2 2026",priority:"Critical",status:"Awaiting Approval",due:"May 15",fw:"COSO ERM",owner:"You (CGO)",collab:"CEO, CFO, All C-Suite",hitl:true,desc:"Quarterly board-level governance report consolidating enterprise risk score, regulatory compliance posture, AI governance maturity, and privacy risk. Requires CGO sign-off before board submission."},
+    {id:3,title:"Regulatory Change Management — EU AI Act",priority:"High",status:"In Progress",due:"Jun 30",fw:"EU AI Act / ISO 42001",owner:"You (CGO)",collab:"CAIO, Legal, GRC Team",hitl:false,desc:"Monitoring and operationalising EU AI Act enforcement changes (August 2026). Coordinating impact assessment across CAIO, CISO, and CDPO. Gap analysis in progress."},
+    {id:4,title:"Enterprise Risk Register — Annual Refresh",priority:"High",status:"In Progress",due:"May 25",fw:"ISO 31000",owner:"Risk Manager",collab:"You (CGO), All Leads",hitl:false,desc:"Annual refresh of the enterprise risk register per ISO 31000. 47 risks under review. 8 new AI-related risks added. CGO owns sign-off and board presentation."},
+    {id:5,title:"Third-Party Governance Programme",priority:"Medium",status:"Scheduled",due:"Jun 20",fw:"COBIT 5 / ISO 31000",owner:"You (CGO)",collab:"CISO, Procurement, Legal",hitl:false,desc:"Establishing enterprise-wide third-party risk governance programme. Vendor tiering, due diligence standards, and ongoing monitoring framework. Aligns all domain-specific vendor risk activities."},
+  ],
+};
+
+/* ─────────────────────────────────────────────
+   HITL DATA
+───────────────────────────────────────────── */
+const HITL = {
+  caio:[
+    {id:"hc1",title:"LLM v2 — Production Deployment",risk:"Critical",conf:87,time:"Go-live in 6 days",clause:"ISO 42001 C.8.5 / EU AI Act Art.6",reasoning:"High-Risk classification under EU AI Act Art.6 confirmed. Bias assessment passed — 95.2% fairness score across 4 demographic groups. ISO 42001 Clause 8.5 deployment compliance verified. Art.13 transparency disclosure 80% complete. Conditional deployment is permissible under Art.6(4) with monitoring obligations confirmed in writing by CAIO.",action:"Approve conditional deployment with real-time bias monitoring and 30-day CAIO review checkpoint"},
+    {id:"hc2",title:"AI Transparency Report Q1 — Publish",risk:"High",conf:82,time:"Pending 1 day",clause:"EU AI Act Art.13",reasoning:"Report reviewed by Legal and Comms. EU AI Act Art.13 disclosures verified for 14/17 systems. One training data source flag requires CAIO judgment: publicly-scraped web data — disclosure approach is legally ambiguous between two options provided by Legal.",action:"Review training data disclosure options and approve publication with chosen approach"},
+  ],
+  ciso:[
+    {id:"hs1",title:"GDPR Art.35 DPIA — Analytics Platform",risk:"Critical",conf:97,time:"2 days overdue",clause:"GDPR Art.35 / ISO 27001 A.18",reasoning:"Processing >10k EU data subjects with behavioural profiling triggers mandatory DPIA under Art.35. Platform is live and processing without completed DPIA — active GDPR violation. Legal confirmed. DPO standing by. ISO 27001 A.18.1 compliance requires CISO sign-off.",action:"Submit DPIA to DPO and initiate processing suspension assessment within 24 hours"},
+    {id:"hs2",title:"Incident Response Playbook v3 — Publish",risk:"Medium",conf:96,time:"Pending 3 days",clause:"NIST CSF RS.RP",reasoning:"All stakeholder reviews complete. Legal approved. SecOps signed off. AI cross-referenced against ISO 27001 Annex A controls — no conflicts. Adds ransomware scenario currently absent from organisation response capability.",action:"Approve publication and distribution to all staff and relevant third parties"},
+  ],
+  cio:[
+    {id:"hi1",title:"Zero Trust Phase 2 — Implementation",risk:"Critical",conf:91,time:"Pending 4 days",clause:"NIST CSF PR.AC",reasoning:"CISO approved architecture. 847 endpoints validated. $340k pre-approved by CFO. Implementation window closes May 15. Delay risks Q3 audit readiness. NIST CSF PR.AC-1 requires CITO/CIO formal approval before deployment.",action:"Approve implementation kickoff and issue purchase order to delivery partner"},
+    {id:"hi2",title:"S3 Data Residency — Emergency Migration",risk:"Critical",conf:98,time:"Overdue 3 days",clause:"GDPR Art.46",reasoning:"3 S3 buckets confirmed storing EU PII in us-east-1 with no transfer mechanism in place. Active GDPR Art.46 violation. Legal confirmed. DataSync migration plan to eu-west-1 ready — 48 hours, zero data loss confirmed by Cloud Architecture.",action:"Approve emergency migration execution — 48-hour window confirmed"},
+  ],
+  cdpo:[
+    {id:"hd1",title:"GDPR Art.35 DPIA — Analytics Platform",risk:"Critical",conf:97,time:"2 days overdue",clause:"GDPR Art.35",reasoning:"Platform processes behavioural data for >10k EU subjects. Art.35 DPIA mandatory before processing begins. Platform went live without one. DPIA 90% complete. Supervisory authority notification risk increasing daily. CDPO sign-off required to submit.",action:"Sign off DPIA and instruct Legal to submit to supervisory authority within 24 hours"},
+    {id:"hd2",title:"US Vendor SCCs — Batch Approval",risk:"High",conf:89,time:"Pending 5 days",clause:"GDPR Art.46 / Schrems II",reasoning:"8 US vendors process EU personal data. Post-Schrems II SCCs and TIAs required. 3 vendors TIA-complete — Legal approved. 5 vendors TIA-incomplete — data processing should pause under Art.46. Legal drafted pause notices.",action:"Approve SCCs for 3 validated vendors and authorise pause notices to 5 pending"},
+  ],
+  cgo:[
+    {id:"hg1",title:"Board Governance Report Q2 — Final Approval",risk:"Critical",conf:95,time:"Due in 2 days",clause:"COSO ERM / COBIT 5 ME4",reasoning:"Quarterly board pack consolidates enterprise risk score (72/100), AI governance maturity (69%), privacy compliance (78%), and cybersecurity posture (72%). All contributing leads have submitted their sections. Legal reviewed. CGO sign-off is the final gate before CEO submission to the Board.",action:"Approve Q2 Board Governance Report and release to CEO for board submission"},
+    {id:"hg2",title:"EU AI Act Gap — Cross-functional Remediation Plan",risk:"High",conf:88,time:"Pending 3 days",clause:"EU AI Act Art.9 / ISO 42001 C.6.1",reasoning:"AI scored 72% EU AI Act conformity against an August 2026 enforcement deadline. CAIO, CISO, and CDPO have each submitted gap remediation plans. AI has consolidated them into a unified cross-functional plan. CGO must approve the unified plan and assign executive accountability before execution begins.",action:"Approve unified EU AI Act remediation plan and assign executive ownership per workstream"},
+  ],
+};
+
+/* ─────────────────────────────────────────────
+   ROLE-SPECIFIC KPI & STANDARDS DATA
+───────────────────────────────────────────── */
+const KPI = {
+  caio:{compliance:72,cTrend:4,incidents:1,iTrend:0,risks:8,rTrend:-1,hitl:2,overdue:0,
+    score:69, scoreLabel:"Moderate", scoreTrend:6,
+    domainLabel:"AI Governance Score"},
+  ciso:{compliance:82,cTrend:3,incidents:2,iTrend:-1,risks:14,rTrend:-2,hitl:2,overdue:1,
+    score:72, scoreLabel:"Moderate", scoreTrend:8,
+    domainLabel:"Enterprise Risk Score"},
+  cio: {compliance:81,cTrend:2,incidents:3,iTrend:1,risks:19,rTrend:2,hitl:2,overdue:2,
+    score:74, scoreLabel:"Good", scoreTrend:5,
+    domainLabel:"IT Operations Score"},
+  cdpo:{compliance:78,cTrend:3,incidents:0,iTrend:-1,risks:11,rTrend:0,hitl:2,overdue:1,
+    score:81, scoreLabel:"Good", scoreTrend:7,
+    domainLabel:"Privacy Score"},
+  cgo: {compliance:76,cTrend:5,incidents:1,iTrend:-1,risks:23,rTrend:-3,hitl:2,overdue:1,
+    score:74, scoreLabel:"Developing", scoreTrend:5,
+    domainLabel:"Governance Maturity Score"},
+};
+
+/* Role-specific KPI tables from reference image */
+const ROLE_KPIS = {
+  ciso:[
+    {cat:"Threat Detection",   kpi:"Mean Time to Detect (MTTD)",   target:"< 15 mins",  threshold:"> 30 mins",  fw:"NIST CSF",    status:"Critical", value:"22 min"},
+    {cat:"Incident Response",  kpi:"Mean Time to Respond (MTTR)",  target:"< 60 mins",  threshold:"> 4 hrs",    fw:"ISO 27001",   status:"Alert",    value:"47 min"},
+    {cat:"Vulnerability Mgmt", kpi:"Critical Patch SLA",           target:"96% in 7d",  threshold:"< 90%",      fw:"CIS Controls",status:"Alert",    value:"91%"},
+    {cat:"Security Posture",   kpi:"Security Score",                target:"> 90/100",   threshold:"< 75",       fw:"Internal",    status:"Critical", value:"72"},
+    {cat:"IAM Governance",     kpi:"MFA Coverage",                 target:"100%",       threshold:"< 95%",      fw:"NIST Identity",status:"Alert",   value:"94%"},
+    {cat:"SOC Efficiency",     kpi:"False Positive Rate",          target:"< 10%",      threshold:"> 20%",      fw:"SOC Maturity",status:"Good",     value:"8%"},
+    {cat:"Endpoint Security",  kpi:"Endpoint Compliance",          target:"> 98%",      threshold:"< 90%",      fw:"MS Security", status:"Good",     value:"98.2%"},
+    {cat:"Third-Party Risk",   kpi:"Vendor Risk Index",            target:"< 20",       threshold:"> 60 High",  fw:"SIG Assess.", status:"High",     value:"34"},
+    {cat:"Cloud Security",     kpi:"Misconfiguration Count",       target:"Zero",       threshold:"> 5",        fw:"CSA CCM",     status:"Critical", value:"8"},
+    {cat:"Regulatory Security",kpi:"Compliance Adherence",         target:"> 95%",      threshold:"< 85%",      fw:"ISO/NIST/SOC2",status:"Alert",   value:"82%"},
+  ],
+  cio:[
+    {cat:"IT Operations",      kpi:"System Availability",          target:"99.99%",     threshold:"< 99.5%",    fw:"ITIL",        status:"Good",     value:"99.96%"},
+    {cat:"Digital Transform.", kpi:"Automation Coverage",          target:"> 70%",      threshold:"< 40%",      fw:"Hyperauto. Maturity",status:"Alert", value:"52%"},
+    {cat:"Cloud Efficiency",   kpi:"Cloud Cost Optimisation",      target:"20-30% Sav.",threshold:"Overspend",  fw:"FinOps",      status:"Alert",    value:"12% Sav."},
+    {cat:"Service Management", kpi:"Ticket Resolution < SLA",      target:"98% (P1)",   threshold:"< 8 hrs",    fw:"ITIL",        status:"Alert",    value:"91%"},
+    {cat:"Infrastructure",     kpi:"Capacity Utilisation",         target:"70-80%",     threshold:"< 90% Risk", fw:"DCIM Std.",   status:"Good",     value:"76%"},
+    {cat:"Business Continuity",kpi:"RTO Achievement",              target:"< 2 hrs",    threshold:"> 6 hrs",    fw:"ISO 22301",   status:"Good",     value:"1.8 hrs"},
+    {cat:"Enterprise Arch.",   kpi:"Technical Debt Score",         target:"< 15%",      threshold:"N/A",        fw:"TOGAF",       status:"Good",     value:"11%"},
+    {cat:"Employee Experience",kpi:"Digital Workplace Satisfaction",target:"> 85%",     threshold:"< 70%",      fw:"EX Maturity", status:"Alert",    value:"71%"},
+    {cat:"AI Adoption",        kpi:"AI Utilisation Index",         target:"> 60%",      threshold:"< 25%",      fw:"AI Maturity", status:"Alert",    value:"38%"},
+    {cat:"Governance",         kpi:"Change Failure Rate",          target:"< 5%",       threshold:"> 15%",      fw:"DevOps Metrics",status:"Alert",  value:"9%"},
+  ],
+  cdpo:[
+    {cat:"Privacy Compliance", kpi:"Consent Validity",             target:"> 98%",      threshold:"< 90%",      fw:"GDPR",        status:"Alert",    value:"94%"},
+    {cat:"DSAR Management",    kpi:"DSAR Closure Time",            target:"< 15 days",  threshold:"> 25 days",  fw:"GDPR/DPDP",   status:"Alert",    value:"18 days"},
+    {cat:"Data Classification",kpi:"Classified Data Coverage",     target:"100%",       threshold:"< 85%",      fw:"ISO 27701",   status:"Alert",    value:"81%"},
+    {cat:"Privacy Incidents",  kpi:"Privacy Breach Count",         target:"Zero",       threshold:"> 1 Major",  fw:"GDPR/DPDP",   status:"Good",     value:"0"},
+    {cat:"Data Retention",     kpi:"Expired Data Purge",           target:"100%",       threshold:"< 90%",      fw:"Privacy Laws",status:"Alert",    value:"87%"},
+    {cat:"Data Discovery",     kpi:"Shadow Data Detection",        target:"Continuous", threshold:"Unscanned Assets",fw:"DSPM",   status:"Alert",    value:"14 assets"},
+    {cat:"Third-Party Privacy",kpi:"Vendor DPA Compliance",        target:"> 90%",      threshold:"< 80%",      fw:"GDPR Art.28", status:"Alert",    value:"84%"},
+    {cat:"Data Residency",     kpi:"Residency Violations",         target:"Zero",       threshold:"> 0 Severe", fw:"Sovereignty Laws",status:"Good", value:"0"},
+    {cat:"AI Ethics",          kpi:"Sensitive Data in AI Models",  target:"Zero Exposure",threshold:"Any Exposure",fw:"ISO 42001",status:"Critical","value":"3 models"},
+    {cat:"Regulatory Readiness",kpi:"Audit Readiness Score",       target:"> 95%",      threshold:"< 80%",      fw:"DPDP/GDPR/CCPA",status:"Alert", value:"78%"},
+  ],
+  caio:[
+    {cat:"AI Risk",            kpi:"High-Risk AI Systems Governed", target:"100%",      threshold:"< 90%",      fw:"EU AI Act",   status:"Alert",    value:"82%"},
+    {cat:"Model Performance",  kpi:"Avg. Model Accuracy",          target:"> 92%",      threshold:"< 80%",      fw:"ISO 42001",   status:"Good",     value:"91.3%"},
+    {cat:"Bias & Fairness",    kpi:"Fairness Score (avg.)",        target:"> 95%",      threshold:"< 85%",      fw:"NIST AI RMF", status:"Alert",    value:"89.4%"},
+    {cat:"AI Transparency",    kpi:"Model Cards Complete",         target:"100%",       threshold:"< 80%",      fw:"ISO 42001",   status:"Alert",    value:"7/17"},
+    {cat:"AI Incidents",       kpi:"AI Incident Response Time",    target:"< 4 hrs",    threshold:"> 24 hrs",   fw:"ISO 42001",   status:"Good",     value:"3.2 hrs"},
+    {cat:"HITL Compliance",    kpi:"HITL Override Rate",           target:"< 5%",       threshold:"> 15%",      fw:"EU AI Act",   status:"Good",     value:"3.1%"},
+    {cat:"Data Governance",    kpi:"Training Data Provenance",     target:"100%",       threshold:"< 90%",      fw:"ISO 42001",   status:"Alert",    value:"76%"},
+    {cat:"Regulatory",         kpi:"EU AI Act Conformity",         target:"100%",       threshold:"< 80%",      fw:"EU AI Act",   status:"Critical", value:"72%"},
+    {cat:"Model Monitoring",   kpi:"Drift Detection Coverage",     target:"100%",       threshold:"< 80%",      fw:"NIST AI RMF", status:"Alert",    value:"61%"},
+    {cat:"AI Ethics",          kpi:"Ethical Review Completion",    target:"100%",       threshold:"< 90%",      fw:"ISO 42001",   status:"Good",     value:"94%"},
+  ],
+  cgo:[
+    {cat:"Governance Maturity",  kpi:"GRC Framework Maturity",        target:"Level 4",    threshold:"< Level 2",  fw:"COBIT 5",     status:"Alert",    value:"Level 3"},
+    {cat:"Enterprise Risk",      kpi:"Enterprise Risk Score",          target:"> 80/100",   threshold:"< 60/100",   fw:"COSO ERM",    status:"Alert",    value:"72/100"},
+    {cat:"Regulatory Readiness", kpi:"Regulatory Compliance Rate",     target:"> 95%",      threshold:"< 80%",      fw:"ISO 31000",   status:"Alert",    value:"76%"},
+    {cat:"Policy Governance",    kpi:"Policies Reviewed (Annual)",     target:"100%",       threshold:"< 90%",      fw:"COBIT 5",     status:"Alert",    value:"84%"},
+    {cat:"Third-Party Risk",     kpi:"Vendor Risk Assessments Done",   target:"100%",       threshold:"< 75%",      fw:"ISO 31000",   status:"Critical", value:"61%"},
+    {cat:"Audit Management",     kpi:"Audit Findings Closed (90d)",    target:"> 90%",      threshold:"< 70%",      fw:"COBIT 5",     status:"Alert",    value:"77%"},
+    {cat:"Cross-Functional",     kpi:"Cross-role HITL Coordination",   target:"100%",       threshold:"< 80%",      fw:"GRC Integ.",  status:"Good",     value:"96%"},
+    {cat:"Board Reporting",      kpi:"Board Pack On-Time Delivery",    target:"100%",       threshold:"< 90%",      fw:"COSO ERM",    status:"Good",     value:"100%"},
+    {cat:"Incident Governance",  kpi:"Major Incidents Governed",       target:"100%",       threshold:"< 85%",      fw:"ISO 31000",   status:"Good",     value:"100%"},
+    {cat:"AI Governance Ovrsght",kpi:"AI Risk Items Reviewed (CGO)",   target:"100%",       threshold:"< 80%",      fw:"EU AI Act",   status:"Alert",    value:"82%"},
+  ],
+};
+
+/* Role-specific domain metrics for dashboard cards */
+const DOMAIN_METRICS = {
+  ciso:[
+    {label:"Cybersecurity Score",    value:78, unit:"/100", color:"#4B7BF5", trend:6,  fw:"NIST CSF"},
+    {label:"Threat Detection (MTTD)",value:22, unit:" min",  color:"#E84040", trend:-8, fw:"NIST CSF"},
+    {label:"MFA Coverage",           value:94, unit:"%",     color:"#E8A020", trend:2,  fw:"ISO 27001"},
+    {label:"Vendor Risk Index",       value:34, unit:"",      color:"#E8A020", trend:-4, fw:"SIG"},
+    {label:"Patch Compliance",        value:91, unit:"%",     color:"#1FB864", trend:3,  fw:"CIS"},
+    {label:"Open Vulnerabilities",    value:14, unit:"",      color:"#E84040", trend:-2, fw:"CVE"},
+  ],
+  cio:[
+    {label:"System Availability",    value:99.96,unit:"%",   color:"#1FB864", trend:0,  fw:"ITIL"},
+    {label:"RTO Achievement",        value:1.8, unit:" hrs",  color:"#1FB864", trend:-0.3,fw:"ISO 22301"},
+    {label:"Cloud Cost Savings",     value:12,  unit:"%",    color:"#E8A020", trend:5,  fw:"FinOps"},
+    {label:"Ticket SLA (P1)",        value:91,  unit:"%",    color:"#E8A020", trend:-3, fw:"ITIL"},
+    {label:"Automation Coverage",    value:52,  unit:"%",    color:"#E8A020", trend:8,  fw:"DevOps"},
+    {label:"Change Failure Rate",    value:9,   unit:"%",    color:"#E84040", trend:-1, fw:"DevOps"},
+  ],
+  cdpo:[
+    {label:"DSAR Closure (avg.)",    value:18,  unit:" days", color:"#E8A020", trend:-3, fw:"GDPR"},
+    {label:"Consent Validity",       value:94,  unit:"%",    color:"#E8A020", trend:2,  fw:"GDPR"},
+    {label:"Vendor DPA Compliance",  value:84,  unit:"%",    color:"#E8A020", trend:5,  fw:"Art.28"},
+    {label:"Data Classification",    value:81,  unit:"%",    color:"#E8A020", trend:4,  fw:"ISO 27701"},
+    {label:"Audit Readiness Score",  value:78,  unit:"%",    color:"#E84040", trend:6,  fw:"GDPR"},
+    {label:"Residency Violations",   value:0,   unit:"",     color:"#1FB864", trend:0,  fw:"Sovereignty"},
+  ],
+  caio:[
+    {label:"EU AI Act Conformity",   value:72,  unit:"%",    color:"#E84040", trend:4,  fw:"EU AI Act"},
+    {label:"Model Cards Complete",   value:7,   unit:"/17",  color:"#E8A020", trend:2,  fw:"ISO 42001"},
+    {label:"Avg. Model Accuracy",    value:91.3,unit:"%",    color:"#1FB864", trend:1.3,fw:"ISO 42001"},
+    {label:"Fairness Score",         value:89.4,unit:"%",    color:"#E8A020", trend:2.1,fw:"NIST AI RMF"},
+    {label:"Drift Detection Cvg.",   value:61,  unit:"%",    color:"#E84040", trend:8,  fw:"NIST AI RMF"},
+    {label:"HITL Override Rate",     value:3.1, unit:"%",    color:"#1FB864", trend:-1, fw:"EU AI Act"},
+  ],
+  cgo:[
+    {label:"GRC Maturity Level",     value:"L3",unit:"",     color:"#E8A020", trend:1,  fw:"COBIT 5"},
+    {label:"Enterprise Risk Score",  value:72,  unit:"/100", color:"#E8A020", trend:5,  fw:"COSO ERM"},
+    {label:"Regulatory Compliance",  value:76,  unit:"%",    color:"#E8A020", trend:5,  fw:"ISO 31000"},
+    {label:"Vendor Risk Assessed",   value:61,  unit:"%",    color:"#E84040", trend:8,  fw:"ISO 31000"},
+    {label:"Audit Findings Closed",  value:77,  unit:"%",    color:"#E8A020", trend:4,  fw:"COBIT 5"},
+    {label:"Board Pack On-Time",     value:100, unit:"%",    color:"#1FB864", trend:0,  fw:"COSO ERM"},
+  ],
+};
+
+const STANDARDS_MAP = {
+  ciso:[
+    {std:"ISO 27001", applies:"Security Compliance",   status:"Active", score:65},
+    {std:"NIST CSF",  applies:"Risk Management",       status:"Active", score:79},
+    {std:"SOC 2 II",  applies:"Audit & Assurance",     status:"Active", score:91},
+    {std:"GDPR",      applies:"Privacy Security",      status:"Active", score:88},
+    {std:"PCI-DSS",   applies:"Payment Security",      status:"Active", score:83},
+    {std:"CIS Controls",applies:"Security Baseline",   status:"Active", score:77},
+  ],
+  cio:[
+    {std:"ITIL 4",    applies:"IT Service Management", status:"Active", score:84},
+    {std:"ISO 22301", applies:"Business Continuity",   status:"Active", score:79},
+    {std:"TOGAF",     applies:"Enterprise Architecture",status:"Active",score:71},
+    {std:"COBIT 5",   applies:"Governance Maturity",   status:"Active", score:68},
+    {std:"ISO 27001", applies:"IT Security",           status:"Active", score:65},
+    {std:"NIST CSF",  applies:"Risk Maturity",         status:"Active", score:79},
+  ],
+  cdpo:[
+    {std:"GDPR",        applies:"Privacy Compliance",  status:"Active", score:81},
+    {std:"ISO 27701",   applies:"Privacy Gov.",        status:"Active", score:63},
+    {std:"CCPA/CPRA",   applies:"US Privacy",          status:"Active", score:77},
+    {std:"ePrivacy",    applies:"Cookie & Comms",      status:"Active", score:70},
+    {std:"DPDP Act",    applies:"India Privacy",       status:"Building",score:45},
+    {std:"HIPAA",       applies:"Healthcare Privacy",  status:"N/A",    score:0},
+  ],
+  caio:[
+    {std:"EU AI Act",   applies:"AI Compliance",       status:"Active", score:72},
+    {std:"ISO 42001",   applies:"AI Management System",status:"Active", score:58},
+    {std:"NIST AI RMF", applies:"AI Risk Management",  status:"Active", score:74},
+    {std:"GDPR Art.22", applies:"Automated Decisions", status:"Active", score:83},
+    {std:"ISO 42001 A", applies:"Annex A Controls",    status:"Building",score:61},
+    {std:"IEEE 7000",   applies:"Ethical AI Design",   status:"Planned",score:40},
+  ],
+  cgo:[
+    {std:"COBIT 5",     applies:"GRC & Governance",    status:"Active", score:68},
+    {std:"COSO ERM",    applies:"Enterprise Risk Mgmt",status:"Active", score:72},
+    {std:"ISO 31000",   applies:"Risk Management",     status:"Active", score:74},
+    {std:"ISO 27001",   applies:"Security Oversight",  status:"Active", score:65},
+    {std:"ISO 42001",   applies:"AI Governance Ovrsght",status:"Active",score:58},
+    {std:"GDPR",        applies:"Privacy Oversight",   status:"Active", score:81},
+  ],
+};
+
+
+
+/* ─────────────────────────────────────────────
+   AIRA DATA (ISO 42001-aligned)
+───────────────────────────────────────────── */
+const AIRA = [
+  {id:"r1",system:"LLM v2 (Customer Support)",category:"Bias & Fairness",likelihood:4,impact:5,score:20,level:"Critical",owner:"CAIO",clause:"ISO 42001 C.8.2 / EU AI Act Art.9",desc:"Model exhibits differential response quality across demographic groups. Disproportionate impact on non-native English speakers identified in bias testing. EU AI Act Art.9 risk management system must document this."},
+  {id:"r2",system:"Credit Scoring AI",category:"Transparency",likelihood:3,impact:5,score:15,level:"High",owner:"CAIO / Legal",clause:"EU AI Act Art.13 / GDPR Art.22",desc:"Decision logic opaque to affected individuals. Art.22 requires meaningful explanation for automated decisions with legal effect. Model cards incomplete."},
+  {id:"r3",system:"HR Recruitment AI",category:"Regulatory Compliance",likelihood:4,impact:4,score:16,level:"High",owner:"HR / CAIO",clause:"EU AI Act Annex III / ISO 42001 C.8.4",desc:"Potential EU AI Act High-Risk classification as employment-related AI. Conformity assessment may be required. ISO 42001 Clause 8.4 design documentation incomplete."},
+  {id:"r4",system:"Fraud Detection Model",category:"Data Privacy",likelihood:2,impact:4,score:8,level:"Medium",owner:"CISO",clause:"ISO 42001 C.7.2 / GDPR Art.5",desc:"Training dataset contains unmasked PII. ISO 42001 Clause 7.2 data resource requirements (provenance, bias identification) not fully documented."},
+  {id:"r5",system:"Document Summarisation AI",category:"Hallucination Risk",likelihood:3,impact:3,score:9,level:"Medium",owner:"Product",clause:"ISO 42001 C.9.1",desc:"Model produces confident incorrect summaries. ISO 42001 Clause 9.1 monitoring not yet tracking hallucination rate. Risk of decisions made on AI-fabricated content."},
+  {id:"r6",system:"Predictive Maintenance AI",category:"Safety",likelihood:2,impact:5,score:10,level:"Medium",owner:"Engineering",clause:"EU AI Act Annex III / ISO 42001 C.8.5",desc:"Incorrect predictions could cause equipment failure and physical harm. Potential High-Risk classification under EU AI Act Annex III. ISO 42001 C.8.5 kill-switch not implemented."},
+];
+
+/* ─────────────────────────────────────────────
+   AIRT DATA
+───────────────────────────────────────────── */
+const AIRT = [
+  {id:"t1",riskId:"r1",system:"LLM v2",risk:"Bias & Fairness",treatment:"Mitigate",action:"Deploy continuous bias monitoring with automated alerts. Retrain on balanced dataset. Add fairness guardrails pre-go-live. ISO 42001 C.9.1 monitoring framework to track daily.",owner:"CAIO",deadline:"May 15",status:"In Progress",priority:"Critical"},
+  {id:"t2",riskId:"r2",system:"Credit Scoring AI",risk:"Transparency",treatment:"Mitigate",action:"Implement SHAP explainability layer. Generate automated Art.22 decision explanations. Legal to draft disclosure template. ISO 42001 model card to be updated.",owner:"CAIO / Legal",deadline:"May 30",status:"Planned",priority:"High"},
+  {id:"t3",riskId:"r3",system:"HR Recruitment AI",risk:"Regulatory",treatment:"Transfer",action:"Engage EU AI Act consultant for conformity assessment. Suspend system pending classification outcome. ISO 42001 C.8.4 documentation to be completed.",owner:"HR / Legal",deadline:"Jun 15",status:"Planned",priority:"High"},
+  {id:"t4",riskId:"r4",system:"Fraud Detection",risk:"Data Privacy",treatment:"Mitigate",action:"Anonymise training dataset using differential privacy. Re-validate performance post-anonymisation. Update ISO 42001 C.7.2 data documentation.",owner:"CISO / ML Eng",deadline:"Jun 1",status:"In Progress",priority:"Medium"},
+  {id:"t5",riskId:"r5",system:"Document AI",risk:"Hallucination",treatment:"Accept",action:"Mandatory human review for all AI summaries in legal/financial contexts. Display confidence score to users. ISO 42001 C.9.1 hallucination rate tracking added.",owner:"Product",deadline:"May 20",status:"Complete",priority:"Medium"},
+  {id:"t6",riskId:"r6",system:"Predictive Maintenance",risk:"Safety",treatment:"Mitigate",action:"Add hard safety threshold override. Implement fail-safe mode for critical equipment. ISO 42001 C.8.5 kill-switch deployed.",owner:"Engineering",deadline:"Jun 30",status:"Planned",priority:"Medium"},
+];
+
+/* ─────────────────────────────────────────────
+   AIA DATA (AI Impact Assessment)
+───────────────────────────────────────────── */
+const AIA_DATA = [
+  {
+    id:"aia1",system:"LLM v2 Customer Support",date:"May 7, 2026",owner:"Aisha Patel",dept:"AI Governance",vendor:"Anthropic (via API)",status:"Pilot",
+    decisionType:"Human-in-the-Loop",lifespan:"Continuous Deployment",
+    data:{pii:true,sensitive:false,provenance:true,biasCheck:true,minimization:true},
+    populations:["General Public","Employees"],
+    rightsImpact:[
+      {right:"Non-Discrimination",level:"High",desc:"Differential response quality identified across demographic groups. Bias mitigation controls in place."},
+      {right:"Privacy",level:"Medium",desc:"Conversation logs retained 90 days. DPA reviewed. Minimisation applied."},
+      {right:"Access to Justice",level:"Medium",desc:"Escalation path to human agent exists. Override documented."},
+      {right:"Right to Safety",level:"Low",desc:"No physical harm risk. Financial advice explicitly excluded."},
+      {right:"Transparency",level:"High",desc:"AI disclosure notice required before interaction. 80% complete."},
+    ],
+    technical:[
+      {dim:"Accuracy",metric:">95% on test set",pass:true},
+      {dim:"Bias Score (Fairness)",metric:"95.2% fairness across 4 groups",pass:true},
+      {dim:"Robustness",metric:"Tested on adversarial inputs",pass:false},
+      {dim:"Explainability",metric:"Decision rationale available",pass:false},
+      {dim:"Cybersecurity",metric:"Prompt injection protection",pass:true},
+    ],
+    controls:[
+      {measure:"Human Oversight",detail:"Human agent escalation within 2 clicks. Override available at any point."},
+      {measure:"Training",detail:"All operators trained on AI limitations. 6-hour mandatory course."},
+      {measure:"Transparency",detail:"'This response was generated by AI' disclosure. Pending on 20% of flows."},
+      {measure:"Fall-back Plan",detail:"Manual support queue activated if AI confidence < 60%."},
+      {measure:"Stop Mechanism",detail:"Kill-switch in CAIO HITL queue. Automated on critical error rate."},
+    ],
+    overallRisk:"High",
+    decision:"Approved with Conditions",
+    clause:"ISO 42001 C.8.2/8.4/8.5 · EU AI Act Art.6/9/13",
+  },
+  {
+    id:"aia2",system:"HR Recruitment AI",date:"Apr 15, 2026",owner:"Sarah Chen",dept:"Human Resources",vendor:"HireRight AI",status:"Planning",
+    decisionType:"Human-in-the-Loop",lifespan:"Continuous Deployment",
+    data:{pii:true,sensitive:true,provenance:false,biasCheck:false,minimization:false},
+    populations:["General Public","Vulnerable Groups"],
+    rightsImpact:[
+      {right:"Non-Discrimination",level:"High",desc:"Employment AI systems have documented history of reproducing historical biases. Protected characteristics in data not yet assessed."},
+      {right:"Privacy",level:"High",desc:"CV data, interview recordings, psychometric scores processed. DPIA not yet initiated."},
+      {right:"Access to Justice",level:"High",desc:"No appeal mechanism documented for rejected candidates."},
+      {right:"Right to Safety",level:"Low",desc:"No physical safety risk."},
+      {right:"Transparency",level:"High",desc:"Candidates not informed AI is used in screening process."},
+    ],
+    technical:[
+      {dim:"Accuracy",metric:">85% match rate required",pass:false},
+      {dim:"Bias Score",metric:"Not yet tested",pass:false},
+      {dim:"Robustness",metric:"Not yet tested",pass:false},
+      {dim:"Explainability",metric:"Not available from vendor",pass:false},
+      {dim:"Cybersecurity",metric:"Vendor SOC 2 pending",pass:false},
+    ],
+    controls:[
+      {measure:"Human Oversight",detail:"All shortlisting decisions reviewed by HR. Not yet implemented."},
+      {measure:"Training",detail:"HR training on AI bias not yet conducted."},
+      {measure:"Transparency",detail:"Candidate disclosure not yet designed."},
+      {measure:"Fall-back Plan",detail:"Manual screening process documented."},
+      {measure:"Stop Mechanism",detail:"Not yet defined."},
+    ],
+    overallRisk:"Unacceptable",
+    decision:"Rejected",
+    clause:"EU AI Act Annex III · ISO 42001 C.8.4 · GDPR Art.35",
+  },
+];
+
+/* ─────────────────────────────────────────────
+   ONBOARDING
+───────────────────────────────────────────── */
+const ONBOARD = {
+  caio:[
+    {id:1,title:"Read your AI Governance Charter",tag:"Foundation",time:"20 min",urgent:false,desc:"Your mandate under ISO 42001 covers all AI systems in development, production, pilot, and procurement. Clause 5.3 requires you to own the CAIO role formally."},
+    {id:2,title:"Audit the AI Model Inventory",tag:"Critical",time:"25 min",urgent:true,desc:"17 models in production. 3 unclassified under EU AI Act risk tiers. ISO 42001 Clause 8.4 requires documented system objectives for all deployed AI."},
+    {id:3,title:"Review the pending LLM v2 approval",tag:"Urgent",time:"15 min",urgent:true,desc:"Go-live in 6 days. Awaiting your HITL sign-off. EU AI Act Art.6 high-risk deployment requires explicit CAIO approval before any production traffic."},
+    {id:4,title:"Understand the HITL workflow",tag:"Protocol",time:"10 min",urgent:false,desc:"ISO 42001 Clause 8.1 requires operational controls for AI decisions. Every high-stakes action requires your explicit approval before VERIS can act."},
+    {id:5,title:"Schedule your EU AI Act enforcement briefing",tag:"Compliance",time:"45 min",urgent:false,desc:"August 2026 enforcement is 12 weeks away. GRC team has a 45-min brief on your personal liability obligations as CAIO under Article 9 risk management."},
+  ],
+  ciso:[
+    {id:1,title:"Review your Security Charter",tag:"Foundation",time:"15 min",urgent:false,desc:"Understand your mandate, authority scope, and reporting lines. ISO 27001 Clause 5.3 requires formally assigned CISO role with documented authorities."},
+    {id:2,title:"Check live compliance gaps",tag:"Urgent",time:"10 min",urgent:true,desc:"ISO 27001 at 65% — 3 critical gaps including A.8.2 asset classification. Certification audit is Q3 2026. Pre-audit window opens in 8 weeks."},
+    {id:3,title:"Review the overdue DPIA",tag:"Critical",time:"10 min",urgent:true,desc:"GDPR Art.35 DPIA for the analytics platform is 2 days overdue. Active regulatory violation. Your sign-off is required in the HITL Queue."},
+    {id:4,title:"Meet your security team leads",tag:"People",time:"30 min",urgent:false,desc:"Schedule intros with SecOps Lead, GRC Manager, and Legal counsel. Understand current workstreams before making changes to strategy."},
+    {id:5,title:"Explore the ISO 27001 checklist",tag:"Action",time:"15 min",urgent:false,desc:"Your Checklists tab has the full ISO 27001:2022 Annex A mapped to your current compliance posture. 47 assets still unclassified under A.8.2."},
+  ],
+  cio:[
+    {id:1,title:"Review the IT Strategic Roadmap",tag:"Strategy",time:"30 min",urgent:false,desc:"34 active initiatives. 5 at risk of slipping this quarter. Cloud migration and AI infrastructure lines need executive discussion before Q3."},
+    {id:2,title:"Inspect cloud architecture",tag:"Critical",time:"20 min",urgent:true,desc:"EU data residency GDPR Art.46 violation in 3 S3 buckets — active breach. Emergency migration plan awaiting your HITL approval. 3 days overdue."},
+    {id:3,title:"Check the vendor risk register",tag:"Urgent",time:"15 min",urgent:true,desc:"47 active vendors. ServiceNow contract expired — operating at risk. 4 in critical security review. SOC 2 questionnaires outstanding for 2."},
+    {id:4,title:"Approve Zero Trust Phase 2",tag:"Action",time:"10 min",urgent:false,desc:"Implementation plan awaiting your sign-off in the HITL Queue. CISO approved. $340k pre-approved. Window closes May 15 for Q3 audit readiness."},
+    {id:5,title:"Meet your IT leadership team",tag:"People",time:"45 min",urgent:false,desc:"VP Engineering, Head of Ops, and Data Platform Lead all need intro calls. Understand current pressures before setting strategic direction."},
+  ],
+  cdpo:[
+    {id:1,title:"Review your Privacy Charter",tag:"Foundation",time:"20 min",urgent:false,desc:"Your mandate covers all personal data processing. GDPR requires a formally designated DPO or CDPO with documented independence under Art.38."},
+    {id:2,title:"Review the overdue DPIA",tag:"Critical",time:"20 min",urgent:true,desc:"Analytics platform DPIA is 2 days overdue. Art.35 active violation. Platform is live and processing. Your sign-off in HITL Queue is the critical path."},
+    {id:3,title:"Audit the processing register",tag:"Urgent",time:"30 min",urgent:true,desc:"143 processing activities. 12 have no confirmed lawful basis under GDPR Art.6. DPA enquiry risk increasing. Register must be complete and current."},
+    {id:4,title:"Meet Legal and the DPO team",tag:"People",time:"30 min",urgent:false,desc:"Understand the existing privacy governance structure, DPA relationship history, and escalation paths between Legal, Privacy, and DPO functions."},
+    {id:5,title:"Clear the DSR queue",tag:"Action",time:"10 min",urgent:true,desc:"4 access requests approaching 30-day GDPR deadline. Two require manual extraction from legacy CRM. Risk of regulatory complaints if missed."},
+  ],
+  cgo:[
+    {id:1,title:"Read your Governance Charter & Mandate",tag:"Foundation",time:"20 min",urgent:false,desc:"Your mandate as CGO spans all five domains: security, AI, technology, privacy, and enterprise risk. COBIT 5 governance model requires your role formally documented with Board-level authority."},
+    {id:2,title:"Review the Board Governance Report",tag:"Critical",time:"25 min",urgent:true,desc:"Q2 board pack is due in 2 days and requires your sign-off. Consolidates risk scores from all 5 roles. It is awaiting your approval in the HITL Queue — this is your most time-critical action."},
+    {id:3,title:"Assess the cross-functional GRC gaps",tag:"Urgent",time:"20 min",urgent:true,desc:"Enterprise GRC maturity is at Level 3 against a Level 4 target. Vendor risk assessments are only 61% complete. EU AI Act cross-functional remediation plan needs your approval to proceed."},
+    {id:4,title:"Meet all five role leads",tag:"People",time:"60 min",urgent:false,desc:"As shared governance coordinator, schedule intro sessions with CISO, CAIO, CIO, and CDPO. Your effectiveness depends on trust and coordination across all four domains."},
+    {id:5,title:"Explore the full ISO Checklists",tag:"Action",time:"20 min",urgent:false,desc:"You have access to ISO 42001, ISO 27001, and GDPR checklists simultaneously. Your oversight role means understanding compliance posture across all three frameworks."},
+  ],
+};
+
+/* ─────────────────────────────────────────────
+   ROADMAP
+───────────────────────────────────────────── */
+const ROADMAP = {
+  caio:[
+    {q:"Q1 2026",st:"done",items:["AI model inventory v1","EU AI Act gap analysis","ISO 42001 scoping","AI ethics policy v1"]},
+    {q:"Q2 2026",st:"active",items:["LLM v2 deployment ★","EU AI Act Art.9 system ★","ISO 42001 C.8.4 model cards","CAIO governance framework"]},
+    {q:"Q3 2026",st:"planned",items:["EU AI Act conformity assessment","ISO 42001 certification","AI transparency report Q2","Algorithmic impact assessments"]},
+    {q:"Q4 2026",st:"planned",items:["AI Act compliance audit","Model risk framework v2","AI incident response plan","FY27 AI governance roadmap"]},
+  ],
+  ciso:[
+    {q:"Q1 2026",st:"done",items:["ISO 27001 surveillance audit","Vendor risk framework v2","GDPR cookie consent","SOC 2 renewal"]},
+    {q:"Q2 2026",st:"active",items:["ISO 27001 A.8.2 remediation ★","GDPR DPIA programme ★","Zero Trust review","Penetration test"]},
+    {q:"Q3 2026",st:"planned",items:["ISO 27001 cert audit","NIST CSF uplift","Insider threat programme","Board security briefing"]},
+    {q:"Q4 2026",st:"planned",items:["Annual risk assessment","Security awareness rollout","IR exercise","FY27 security budget"]},
+  ],
+  cio:[
+    {q:"Q1 2026",st:"done",items:["Cloud architecture review","Zero Trust Phase 1","ServiceNow upgrade","Data classification"]},
+    {q:"Q2 2026",st:"active",items:["Zero Trust Phase 2 ★","EU data residency fix ★","DR test","Roadmap review"]},
+    {q:"Q3 2026",st:"planned",items:["Multi-cloud strategy","Vendor consolidation","Platform engineering","Digital workplace"]},
+    {q:"Q4 2026",st:"planned",items:["FY27 IT budget","Technology risk review","Cloud cost optimisation","Architecture board"]},
+  ],
+  cdpo:[
+    {q:"Q1 2026",st:"done",items:["GDPR processing register","DSR workflow","Privacy notice refresh","DPA review"]},
+    {q:"Q2 2026",st:"active",items:["DPIA programme ★","Register audit ★","US vendor SCC review","ISO 27701 gap"]},
+    {q:"Q3 2026",st:"planned",items:["ISO 27701 cert scoping","DPDP Act programme","Privacy by design rollout","CCPA update"]},
+    {q:"Q4 2026",st:"planned",items:["Annual privacy review","FY27 budget","Cookie platform review","Board privacy brief"]},
+  ],
+  cgo:[
+    {q:"Q1 2026",st:"done",items:["GRC framework scoping","Enterprise risk register v1","Board governance structure","Cross-role RACI matrix"]},
+    {q:"Q2 2026",st:"active",items:["GRC framework rollout ★","Board Q2 governance report ★","EU AI Act cross-functional plan","Vendor risk programme design"]},
+    {q:"Q3 2026",st:"planned",items:["COBIT 5 maturity assessment","ISO 31000 risk framework","Third-party governance rollout","Regulatory change mgmt. programme"]},
+    {q:"Q4 2026",st:"planned",items:["Annual governance review","Board risk appetite refresh","FY27 GRC budget","Enterprise risk report"]},
+  ],
+};
+
+/* ─────────────────────────────────────────────
+   STRATEGY PILLARS
+───────────────────────────────────────────── */
+const PILLARS = {
+  caio:[
+    {name:"AI Governance Framework",desc:"ISO 42001 AIMS implementation",objs:["AIMS scope & context (C.4)","Leadership & AI policy (C.5)","Governance team RACI (C.5.3)","Management review (C.9.3)"],status:"Active"},
+    {name:"Model Risk Management",desc:"Risk identification through ISO 42001 C.6 & C.8",objs:["Risk assessment process (C.6.1)","AI risk register (C.8.2)","Treatment plans (C.8.3)","Monitoring & metrics (C.9.1)"],status:"Active"},
+    {name:"EU AI Act Compliance",desc:"Conformity before Aug 2026 enforcement",objs:["High-risk system register","Art.9 risk management system","Transparency docs (Art.13)","Conformity assessment (Art.43)"],status:"Active"},
+    {name:"Ethical AI & Fairness",desc:"Embed fairness into all AI systems",objs:["Bias testing programme","Explainability framework","Algorithmic impact assessments","Fairness metrics dashboard"],status:"Building"},
+    {name:"AI System Lifecycle",desc:"ISO 42001 C.8 end-to-end oversight",objs:["Design & development (C.8.4)","Deployment controls (C.8.5)","Monitoring & evaluation (C.9.1)","Decommissioning process"],status:"Building"},
+  ],
+  ciso:[
+    {name:"Security Architecture",desc:"Zero-trust enterprise security",objs:["Zero Trust rollout","Cloud security posture","Identity governance","Microsegmentation"],status:"Active"},
+    {name:"Threat Intelligence",desc:"Proactive threat detection",objs:["Threat feeds","Red team programme","Vulnerability management","Dark web monitoring"],status:"Active"},
+    {name:"Compliance & Audit",desc:"Multi-framework compliance",objs:["ISO 27001 gap closure","SOC 2 renewal","GDPR controls uplift","Audit readiness"],status:"Active"},
+    {name:"Incident Response",desc:"Minimise impact from incidents",objs:["Playbook maintenance","Tabletop exercises","SIEM integration","Escalation chains"],status:"Building"},
+    {name:"Vendor Risk",desc:"Third-party security governance",objs:["Vendor questionnaires","Contractual controls","Ongoing monitoring","Offboarding procedures"],status:"Planned"},
+  ],
+  cio:[
+    {name:"IT Strategy & Architecture",desc:"Technology aligned to business goals",objs:["Architecture review board","Technology radar","FY26 IT roadmap","Board technology reporting"],status:"Active"},
+    {name:"Cloud & Infrastructure",desc:"Resilient, compliant cloud",objs:["Multi-region AWS","Zero Trust Phase 2","EU data residency","Cost optimisation"],status:"Active"},
+    {name:"Digital Transformation",desc:"Modernise through technology",objs:["Platform engineering","Developer experience","Process automation","AI infrastructure"],status:"Building"},
+    {name:"Vendor Management",desc:"Govern the vendor ecosystem",objs:["Contract renewals","Consolidation","SLA monitoring","Risk assessment"],status:"Active"},
+    {name:"Business Continuity",desc:"Resilience and rapid recovery",objs:["DR testing","RTO/RPO targets","Incident playbooks","Failover validation"],status:"Planned"},
+  ],
+  cdpo:[
+    {name:"Privacy Governance",desc:"Privacy as an organisational competency",objs:["Privacy charter","RACI matrix","DPA liaison","Board reporting"],status:"Active"},
+    {name:"DPIA Programme",desc:"Systematic DPIAs for high-risk processing",objs:["DPIA templates","Threshold assessments","Register maintenance","Sign-off workflow"],status:"Active"},
+    {name:"Data Subject Rights",desc:"Compliant DSR handling",objs:["DSR intake workflow","30-day SLA","Identity verification","Exemption framework"],status:"Active"},
+    {name:"Privacy by Design",desc:"Privacy embedded from the start",objs:["PbD checklist","Dev training","Architecture review","Vendor contracts"],status:"Building"},
+    {name:"Cross-border Transfers",desc:"Lawful international data transfers",objs:["SCC management","BCR programme","Transfer impact assessments","Adequacy tracking"],status:"Planned"},
+  ],
+  cgo:[
+    {name:"Enterprise GRC Framework",desc:"Unified GRC across all five governance domains",objs:["COBIT 5 process model","Risk appetite statement","Cross-domain RACI","Board governance structure"],status:"Active"},
+    {name:"Enterprise Risk Management",desc:"ISO 31000 / COSO ERM enterprise risk oversight",objs:["Enterprise risk register","Risk scoring methodology","Risk treatment coordination","Residual risk reporting"],status:"Active"},
+    {name:"Regulatory Change Management",desc:"Monitor and operationalise regulatory changes",objs:["EU AI Act enforcement tracking","GDPR update monitoring","Cross-role impact assessment","Remediation coordination"],status:"Active"},
+    {name:"Third-Party Governance",desc:"Enterprise-wide vendor and partner risk programme",objs:["Vendor tiering framework","Due diligence standards","Ongoing monitoring","Contract governance"],status:"Building"},
+    {name:"Board & Executive Reporting",desc:"Consolidated governance reporting to the Board",objs:["Quarterly board governance pack","Enterprise risk dashboard","Cross-role compliance score","Escalation governance"],status:"Active"},
+  ],
+};
+
+/* ─────────────────────────────────────────────
+   TEMPLATES — from ISO 42001 Kit V3.0 & CAIO Kit
+───────────────────────────────────────────── */
+const TEMPLATES = [
+  /* ISO 42001 Kit — Risk Management */
+  {id:"t_rr",   name:"AI Risk Register",                cat:"Risk Management",   fw:"ISO 42001 C.8.2 / ISO 23894",    ai:true,  icon:"⬟", tags:["CAIO","CISO","Risk"],     desc:"Authoritative AI risk register with L×S scoring (1-5 scale). Risk Score >12 = High/Critical. Includes auditor cheat sheet: Static Register, Ghost Control, and Missing Treatment failures. AI pre-populates from your model inventory."},
+  {id:"t_rtp",  name:"AI Risk Treatment Plan",          cat:"Risk Management",   fw:"ISO 42001 C.8.3 / Annex A",      ai:true,  icon:"◆", tags:["CAIO","Risk"],            desc:"Structured treatment plan for all High/Critical risks (score >12). Covers four options: Avoid, Reduce, Transfer, Accept. Includes resource requirements, budget allocation, and Q-by-Q timeline. Links to Risk Register."},
+  {id:"t_aiia", name:"AI System Impact Assessment (AIIA)", cat:"AI Governance",  fw:"ISO 42001 C.A.5 / EU AI Act",    ai:true,  icon:"◭", tags:["CAIO","Legal","All"],     desc:"6-phase AIIA procedure per ISO 42001 Control A.5: Characterise → Stakeholders → Identify → Evaluate → Mitigate → Conclude. Covers FRIA (Fundamental Rights Impact). AI pre-populates from system description."},
+  {id:"t_mc",   name:"AI Model Card",                   cat:"AI Governance",     fw:"ISO 42001 C.8.4 / EU AI Act Art.13", ai:true,icon:"◈", tags:["CAIO","Engineering"], desc:"Standardised model card: Intended Use (Green/Red Zones), Model Details & Architecture, Training Data, Performance Metrics, Bias Evaluation, Limitations. Based on ISO 42001 Kit template. AI populates from system name and description."},
+  {id:"t_nc",   name:"Non-Conformity & Corrective Action Report", cat:"Audit",  fw:"ISO 42001 C.10.1",               ai:true,  icon:"⚠", tags:["CAIO","GRC","All"],      desc:"Structured NCR: Issue Identification → Immediate Correction → Root Cause Analysis (5 Whys) → Corrective Action Plan → Verification. Based on ISO 42001 Kit V3. AI generates from incident description."},
+  {id:"t_ks",   name:"AI Kill Switch & Emergency Fallback Procedure", cat:"Security", fw:"ISO 42001 C.8.5 / EU AI Act Art.9", ai:false, icon:"🔴", tags:["CAIO","CISO"], desc:"Emergency shutdown procedure defining: Authority, Red Lines (activation criteria), Technical Steps, Fallback to manual process, Post-incident review. Covers Generative AI, Automated Decisions, Autonomous Agents."},
+  {id:"t_soa",  name:"Statement of Applicability (SoA)", cat:"AI Governance",   fw:"ISO 42001 C.8.3 / Annex A",      ai:true,  icon:"☑", tags:["CAIO","GRC"],            desc:"SoA mapping all ISO 42001 Annex A controls: Applicable Y/N, Implementation Status (Implemented/Planned/Partial), Justification, and Evidence reference. AI generates from your checklist data."},
+  {id:"t_bias", name:"AI Bias Detection & Mitigation Procedure", cat:"Ethics",  fw:"ISO 42001 / EU AI Act Art.10",   ai:true,  icon:"⚖", tags:["CAIO","Legal"],          desc:"Methodology for identifying, measuring, and mitigating algorithmic bias. Covers Protected Attributes, Disparate Impact testing, EEOC/GDPR/EU AI Act compliance. Includes bias testing schedule and fairness thresholds."},
+  {id:"t_dep",  name:"AI Deployment Release Checklist", cat:"AI Governance",    fw:"ISO 42001 C.8.5 / EU AI Act",    ai:false, icon:"🚀", tags:["CAIO","Engineering"],   desc:"5-gate deployment checklist: Governance & Documentation → Technical Verification → Responsible AI → Operational Readiness → Release Authorization (GO/NO-GO). From ISO 42001 Kit lifecycle documents."},
+  /* CAIO Kit */
+  {id:"t_raci", name:"CAIO Responsibility Mapping — RACI Matrix", cat:"Governance", fw:"ISO 42001 C.5.3",            ai:true,  icon:"◉", tags:["CAIO","CGO","All"],      desc:"Cross-functional RACI for all CAIO activities: AI Strategy, Risk Management, Ethics Review, Model Deployment, Monitoring. Covers CAIO vs CTO vs CIO vs CDO vs CFO boundaries per CAIO Kit Part 1."},
+  {id:"t_uc",   name:"AI Use Case Scoring (Impact–Feasibility–Risk)", cat:"Strategy", fw:"CAIO Kit Part 2",           ai:true,  icon:"◎", tags:["CAIO","Product"],        desc:"9-block use case canvas: Problem, User, Data, Tech, KPI, Feasibility, Ethics, HITL requirement, ROI. Scoring grid filters vanity projects from value projects. AI scores from use case description."},
+  {id:"t_poc",  name:"AI Project Planning (POC → Pilot → Scale)", cat:"Strategy",fw:"CAIO Kit Part 4",               ai:true,  icon:"⬢", tags:["CAIO","Engineering"],   desc:"Phase-based AI project plan: POC (validate assumption) → Pilot (validate value) → Scale (validate operations). KPI & Milestone definition, resource allocation, risk register, exit criteria per phase."},
+  {id:"t_ethics",name:"AI Ethics Impact Assessment (ISO 42001)",  cat:"Ethics",  fw:"ISO 42001 / CAIO-804",          ai:true,  icon:"⚖", tags:["CAIO","Legal","All"],    desc:"Systematic ethical evaluation: Human Rights & Dignity, Unfair/Harmful Outcomes, Accountability & Oversight, Transparency. Aligned to ISO 42001 Annex A ethical principles and EU AI Act Art.9 requirements."},
+  {id:"t_genai",name:"Responsible Use Policy — Generative AI",    cat:"Policy",  fw:"CAIO-814 / ISO 42001",          ai:false, icon:"🤖", tags:["CAIO","All Roles"],      desc:"Enforceable GenAI use policy: Permitted uses, Prohibited uses (PII input, legal advice, client-facing without review), Data classification rules, Prompt management, Incident reporting. From CAIO Kit Part 8."},
+  {id:"t_kpi",  name:"AI KPI Monitoring Dashboard",               cat:"Performance",fw:"CAIO-901 / ISO 42001 C.9.1", ai:true,  icon:"📊", tags:["CAIO","Board"],          desc:"Executive AI KPI dashboard: Technical model health (accuracy, drift, latency), Business value (ROI, adoption), Governance (HITL rate, audit findings), Risk (bias score, incident count). AI populates from your system data."},
+  {id:"t_bvb",  name:"Build vs Buy Decision Matrix",              cat:"Strategy", fw:"CAIO-1002",                    ai:true,  icon:"◈", tags:["CAIO","CIO"],             desc:"Structured framework: Strategic Fit, Technical Feasibility, Cost (TCO), Risk, Vendor Dependency, Time-to-Value. Objective scoring prevents bias toward build or buy. AI evaluates from platform requirements description."},
+  {id:"t_post", name:"Post-Deployment Review Template",           cat:"AI Governance",fw:"CAIO-910 / ISO 42001 C.9.1",ai:true,icon:"◎", tags:["CAIO","Engineering"],   desc:"Blameless post-deployment review: Deployment success validation, KPI performance vs plan, Lessons learned, Model drift assessment, Next steps (continue/retrain/decommission). Closes POC→Pilot→Scale loop."},
+  /* Privacy & Security */
+  {id:"t_dpia", name:"GDPR Art.35 DPIA",                          cat:"Privacy",  fw:"GDPR Art.35",                  ai:true,  icon:"🔒", tags:["CDPO","Legal"],          desc:"Data Protection Impact Assessment with all mandatory GDPR Art.35(7) elements. AI generates initial risk analysis from processing activity description. Includes supervisory authority submission checklist."},
+  {id:"t_tia",  name:"Transfer Impact Assessment (TIA)",          cat:"Privacy",  fw:"GDPR Art.46 / Schrems II",     ai:true,  icon:"🌍", tags:["CDPO","Legal"],          desc:"Structured TIA for international data transfers post-Schrems II. Covers: legal basis, destination country adequacy, supplementary measures, SCCs, vendor-specific risk assessment."},
+  {id:"t_board",name:"Board-Ready Governance Summary",            cat:"Executive", fw:"Multi-framework",              ai:true,  icon:"📋", tags:["CGO","Board","All"],     desc:"One-page board pack insert. AI synthesises compliance scores across all 5 roles, critical risks, cross-role HITL status, and top 3 recommended actions into executive boardroom language."},
+];
+
+/* ─────────────────────────────────────────────
+   AI MODEL REGISTRY DATA (from CAIO Kit)
+───────────────────────────────────────────── */
+const MODEL_REGISTRY = [
+  {id:"m1",name:"LLM v2 (Customer Support)",type:"Generative AI / LLM",status:"Awaiting Approval",risk:"High",euAiAct:"High-Risk",owner:"CAIO",dept:"Product",vendor:"Anthropic API",deployed:"Pending",accuracy:"95.2% fairness",drift:"Not deployed",lastAudit:"May 2026",modelCard:true,aia:true,biasTest:true,killSwitch:true,dataProvenance:false,transparency:80,clause:"EU AI Act Art.6 / ISO 42001 C.8.4"},
+  {id:"m2",name:"Credit Scoring AI",type:"Predictive / Classification",status:"In Production",risk:"Critical",euAiAct:"High-Risk",owner:"CISO",dept:"Finance",vendor:"Internal",deployed:"Mar 2025",accuracy:"88.4%",drift:"Low",lastAudit:"Feb 2026",modelCard:false,aia:true,biasTest:false,killSwitch:true,dataProvenance:true,transparency:45,clause:"EU AI Act Art.6 / GDPR Art.22"},
+  {id:"m3",name:"HR Recruitment AI",type:"Classification / Ranking",status:"Suspended",risk:"High",euAiAct:"High-Risk",owner:"HR / CAIO",dept:"Human Resources",vendor:"HireRight AI",deployed:"Jan 2025",accuracy:"Not tested",drift:"Unknown",lastAudit:"Apr 2026",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Annex III / ISO 42001 C.8.4"},
+  {id:"m4",name:"Fraud Detection Model",type:"Anomaly Detection",status:"In Production",risk:"Medium",euAiAct:"Limited Risk",owner:"CISO",dept:"Security",vendor:"Internal",deployed:"Jun 2024",accuracy:"96.1%",drift:"Medium",lastAudit:"Jan 2026",modelCard:true,aia:true,biasTest:true,killSwitch:true,dataProvenance:false,transparency:72,clause:"ISO 42001 C.7.2 / GDPR Art.5"},
+  {id:"m5",name:"Document Summarisation AI",type:"Generative AI / NLP",status:"In Production",risk:"Medium",euAiAct:"Minimal Risk",owner:"Product",dept:"Operations",vendor:"OpenAI API",deployed:"Sep 2024",accuracy:"91.3%",drift:"Low",lastAudit:"Mar 2026",modelCard:true,aia:false,biasTest:false,killSwitch:false,dataProvenance:true,transparency:85,clause:"ISO 42001 C.9.1"},
+  {id:"m6",name:"Predictive Maintenance AI",type:"Predictive / Regression",status:"In Production",risk:"Medium",euAiAct:"High-Risk",owner:"Engineering",dept:"Operations",vendor:"Internal",deployed:"Nov 2024",accuracy:"89.7%",drift:"Low",lastAudit:"Apr 2026",modelCard:true,aia:false,biasTest:false,killSwitch:false,dataProvenance:true,transparency:60,clause:"EU AI Act Annex III / ISO 42001 C.8.5"},
+  {id:"m7",name:"RecoEngine v3",type:"Recommendation System",status:"Unclassified",risk:"Unknown",euAiAct:"Unclassified",owner:"Product",dept:"Marketing",vendor:"Internal",deployed:"Feb 2025",accuracy:"Unknown",drift:"Unknown",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Art.6 — Classification Pending"},
+  {id:"m8",name:"SentimentAI",type:"NLP / Classification",status:"Unclassified",risk:"Unknown",euAiAct:"Unclassified",owner:"Product",dept:"Marketing",vendor:"Internal",deployed:"Mar 2025",accuracy:"Unknown",drift:"Unknown",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Art.6 — Classification Pending"},
+];
+
+/* ─────────────────────────────────────────────
+   GOVERNANCE MATURITY DATA (from CAIO Kit Part 1)
+───────────────────────────────────────────── */
+const MATURITY_DOMAINS = [
+  {domain:"Legal & Regulatory Compliance",score:72,target:90,desc:"Alignment with EU AI Act, ISO 42001, GDPR Art.22. 3 high-risk systems classified. 3 unclassified."},
+  {domain:"Algorithmic Accountability",score:58,target:85,desc:"Bias testing complete on 2/8 high-impact systems. Model cards 7/17. Fairness score avg 89.4%."},
+  {domain:"Data Sovereignty & Governance",score:65,target:80,desc:"Training data provenance documented for 76% of models. 3 datasets with PII not yet anonymised."},
+  {domain:"Human Oversight & HITL",score:84,target:95,desc:"HITL override rate 3.1%. All critical decisions gated. Kill switch deployed on 4/8 high-risk systems."},
+  {domain:"Transparency & Explainability",score:61,target:85,desc:"Transparency documentation 80% complete for LLM v2. 7 model cards complete. Art.13 gaps remain."},
+  {domain:"Incident Response & Recovery",score:77,target:90,desc:"2 AI incidents in Q1. Mean response time 3.2 hrs vs 4hr target. Post-mortems completed."},
+  {domain:"Ethics & Fairness",score:68,target:85,desc:"Ethics committee reviews 94% complete. AI Ethics Impact Assessment not yet run for 3 systems."},
+  {domain:"Strategic AI Leadership",score:80,target:90,desc:"CAIO role formally established. RACI defined. Board reporting cadence active. 5-year AI strategy approved."},
+];
+
+/* ─────────────────────────────────────────────
+   USE CASE PIPELINE (from CAIO Kit Part 2)
+───────────────────────────────────────────── */
+const USE_CASES = [
+  {id:"uc1",name:"AI-Powered Contract Review",dept:"Legal",stage:"POC",impact:9,feasibility:7,risk:4,score:86,owner:"Legal + Engineering",eta:"Q3 2026",status:"Active",desc:"LLM-based contract analysis to extract obligations, risk clauses, and renewal dates. Estimated 60% reduction in review time."},
+  {id:"uc2",name:"Predictive Churn Model",dept:"Sales",stage:"Pilot",impact:8,feasibility:8,risk:3,score:90,owner:"Data Science + Sales",eta:"Q2 2026",status:"Active",desc:"ML model predicting customer churn 90 days in advance. Pilot on 5k accounts showing 73% accuracy vs 45% baseline."},
+  {id:"uc3",name:"AI Invoice Processing",dept:"Finance",stage:"Scale",impact:7,feasibility:9,risk:2,score:92,owner:"Finance + IT",eta:"Live",status:"Complete",desc:"IDP (Intelligent Document Processing) for invoice extraction. 94% straight-through processing. ROI: £340k saved annually."},
+  {id:"uc4",name:"HR Onboarding Automation",dept:"HR",stage:"POC",impact:6,feasibility:6,risk:5,score:62,owner:"HR + IT",eta:"Q4 2026",status:"Active",desc:"AI-guided onboarding journey. Ethics risk: employee data processing at scale. DPIA required before pilot."},
+  {id:"uc5",name:"Regulatory Change Monitor",dept:"Compliance",stage:"Pilot",impact:9,feasibility:5,risk:3,score:78,owner:"CGO + Legal",eta:"Q3 2026",status:"Active",desc:"LLM monitoring regulatory feeds (EU AI Act, GDPR, FCA) for changes affecting the organisation. Alerts to CGO and CAIO."},
+  {id:"uc6",name:"GenAI Code Assistant",dept:"Engineering",stage:"Scale",impact:7,feasibility:9,risk:3,score:88,owner:"Engineering",eta:"Live",status:"Complete",desc:"GitHub Copilot Enterprise deployment. 35% faster development velocity. IP and data leakage policy in place."},
+];
+
+
+
+/* ─────────────────────────────────────────────
+   ATOM COMPONENTS
+───────────────────────────────────────────── */
+const F = {
+  h: "'Plus Jakarta Sans', sans-serif",   /* headings — bold geometric, matching reference */
+  b: "'Plus Jakarta Sans', sans-serif",   /* body — same family, different weight */
+  m: "'JetBrains Mono', monospace",       /* mono — framework refs, KPI codes */
+  logo: "'Inter', sans-serif",            /* logo wordmark — tighter, heavier */
+};
+
+const Tag = ({label, color=T.ink3, bg}) => (
+  <span style={{display:"inline-block",background:bg||color+"18",color,border:`1px solid ${color}28`,borderRadius:4,padding:"2px 7px",fontSize:10,fontWeight:600,fontFamily:F.m,letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{label}</span>
+);
+
+const priorityColor = p => ({Critical:T.red,High:T.amber,Medium:T.blue,Low:T.ink3,Urgent:T.red,"Awaiting Approval":T.amber}[p]||T.ink3);
+const priorityBg    = p => ({Critical:T.redL,High:T.amberL,Medium:T.blueL,Low:T.ink5,Urgent:T.redL,"Awaiting Approval":T.amberL}[p]||T.ink5);
+const statusColor   = s => ({["In Progress"]:T.blue,Overdue:T.red,["In Review"]:T.amber,["Awaiting Approval"]:T.amber,Scheduled:T.ink3,Complete:T.green,Urgent:T.red,Planned:T.ink3,Mitigate:T.blue,Accept:T.green,Transfer:T.violet,Avoid:T.red}[s]||T.ink3);
+const statusBg      = s => ({["In Progress"]:T.blueL,Overdue:T.redL,["In Review"]:T.amberL,["Awaiting Approval"]:T.amberL,Scheduled:T.ink5,Complete:T.greenL,Urgent:T.redL,Planned:T.ink5,Mitigate:T.blueL,Accept:T.greenL,Transfer:T.violetL,Avoid:T.redL}[s]||T.ink5);
+
+const PTag = ({p}) => <Tag label={p} color={priorityColor(p)} bg={priorityBg(p)} />;
+const STag = ({s}) => <Tag label={s} color={statusColor(s)} bg={statusBg(s)} />;
+
+function Spinner({color=T.ink3}) {
+  return <div style={{width:14,height:14,border:`2px solid ${color}30`,borderTopColor:color,borderRadius:"50%",animation:"spin 0.8s linear infinite",display:"inline-block"}} />;
+}
+
+function Bar({value, color, delay=0}) {
+  const [w,setW]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setW(value),200+delay);return()=>clearTimeout(t);},[value,delay]);
+  return <div style={{background:T.border,borderRadius:3,height:4,overflow:"hidden"}}><div style={{height:"100%",width:`${w}%`,background:color,borderRadius:3,transition:"width 1.3s cubic-bezier(.16,1,.3,1)"}}/></div>;
+}
+
+function Ring({score,color,size=58}) {
+  const r=size/2-5, circ=2*Math.PI*r;
+  const [off,setOff]=useState(circ);
+  useEffect(()=>{const t=setTimeout(()=>setOff(circ-(score/100)*circ),250);return()=>clearTimeout(t);},[score,circ]);
+  return <svg width={size} height={size} style={{transform:"rotate(-90deg)",flexShrink:0}}>
+    <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.border} strokeWidth={4}/>
+    <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4} strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round" style={{transition:"stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1)"}}/>
+    <text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central" style={{fontSize:size>70?14:10,fontWeight:700,fill:T.ink,fontFamily:F.m,transform:"rotate(90deg)",transformOrigin:`${size/2}px ${size/2}px`}}>{score}</text>
+  </svg>;
+}
+
+function Card({children, style={}, glow}) {
+  return <div style={{background:T.s1,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:glow?`0 0 28px ${glow}15`:"0 1px 3px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2)",...style}}>{children}</div>;
+}
+
+function SHead({title, sub}) {
+  return <div style={{marginBottom:20}}>
+    <h2 style={{fontFamily:F.h,fontSize:22,fontWeight:800,color:T.ink,letterSpacing:"-0.01em",marginBottom:4,lineHeight:1.2}}>{title}</h2>
+    {sub&&<p style={{fontSize:12,color:T.ink3,fontFamily:F.b}}>{sub}</p>}
+  </div>;
+}
+
+function Toast({msg,type}) {
+  return <div style={{position:"fixed",bottom:20,right:20,zIndex:9999,background:type==="success"?T.green:T.red,color:"#fff",borderRadius:8,padding:"10px 18px",fontSize:12,fontWeight:600,fontFamily:F.b,boxShadow:"0 8px 32px rgba(0,0,0,.5)",animation:"up .3s ease"}}>{type==="success"?"✓ ":"✗ "}{msg}</div>;
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR (desktop hidden on mobile)
+───────────────────────────────────────────── */
+function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
+  const rc=RC(role), R=ROLES[role];
+  const isMobile=window.innerWidth<768;
+  return <>
+    {/* Overlay on mobile */}
+    {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
+    <div style={{width:200,background:T.s1,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden"}}>
+      <div style={{padding:"14px 14px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:9}}>
+        {/* VERIS Logo — V-mark: outer V gradient + inner V dark + diamond gem */}
+        <svg width="26" height="28" viewBox="0 0 80 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="v-left" x1="0" y1="0" x2="40" y2="86" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#5B8AF5"/>
+              <stop offset="100%" stopColor="#7B3FC8"/>
+            </linearGradient>
+            <linearGradient id="v-right" x1="80" y1="0" x2="40" y2="86" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#C060F0"/>
+              <stop offset="100%" stopColor="#7B2FC0"/>
+            </linearGradient>
+            <linearGradient id="v-inner" x1="40" y1="20" x2="40" y2="70" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#4A4A6A"/>
+              <stop offset="100%" stopColor="#2E2E48"/>
+            </linearGradient>
+            <linearGradient id="gem-grad" x1="24" y1="0" x2="32" y2="14" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#7BB8FF"/>
+              <stop offset="100%" stopColor="#3B7EF0"/>
+            </linearGradient>
+          </defs>
+          {/* Outer V — left arm (blue side) */}
+          <polygon points="0,8 18,8 40,70 22,70" fill="url(#v-left)"/>
+          {/* Outer V — right arm (violet side) */}
+          <polygon points="80,8 62,8 40,70 58,70" fill="url(#v-right)"/>
+          {/* Inner V — dark nested chevron */}
+          <polygon points="18,14 28,14 40,52 52,14 62,14 40,66 18,14" fill="url(#v-inner)"/>
+          {/* Small inner V highlight */}
+          <polygon points="26,18 34,18 40,42 46,18 54,18 40,58 26,18" fill="url(#v-inner)" opacity="0.6"/>
+          {/* Diamond gem — top center */}
+          <polygon points="28,12 32,4 36,12 32,16" fill="url(#gem-grad)" opacity="0.95"/>
+          <polygon points="28,12 32,16 36,12 32,8" fill="#8BC4FF" opacity="0.5"/>
+        </svg>
+        <div style={{display:"flex",flexDirection:"column",gap:1}}>
+          <span style={{
+            fontFamily:"'Plus Jakarta Sans', sans-serif",
+            fontSize:14,
+            fontWeight:800,
+            color:T.ink,
+            letterSpacing:"0.14em",
+            textTransform:"uppercase",
+            lineHeight:1,
+          }}>VERIS</span>
+          <span style={{
+            fontFamily:"'Plus Jakarta Sans', sans-serif",
+            fontSize:7,
+            fontWeight:400,
+            color:T.ink4,
+            letterSpacing:"0.06em",
+            lineHeight:1,
+          }}>Govern with certainty.</span>
+        </div>
+        {isMobile&&<button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,fontSize:18,padding:4}}>×</button>}
+      </div>
+      <nav style={{flex:1,padding:"8px 6px",overflowY:"auto"}}>
+        {NAV.map(item=>{
+          const isA=tab===item.id;
+          const badge=item.id==="hitl"&&hitlCount>0;
+          return <button key={item.id} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
+            <span style={{fontSize:12,opacity:isA?1:.6,flexShrink:0}}>{item.icon}</span>
+            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
+            {badge&&<span style={{position:"absolute",right:6,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m}}>{hitlCount}</span>}
+          </button>;
+        })}
+        {/* CAIO-only nav items */}
+        {role==="caio"&&[
+          {id:"aira",    icon:"⬟", label:"Risk Register (AIRA)"},
+          {id:"airt",    icon:"◆", label:"Risk Treatment (AIRT)"},
+          {id:"registry",icon:"⊟", label:"AI Model Registry"},
+          {id:"maturity",icon:"◎", label:"Governance Maturity"},
+          {id:"usecases",icon:"◈", label:"Use Case Pipeline"},
+        ].map(item=>{
+          const isA=tab===item.id;
+          return <button key={item.id} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
+            <span style={{fontSize:12,opacity:isA?1:.6,flexShrink:0}}>{item.icon}</span>
+            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
+          </button>;
+        })}
+      </nav>
+      <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:26,height:26,borderRadius:"50%",background:rc,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <span style={{color:"#fff",fontSize:9,fontWeight:700}}>{R.initials}</span>
+        </div>
+        <div style={{overflow:"hidden"}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{R.name}</div>
+          <div style={{fontSize:10,color:T.ink3}}>{R.label}</div>
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: DASHBOARD
+───────────────────────────────────────────── */
+function PageHome({role,setTab}) {
+  const rc=RC(role), K=KPI[role];
+  const metrics=DOMAIN_METRICS[role]||[];
+  const roleKpis=ROLE_KPIS[role]||[];
+  const standards=STANDARDS_MAP[role]||[];
+  const hr=new Date().getHours();
+  const greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
+  const R=ROLES[role];
+  const [kpiPage,setKpiPage]=useState(0);
+  const KPI_PAGE_SIZE=5;
+  const pagedKpis=roleKpis.slice(kpiPage*KPI_PAGE_SIZE,(kpiPage+1)*KPI_PAGE_SIZE);
+  const totalKpiPages=Math.ceil(roleKpis.length/KPI_PAGE_SIZE);
+
+  const topKpis=[
+    {label:K.domainLabel,       value:K.score+"/100", sub:K.scoreLabel,    color:rc,         icon:"◎", tab:"compliance"},
+    {label:"Overall Compliance", value:K.compliance+"%",sub:"All frameworks",color:T.teal,    icon:"◉", tab:"compliance"},
+    {label:"Active Risks",       value:K.risks,        sub:"In register",   color:T.amber,    icon:"⬟", tab:role==="caio"?"aira":"compliance"},
+    {label:"HITL Pending",       value:K.hitl,         sub:"Need approval", color:T.violet,   icon:"⚡",tab:"hitl"},
+  ];
+
+  const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink3;
+
+  return <div style={{animation:"up .3s ease"}}>
+    {/* Header */}
+    <div style={{marginBottom:18}}>
+      <h1 style={{fontFamily:F.h,fontSize:24,fontWeight:800,color:T.ink,letterSpacing:"-0.03em",marginBottom:4}}>{greet}, {R.name.split(" ")[0]} 👋</h1>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{R.title} · {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+    </div>
+
+    {/* Top KPI strip */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+      {topKpis.map((k,i)=><div key={k.label} onClick={()=>setTab(k.tab)}
+        style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",position:"relative",overflow:"hidden",transition:"border-color .2s"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor=k.color+"60"}
+        onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+        <div style={{position:"absolute",top:0,right:0,width:50,height:50,background:`radial-gradient(circle at top right,${k.color}15,transparent 70%)`}}/>
+        <div style={{fontSize:14,opacity:.6,marginBottom:6}}>{k.icon}</div>
+        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}>{k.value}</div>
+        <div style={{fontSize:10,fontWeight:600,color:T.ink2,fontFamily:F.b,marginBottom:1}}>{k.label}</div>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
+      </div>)}
+    </div>
+
+    {/* Domain metrics — role-specific */}
+    <Card style={{padding:16,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink}}>{R.label} Domain Metrics</h3>
+        <button onClick={()=>setTab("compliance")} style={{fontSize:9,color:rc,background:"none",border:"none",fontFamily:F.b,fontWeight:600}}>Full scorecard →</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
+        {metrics.map((m,i)=>{
+          const col=m.color;
+          return <div key={m.label} style={{background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${col}`,animation:`up ${.3+i*.05}s ease both`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:500,lineHeight:1.3,flex:1,paddingRight:6}}>{m.label}</span>
+              <span style={{fontSize:9,fontFamily:F.m,color:m.trend>0&&m.label.includes("Violation")?"red":m.trend>0?T.green:T.red,whiteSpace:"nowrap"}}>
+                {m.trend>0?"▲":"▼"} {Math.abs(m.trend)}{m.unit==="%" ?"%":""}
+              </span>
+            </div>
+            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}>{m.value}{m.unit}</div>
+            <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,marginTop:3}}>{m.fw}</div>
+          </div>;
+        })}
+      </div>
+    </Card>
+
+    {/* Role-specific KPI table */}
+    <Card style={{marginBottom:12,overflow:"hidden"}}>
+      <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>{R.label} KPI & Standards Table</h3>
+        <button onClick={()=>setTab("compliance")} style={{fontSize:9,color:rc,background:"none",border:"none",fontFamily:F.b,fontWeight:600}}>View all →</button>
+      </div>
+      {/* Table header */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"7px 14px",background:T.s4,borderBottom:`1px solid ${T.border}`}}>
+        {["KPI Category","KPI / Metric","Target","Threshold","Framework","Status"].map(h=>
+          <span key={h} style={{fontSize:8,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F.m}}>{h}</span>
+        )}
+      </div>
+      {pagedKpis.map((k,i)=>{
+        const sc=stColor(k.status);
+        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"9px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:i%2===0?T.s1:T.bg}}>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.cat}</span>
+          <div>
+            <div style={{fontSize:10,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
+            <span style={{fontSize:9,color:rc,fontFamily:F.m,fontWeight:700}}>{k.value}</span>
+          </div>
+          <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
+          <span style={{fontSize:9,color:T.red,fontFamily:F.m}}>{k.threshold}</span>
+          <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{k.fw}</span>
+          <Tag label={k.status} color={sc} bg={sc+"18"}/>
+        </div>;
+      })}
+      {totalKpiPages>1&&<div style={{padding:"8px 14px",display:"flex",gap:6,alignItems:"center",borderTop:`1px solid ${T.border}`}}>
+        <button onClick={()=>setKpiPage(p=>Math.max(0,p-1))} disabled={kpiPage===0}
+          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 10px",fontSize:10,color:kpiPage===0?T.ink4:T.ink,fontFamily:F.b,opacity:kpiPage===0?.4:1}}>←</button>
+        <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{kpiPage+1}/{totalKpiPages}</span>
+        <button onClick={()=>setKpiPage(p=>Math.min(totalKpiPages-1,p+1))} disabled={kpiPage===totalKpiPages-1}
+          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 10px",fontSize:10,color:kpiPage===totalKpiPages-1?T.ink4:T.ink,fontFamily:F.b,opacity:kpiPage===totalKpiPages-1?.4:1}}>→</button>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:4}}>{roleKpis.length} KPIs total</span>
+      </div>}
+    </Card>
+
+    {/* Standards mapping */}
+    <Card style={{padding:16,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>Standards & Regulatory Mapping</h3>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+        {standards.map((s,i)=>{
+          const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
+          return <div key={s.std} style={{background:T.s3,borderRadius:8,padding:"9px 12px",display:"flex",gap:10,alignItems:"center",animation:`up ${.3+i*.05}s ease both`}}>
+            <Ring score={s.score>0?s.score:0} color={col} size={38}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.m,marginBottom:2}}>{s.std}</div>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.applies}</div>
+              <Tag label={s.status} color={stColor(s.status)} bg={stColor(s.status)+"18"}/>
+            </div>
+          </div>;
+        })}
+      </div>
+    </Card>
+
+    {/* Quick actions */}
+    <Card style={{padding:14,marginBottom:12}}>
+      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginBottom:10}}>Quick Access</h3>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
+        {[
+          {label:"HITL Queue",    icon:"⚡",tab:"hitl",    color:T.amber},
+          {label:"Playbook",      icon:"☰", tab:"playbook", color:rc},
+          {label:"ISO Checklists",icon:"☑", tab:"checklists",color:T.teal},
+          {label:"AI Risk (AIRA)",icon:"⬟", tab:role==="caio"?"aira":"aia",color:T.red},
+          {label:role==="caio"?"Model Registry":"Templates",icon:role==="caio"?"⊟":"◐",tab:role==="caio"?"registry":"templates",color:T.violet},
+          {label:role==="caio"?"Use Case Pipeline":"Roadmap",icon:role==="caio"?"◈":"⬢",tab:role==="caio"?"usecases":"roadmap",color:T.green},
+        ].map(q=><button key={q.label} onClick={()=>setTab(q.tab)}
+          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 10px",display:"flex",alignItems:"center",gap:7,color:T.ink2,fontSize:10,fontWeight:500,fontFamily:F.b,textAlign:"left",transition:"all .12s"}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor=q.color+"50";e.currentTarget.style.color=q.color;}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.ink2;}}>
+          <span style={{fontSize:12}}>{q.icon}</span>{q.label}
+        </button>)}
+      </div>
+    </Card>
+
+    {/* HITL alert */}
+    {K.hitl>0&&<div onClick={()=>setTab("hitl")}
+      style={{background:`linear-gradient(135deg,${T.amberL},${T.s2})`,border:`1px solid ${T.amber}40`,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+      <div style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite",flexShrink:0}}/>
+      <div style={{flex:1}}>
+        <div style={{fontSize:12,fontWeight:600,color:T.amber,fontFamily:F.b}}>{K.hitl} items awaiting your approval in the HITL Queue</div>
+        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>High-stakes decisions the AI cannot act on without your explicit sign-off.</p>
+      </div>
+      <span style={{color:T.amber,fontSize:16}}>→</span>
+    </div>}
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: ONBOARDING
+───────────────────────────────────────────── */
+function PageOnboard({role,showToast}) {
+  const rc=RC(role), R=ROLES[role], steps=ONBOARD[role];
+  const [done,setDone]=useState({});
+  const [open,setOpen]=useState(steps[0].id);
+  useEffect(()=>{setDone({});setOpen(ONBOARD[role][0].id);},[role]);
+  const count=Object.values(done).filter(Boolean).length;
+  const toggle=id=>{setDone(d=>({...d,[id]:!d[id]}));showToast(!done[id]?"Step complete ✓":"Marked incomplete");};
+  return <div style={{maxWidth:680,animation:"up .3s ease"}}>
+    {/* Welcome */}
+    <div style={{background:`linear-gradient(135deg,${rc}25,${rc}08)`,border:`1px solid ${rc}35`,borderRadius:12,padding:"22px 24px",marginBottom:18,position:"relative",overflow:"hidden",boxShadow:`0 0 40px ${rc}10`}}>
+      <div style={{position:"absolute",right:-30,top:-30,width:160,height:160,borderRadius:"50%",background:rc+"08"}}/>
+      <Tag label={`Day 1 · ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}`} color={rc} bg={rc+"20"}/>
+      <h1 style={{fontFamily:F.h,fontSize:24,fontWeight:800,color:T.ink,letterSpacing:"-0.03em",marginTop:12,marginBottom:8}}>{`Welcome, ${R.name.split(" ")[0]}.`}</h1>
+      <p style={{fontSize:12,color:T.ink3,lineHeight:1.75,fontFamily:F.b,maxWidth:480,marginBottom:14}}>{R.title} — VERIS has prepared a personalised onboarding path aligned to your governance obligations.</p>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{R.frameworks.map(f=><Tag key={f} label={f} color={rc} bg={rc+"20"}/>)}</div>
+    </div>
+    {/* Progress */}
+    <Card style={{padding:"12px 16px",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
+        <span style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b}}>Onboarding Progress</span>
+        <span style={{fontSize:10,fontFamily:F.m,color:T.ink3}}>{count}/{steps.length} complete</span>
+      </div>
+      <Bar value={(count/steps.length)*100} color={rc}/>
+    </Card>
+    {/* Steps */}
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {steps.map((s,i)=><Card key={s.id} style={{overflow:"hidden",border:`1px solid ${open===s.id?rc+"50":T.border}`,boxShadow:open===s.id?`0 0 18px ${rc}10`:"none",transition:"border-color .2s",animation:`up ${.3+i*.06}s ease both`}}>
+        <div onClick={()=>setOpen(open===s.id?null:s.id)} style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
+          <button onClick={e=>{e.stopPropagation();toggle(s.id);}} style={{width:19,height:19,borderRadius:5,flexShrink:0,border:`2px solid ${done[s.id]?rc:T.borderB}`,background:done[s.id]?rc:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}>
+            {done[s.id]&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
+          </button>
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+            <span style={{fontSize:12,fontWeight:600,fontFamily:F.b,color:done[s.id]?T.ink4:T.ink,textDecoration:done[s.id]?"line-through":"none"}}>{s.title}</span>
+            <Tag label={s.tag} color={s.urgent?T.red:T.ink3} bg={s.urgent?T.redL:T.ink5}/>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+            <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>~{s.time}</span>
+            <span style={{color:T.ink4,transform:open===s.id?"rotate(90deg)":"none",transition:"transform .2s",display:"inline-block"}}>›</span>
+          </div>
+        </div>
+        {open===s.id&&<div style={{padding:"0 14px 14px 43px",borderTop:`1px solid ${T.border}`}}>
+          <p style={{fontSize:12,color:T.ink3,lineHeight:1.75,fontFamily:F.b,marginTop:12,marginBottom:11}}>{s.desc}</p>
+          <button onClick={()=>toggle(s.id)} style={{background:rc,color:"#fff",border:"none",borderRadius:6,padding:"7px 15px",fontSize:11,fontWeight:600,fontFamily:F.b}}>{done[s.id]?"Mark Incomplete":"Mark Complete →"}</button>
+        </div>}
+      </Card>)}
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: STRATEGY + AI GENERATOR
+───────────────────────────────────────────── */
+function PageStrategy({role}) {
+  const rc=RC(role), rcL=RCL(role), R=ROLES[role], pillars=PILLARS[role];
+  const [pn,setPn]=useState(""), [pd,setPd]=useState(""), [fws,setFws]=useState([]), [tl,setTl]=useState("1–3 months"), [pri,setPri]=useState("High");
+  const [loading,setLoading]=useState(false), [result,setResult]=useState(null), [err,setErr]=useState("");
+  useEffect(()=>{setResult(null);setErr("");setPn("");setPd("");setFws([]);},[role]);
+  const toggleFw=fw=>setFws(p=>p.includes(fw)?p.filter(f=>f!==fw):[...p,fw]);
+  const generate=async()=>{
+    if(!pn.trim()||!pd.trim()){setErr("Project name and description are required.");return;}
+    setErr("");setLoading(true);setResult(null);
+    const fwList=fws.length?fws.join(", "):R.frameworks.join(", ");
+    const systemPrompt="You are VERIS's AI Strategy Engine, specialising in "+R.label+" ("+R.title+") responsibilities and ISO 42001 AIMS implementation.\nGenerate a governance strategy. Respond ONLY in valid JSON, no markdown, no backticks:\n{\"summary\":\"2-3 sentence summary\",\"riskLevel\":\"Critical|High|Medium|Low\",\"objectives\":[{\"title\":\"string\",\"desc\":\"string\"}],\"steps\":[{\"n\":1,\"action\":\"string\",\"owner\":\"string\",\"timeline\":\"string\",\"clause\":\"string\",\"priority\":\"Critical|High|Medium\"}],\"regulatory\":[{\"framework\":\"string\",\"article\":\"string\",\"req\":\"string\",\"risk\":\"string\"}],\"hitl\":true,\"hitlReason\":\"string\"}\nRules: exactly 4 objectives, exactly 6 steps ordered chronologically, exactly 3 regulatory items. Reference real ISO 42001 clauses and regulatory articles. Return ONLY the JSON object.";
+    const userMsg="Role: "+R.label+" — "+R.title+"\nProject: "+pn+"\nDescription: "+pd+"\nFrameworks: "+fwList+"\nTimeline: "+tl+"\nPriority: "+pri;
+    try {
+      const res=await fetch("/api/anthropic",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:systemPrompt,messages:[{role:"user",content:userMsg}]})});
+      const d=await res.json();
+      const raw=(d.content&&d.content[0]&&d.content[0].text)||"";
+      try{setResult(JSON.parse(raw.replace(/```json|```/g,"").trim()));}catch{setErr("AI returned unexpected format. Please try again.");}
+    }catch{setErr("Connection error. Please try again.");}
+    setLoading(false);
+  };
+  const iColor=v=>v==="Critical"?T.red:v==="High"?T.amber:v==="Medium"?T.blue:T.ink3;
+  const iBg=v=>v==="Critical"?T.redL:v==="High"?T.amberL:v==="Medium"?T.blueL:T.ink5;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Strategic Framework" sub={`${R.label} strategy pillars and AI-powered initiative planning`}/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:10,marginBottom:28}}>
+      {pillars.map((p,i)=><Card key={p.name} style={{padding:15,animation:`up ${.3+i*.06}s ease both`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:9}}>
+          <h3 style={{fontFamily:F.h,fontSize:13,fontWeight:700,color:T.ink,lineHeight:1.35,flex:1,paddingRight:6}}>{p.name}</h3>
+          <Tag label={p.status} color={p.status==="Active"?T.green:p.status==="Building"?T.amber:T.ink3} bg={p.status==="Active"?T.greenL:p.status==="Building"?T.amberL:T.ink5}/>
+        </div>
+        <p style={{fontSize:11,color:T.ink3,lineHeight:1.6,fontFamily:F.b,marginBottom:10}}>{p.desc}</p>
+        <div style={{borderTop:`1px solid ${T.border}`,paddingTop:8}}>
+          {p.objs.map(o=><div key={o} style={{display:"flex",gap:6,marginBottom:5,alignItems:"flex-start"}}>
+            <div style={{width:3,height:3,borderRadius:"50%",background:rc,marginTop:5,flexShrink:0}}/>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{o}</span>
+          </div>)}
+        </div>
+      </Card>)}
+    </div>
+
+    {/* AI Generator */}
+    <div style={{background:`linear-gradient(135deg,${rcL},${T.s2})`,border:`1px solid ${rc}30`,borderRadius:12,padding:22,marginBottom:result?18:0}}>
+      <div style={{display:"flex",gap:9,alignItems:"center",marginBottom:5}}>
+        <div style={{width:24,height:24,borderRadius:6,background:rc,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>⚡</div>
+        <h2 style={{fontFamily:F.h,fontSize:18,fontWeight:700,color:T.ink}}>AI Strategy Generator</h2>
+      </div>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginBottom:18,lineHeight:1.65}}>Describe your project — VERIS AI generates a complete governance strategy with ISO 42001 clause mapping and regulatory considerations.</p>
+      <div style={{display:"flex",flexDirection:"column",gap:11,marginBottom:12}}>
+        <div>
+          <label style={{fontSize:9,fontWeight:700,color:T.ink4,display:"block",marginBottom:5,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>Project Name *</label>
+          <input value={pn} onChange={e=>setPn(e.target.value)} placeholder="e.g. Deploy customer-facing AI chatbot" style={{width:"100%",background:T.s3,border:`1px solid ${err&&!pn.trim()?T.red:T.border}`,borderRadius:7,padding:"9px 12px",fontSize:12,color:T.ink,fontFamily:F.b}}/>
+        </div>
+        <div>
+          <label style={{fontSize:9,fontWeight:700,color:T.ink4,display:"block",marginBottom:5,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>Project Description *</label>
+          <textarea value={pd} onChange={e=>setPd(e.target.value)} rows={3} placeholder="Scope, business objective, known risks, constraints..." style={{width:"100%",background:T.s3,border:`1px solid ${err&&!pd.trim()?T.red:T.border}`,borderRadius:7,padding:"9px 12px",fontSize:12,color:T.ink,fontFamily:F.b,resize:"vertical"}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11}}>
+          <div>
+            <label style={{fontSize:9,fontWeight:700,color:T.ink4,display:"block",marginBottom:5,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>Timeline</label>
+            <select value={tl} onChange={e=>setTl(e.target.value)} style={{width:"100%",background:T.s3,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px 11px",fontSize:11,color:T.ink,fontFamily:F.b}}>
+              {["< 1 month","1–3 months","3–6 months","6–12 months","12+ months"].map(o=><option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{fontSize:9,fontWeight:700,color:T.ink4,display:"block",marginBottom:5,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>Priority</label>
+            <select value={pri} onChange={e=>setPri(e.target.value)} style={{width:"100%",background:T.s3,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px 11px",fontSize:11,color:T.ink,fontFamily:F.b}}>
+              {["Critical","High","Medium","Low"].map(o=><option key={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style={{fontSize:9,fontWeight:700,color:T.ink4,display:"block",marginBottom:7,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>Target Frameworks</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {R.frameworks.map(fw=><button key={fw} onClick={()=>toggleFw(fw)} style={{background:fws.includes(fw)?rc:T.s3,color:fws.includes(fw)?"#fff":T.ink3,border:`1px solid ${fws.includes(fw)?rc:T.border}`,borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,fontFamily:F.m,transition:"all .15s"}}>{fw}</button>)}
+          </div>
+        </div>
+      </div>
+      {err&&<div style={{background:T.redL,border:`1px solid ${T.red}30`,borderRadius:7,padding:"9px 12px",marginBottom:11,fontSize:11,color:T.red,fontFamily:F.b}}>{err}</div>}
+      <button onClick={generate} disabled={loading} style={{width:"100%",background:loading?T.border:rc,color:loading?T.ink4:"#fff",border:"none",borderRadius:8,padding:"12px",fontSize:13,fontWeight:600,fontFamily:F.b,display:"flex",alignItems:"center",justifyContent:"center",gap:9}}>
+        {loading?<><Spinner color="#fff"/>Generating strategy…</>:"⚡  Generate Strategy & Next Steps"}
+      </button>
+    </div>
+
+    {result&&<Card style={{overflow:"hidden",animation:"up .4s ease"}}>
+      <div style={{background:rc,padding:"16px 20px"}}>
+        <div style={{display:"flex",gap:7,marginBottom:9,flexWrap:"wrap"}}>
+          <Tag label="AI Generated" color="rgba(255,255,255,.9)" bg="rgba(255,255,255,.14)"/>
+          <Tag label={`Risk: ${result.riskLevel}`} color={iColor(result.riskLevel)} bg={iBg(result.riskLevel)}/>
+        </div>
+        <h3 style={{fontFamily:F.h,fontSize:17,fontWeight:700,color:"#fff",lineHeight:1.3}}>{pn}</h3>
+      </div>
+      <div style={{padding:20}}>
+        <p style={{fontSize:12,color:T.ink2,lineHeight:1.75,fontFamily:F.b,marginBottom:20,padding:"12px 14px",background:T.s3,borderRadius:8,borderLeft:`3px solid ${rc}`}}>{result.summary}</p>
+        <h4 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginBottom:11}}>Strategic Objectives</h4>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8,marginBottom:20}}>
+          {(result.objectives||[]).map((o,i)=><div key={i} style={{background:rcL+"60",border:`1px solid ${rc}20`,borderRadius:8,padding:"11px 13px"}}>
+            <div style={{fontSize:11,fontWeight:600,color:rc,fontFamily:F.b,marginBottom:3}}>{o.title}</div>
+            <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55}}>{o.desc}</div>
+          </div>)}
+        </div>
+        <h4 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginBottom:11}}>Action Plan</h4>
+        <div style={{border:`1px solid ${T.border}`,borderRadius:8,overflow:"hidden",marginBottom:20}}>
+          {(result.steps||[]).map((s,i)=><div key={i} style={{padding:"10px 14px",borderBottom:i<(result.steps.length-1)?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"22px 2fr 1fr 90px 90px",gap:8,alignItems:"center"}}>
+            <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:rc}}>{s.n}</span>
+            <div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{s.action}</div>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{s.clause}</span>
+            </div>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.owner}</span>
+            <span style={{fontSize:10,fontFamily:F.m,color:T.ink3}}>{s.timeline}</span>
+            <PTag p={s.priority}/>
+          </div>)}
+        </div>
+        <h4 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginBottom:11}}>Regulatory Considerations</h4>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:result.hitl?18:0}}>
+          {(result.regulatory||[]).map((r,i)=><div key={i} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 13px"}}>
+            <div style={{display:"flex",gap:7,marginBottom:5}}><Tag label={r.framework} color={rc} bg={rcL+"80"}/><span style={{fontSize:9,fontFamily:F.m,color:T.ink3}}>{r.article}</span></div>
+            <div style={{fontSize:11,color:T.ink,fontFamily:F.b,marginBottom:3,fontWeight:500}}>{r.req}</div>
+            <div style={{fontSize:11,color:T.red,fontFamily:F.b}}>⚠ {r.risk}</div>
+          </div>)}
+        </div>
+        {result.hitl&&<div style={{background:T.amberL,border:`1px solid ${T.amber}35`,borderRadius:8,padding:"12px 14px",display:"flex",gap:10}}>
+          <span>⚠️</span>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:T.amber,fontFamily:F.b,marginBottom:3}}>Human-in-the-Loop Required</div>
+            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{result.hitlReason}</p>
+          </div>
+        </div>}
+      </div>
+    </Card>}
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: PLAYBOOK
+───────────────────────────────────────────── */
+function PagePlaybook({role}) {
+  const rc=RC(role), rcL=RCL(role), tasks=PLAYBOOK[role]||[];
+  const [selIdx,setSelIdx]=useState(0);
+  const [runbook,setRunbook]=useState(null); // full runbook modal
+  useEffect(()=>{ setSelIdx(0); setRunbook(null); },[role]);
+  const sel=tasks[selIdx]||tasks[0]||{};
+
+  // Runbook modal
+  if(runbook) {
+    const rb=runbook;
+    const steps=[
+      {n:1,title:"Trigger & Activation",desc:"Confirm the trigger condition has been met. Document the date, time, and initiating event. Notify all stakeholders listed in the RACI matrix."},
+      {n:2,title:"Scope Assessment",desc:"Assess the full scope of the issue. Identify affected systems, data, users, and regulatory obligations. Classify severity (P1/P2/P3)."},
+      {n:3,title:"Containment Actions",desc:"Execute immediate containment to prevent escalation. Apply technical and operational controls. Document every action taken with timestamp."},
+      {n:4,title:"Stakeholder Notification",desc:"Notify all required parties per the communication tree: internal leadership, Legal, DPO, and if required, the supervisory authority within mandated timelines."},
+      {n:5,title:"Remediation & Resolution",desc:"Execute the remediation plan. Verify effectiveness of controls. Obtain sign-off from accountable owner before closing."},
+      {n:6,title:"Post-Incident Review",desc:"Conduct a blameless post-mortem within 5 business days. Document root cause, lessons learned, and control improvements. Update playbook."},
+    ];
+    return (
+      <div style={{animation:"up .3s ease"}}>
+        {/* Breadcrumb */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:18}}>
+          <button onClick={()=>setRunbook(null)} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 12px",fontSize:11,color:T.ink2,fontFamily:F.b,cursor:"pointer"}}>← Back to Playbook</button>
+          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>Playbook → {rb.title}</span>
+        </div>
+
+        {/* Header */}
+        <div style={{background:`linear-gradient(135deg,${rc}22,${T.s2})`,border:`1px solid ${rc}35`,borderRadius:12,padding:"20px 22px",marginBottom:16,boxShadow:`0 0 32px ${rc}10`}}>
+          <div style={{display:"flex",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+            <PTag p={rb.priority}/><STag s={rb.status}/>
+            {rb.hitl&&<Tag label="HITL Required" color={T.amber} bg={T.amberL}/>}
+            <Tag label={rb.fw} color={T.ink3} bg={T.s3}/>
+          </div>
+          <h1 style={{fontFamily:F.h,fontSize:22,fontWeight:700,color:T.ink,marginBottom:8,lineHeight:1.2}}>{rb.title}</h1>
+          <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.75}}>{rb.desc}</p>
+        </div>
+
+        {/* Metadata */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16}}>
+          {[["Owner",rb.owner],["Collaborators",rb.collab],["Framework",rb.fw],["Due Date",rb.due]].map(([l,v])=>(
+            <Card key={l} style={{padding:"12px 14px"}}>
+              <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>{l}</div>
+              <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b}}>{v}</div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Runbook steps */}
+        <Card style={{overflow:"hidden",marginBottom:14}}>
+          <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
+            <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink}}>Runbook Procedure</h3>
+          </div>
+          <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
+            {steps.map((s,i)=>(
+              <div key={s.n} style={{display:"flex",gap:12,alignItems:"flex-start",animation:`up ${.3+i*.06}s ease both`}}>
+                <div style={{width:28,height:28,borderRadius:"50%",flexShrink:0,background:rc+"20",border:`2px solid ${rc}50`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <span style={{fontSize:11,fontWeight:800,color:rc,fontFamily:F.m}}>{s.n}</span>
+                </div>
+                <div style={{flex:1,background:T.s3,borderRadius:8,padding:"11px 14px",borderLeft:`3px solid ${rc}40`}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:5}}>{s.title}</div>
+                  <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* HITL alert */}
+        {rb.hitl&&(
+          <div style={{background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:10,padding:"14px 16px",display:"flex",gap:12,marginBottom:14}}>
+            <span style={{fontSize:18}}>⚠️</span>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:T.amber,fontFamily:F.b,marginBottom:4}}>Human-in-the-Loop Required</div>
+              <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:0}}>This runbook cannot be executed without explicit approval in the HITL Queue. Navigate to the HITL Queue tab to review the AI reasoning and approve or reject the proposed action.</p>
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={()=>setRunbook(null)} style={{flex:1,background:T.s2,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>← Back to Playbook</button>
+          <button style={{flex:2,background:rc,color:"#fff",border:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>▶ Begin Runbook Execution</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Main playbook list
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Active Playbook" sub={`${tasks.length} runbooks assigned to or involving your role`}/>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {tasks.map((t,i)=><div key={t.id} onClick={()=>setSelIdx(i)}
+          style={{background:selIdx===i?T.s3:T.s1,border:`1px solid ${selIdx===i?rc+"50":T.border}`,borderRadius:10,padding:"13px 15px",cursor:"pointer",transition:"all .15s",boxShadow:selIdx===i?`0 0 18px ${rc}10`:"none",animation:`up ${.3+i*.06}s ease both`}}>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}><PTag p={t.priority}/><STag s={t.status}/>{t.hitl&&<Tag label="HITL" color={T.amber} bg={T.amberL}/>}</div>
+          <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:5,lineHeight:1.4}}>{t.title}</div>
+          <div style={{display:"flex",gap:12}}><span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>Due: {t.due}</span><span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{t.fw}</span></div>
+        </div>)}
+      </div>
+
+      {/* Detail pane */}
+      <div style={{position:"sticky",top:70,height:"fit-content"}}>
+        <Card style={{overflow:"hidden",boxShadow:`0 0 28px ${rc}10`}}>
+          {["Overdue","Urgent"].includes(sel.status)&&(
+            <div style={{background:T.red,padding:"7px 14px"}}>
+              <span style={{fontSize:9,fontWeight:700,color:"#fff",fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>⚠ {sel.status} — Immediate Action Required</span>
+            </div>
+          )}
+          <div style={{background:`linear-gradient(135deg,${rc}22,${rc}08)`,borderBottom:`1px solid ${rc}30`,padding:"14px 16px"}}>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:9}}><PTag p={sel.priority}/><STag s={sel.status}/></div>
+            <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink,lineHeight:1.35}}>{sel.title}</h3>
+          </div>
+          <div style={{padding:16}}>
+            <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:14}}>{sel.desc}</p>
+            {[["Owner",sel.owner],["Collaborators",sel.collab],["Framework",sel.fw],["Due Date",sel.due]].map(([l,v])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+                <span style={{fontSize:9,color:T.ink4,fontWeight:700,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
+                <span style={{fontSize:10,color:T.ink,fontFamily:F.m,textAlign:"right",maxWidth:180}}>{v}</span>
+              </div>
+            ))}
+            {sel.hitl&&(
+              <div style={{background:T.amberL,border:`1px solid ${T.amber}30`,borderRadius:7,padding:"10px 12px",marginTop:12}}>
+                <div style={{fontSize:9,fontWeight:700,color:T.amber,fontFamily:F.m,textTransform:"uppercase",marginBottom:3}}>⚠ HITL Required</div>
+                <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:0,lineHeight:1.6}}>Requires approval in HITL Queue before execution.</p>
+              </div>
+            )}
+            <button onClick={()=>setRunbook(sel)} style={{width:"100%",marginTop:13,background:rc,color:"#fff",border:"none",borderRadius:7,padding:"10px",fontSize:12,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>
+              Open Full Runbook →
+            </button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  </div>;
+}
+/* ─────────────────────────────────────────────
+   PAGE: COMPLIANCE
+───────────────────────────────────────────── */
+function PageCompliance({role}) {
+  const rc=RC(role);
+  const standards=STANDARDS_MAP[role]||[];
+  const roleKpis=ROLE_KPIS[role]||[];
+  const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Compliance Scorecard" sub={"Live posture across all "+ROLES[role].label+" regulatory frameworks and standards."}/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:20}}>
+      {standards.map((s,i)=>{
+        const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
+        const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
+        return <Card key={s.std} style={{padding:18,animation:`up ${.3+i*.08}s ease both`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+            <div>
+              <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink,marginBottom:6}}>{s.std}</h3>
+              <Tag label={s.status} color={stColor(s.status)} bg={stColor(s.status)+"18"}/>
+            </div>
+            <Ring score={s.score} color={rc} size={60}/>
+          </div>
+          <Bar value={s.score} color={rc} delay={i*100}/>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
+            <span style={{fontSize:10,fontWeight:700,fontFamily:F.m,color:col}}>{status}</span>
+          </div>
+        </Card>;
+      })}
+    </div>
+    {/* Full KPI table */}
+    <Card style={{overflow:"hidden"}}>
+      <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>{ROLES[role].label} Full KPI Register</h3>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"7px 14px",background:T.s4,borderBottom:`1px solid ${T.border}`}}>
+        {["Category","KPI / Metric","Target","Current","Framework","Status"].map(h=>
+          <span key={h} style={{fontSize:8,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F.m}}>{h}</span>
+        )}
+      </div>
+      {roleKpis.map((k,i)=>{
+        const sc=stColor(k.status);
+        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"10px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:i%2===0?T.s1:T.bg}}>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.cat}</span>
+          <span style={{fontSize:10,fontWeight:600,color:T.ink,fontFamily:F.b}}>{k.kpi}</span>
+          <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
+          <span style={{fontSize:10,fontWeight:700,color:rc,fontFamily:F.m}}>{k.value}</span>
+          <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{k.fw}</span>
+          <Tag label={k.status} color={sc} bg={sc+"18"}/>
+        </div>;
+      })}
+    </Card>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: ISO CHECKLISTS
+───────────────────────────────────────────── */
+function PageChecklists({role,showToast}) {
+  const rc=RC(role);
+  const available=CHECKLISTS_MAP[role]||[{key:"iso42001",label:"ISO 42001",data:ISO42001_CHECKLIST}];
+  const [selKey,setSelKey]=useState(available[0].key);
+  const [checked,setChecked]=useState({});
+  useEffect(()=>{setSelKey(available[0].key);setChecked({});},[role]);
+  const currentData=available.find(a=>a.key===selKey)?.data||available[0].data;
+  const allItems=currentData.flatMap(s=>s.items);
+  const doneCount=allItems.filter(i=>checked[i.id]!==undefined?checked[i.id]:i.done).length;
+  const pct=allItems.length>0?Math.round((doneCount/allItems.length)*100):0;
+  const toggle=id=>{setChecked(p=>({...p,[id]:!(p[id]!==undefined?p[id]:allItems.find(i=>i.id===id)?.done)}));};
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Compliance Checklists" sub="ISO and regulatory control checklists mapped to your governance obligations."/>
+    <div style={{display:"flex",gap:7,marginBottom:16,flexWrap:"wrap"}}>
+      {/* Show all checklists for CAIO, role-specific for others */}
+      {(role==="caio"?[{key:"iso42001",label:"ISO 42001 AIMS"}]:[...available]).map(fw=><button key={fw.key} onClick={()=>{setSelKey(fw.key);setChecked({});}} style={{background:selKey===fw.key?rc:T.s2,color:selKey===fw.key?"#fff":T.ink3,border:`1px solid ${selKey===fw.key?rc:T.border}`,borderRadius:6,padding:"6px 14px",fontSize:10,fontWeight:600,fontFamily:F.m,transition:"all .15s"}}>{fw.label}</button>)}
+      {role!=="caio"&&<button onClick={()=>{setSelKey("iso42001");setChecked({});}} style={{background:selKey==="iso42001"?rc:T.s2,color:selKey==="iso42001"?"#fff":T.ink3,border:`1px solid ${selKey==="iso42001"?rc:T.border}`,borderRadius:6,padding:"6px 14px",fontSize:10,fontWeight:600,fontFamily:F.m}}>ISO 42001 AIMS</button>}
+    </div>
+    <Card style={{padding:"12px 16px",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
+        <span style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b}}>{available.find(a=>a.key===selKey)?.label||"ISO 42001"} Progress</span>
+        <span style={{fontSize:10,fontFamily:F.m,color:T.ink3}}>{doneCount}/{allItems.length} controls · {pct}%</span>
+      </div>
+      <Bar value={pct} color={rc}/>
+    </Card>
+    {(selKey==="iso42001"?ISO42001_CHECKLIST:currentData).map((section,si)=>{
+      const sectionDone=section.items.filter(i=>checked[i.id]!==undefined?checked[i.id]:i.done).length;
+      return <Card key={section.clause} style={{overflow:"hidden",marginBottom:10,animation:`up ${.3+si*.05}s ease both`}}>
+        <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",gap:9,alignItems:"center"}}>
+            <Tag label={section.clause} color={rc} bg={RCL(role)+"80"}/>
+            <h3 style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b}}>{section.title}</h3>
+          </div>
+          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{sectionDone}/{section.items.length}</span>
+        </div>
+        <div style={{padding:"4px 14px"}}>
+          {section.items.map((item,ii)=>{
+            const isDone=checked[item.id]!==undefined?checked[item.id]:item.done;
+            return <div key={item.id} onClick={()=>toggle(item.id)} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"9px 0",borderBottom:ii<section.items.length-1?`1px solid ${T.border}`:"none",cursor:"pointer",opacity:isDone?.65:1}}>
+              <div style={{width:17,height:17,borderRadius:4,flexShrink:0,border:`2px solid ${isDone?T.green:T.borderB}`,background:isDone?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s",marginTop:1}}>
+                {isDone&&<span style={{color:"#fff",fontSize:9,fontWeight:700}}>✓</span>}
+              </div>
+              <span style={{fontSize:11,color:isDone?T.ink4:T.ink2,fontFamily:F.b,lineHeight:1.55,textDecoration:isDone?"line-through":"none"}}>{item.text}</span>
+            </div>;
+          })}
+        </div>
+      </Card>;
+    })}
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: HITL QUEUE
+───────────────────────────────────────────── */
+function PageHITL({role,showToast,onCountChange}) {
+  const rc=RC(role), rcL=RCL(role), items=HITL[role]||[];
+  const [decisions,setDecisions]=useState({});
+  const [notes,setNotes]=useState({});
+  useEffect(()=>{setDecisions({});setNotes({});},[role]);
+  useEffect(()=>{
+    const pending=items.filter(i=>!decisions[i.id]).length;
+    if(onCountChange)onCountChange(pending);
+  },[decisions,role]);
+  const decide=(id,action)=>{setDecisions(d=>({...d,[id]:action}));showToast(action==="approved"?"Action approved & audit-logged":"Rejected & returned for review",action==="approved"?"success":"error");};
+  const rColor=r=>r==="Critical"?T.red:r==="High"?T.amber:T.blue;
+  return <div style={{maxWidth:720,animation:"up .3s ease"}}>
+    <SHead title="Human-in-the-Loop Queue" sub="AI-flagged decisions requiring your explicit approval before any action is taken."/>
+    <div style={{background:T.blueL,border:`1px solid ${T.blue}28`,borderRadius:10,padding:"13px 16px",marginBottom:20,display:"flex",gap:12}}>
+      <span style={{fontSize:18,flexShrink:0}}>🔐</span>
+      <div>
+        <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:4}}>What is Human-in-the-Loop?</div>
+        <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,margin:0}}>VERIS AI analyses your compliance posture and recommends actions. For high-stakes decisions, <strong style={{color:T.ink}}>the system cannot act until you explicitly approve.</strong> You see the full reasoning, ISO 42001 clause reference, confidence score, and proposed action — then you decide. Every decision is time-stamped and audit-logged.</p>
+      </div>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:13}}>
+      {items.length===0&&<Card style={{padding:32,textAlign:"center"}}><p style={{color:T.ink3,fontFamily:F.b,fontSize:13}}>No items pending approval for your role.</p></Card>}
+      {items.map((item,i)=>{
+        const decided=decisions[item.id];
+        const rc2=rColor(item.risk);
+        return <Card key={item.id} style={{overflow:"hidden",border:`1px solid ${decided==="approved"?T.green+"50":decided==="rejected"?T.red+"50":T.border}`,opacity:decided?.75:1,transition:"all .3s",animation:`up ${.3+i*.1}s ease both`,boxShadow:!decided?`0 0 20px ${rc2}10`:"none"}}>
+          <div style={{padding:"12px 15px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:11}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:rc2,boxShadow:`0 0 0 3px ${rc2}25`,flexShrink:0}}/>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:5}}>{item.title}</div>
+              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                <Tag label={`Risk: ${item.risk}`} color={rc2} bg={rc2+"15"}/>
+                <Tag label={item.time} color={item.time.toLowerCase().includes("overdue")?T.red:T.ink3} bg={item.time.toLowerCase().includes("overdue")?T.redL:T.ink5}/>
+                <Tag label={item.clause} color={T.ink3} bg={T.ink5}/>
+              </div>
+            </div>
+            {decided&&<Tag label={decided==="approved"?"✓ Approved":"✗ Rejected"} color={decided==="approved"?T.green:T.red} bg={decided==="approved"?T.greenL:T.redL}/>}
+          </div>
+          <div style={{padding:"12px 15px",background:T.bg}}>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:7}}>AI Reasoning</div>
+            <p style={{fontSize:12,color:T.ink2,lineHeight:1.75,fontFamily:F.b,marginBottom:11}}>{item.reasoning}</p>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>AI confidence</span>
+              <div style={{flex:1,maxWidth:160}}><Bar value={item.conf} color={item.conf>=90?T.green:item.conf>=75?T.amber:T.red}/></div>
+              <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:item.conf>=90?T.green:item.conf>=75?T.amber:T.red,whiteSpace:"nowrap"}}>{item.conf}%</span>
+            </div>
+          </div>
+          <div style={{padding:"12px 15px",background:`linear-gradient(135deg,${rcL}80,${T.s1})`}}>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:5}}>Proposed Action</div>
+            <p style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:12,lineHeight:1.5}}>{item.action}</p>
+            {!decided?<>
+              <textarea value={notes[item.id]||""} onChange={e=>setNotes(n=>({...n,[item.id]:e.target.value}))} placeholder="Add a note for the audit log (optional)…" rows={2} style={{width:"100%",background:T.s3,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.ink3,fontFamily:F.b,resize:"none",marginBottom:10}}/>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>decide(item.id,"approved")} style={{flex:1,background:T.green,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:12,fontWeight:600,fontFamily:F.b}}>✓ Approve Action</button>
+                <button onClick={()=>decide(item.id,"rejected")} style={{flex:1,background:T.s1,color:T.red,border:`1.5px solid ${T.red}45`,borderRadius:7,padding:"9px",fontSize:12,fontWeight:600,fontFamily:F.b}}>✗ Reject & Return</button>
+              </div>
+            </>:<div style={{fontSize:11,color:T.ink4,fontFamily:F.b}}>Decision recorded · {new Date().toLocaleTimeString()} · Audit log updated{notes[item.id]&&<div style={{marginTop:3}}>Note: "{notes[item.id]}"</div>}</div>}
+          </div>
+        </Card>;
+      })}
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: AIA (AI Impact Assessment)
+───────────────────────────────────────────── */
+function PageAIA({role}) {
+  const rc=RC(role);
+  const [selId,setSelId]=useState(AIA_DATA[0].id);
+  const sel=AIA_DATA.find(a=>a.id===selId)||AIA_DATA[0];
+  const levelColor=l=>l==="High"?T.red:l==="Medium"?T.amber:T.green;
+  const levelBg=l=>l==="High"?T.redL:l==="Medium"?T.amberL:T.greenL;
+  const overallColor=r=>r==="Unacceptable"?T.red:r==="High"?T.amber:r==="Medium"?T.blue:T.green;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Impact Assessment (AIA)" sub="Structured 6-part assessment per ISO 42001 C.8.2 and EU AI Act Art.9. Based on your uploaded AIA template."/>
+    <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+      {AIA_DATA.map(a=><button key={a.id} onClick={()=>setSelId(a.id)} style={{background:selId===a.id?rc:T.s2,color:selId===a.id?"#fff":T.ink3,border:`1px solid ${selId===a.id?rc:T.border}`,borderRadius:6,padding:"6px 14px",fontSize:10,fontWeight:600,fontFamily:F.b,transition:"all .15s"}}>{a.system}</button>)}
+    </div>
+    {/* Header */}
+    <Card style={{overflow:"hidden",marginBottom:12,boxShadow:`0 0 24px ${overallColor(sel.overallRisk)}10`}}>
+      <div style={{background:`linear-gradient(135deg,${overallColor(sel.overallRisk)}20,${T.s2})`,borderBottom:`1px solid ${overallColor(sel.overallRisk)}30`,padding:"15px 18px"}}>
+        <div style={{display:"flex",gap:7,marginBottom:9,flexWrap:"wrap"}}>
+          <Tag label={sel.overallRisk==="Unacceptable"?"⛔ "+sel.overallRisk:sel.overallRisk+" Risk"} color={overallColor(sel.overallRisk)} bg={overallColor(sel.overallRisk)+"20"}/>
+          <Tag label={sel.decision} color={sel.decision==="Rejected"?T.red:sel.decision==="Approved"?T.green:T.amber} bg={sel.decision==="Rejected"?T.redL:sel.decision==="Approved"?T.greenL:T.amberL}/>
+          <Tag label={sel.clause} color={T.ink3} bg={T.ink5}/>
+        </div>
+        <h2 style={{fontFamily:F.h,fontSize:18,fontWeight:700,color:T.ink,marginBottom:4}}>{sel.system}</h2>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.m}}>{sel.vendor} · {sel.dept} · {sel.date}</p>
+      </div>
+      <div style={{padding:"12px 18px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:0}}>
+        {[["Owner",sel.owner,T.ink2],["Status",sel.status,rc],["Decision Type",sel.decisionType,T.ink2]].map(([l,v,c])=><div key={l} style={{padding:"6px 12px",borderRight:l!=="Decision Type"?`1px solid ${T.border}`:"none"}}>
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>{l}</div>
+          <div style={{fontSize:11,fontWeight:600,color:c,fontFamily:F.b}}>{v}</div>
+        </div>)}
+      </div>
+    </Card>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:12}}>
+      {/* Part 1: System Profile */}
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 1 — System Profile</div>
+        {[["Status",sel.status],["Decision Type",sel.decisionType],["Lifespan",sel.lifespan]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.04em"}}>{l}</span>
+          <span style={{fontSize:11,color:T.ink,fontFamily:F.b}}>{v}</span>
+        </div>)}
+      </Card>
+      {/* Part 2: Data Audit */}
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 2 — Data Audit</div>
+        {[["PII Processed",sel.data.pii],["Sensitive Categories",sel.data.sensitive],["Data Provenance Verified",sel.data.provenance],["Bias Check Done",sel.data.biasCheck],["Data Minimisation",sel.data.minimization]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`,alignItems:"center"}}>
+          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.04em"}}>{l}</span>
+          <Tag label={v?"Yes":"No"} color={v?T.amber:T.green} bg={v?T.amberL:T.greenL}/>
+        </div>)}
+      </Card>
+      {/* Part 3: Rights Impact */}
+      <Card style={{padding:16,gridColumn:"1/-1"}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:12}}>Part 3 — Fundamental Rights Impact (FRIA)</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:10}}>
+          {sel.rightsImpact.map((r,i)=><div key={i} style={{background:T.s3,border:`1px solid ${levelColor(r.level)}25`,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${levelColor(r.level)}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+              <span style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b}}>{r.right}</span>
+              <Tag label={r.level} color={levelColor(r.level)} bg={levelBg(r.level)}/>
+            </div>
+            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{r.desc}</p>
+          </div>)}
+        </div>
+      </Card>
+      {/* Part 4: Technical */}
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 4 — Technical Reliability</div>
+        {sel.technical.map((t,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"8px 0",borderBottom:i<sel.technical.length-1?`1px solid ${T.border}`:"none"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.dim}</div>
+            <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{t.metric}</span>
+          </div>
+          <Tag label={t.pass?"✓ Pass":"✗ Fail"} color={t.pass?T.green:T.red} bg={t.pass?T.greenL:T.redL}/>
+        </div>)}
+      </Card>
+      {/* Part 5: Controls */}
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 5 — Governance Controls</div>
+        {sel.controls.map((c,i)=><div key={i} style={{padding:"8px 0",borderBottom:i<sel.controls.length-1?`1px solid ${T.border}`:"none"}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{c.measure}</div>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55,margin:0}}>{c.detail}</p>
+        </div>)}
+      </Card>
+      {/* Part 6: Decision */}
+      <Card style={{padding:16,border:`1px solid ${overallColor(sel.overallRisk)}30`}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:12}}>Part 6 — Final Determination</div>
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+          <Tag label={`Overall Risk: ${sel.overallRisk}`} color={overallColor(sel.overallRisk)} bg={overallColor(sel.overallRisk)+"15"}/>
+          <Tag label={sel.decision} color={sel.decision==="Rejected"?T.red:sel.decision==="Approved"?T.green:T.amber} bg={sel.decision==="Rejected"?T.redL:sel.decision==="Approved"?T.greenL:T.amberL}/>
+        </div>
+        {sel.decision==="Rejected"&&<div style={{background:T.redL,border:`1px solid ${T.red}30`,borderRadius:7,padding:"10px 12px",marginBottom:12}}>
+          <p style={{fontSize:11,color:T.red,fontFamily:F.b,margin:0,lineHeight:1.6}}>⛔ This system was rejected. Risk to fundamental rights is too high to proceed. Refer to Part 3 FRIA for details.</p>
+        </div>}
+        {sel.decision==="Approved with Conditions"&&<div style={{background:T.amberL,border:`1px solid ${T.amber}30`,borderRadius:7,padding:"10px 12px",marginBottom:12}}>
+          <p style={{fontSize:11,color:T.amber,fontFamily:F.b,margin:0,lineHeight:1.6}}>⚠ Conditional approval. All Part 5 mitigations must be active before deployment proceeds.</p>
+        </div>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          {[["AI System Owner",sel.owner],["Legal / DPO","Pending"],["Chief AI Officer","Aisha Patel"]].map(([role2,name])=><div key={role2} style={{background:T.s3,borderRadius:7,padding:"9px 10px",border:`1px solid ${T.border}`}}>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>{role2}</div>
+            <div style={{fontSize:11,color:T.ink,fontFamily:F.b,marginBottom:4}}>{name}</div>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Signature pending</div>
+          </div>)}
+        </div>
+      </Card>
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: AIRA
+───────────────────────────────────────────── */
+function PageAIRA() {
+  const [sel,setSel]=useState(AIRA[0]);
+  const rColor=s=>s==="Critical"?T.red:s==="High"?T.amber:s==="Medium"?T.blue:T.green;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Risk Assessment Register (AIRA)" sub="ISO 42001 Clause 8.2 — structured identification and analysis of AI system risks."/>
+    <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
+      <div>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 60px 60px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+          {["AI System","Category","L","I","Score"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+        </div>
+        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+          {AIRA.map((r,i)=>{
+            const rc2=rColor(r.level);
+            return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<AIRA.length-1?`1px solid ${T.border}`:"none",background:sel?.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===r.id?`3px solid ${rc2}`:"3px solid transparent",transition:"all .15s"}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.system}</div>
+                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.owner}</span>
+              </div>
+              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.category}</span>
+              <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(n=><div key={n} style={{width:7,height:7,borderRadius:2,background:n<=r.likelihood?T.amber:T.border}}/>)}</div>
+              <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(n=><div key={n} style={{width:7,height:7,borderRadius:2,background:n<=r.impact?rc2:T.border}}/>)}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:rc2}}>{r.score}</span>
+                <Tag label={r.level} color={rc2} bg={rc2+"18"}/>
+              </div>
+            </div>;
+          })}
+        </div>
+      </div>
+      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${rColor(sel.level)}10`,animation:"fade .25s ease"}}>
+        <div style={{background:`linear-gradient(135deg,${rColor(sel.level)}18,${T.s3})`,borderBottom:`1px solid ${rColor(sel.level)}30`,padding:"14px 16px"}}>
+          <Tag label={sel.level} color={rColor(sel.level)} bg={rColor(sel.level)+"20"}/>
+          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.system}</h3>
+        </div>
+        <div style={{padding:16}}>
+          <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:14}}>{sel.desc}</p>
+          {[["ISO/Regulatory Reference",sel.clause],["Risk Category",sel.category],["Owner",sel.owner],["Likelihood",`${sel.likelihood}/5`],["Impact",`${sel.impact}/5`],["Risk Score",`${sel.score}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
+            <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:160}}>{v}</span>
+          </div>)}
+          {/* Heatmap */}
+          <div style={{marginTop:14}}>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Risk Heatmap</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
+              {[5,4,3,2,1].map(impact=>[1,2,3,4,5].map(likelihood=>{
+                const s=likelihood*impact;
+                const isThis=likelihood===sel.likelihood&&impact===sel.impact;
+                const bg=s>=16?T.red:s>=10?T.amber:s>=5?T.blue:T.green;
+                return <div key={`${impact}-${likelihood}`} style={{height:18,borderRadius:3,background:isThis?bg:bg+"25",border:isThis?`2px solid ${bg}`:"none",transition:"all .15s"}}/>;
+              }))}
+            </div>
+          </div>
+        </div>
+      </Card>}
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: AIRT
+───────────────────────────────────────────── */
+function PageAIRT() {
+  const [sel,setSel]=useState(AIRT[0]);
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Risk Treatment Register (AIRT)" sub="ISO 42001 Clause 8.3 — treatment plans for identified AI risks. Linked to AIRA."/>
+    <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
+      <div>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 90px 100px 90px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+          {["AI System","Treatment","Owner","Deadline","Status"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+        </div>
+        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+          {AIRT.map((t,i)=><div key={t.id} onClick={()=>setSel(t)} style={{display:"grid",gridTemplateColumns:"2fr 90px 100px 90px 90px",padding:"10px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<AIRT.length-1?`1px solid ${T.border}`:"none",background:sel?.id===t.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===t.id?`3px solid ${T.violet}`:"3px solid transparent",transition:"all .15s"}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.system}</div>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Risk: {t.risk}</span>
+            </div>
+            <STag s={t.treatment}/>
+            <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{t.owner}</span>
+            <span style={{fontSize:9,fontFamily:F.m,color:T.ink3}}>{t.deadline}</span>
+            <STag s={t.status}/>
+          </div>)}
+        </div>
+      </div>
+      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 24px ${T.violet}10`,animation:"fade .25s ease"}}>
+        <div style={{background:`linear-gradient(135deg,${T.violetL},${T.s3})`,borderBottom:`1px solid ${T.violet}30`,padding:"14px 16px"}}>
+          <div style={{display:"flex",gap:7,marginBottom:9}}><STag s={sel.treatment}/><PTag p={sel.priority}/></div>
+          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3}}>{sel.system}</h3>
+          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>Risk: {sel.risk}</p>
+        </div>
+        <div style={{padding:16}}>
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Treatment Action</div>
+          <p style={{fontSize:11,color:T.ink2,lineHeight:1.7,fontFamily:F.b,marginBottom:14,padding:"10px 12px",background:T.s3,borderRadius:7,borderLeft:`3px solid ${T.violet}`}}>{sel.action}</p>
+          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",sel.status],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
+            <span style={{fontSize:10,color:T.ink,fontFamily:F.m}}>{v}</span>
+          </div>)}
+          <button style={{width:"100%",marginTop:13,background:T.violet,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Update Treatment Plan →</button>
+        </div>
+      </Card>}
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: ROADMAP
+───────────────────────────────────────────── */
+function PageRoadmap({role}) {
+  const rc=RC(role), rcL=RCL(role), qs=ROADMAP[role];
+  const nexts={
+    caio:[{a:"Complete LLM v2 Art.13 transparency docs before go-live",w:"EU AI Act Art.13 requires complete docs for High-Risk systems. 6 days remaining.",i:"Critical"},{a:"Classify 3 unregistered models under EU AI Act",w:"Unclassified models = unknown exposure. August 2026 enforcement is 12 weeks away.",i:"High"},{a:"Begin ISO 42001 conformity assessment now",w:"Assessment takes 3–4 months. Q2 start is the minimum to meet Q3 deadline.",i:"High"}],
+    ciso:[{a:"Close GDPR DPIA for analytics platform immediately",w:"Active Art.35 violation. Personal CISO liability under GDPR Art.83 growing daily.",i:"Critical"},{a:"Prioritise ISO 27001 A.8.2 asset classification gap",w:"65% score — 10-point uplift achievable in 30 days. Q3 cert audit approaching.",i:"High"},{a:"Prepare board-level security briefing",w:"Board oversight of security posture expected by regulators and enterprise insurers.",i:"Medium"}],
+    cio:[{a:"Execute S3 data residency migration within 48 hours",w:"Active GDPR Art.46 violation. Every day increases regulatory and reputational exposure.",i:"Critical"},{a:"Sign off Zero Trust Phase 2 this week",w:"Window closes May 15. Missing it risks Q3 audit readiness.",i:"Critical"},{a:"Accelerate FY25 roadmap reprioritisation",w:"5 initiatives at risk. CFO alignment needed before end of Q2.",i:"High"}],
+    cdpo:[{a:"Submit analytics platform DPIA to supervisory authority today",w:"Active Art.35 violation. DPA notification may already be required.",i:"Critical"},{a:"Resolve DSR queue before 30-day deadlines",w:"4 requests approaching deadline. Fines for DSR non-compliance rising.",i:"High"},{a:"Complete TIAs for 5 remaining US vendors",w:"Post-Schrems II exposure. Processing pause required by May 30.",i:"High"}],
+    cgo:[{a:"Approve Q2 Board Governance Report before the deadline",w:"Board pack is due in 2 days. As CGO your sign-off is the final gate — it cannot proceed without it.",i:"Critical"},{a:"Approve the EU AI Act cross-functional remediation plan",w:"CAIO, CISO, and CDPO have submitted their gap plans. Unified plan needs CGO approval to assign accountability and begin execution.",i:"High"},{a:"Accelerate vendor risk programme — only 61% assessed",w:"Third-party governance is a top COBIT 5 maturity gap. 39% of vendors have no formal risk assessment on file.",i:"High"}],
+  }[role];
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Strategic Roadmap" sub="FY2026 governance and compliance milestones."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10,marginBottom:22}}>
+      {qs.map((q,i)=>{
+        const isDone=q.st==="done",isAct=q.st==="active";
+        const bg=isDone?T.green:isAct?rc:T.ink4;
+        return <div key={q.q} style={{animation:`up ${.3+i*.07}s ease both`}}>
+          <div style={{background:bg,borderRadius:"8px 8px 0 0",padding:"8px 12px",display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#fff",fontFamily:F.m}}>{q.q}</span>
+            <span style={{fontSize:9,color:"rgba(255,255,255,.75)",fontFamily:F.b}}>{isDone?"✓ Done":isAct?"● Active":"Planned"}</span>
+          </div>
+          <Card style={{borderRadius:"0 0 8px 8px",padding:12}}>
+            {q.items.map((item,j)=>{
+              const isStar=item.endsWith("★"),label=item.replace(" ★","");
+              return <div key={j} style={{display:"flex",gap:7,marginBottom:j<q.items.length-1?8:0,alignItems:"flex-start"}}>
+                <div style={{width:4,height:4,borderRadius:"50%",marginTop:5,flexShrink:0,background:isDone?T.green:isAct&&isStar?T.amber:isAct?rc:T.ink4}}/>
+                <span style={{fontSize:10,color:isDone?T.ink4:T.ink3,fontFamily:F.b,lineHeight:1.5,textDecoration:isDone?"line-through":"none"}}>{label}{isStar&&!isDone&&<span style={{color:T.amber,fontWeight:700}}> ★</span>}</span>
+              </div>;
+            })}
+          </Card>
+        </div>;
+      })}
+    </div>
+    <Card style={{padding:18}}>
+      <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink,marginBottom:4}}>AI Recommended Next Steps</h3>
+      <p style={{fontSize:11,color:T.ink4,fontFamily:F.b,marginBottom:16}}>Highest-leverage actions based on current compliance posture.</p>
+      {nexts.map((ns,i)=><div key={i} style={{display:"flex",gap:13,padding:"12px 0",borderBottom:i<nexts.length-1?`1px solid ${T.border}`:"none",animation:`up ${.35+i*.08}s ease both`}}>
+        <div style={{width:26,height:26,borderRadius:"50%",flexShrink:0,background:rcL,border:`1.5px solid ${rc}40`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <span style={{fontSize:11,fontWeight:800,color:rc,fontFamily:F.m}}>{i+1}</span>
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{ns.a}</div>
+          <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:6}}>{ns.w}</div>
+          <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
+        </div>
+      </div>)}
+    </Card>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: TEMPLATES
+───────────────────────────────────────────── */
+function PageTemplates({role,showToast}) {
+  const rc=RC(role);
+  const [selId,setSelId]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [genResult,setGenResult]=useState(null);
+  const generate=async(template)=>{
+    setSelId(template.id);setLoading(true);setGenResult(null);
+    try{
+      const tplMsg="Generate a preview of: \""+template.name+"\". Framework: "+template.fw+". Category: "+template.cat+". Include: purpose section, 3-5 key fields, regulatory article references, and 3 questions this document must answer. Be specific and practical.";
+      const res=await fetch("/api/anthropic",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:"You are VERIS's AI Template Engine. Generate a professional, structured governance document template preview. Be specific, practical, reference real regulatory articles and ISO 42001 clauses. Use clear section headers with ##. Keep to 400 words max.",messages:[{role:"user",content:tplMsg}]})});
+      const d=await res.json();
+      setGenResult((d.content&&d.content[0]&&d.content[0].text)||"");
+    }catch{showToast("Template generation failed","error");}
+    setLoading(false);
+  };
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Document Templates" sub="AI-native governance templates. AI-assisted templates auto-populate from your system description."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:11,marginBottom:selId?18:0}}>
+      {TEMPLATES.map((t,i)=><Card key={t.id} style={{padding:15,border:`1px solid ${selId===t.id?rc+"50":T.border}`,transition:"border-color .2s",animation:`up ${.3+i*.05}s ease both`}}>
+        <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:9}}>
+          <div style={{width:34,height:34,borderRadius:8,background:T.s3,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{t.icon}</div>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",gap:5,marginBottom:5,flexWrap:"wrap"}}>
+              <Tag label={t.cat} color={T.blue} bg={T.blueL}/>
+              {t.ai&&<Tag label="AI Native" color={T.violet} bg={T.violetL}/>}
+            </div>
+            <h3 style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,lineHeight:1.35}}>{t.name}</h3>
+          </div>
+        </div>
+        <p style={{fontSize:11,color:T.ink3,lineHeight:1.65,fontFamily:F.b,marginBottom:11}}>{t.desc}</p>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:11}}>
+          <Tag label={t.fw} color={T.ink3} bg={T.s3}/>
+          {t.tags.map(tag=><Tag key={tag} label={tag} color={T.ink4} bg={T.ink5}/>)}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setSelId(selId===t.id?null:t.id)} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:6,padding:"7px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Preview</button>
+          {t.ai&&<button onClick={()=>generate(t)} style={{flex:1,background:rc,color:"#fff",border:"none",borderRadius:6,padding:"7px",fontSize:10,fontWeight:600,fontFamily:F.b}}>⚡ Generate</button>}
+        </div>
+      </Card>)}
+    </div>
+    {selId&&<Card style={{padding:18,animation:"up .3s ease"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink}}>{TEMPLATES.find(t=>t.id===selId)?.name}</h3>
+        <button onClick={()=>{setSelId(null);setGenResult(null);}} style={{background:"none",border:"none",color:T.ink4,fontSize:18}}>×</button>
+      </div>
+      {loading&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"18px 0",color:T.ink3,fontFamily:F.b,fontSize:12}}><Spinner color={rc}/>VERIS AI generating template…</div>}
+      {genResult&&<div style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:15,fontSize:11,color:T.ink2,fontFamily:F.m,lineHeight:1.85,whiteSpace:"pre-wrap",maxHeight:380,overflowY:"auto"}}>{genResult}</div>}
+      {!loading&&!genResult&&<p style={{fontSize:12,color:T.ink4,fontFamily:F.b}}>Click ⚡ Generate to get an AI-populated draft of this template.</p>}
+    </Card>}
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: REPORTS
+───────────────────────────────────────────── */
+function PageReports({role}) {
+  const rc=RC(role), rcL=RCL(role), K=KPI[role];
+  const standards=STANDARDS_MAP[role]||[];
+  const roleKpis=ROLE_KPIS[role]||[];
+  const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Reports & Analytics" sub="Executive-ready compliance reporting and operational metrics."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16}}>
+      {[{label:"Overall Compliance",value:`${K.compliance}%`,sub:`+${K.cTrend}% vs last month`,color:rc},
+        {label:K.domainLabel,value:`${K.score}/100`,sub:K.scoreLabel,color:rc},
+        {label:"Open Risks",value:K.risks,sub:"In register",color:T.amber},
+        {label:"HITL Pending",value:K.hitl,sub:"Awaiting approval",color:T.violet}
+      ].map((k,i)=><Card key={k.label} style={{padding:15,animation:`up ${.3+i*.07}s ease both`}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:9}}>{k.label}</div>
+        <div style={{fontSize:28,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:4}}>{k.value}</div>
+        <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
+      </Card>)}
+    </div>
+    <Card style={{overflow:"hidden",marginBottom:12}}>
+      <div style={{padding:"11px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>Standards & Framework Scorecard</h3>
+      </div>
+      {standards.map((s,i)=>{
+        const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
+        const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
+        return <div key={s.std} style={{padding:"11px 16px",borderBottom:i<standards.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"100px 1fr 1fr 80px",gap:12,alignItems:"center"}}>
+          <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:T.ink}}>{s.std}</span>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
+          <div><Bar value={s.score} color={rc} delay={i*80}/></div>
+          <Tag label={status} color={col} bg={col+"15"}/>
+        </div>;
+      })}
+    </Card>
+    <Card style={{overflow:"hidden",marginBottom:12}}>
+      <div style={{padding:"11px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>{ROLES[role].label} Top KPIs</h3>
+      </div>
+      {roleKpis.slice(0,5).map((k,i)=>{
+        const sc=stColor(k.status);
+        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 70px",padding:"10px 16px",alignItems:"center",borderBottom:i<4?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.cat}</span>
+          </div>
+          <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
+          <span style={{fontSize:10,fontWeight:700,color:rc,fontFamily:F.m}}>{k.value}</span>
+          <Tag label={k.status} color={sc} bg={sc+"18"}/>
+        </div>;
+      })}
+    </Card>
+    <Card style={{overflow:"hidden"}}>
+      <div style={{padding:"11px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>Scheduled Reports</h3>
+      </div>
+      {[{name:"Weekly Compliance Digest",freq:"Every Monday",next:"May 11",fmt:"PDF + Email"},
+        {name:"Monthly Board Risk Summary",freq:"1st of month",next:"Jun 1",fmt:"PDF"},
+        {name:"Quarterly Regulatory Update",freq:"Quarterly",next:"Jul 1",fmt:"PDF + Deck"}
+      ].map((r,i)=><div key={r.name} style={{padding:"11px 16px",borderBottom:i<2?`1px solid ${T.border}`:"none",display:"flex",alignItems:"center",gap:14}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{r.name}</div>
+          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{r.freq} · Next: {r.next}</span>
+        </div>
+        <Tag label={r.fmt} color={rc} bg={rcL+"80"}/>
+        <button style={{fontSize:10,color:rc,fontWeight:600,background:rcL+"60",border:`1px solid ${rc}35`,borderRadius:6,padding:"5px 11px",fontFamily:F.b}}>Run Now</button>
+      </div>)}
+    </Card>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: AIIA — AI SYSTEM IMPACT ASSESSMENT
+   Based on Day 3: ISO 42001 Annex A Control A.5
+   6 Phases: Characterise → Stakeholders → Identify
+             → Evaluate → Mitigate → Conclude
+───────────────────────────────────────────── */
+const AIIA_RISK_CATEGORIES = [
+  {cat:"Security Risks",icon:"🔐",color:"#E84040",items:["Adversarial attacks & prompt injection","Data poisoning of training sets","Model theft or extraction","Unauthorized access to AI systems","Supply chain vulnerabilities via third-party models","System manipulation and evasion"]},
+  {cat:"Safety Risks",icon:"⚠️",color:"#E8A020",items:["Unintended consequences from autonomous decisions","System malfunction or failure in safety-critical domains","Lack of robustness under adversarial inputs","Human overreliance on AI recommendations","Poor testing and validation before deployment"]},
+  {cat:"Privacy Risks",icon:"🔒",color:"#9061F9",items:["Data leakage and unauthorized access to PII","Inappropriate profiling or re-identification","Lack of transparency and informed consent","Weak data governance and GDPR/CCPA non-compliance","Re-identification from anonymised training data"]},
+  {cat:"Ethical & Societal Risks",icon:"⚖️",color:"#4B7BF5",items:["Algorithmic bias and discrimination against protected groups","Erosion of human agency in high-stakes decisions","Social inequality amplification","Environmental impact of energy-intensive AI","Labour market disruption from automation"]},
+  {cat:"Reliability & Robustness",icon:"📊",color:"#0DB4A0",items:["Model drift — accuracy degrading over time","Hallucinations in generative AI","Failure under out-of-distribution inputs","Inconsistent outputs across demographic groups","Insufficient continuous monitoring"]},
+  {cat:"Compliance & Legal Risks",icon:"📋",color:"#E8A020",items:["EU AI Act non-compliance for high-risk systems","GDPR Art.22 automated decision violations","Anti-discrimination law violations","Intellectual property and copyright issues","Failure to maintain audit trails and documentation"]},
+  {cat:"Operational Risks",icon:"⚙️",color:"#6E7594",items:["Inadequate human oversight processes","Dependency on single-point-of-failure AI vendors","Lack of incident response for AI failures","Insufficient staff competence (ISO 42001 C.7.2)","No kill-switch or emergency stop mechanism"]},
+];
+
+const AIIA_PHASES = [
+  {
+    id:1, name:"System Characterisation", subtitle:"The 'What'",
+    clause:"ISO 42001 C.6.1.4 / Annex A.5.1",
+    icon:"🔍", color:"#4B7BF5",
+    desc:"Define the system boundaries before any assessment can occur. You cannot assess a black box.",
+    steps:[
+      {title:"Define Use Case & Scope",detail:"Document intended purpose (e.g. 'Screen resumes for IT jobs'), intended users, deployment environment (cloud/on-premise), and data profile including PII and sensitive categories."},
+      {title:"Identify Lifecycle Stage",detail:"Determine whether this assessment covers Design, Development, Testing, or Production deployment. Impacts and controls differ significantly at each stage."},
+      {title:"Document Technical Architecture",detail:"Record the model type, training data sources, third-party components (SBOM), inference infrastructure, and any pre-trained models or APIs used."},
+      {title:"Define Scope Boundaries",detail:"Specify what is included and excluded. Document interfaces with other systems, data flows, and dependencies on external AI components or vendors."},
+    ],
+    outputs:["Use case definition document","Lifecycle stage confirmation","Technical architecture record","AIMS scope statement (ISO 42001 C.4.3)"],
+    isoRef:"ISO 42001 Clause 4.3, 8.4 / Annex A.5.1",
+  },
+  {
+    id:2, name:"Stakeholder Analysis", subtitle:"The 'Who'",
+    clause:"ISO 42001 Annex A.5.2 / C.4.2",
+    icon:"👥", color:"#9061F9",
+    desc:"Identify who will be affected. The impacted population is almost always broader than initially assumed.",
+    steps:[
+      {title:"Map Direct Subjects",detail:"Identify people the AI makes decisions about or directly interacts with (e.g. the job applicant the resume screener evaluates)."},
+      {title:"Map Indirect Subjects",detail:"Identify people affected by the ripple effects of AI decisions (e.g. the applicant's family who depends on the income from the job they didn't get)."},
+      {title:"Identify Vulnerable Groups",detail:"Explicitly assess whether the AI system disproportionately impacts children, elderly, non-native speakers, disabled persons, or marginalised communities."},
+      {title:"Engage Diverse Perspectives",detail:"ISO 42001 requires cross-disciplinary stakeholder involvement: AI developers, legal, ethics, impacted user representatives, and external community voices."},
+    ],
+    outputs:["Affected populations register","Vulnerable groups assessment","Stakeholder engagement log","Interested parties register (ISO 42001 C.4.2)"],
+    isoRef:"ISO 42001 Clause 4.2 / Annex A.5.2, A.5.4",
+  },
+  {
+    id:3, name:"Impact Identification", subtitle:"The 'How it Hurts'",
+    clause:"ISO 42001 Annex A.5.3 / C.6.1.4",
+    icon:"⚡", color:"#E84040",
+    desc:"The core of the assessment. Categorise potential negative outcomes across all impact domains.",
+    steps:[
+      {title:"Fundamental Rights Assessment",detail:"Could the system violate privacy (GDPR Art.7), freedom of expression, right to non-discrimination (EU AI Act Art.10), or access to justice? Document with specific legal basis."},
+      {title:"Health & Safety Assessment",detail:"Could physical or psychological harm occur? (e.g. chatbot giving unsafe medical advice, autonomous system causing physical harm). Reference EU AI Act Annex III for high-risk domains."},
+      {title:"Transparency Assessment",detail:"Will users know they are interacting with AI? Is the AI's decision explainable? Document Art.13 transparency obligations and explainability gaps."},
+      {title:"Environmental & Societal Assessment",detail:"Assess energy consumption, carbon footprint, economic disruption, labour market impacts, and social inequality effects per ISO 42001 C.4.1 sustainability requirements."},
+    ],
+    outputs:["Fundamental Rights Impact Assessment (FRIA)","Health & safety impact log","Transparency gap analysis","Societal impact documentation"],
+    isoRef:"ISO 42001 Clause 6.1.4 / Annex A.5.3, A.5.4 / EU AI Act Art.9, 13",
+  },
+  {
+    id:4, name:"Evaluation & Scoring", subtitle:"The 'How Bad'",
+    clause:"ISO 42001 C.8.2 / Annex A.5",
+    icon:"📊", color:"#E8A020",
+    desc:"Score each identified impact by severity and likelihood to enable prioritisation of mitigation efforts.",
+    steps:[
+      {title:"Likelihood Scoring (1–5)",detail:"1=Very Unlikely, 2=Unlikely, 3=Possible, 4=Likely, 5=Almost Certain. Base scores on evidence from testing, comparable systems, and expert judgment."},
+      {title:"Severity Scoring (1–5)",detail:"1=Negligible, 2=Minor, 3=Moderate, 4=Serious, 5=Critical/Irreversible. Weight by whether vulnerable groups are disproportionately affected."},
+      {title:"Risk Score Calculation",detail:"Impact Score = Likelihood × Severity. Score ≥16: Unacceptable — must halt or fully mitigate. 10–15: High — HITL controls mandatory. 5–9: Medium. <5: Low — accept with monitoring."},
+      {title:"Document Risk Acceptance Decisions",detail:"ISO 42001 C.6.1.1 requires formal documentation of which risks are accepted within tolerance, by whom, and on what basis. Risk owner sign-off required."},
+    ],
+    outputs:["Scored impact register","Risk acceptance decisions","Heat map visualisation","Risk prioritisation report"],
+    isoRef:"ISO 42001 Clause 6.1.1, 6.1.2, 8.2 / Annex A.5",
+  },
+  {
+    id:5, name:"Mitigation & Treatment", subtitle:"The 'Fix'",
+    clause:"ISO 42001 C.8.3 / Annex A controls",
+    icon:"🛡️", color:"#1FB864",
+    desc:"ISO 42001 Clause 8.4 requires you to treat all identified impacts. Select controls from Annex A.",
+    steps:[
+      {title:"Technical Controls",detail:"Retrain on balanced datasets, implement fairness constraints, deploy RLHF guardrails, apply differential privacy, add robustness testing (red teaming), enable continuous bias monitoring with automated alerts."},
+      {title:"Governance Controls (HITL)",detail:"Human-in-the-Loop requirement: no high-impact decision without human review. Define escalation procedures, override mechanisms, and accountability for AI decisions. Document in RACI."},
+      {title:"Transparency Controls",detail:"Explicit AI disclosure labelling ('This decision was assisted by AI'), model cards documenting limitations, explainability layer (SHAP/LIME), user notification per EU AI Act Art.52."},
+      {title:"Statement of Applicability",detail:"ISO 42001 C.8.3 requires a Statement of Applicability (SoA) mapping selected Annex A controls to identified risks. Document included/excluded controls with justification."},
+    ],
+    outputs:["Risk treatment plan","Statement of Applicability (SoA)","Implemented controls evidence","Model cards and bias test results"],
+    isoRef:"ISO 42001 Clause 8.3, 8.4 / Annex A.2–A.11",
+  },
+  {
+    id:6, name:"Conclusion & Approval", subtitle:"The 'Go / No-Go'",
+    clause:"ISO 42001 C.9.3 / Annex A.5.3",
+    icon:"✅", color:"#0DB4A0",
+    desc:"The AIIA must conclude with a formal recommendation and documented sign-off from accountable leadership.",
+    steps:[
+      {title:"Go/No-Go Decision",detail:"Proceed: All impacts negligible or fully mitigated. Proceed with Conditions: High impacts remain but strict HITL controls and monitoring are confirmed active. Halt: Impact on fundamental rights is too high and cannot be mitigated (e.g. real-time biometric ID in public spaces)."},
+      {title:"Residual Risk Acceptance",detail:"Document any residual risks that are accepted within organisational tolerance. Risk owner (typically CAIO or senior accountable role) must formally acknowledge and sign."},
+      {title:"Mandatory Sign-off",detail:"Per ISO 42001 C.9.3 and EU AI Act Art.27: document must be signed by AI Project Owner, CAIO/Chief AI Risk Officer, and Legal/DPO. Date and version controlled."},
+      {title:"Ongoing Monitoring Plan",detail:"Establish post-deployment monitoring: bias metric cadence, incident reporting channel, trigger conditions for reassessment (system change, incident, regulatory update, 6-month cycle)."},
+    ],
+    outputs:["Go/No-Go decision record","Residual risk acceptance form","Signed approval documentation","Post-deployment monitoring plan"],
+    isoRef:"ISO 42001 Clause 9.1, 9.3 / Annex A.5.3 / EU AI Act Art.9(9), 27",
+  },
+];
+
+function PageAIIA({role, setTab}) {
+  const rc = RC(role), rcL = RCL(role);
+  const [activePhase, setActivePhase] = useState(1);
+  const [activeCat, setActiveCat] = useState(0);
+  const [view, setView] = useState("phases"); // "phases" | "categories"
+  const phase = AIIA_PHASES.find(p => p.id === activePhase);
+
+  return (
+    <div style={{animation:"up .3s ease"}}>
+      <SHead
+        title="AI System Impact Assessment (AIIA)"
+        sub="ISO 42001 Annex A Control A.5 · Day 3 curriculum · 6-phase structured process per ISO 42001 C.6.1.4"
+      />
+
+      {/* View toggle */}
+      <div style={{display:"flex",gap:8,marginBottom:20}}>
+        {[{id:"phases",label:"⊕ 6-Phase Process"},{id:"categories",label:"⬟ Risk Categories"}].map(v =>
+          <button key={v.id} onClick={()=>setView(v.id)} style={{
+            background:view===v.id?rc:T.s2, color:view===v.id?"#fff":T.ink3,
+            border:`1px solid ${view===v.id?rc:T.border}`, borderRadius:7,
+            padding:"7px 16px", fontSize:11, fontWeight:600, fontFamily:F.b
+          }}>{v.label}</button>
+        )}
+      </div>
+
+      {view === "phases" && <>
+        {/* Phase selector timeline */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:6,marginBottom:18}}>
+          {AIIA_PHASES.map((p,i) => {
+            const isAct = activePhase === p.id;
+            return (
+              <button key={p.id} onClick={()=>setActivePhase(p.id)} style={{
+                background: isAct ? p.color+"20" : T.s2,
+                border:`1px solid ${isAct ? p.color+"60" : T.border}`,
+                borderRadius:9, padding:"10px 8px", cursor:"pointer",
+                textAlign:"center", transition:"all .18s",
+                boxShadow: isAct ? `0 0 16px ${p.color}20` : "none"
+              }}>
+                <div style={{fontSize:18,marginBottom:5}}>{p.icon}</div>
+                <div style={{fontSize:9,fontWeight:700,color:isAct?p.color:T.ink3,
+                  fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",lineHeight:1.3}}>
+                  Phase {p.id}
+                </div>
+                <div style={{fontSize:9,color:isAct?T.ink2:T.ink4,fontFamily:F.b,marginTop:2,lineHeight:1.3}}>
+                  {p.name.split(" ").slice(0,2).join(" ")}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Connector bar */}
+        <div style={{display:"flex",alignItems:"center",marginBottom:20,gap:0}}>
+          {AIIA_PHASES.map((p,i) => <>
+            <div key={p.id} style={{
+              width:28, height:28, borderRadius:"50%", flexShrink:0,
+              background: activePhase >= p.id ? p.color : T.s3,
+              border:`2px solid ${activePhase >= p.id ? p.color : T.border}`,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              transition:"all .3s", boxShadow: activePhase === p.id ? `0 0 12px ${p.color}50` : "none"
+            }}>
+              <span style={{fontSize:10,fontWeight:800,color:activePhase>=p.id?"#fff":T.ink4,fontFamily:F.m}}>{p.id}</span>
+            </div>
+            {i < AIIA_PHASES.length-1 && (
+              <div key={`line-${i}`} style={{
+                flex:1, height:2,
+                background: activePhase > p.id ? `linear-gradient(90deg,${p.color},${AIIA_PHASES[i+1].color})` : T.border,
+                transition:"background .4s"
+              }}/>
+            )}
+          </>)}
+        </div>
+
+        {/* Phase detail */}
+        {phase && (
+          <div style={{animation:"fade .25s ease"}}>
+            <div style={{
+              background:`linear-gradient(135deg,${phase.color}18,${T.s2})`,
+              border:`1px solid ${phase.color}40`,
+              borderRadius:12, padding:"20px 22px", marginBottom:16,
+              boxShadow:`0 0 32px ${phase.color}10`
+            }}>
+              <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:14}}>
+                <span style={{fontSize:28}}>{phase.icon}</span>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
+                    <Tag label={`Phase ${phase.id}`} color={phase.color} bg={phase.color+"20"}/>
+                    <Tag label={phase.subtitle} color={T.ink3} bg={T.s3}/>
+                    <Tag label={phase.clause} color={T.ink4} bg={T.s3}/>
+                  </div>
+                  <h2 style={{fontFamily:F.h,fontSize:20,fontWeight:700,color:T.ink,marginBottom:6}}>
+                    {phase.name}
+                  </h2>
+                  <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>{phase.desc}</p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:14}}>
+              {/* Steps */}
+              <div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {phase.steps.map((step,i) => (
+                    <div key={i} style={{
+                      background:T.s1, border:`1px solid ${T.border}`,
+                      borderLeft:`3px solid ${phase.color}`,
+                      borderRadius:9, padding:"14px 16px",
+                      animation:`up ${.3+i*.07}s ease both`
+                    }}>
+                      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        <div style={{
+                          width:22,height:22,borderRadius:6,flexShrink:0,
+                          background:phase.color+"25",
+                          border:`1.5px solid ${phase.color}50`,
+                          display:"flex",alignItems:"center",justifyContent:"center"
+                        }}>
+                          <span style={{fontSize:10,fontWeight:800,color:phase.color,fontFamily:F.m}}>{i+1}</span>
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:5}}>
+                            {step.title}
+                          </div>
+                          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>
+                            {step.detail}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar: outputs + ISO ref */}
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                <Card style={{padding:16}}>
+                  <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",
+                    letterSpacing:"0.08em",fontFamily:F.m,marginBottom:12}}>Phase Outputs</div>
+                  {phase.outputs.map((o,i) => (
+                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",
+                      marginBottom:i<phase.outputs.length-1?9:0}}>
+                      <div style={{width:5,height:5,borderRadius:"50%",background:phase.color,
+                        marginTop:5,flexShrink:0}}/>
+                      <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{o}</span>
+                    </div>
+                  ))}
+                </Card>
+                <Card style={{padding:16, border:`1px solid ${phase.color}30`}}>
+                  <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",
+                    letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>ISO Reference</div>
+                  <p style={{fontSize:11,color:phase.color,fontFamily:F.m,lineHeight:1.7,margin:0}}>
+                    {phase.isoRef}
+                  </p>
+                </Card>
+                <div style={{display:"flex",gap:8}}>
+                  <button
+                    disabled={activePhase===1}
+                    onClick={()=>setActivePhase(p=>Math.max(1,p-1))}
+                    style={{flex:1,background:T.s2,color:T.ink3,border:`1px solid ${T.border}`,
+                      borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b,
+                      opacity:activePhase===1?.4:1}}>
+                    ← Prev
+                  </button>
+                  <button
+                    disabled={activePhase===6}
+                    onClick={()=>setActivePhase(p=>Math.min(6,p+1))}
+                    style={{flex:1,background:phase.color,color:"#fff",border:"none",
+                      borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b,
+                      opacity:activePhase===6?.4:1}}>
+                    Next →
+                  </button>
+                </div>
+                {activePhase===6&&(
+                  <button onClick={()=>setTab("hitl")} style={{
+                    width:"100%",background:T.green,color:"#fff",border:"none",
+                    borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b
+                  }}>⚡ Go to HITL Queue for Approval →</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </>}
+
+      {view === "categories" && (
+        <div>
+          <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,marginBottom:16,lineHeight:1.7}}>
+            Seven risk categories from ISO 42001 (Day 3 training material) — systematic threat taxonomy
+            for Step 3 of the AIIA process. Use during Phase 3: Impact Identification.
+          </p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:10}}>
+            {AIIA_RISK_CATEGORIES.map((cat,i) => (
+              <Card key={cat.cat} style={{
+                overflow:"hidden", animation:`up ${.3+i*.05}s ease both`,
+                border:`1px solid ${cat.color}25`,
+                cursor:"pointer", transition:"border-color .18s",
+                borderLeft:`3px solid ${cat.color}`
+              }}
+                onClick={()=>setActiveCat(activeCat===i?-1:i)}
+              >
+                <div style={{padding:"13px 15px",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:20}}>{cat.icon}</span>
+                  <div style={{flex:1}}>
+                    <h3 style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>
+                      {cat.cat}
+                    </h3>
+                    <span style={{fontSize:10,color:cat.color,fontFamily:F.m}}>
+                      {cat.items.length} threat vectors
+                    </span>
+                  </div>
+                  <span style={{color:T.ink4,transform:activeCat===i?"rotate(90deg)":"none",
+                    transition:"transform .2s",fontSize:14}}>›</span>
+                </div>
+                {activeCat===i&&(
+                  <div style={{padding:"0 15px 14px",borderTop:`1px solid ${T.border}`,animation:"up .2s ease"}}>
+                    {cat.items.map((item,j) => (
+                      <div key={j} style={{display:"flex",gap:8,marginTop:9,alignItems:"flex-start"}}>
+                        <div style={{width:4,height:4,borderRadius:"50%",background:cat.color,
+                          marginTop:5,flexShrink:0}}/>
+                        <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: ISO 42001 IMPLEMENTATION TRACKER
+   Based on Day 4: PDCA 4-phase, 15-step plan
+───────────────────────────────────────────── */
+const IMPL_PHASES = [
+  {
+    id:"plan", label:"Phase 1 — Plan", subtitle:"Understanding & Preparation",
+    color:"#4B7BF5", icon:"◈", status:"complete",
+    clause:"ISO 42001 Clauses 4 & 6",
+    desc:"Establish the foundation: leadership buy-in, team formation, scope definition, gap analysis, and objectives.",
+    steps:[
+      {n:1, title:"Get Leadership Buy-in & Commit Resources", status:"complete", owner:"CEO / Board", clause:"C.5.1", deliverable:"Formal commitment from senior leadership, approved budget and resource allocation", detail:"Present business case: legal risk of non-compliance (EU AI Act fines up to €30M), competitive advantage of certification, enhanced stakeholder trust. Requires C-suite champion — typically CAIO."},
+      {n:2, title:"Form Cross-functional AIMS Team", status:"complete", owner:"CAIO", clause:"C.5.3", deliverable:"Team structure with defined roles, RACI matrix", detail:"Appoint project lead and assemble representatives from legal, compliance, data science, IT, product management, HR, and ethics. ISO 42001 requires diverse cross-functional governance structure (Clause 5.3)."},
+      {n:3, title:"Define AIMS Scope (Clause 4.3)", status:"complete", owner:"AIMS Team", clause:"C.4.3", deliverable:"Documented scope statement specifying AI systems, roles, and boundaries", detail:"Identify all AI systems in scope. Define organisational units and locations covered. Specify AI roles: provider, producer, deployer, or partner. Consider starting with a pilot focusing on highest-risk applications."},
+      {n:4, title:"Conduct Gap Analysis & Risk Assessment", status:"active", owner:"GRC + CAIO", clause:"C.6.1", deliverable:"Gap analysis report, AI risk register, implementation roadmap", detail:"Benchmark current AI practices against all ISO 42001 clauses. Perform comprehensive AI risk assessment for bias, security, privacy, ethical risks. Produce prioritised list of improvement areas. Use ISO 42001 Checklist tab for gap tracking."},
+      {n:5, title:"Define AI Objectives & Policies (C.5 & C.6)", status:"active", owner:"CAIO + Legal", clause:"C.5.2, C.6.2", deliverable:"AI policy document, objectives and metrics log, risk/opportunity treatment plan", detail:"Establish AI policy per C.5.2 requirements: purpose, scope, guiding principles, prohibited uses, ethical guidelines. Set measurable AIMS objectives aligned to business goals. Define how risks and opportunities identified in Step 4 will be addressed."},
+    ]
+  },
+  {
+    id:"do", label:"Phase 2 — Do", subtitle:"Implementation",
+    color:"#9061F9", icon:"⊕", status:"active",
+    clause:"ISO 42001 Clauses 7 & 8",
+    desc:"Implement the AIMS: documentation, Annex A controls, training, awareness, and operational processes.",
+    steps:[
+      {n:6, title:"Develop AIMS Documentation (Clause 7)", status:"active", owner:"AIMS Team + Legal", clause:"C.7.5", deliverable:"Complete AIMS documentation suite including Statement of Applicability (SoA)", detail:"Create all mandatory documented information: AI policies, procedures, ethical guidelines, AIA methodologies, risk assessment records, and treatment plans. Produce SoA detailing which Annex A controls are included/excluded and why."},
+      {n:7, title:"Implement Annex A Controls", status:"active", owner:"Engineering + CAIO", clause:"Annex A", deliverable:"Evidence of controls: bias test results, data provenance logs, AIA reports", detail:"Core implementation: Data Governance (A.7) — data acquisition, quality, privacy. AI System Impact Assessment (A.5) — 6-phase AIIA process. Lifecycle Management (A.6) — responsible AI from design to decommissioning. Transparency & Explainability (A.8) — decision explanation mechanisms for stakeholders."},
+      {n:8, title:"Training & Awareness Programme (Clause 7)", status:"pending", owner:"HR + CAIO", clause:"C.7.2, C.7.3", deliverable:"Training materials, attendance records, competency evidence", detail:"Roll out tailored training for all relevant staff: AI developers, managers, end-users, and compliance teams. Cover AIMS policies, AI risk categories, ethical obligations, and individual responsibilities. ISO 42001 C.7.2 requires documented evidence of competence."},
+    ]
+  },
+  {
+    id:"check", label:"Phase 3 — Check", subtitle:"Monitoring & Evaluation",
+    color:"#E8A020", icon:"◉", status:"pending",
+    clause:"ISO 42001 Clause 9",
+    desc:"Evaluate AIMS performance through KPIs, internal audits, and management review.",
+    steps:[
+      {n:9, title:"Monitor, Measure & Analyse AIMS Performance", status:"pending", owner:"AI Governance Lead", clause:"C.9.1", deliverable:"Performance monitoring reports, anomaly logs, incident reports", detail:"Define and track KPIs for AIMS effectiveness: bias metric drift, incident frequency, control compliance rate, HITL approval volumes. Log anomalies and system changes. ISO 42001 C.9.1 requires documented evaluation of what, when, how, and by whom monitoring is conducted."},
+      {n:10, title:"Conduct Internal Audit", status:"pending", owner:"Internal Audit / GRC", clause:"C.9.2", deliverable:"Internal audit report with non-conformities and improvement opportunities", detail:"Designated internal team or external consultant verifies AIMS compliance with all ISO 42001 requirements. Auditors must be selected for objectivity and impartiality (C.9.2). Audit findings documented and reported to relevant management."},
+      {n:11, title:"Perform Management Review", status:"pending", owner:"CAIO + C-Suite", clause:"C.9.3", deliverable:"Management review minutes with decisions and actions documented", detail:"AIMS team presents monitoring results, audit findings, AI system performance, and stakeholder feedback to top management. Review must assess AIMS suitability, adequacy, and effectiveness. Outputs include decisions on improvement opportunities and AIMS changes."},
+    ]
+  },
+  {
+    id:"act", label:"Phase 4 — Act", subtitle:"Improvement & Certification",
+    color:"#1FB864", icon:"⬢", status:"pending",
+    clause:"ISO 42001 Clause 10",
+    desc:"Address non-conformities, achieve certification, and embed continual improvement into operations.",
+    steps:[
+      {n:12, title:"Implement Corrective Actions (Clause 10)", status:"pending", owner:"AIMS Team", clause:"C.10.1", deliverable:"Corrective action plans, evidence of resolution", detail:"Address all non-conformities identified during internal audit and management review. Perform root cause analysis. Implement corrective actions, verify effectiveness, and update documentation. ISO 42001 C.10.1 requires documented nonconformity management."},
+      {n:13, title:"Engage Accredited Certification Body", status:"pending", owner:"CAIO + Procurement", clause:"External", deliverable:"Signed agreement with accredited certification body", detail:"Select an accredited ISO 42001 certification body (check IAF/UKAS accreditation). Provide AIMS documentation for Stage 1 review. Agree audit timeline, scope, and format. Budget typical timeline: 3–6 months from initial contact to certificate."},
+      {n:14, title:"External Certification Audit", status:"pending", owner:"All Teams", clause:"ISO 42001 Cert", deliverable:"ISO 42001 certificate upon successful audit completion", detail:"Stage 1: Documentation review — auditor reviews AIMS scope, policies, risk assessments, and SoA. Stage 2: Operational effectiveness audit — auditor verifies controls are working in practice. Address findings. Certificate issued on successful completion."},
+      {n:15, title:"Surveillance & Continual Improvement", status:"pending", owner:"CAIO + AIMS Team", clause:"C.10.2", deliverable:"Annual surveillance audit records, updated policies and controls", detail:"AIMS becomes an integral part of operations. Annual surveillance audits required. Triennial recertification audit. Continually update policies, risk assessments, and controls as AI landscape, regulations (EU AI Act enforcement Aug 2026), and organisational context evolve."},
+    ]
+  },
+];
+
+function PageImpl({role}) {
+  const rc = RC(role), rcL = RCL(role);
+  const [activePhaseId, setActivePhaseId] = useState("plan");
+  const [expandedStep, setExpandedStep] = useState(null);
+  const activePhase = IMPL_PHASES.find(p => p.id === activePhaseId);
+  const allSteps = IMPL_PHASES.flatMap(p => p.steps);
+  const completedSteps = allSteps.filter(s => s.status === "complete").length;
+  const activeSteps = allSteps.filter(s => s.status === "active").length;
+  const pct = Math.round((completedSteps / allSteps.length) * 100);
+
+  const statusColor = s => s==="complete"?T.green:s==="active"?T.amber:T.ink4;
+  const statusLabel = s => s==="complete"?"✓ Complete":s==="active"?"● In Progress":"○ Pending";
+
+  return (
+    <div style={{animation:"up .3s ease"}}>
+      <SHead
+        title="ISO 42001 Implementation Tracker"
+        sub="PDCA 4-phase, 15-step implementation roadmap from Day 4 training · Plan → Do → Check → Act"
+      />
+
+      {/* Overall progress */}
+      <Card style={{padding:"14px 18px",marginBottom:18}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:10}}>
+          <div>
+            <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>
+              AIMS Implementation Progress
+            </div>
+            <p style={{fontSize:11,color:T.ink4,fontFamily:F.b}}>
+              {completedSteps} of {allSteps.length} steps complete · {activeSteps} in progress
+            </p>
+          </div>
+          <div style={{fontSize:28,fontWeight:700,fontFamily:F.m,color:rc}}>{pct}%</div>
+        </div>
+        <Bar value={pct} color={rc}/>
+        <div style={{display:"flex",gap:14,marginTop:10}}>
+          {[{label:"Complete",color:T.green,count:completedSteps},
+            {label:"In Progress",color:T.amber,count:activeSteps},
+            {label:"Pending",color:T.ink4,count:allSteps.length-completedSteps-activeSteps}
+          ].map(s=><div key={s.label} style={{display:"flex",alignItems:"center",gap:5}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:s.color}}/>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.label}: {s.count}</span>
+          </div>)}
+        </div>
+      </Card>
+
+      {/* Phase PDCA selector */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18}}>
+        {IMPL_PHASES.map((phase,i) => {
+          const isAct = activePhaseId === phase.id;
+          const done = phase.steps.filter(s=>s.status==="complete").length;
+          const total = phase.steps.length;
+          return (
+            <button key={phase.id} onClick={()=>setActivePhaseId(phase.id)} style={{
+              background: isAct ? phase.color+"18" : T.s2,
+              border:`1px solid ${isAct ? phase.color+"60" : T.border}`,
+              borderRadius:10, padding:"13px 12px", cursor:"pointer",
+              textAlign:"left", transition:"all .18s",
+              boxShadow: isAct ? `0 0 20px ${phase.color}18` : "none"
+            }}>
+              <div style={{fontSize:18,marginBottom:7}}>{phase.icon}</div>
+              <div style={{fontSize:10,fontWeight:700,color:isAct?phase.color:T.ink3,
+                fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>
+                {phase.label.split(" — ")[0]}
+              </div>
+              <div style={{fontSize:12,fontWeight:600,color:isAct?T.ink:T.ink2,fontFamily:F.b,marginBottom:5}}>
+                {phase.subtitle}
+              </div>
+              <div style={{marginBottom:6}}>
+                <Bar value={(done/total)*100} color={phase.color}/>
+              </div>
+              <div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{done}/{total} steps</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Active phase steps */}
+      {activePhase && (
+        <div style={{animation:"fade .2s ease"}}>
+          <div style={{
+            background:`linear-gradient(135deg,${activePhase.color}14,${T.s2})`,
+            border:`1px solid ${activePhase.color}35`,
+            borderRadius:10, padding:"14px 18px", marginBottom:16
+          }}>
+            <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+              <Tag label={activePhase.label} color={activePhase.color} bg={activePhase.color+"20"}/>
+              <Tag label={activePhase.clause} color={T.ink3} bg={T.s3}/>
+            </div>
+            <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>
+              {activePhase.desc}
+            </p>
+          </div>
+
+          <div style={{position:"relative"}}>
+            {/* Vertical connector line */}
+            <div style={{
+              position:"absolute",left:16,top:20,bottom:20,width:2,
+              background:`linear-gradient(180deg,${activePhase.color}60,${activePhase.color}10)`,
+              zIndex:0
+            }}/>
+
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {activePhase.steps.map((step,i) => {
+                const isExp = expandedStep === step.n;
+                const sCol = statusColor(step.status);
+                return (
+                  <div key={step.n} style={{
+                    display:"flex", gap:14, alignItems:"flex-start",
+                    animation:`up ${.3+i*.07}s ease both`
+                  }}>
+                    {/* Circle */}
+                    <div style={{
+                      width:34,height:34,borderRadius:"50%",flexShrink:0,
+                      background: step.status==="complete" ? T.greenL : step.status==="active" ? activePhase.color+"25" : T.s3,
+                      border:`2px solid ${sCol}`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      position:"relative",zIndex:1,
+                      boxShadow: step.status==="active" ? `0 0 14px ${activePhase.color}40` : "none",
+                      transition:"all .3s"
+                    }}>
+                      <span style={{fontSize:step.status==="complete"?12:11,fontWeight:800,color:sCol,fontFamily:F.m}}>
+                        {step.status==="complete"?"✓":step.n}
+                      </span>
+                    </div>
+
+                    {/* Content card */}
+                    <div style={{
+                      flex:1,
+                      background: step.status==="active" ? `linear-gradient(135deg,${activePhase.color}10,${T.s1})` : T.s1,
+                      border:`1px solid ${isExp||step.status==="active" ? activePhase.color+"40" : T.border}`,
+                      borderRadius:9, overflow:"hidden",
+                      boxShadow: step.status==="active" ? `0 0 16px ${activePhase.color}08` : "none",
+                      transition:"border-color .2s"
+                    }}>
+                      <div onClick={()=>setExpandedStep(isExp?null:step.n)}
+                        style={{padding:"13px 15px",cursor:"pointer",display:"flex",
+                          alignItems:"flex-start",gap:12}}>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",gap:7,marginBottom:7,flexWrap:"wrap",alignItems:"center"}}>
+                            <span style={{fontSize:10,fontWeight:700,fontFamily:F.m,color:sCol}}>
+                              {statusLabel(step.status)}
+                            </span>
+                            <Tag label={step.clause} color={T.ink4} bg={T.s3}/>
+                          </div>
+                          <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,lineHeight:1.4}}>
+                            Step {step.n}: {step.title}
+                          </div>
+                          <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,marginTop:4}}>
+                            Owner: {step.owner}
+                          </div>
+                        </div>
+                        <span style={{color:T.ink4,transform:isExp?"rotate(90deg)":"none",
+                          transition:"transform .2s",fontSize:14,flexShrink:0,marginTop:2}}>›</span>
+                      </div>
+
+                      {isExp && (
+                        <div style={{padding:"0 15px 15px",borderTop:`1px solid ${T.border}`,
+                          animation:"up .2s ease"}}>
+                          <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.75,
+                            marginTop:12,marginBottom:12}}>{step.detail}</div>
+                          <div style={{background:T.s3,border:`1px solid ${activePhase.color}25`,
+                            borderRadius:7,padding:"10px 12px"}}>
+                            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",
+                              letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>Deliverable</div>
+                            <p style={{fontSize:11,color:activePhase.color,fontFamily:F.b,
+                              lineHeight:1.6,margin:0,fontWeight:500}}>{step.deliverable}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: AI MODEL REGISTRY (from CAIO Kit Part 1 & ISO 42001 C.8.4)
+───────────────────────────────────────────── */
+function PageModelRegistry({setTab}) {
+  const [sel,setSel]=useState(MODEL_REGISTRY[0]);
+  const rCol=r=>r==="Critical"?T.red:r==="High"?T.amber:r==="Medium"?T.blue:r==="Unknown"?T.ink4:T.green;
+  const sCol=s=>s==="In Production"?T.green:s==="Awaiting Approval"?T.amber:s==="Suspended"?T.red:s==="Unclassified"?T.red:T.ink3;
+  const Check=({v,label})=><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+    <div style={{width:16,height:16,borderRadius:4,background:v?T.greenL:T.redL,border:`1px solid ${v?T.green:T.red}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+      <span style={{fontSize:9,fontWeight:800,color:v?T.green:T.red}}>{v?"✓":"✗"}</span>
+    </div>
+    <span style={{fontSize:10,color:v?T.ink2:T.ink4,fontFamily:F.b}}>{label}</span>
+  </div>;
+  const unclassified=MODEL_REGISTRY.filter(m=>m.euAiAct==="Unclassified").length;
+  const critical=MODEL_REGISTRY.filter(m=>m.risk==="Critical").length;
+  const noCard=MODEL_REGISTRY.filter(m=>!m.modelCard).length;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Model Registry" sub="ISO 42001 C.8.4 · CAIO Kit — All AI systems in development, production, pilot, and procurement"/>
+    {/* Summary strip */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+      {[
+        {label:"Total Models",value:MODEL_REGISTRY.length,color:T.caio,sub:"In registry"},
+        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap",action:()=>{}},
+        {label:"Critical Risk",value:critical,color:T.red,sub:"Require treatment"},
+        {label:"Missing Model Card",value:noCard,color:T.amber,sub:"ISO 42001 C.8.4"},
+      ].map((k,i)=><Card key={k.label} style={{padding:"13px 14px",cursor:k.action?"pointer":"default"}} onClick={k.action}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{k.label}</div>
+        <div style={{fontSize:26,fontWeight:800,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:3}}>{k.value}</div>
+        <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
+      </Card>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14}}>
+      {/* Table */}
+      <div>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 90px 70px",padding:"7px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+          {["AI System","Type","EU AI Act","Status","Risk"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+        </div>
+        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+          {MODEL_REGISTRY.map((m,i)=><div key={m.id} onClick={()=>setSel(m)} style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 90px 70px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<MODEL_REGISTRY.length-1?`1px solid ${T.border}`:"none",background:sel?.id===m.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===m.id?`3px solid ${T.caio}`:"3px solid transparent",transition:"all .15s"}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{m.name}</div>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{m.dept} · {m.vendor}</span>
+            </div>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.4}}>{m.type}</span>
+            <Tag label={m.euAiAct} color={m.euAiAct==="High-Risk"?T.red:m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber} bg={m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.redL:m.euAiAct==="Minimal Risk"?T.greenL:T.amberL}/>
+            <Tag label={m.status} color={sCol(m.status)} bg={sCol(m.status)+"18"}/>
+            <Tag label={m.risk} color={rCol(m.risk)} bg={rCol(m.risk)+"18"}/>
+          </div>)}
+        </div>
+      </div>
+      {/* Detail */}
+      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",animation:"fade .25s ease",boxShadow:`0 0 24px ${rCol(sel.risk)}10`}}>
+        <div style={{background:`linear-gradient(135deg,${rCol(sel.risk)}18,${T.s3})`,borderBottom:`1px solid ${rCol(sel.risk)}30`,padding:"14px 16px"}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:9}}>
+            <Tag label={sel.euAiAct} color={sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified"?T.red:T.amber} bg={sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified"?T.redL:T.amberL}/>
+            <Tag label={sel.status} color={sCol(sel.status)} bg={sCol(sel.status)+"18"}/>
+          </div>
+          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3}}>{sel.name}</h3>
+          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>{sel.clause}</p>
+        </div>
+        <div style={{padding:15}}>
+          {[["Type",sel.type],["Owner",sel.owner],["Vendor",sel.vendor],["Deployed",sel.deployed],["Accuracy",sel.accuracy],["Last Audit",sel.lastAudit]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
+            <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600}}>{v}</span>
+          </div>)}
+          <div style={{marginTop:14}}>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:10}}>ISO 42001 Compliance Checklist</div>
+            <div style={{background:T.s3,borderRadius:8,padding:"11px 12px"}}>
+              <Check v={sel.modelCard}      label="Model Card documented (C.8.4)"/>
+              <Check v={sel.aia}            label="AI Impact Assessment completed (A.5)"/>
+              <Check v={sel.biasTest}       label="Bias & fairness testing done"/>
+              <Check v={sel.killSwitch}     label="Kill switch / fallback deployed (C.8.5)"/>
+              <Check v={sel.dataProvenance} label="Training data provenance documented (C.7.2)"/>
+            </div>
+            <div style={{marginTop:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>Transparency Score</span>
+                <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:sel.transparency>=80?T.green:sel.transparency>=50?T.amber:T.red}}>{sel.transparency}%</span>
+              </div>
+              <Bar value={sel.transparency} color={sel.transparency>=80?T.green:sel.transparency>=50?T.amber:T.red}/>
+            </div>
+          </div>
+          {(sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified")&&<div style={{background:T.redL,border:`1px solid ${T.red}30`,borderRadius:7,padding:"10px 12px",marginTop:12}}>
+            <div style={{fontSize:10,fontWeight:700,color:T.red,fontFamily:F.b,marginBottom:3}}>⚠ Action Required</div>
+            <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{sel.euAiAct==="Unclassified"?"EU AI Act risk classification must be completed before August 2026 enforcement.":"High-Risk system — full conformity assessment required per EU AI Act Art.43."}</p>
+          </div>}
+          <button onClick={()=>setTab("hitl")} style={{width:"100%",marginTop:12,background:T.caio,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Review in HITL Queue →</button>
+        </div>
+      </Card>}
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: GOVERNANCE MATURITY RADAR (CAIO Kit Part 1)
+───────────────────────────────────────────── */
+function PageMaturityRadar() {
+  const [sel,setSel]=useState(null);
+  const overall=Math.round(MATURITY_DOMAINS.reduce((s,d)=>s+d.score,0)/MATURITY_DOMAINS.length);
+  const matLabel=s=>s>=85?"Leading":s>=70?"Established":s>=55?"Developing":s>=40?"Initial":"Unprepared";
+  const matCol=s=>s>=85?T.green:s>=70?T.blue:s>=55?T.amber:T.red;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Governance Maturity" sub="CAIO Kit Part 1 — Benchmarking across 8 governance domains. Target: Established (70+) by Q3 2026."/>
+    {/* Overall score */}
+    <Card style={{padding:"18px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:20}}>
+      <Ring score={overall} color={matCol(overall)} size={72}/>
+      <div style={{flex:1}}>
+        <div style={{fontSize:11,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Overall Governance Maturity Score</div>
+        <div style={{fontSize:28,fontWeight:800,fontFamily:F.m,color:matCol(overall),letterSpacing:"-0.02em"}}>{overall}<span style={{fontSize:16,fontWeight:500,color:T.ink3}}>/100</span></div>
+        <Tag label={matLabel(overall)} color={matCol(overall)} bg={matCol(overall)+"18"}/>
+      </div>
+      <div style={{borderLeft:`1px solid ${T.border}`,paddingLeft:20}}>
+        <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginBottom:8}}>Maturity Scale</div>
+        {[["Leading","85+",T.green],["Established","70–84",T.blue],["Developing","55–69",T.amber],["Initial","40–54",T.red],["Unprepared","<40",T.red]].map(([l,r,c])=><div key={l} style={{display:"flex",gap:8,marginBottom:4,alignItems:"center"}}>
+          <div style={{width:7,height:7,borderRadius:"50%",background:c,flexShrink:0}}/>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{l}</span>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r}</span>
+        </div>)}
+      </div>
+    </Card>
+    {/* Domain bars */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:10}}>
+      {MATURITY_DOMAINS.map((d,i)=>{
+        const col=matCol(d.score);
+        const gap=d.target-d.score;
+        return <Card key={d.domain} style={{padding:16,cursor:"pointer",border:`1px solid ${sel?.domain===d.domain?col+"60":T.border}`,transition:"border-color .2s",animation:`up ${.3+i*.05}s ease both`}} onClick={()=>setSel(sel?.domain===d.domain?null:d)}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+            <div style={{flex:1,paddingRight:10}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.3}}>{d.domain}</div>
+              <Tag label={matLabel(d.score)} color={col} bg={col+"18"}/>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <div style={{fontSize:20,fontWeight:800,fontFamily:F.m,color:col}}>{d.score}</div>
+              <div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Target: {d.target}</div>
+            </div>
+          </div>
+          <div style={{marginBottom:6}}>
+            <Bar value={d.score} color={col} delay={i*60}/>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Gap to target: {gap > 0 ? `+${gap} pts needed` : "Target met ✓"}</span>
+            <span style={{fontSize:9,color:col,fontFamily:F.m,fontWeight:600}}>{d.score}%</span>
+          </div>
+          {sel?.domain===d.domain&&<div style={{marginTop:12,padding:"10px 12px",background:T.s3,borderRadius:7,borderLeft:`3px solid ${col}`}}>
+            <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.7,margin:0}}>{d.desc}</p>
+          </div>}
+        </Card>;
+      })}
+    </div>
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: USE CASE PIPELINE (CAIO Kit Part 2)
+───────────────────────────────────────────── */
+function PageUseCases() {
+  const [sel,setSel]=useState(USE_CASES[0]);
+  const stageCol=s=>s==="Scale"?T.green:s==="Pilot"?T.blue:T.amber;
+  const scoreCol=s=>s>=85?T.green:s>=70?T.blue:s>=55?T.amber:T.red;
+  const byStage=(stage)=>USE_CASES.filter(u=>u.stage===stage);
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Use Case Pipeline" sub="CAIO Kit Part 2 — POC → Pilot → Scale. Impact × Feasibility × Risk scoring framework."/>
+    {/* Pipeline kanban */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+      {[["POC","Validate Assumption",T.amber],["Pilot","Validate Value",T.blue],["Scale","Validate Operations",T.green]].map(([stage,sub,col])=><div key={stage}>
+        <div style={{background:col+"18",border:`1px solid ${col}30`,borderRadius:"8px 8px 0 0",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:col,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{stage}</div>
+            <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{sub}</div>
+          </div>
+          <div style={{width:22,height:22,borderRadius:"50%",background:col,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{fontSize:11,fontWeight:800,color:"#fff",fontFamily:F.m}}>{byStage(stage).length}</span>
+          </div>
+        </div>
+        <div style={{border:`1px solid ${col}30`,borderTop:"none",borderRadius:"0 0 8px 8px",padding:"8px 8px",background:T.s1,minHeight:120}}>
+          {byStage(stage).map(uc=><div key={uc.id} onClick={()=>setSel(uc)} style={{background:sel?.id===uc.id?col+"14":T.s3,border:`1px solid ${sel?.id===uc.id?col+"50":T.border}`,borderRadius:8,padding:"10px 12px",marginBottom:8,cursor:"pointer",transition:"all .15s"}}>
+            <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.3}}>{uc.name}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{uc.dept}</span>
+              <div style={{display:"flex",alignItems:"center",gap:5}}>
+                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Score:</span>
+                <span style={{fontSize:11,fontWeight:800,fontFamily:F.m,color:scoreCol(uc.score)}}>{uc.score}</span>
+              </div>
+            </div>
+          </div>)}
+        </div>
+      </div>)}
+    </div>
+    {/* Detail */}
+    {sel&&<Card style={{overflow:"hidden",animation:"fade .25s ease"}}>
+      <div style={{background:`linear-gradient(135deg,${stageCol(sel.stage)}18,${T.s2})`,borderBottom:`1px solid ${stageCol(sel.stage)}30`,padding:"16px 18px",display:"flex",gap:12,alignItems:"flex-start"}}>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",gap:7,marginBottom:9,flexWrap:"wrap"}}>
+            <Tag label={sel.stage} color={stageCol(sel.stage)} bg={stageCol(sel.stage)+"20"}/>
+            <Tag label={sel.dept} color={T.ink3} bg={T.s3}/>
+            <Tag label={sel.status} color={sel.status==="Complete"?T.green:T.blue} bg={sel.status==="Complete"?T.greenL:T.blueL}/>
+          </div>
+          <h3 style={{fontFamily:F.h,fontSize:16,fontWeight:700,color:T.ink,marginBottom:6}}>{sel.name}</h3>
+          <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>{sel.desc}</p>
+        </div>
+        <div style={{background:T.s3,borderRadius:10,padding:"12px 16px",textAlign:"center",flexShrink:0,border:`1px solid ${scoreCol(sel.score)}40`}}>
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Score</div>
+          <div style={{fontSize:32,fontWeight:800,fontFamily:F.m,color:scoreCol(sel.score),letterSpacing:"-0.03em"}}>{sel.score}</div>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>/100</div>
+        </div>
+      </div>
+      <div style={{padding:"14px 18px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+        {[["Impact",sel.impact],["Feasibility",sel.feasibility],["Risk (inverted)",10-sel.risk]].map(([label,val])=>{
+          const col=val>=8?T.green:val>=6?T.blue:val>=4?T.amber:T.red;
+          return <div key={label} style={{background:T.s3,borderRadius:8,padding:"11px 13px",textAlign:"center"}}>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>{label}</div>
+            <div style={{fontSize:22,fontWeight:800,fontFamily:F.m,color:col}}>{val}<span style={{fontSize:11,color:T.ink4}}>/10</span></div>
+            <Bar value={val*10} color={col}/>
+          </div>;
+        })}
+      </div>
+      <div style={{padding:"0 18px 16px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+        {[["Owner",sel.owner],["Target ETA",sel.eta],["Status",sel.status]].map(([l,v])=><div key={l} style={{padding:"9px 10px",background:T.s3,borderRadius:7}}>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b}}>{v}</div>
+        </div>)}
+      </div>
+    </Card>}
+  </div>;
+}
+
+
+export default function VERIS() {
+  const [role,setRole]=useState("caio");
+  const [tab,setTab]=useState("home");
+  const [toast,setToast]=useState({msg:"",vis:false,type:"success"});
+  const [hitlCount,setHitlCount]=useState(()=>HITL["caio"].length);
+  const [sidebarOpen,setSidebarOpen]=useState(false);
+  const [isMobile,setIsMobile]=useState(()=>typeof window!=="undefined"&&window.innerWidth<768);
+
+  useEffect(()=>{
+    if(document.getElementById("gp-css"))return;
+    const s=document.createElement("style");s.id="gp-css";s.textContent=CSS;document.head.appendChild(s);
+  },[]);
+
+  useEffect(()=>{
+    const handler=()=>setIsMobile(window.innerWidth<768);
+    window.addEventListener("resize",handler);return()=>window.removeEventListener("resize",handler);
+  },[]);
+
+  const showToast=useCallback((msg,type="success")=>{
+    setToast({msg,type,vis:true});
+    setTimeout(()=>setToast(t=>({...t,vis:false})),3000);
+  },[]);
+
+  const switchRole=r=>{setRole(r);setTab("home");setHitlCount(HITL[r].length);};
+  const R=ROLES[role],rc=RC(role);
+
+  return <div style={{display:"flex",minHeight:"100vh",background:T.bg}}>
+    {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
+    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)}/>
+
+    {/* Main */}
+    <div style={{marginLeft:isMobile?0:200,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+      {/* Top bar */}
+      <div style={{background:T.s1,borderBottom:`1px solid ${T.border}`,height:52,display:"flex",alignItems:"center",padding:"0 16px",position:"sticky",top:0,zIndex:100,gap:12}}>
+        {isMobile&&<button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",color:T.ink3,fontSize:20,padding:"4px 6px",flexShrink:0}}>☰</button>}
+        {isMobile&&<div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
+          <svg width="18" height="20" viewBox="0 0 80 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="vt-left" x1="0" y1="0" x2="40" y2="86" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#5B8AF5"/><stop offset="100%" stopColor="#7B3FC8"/>
+              </linearGradient>
+              <linearGradient id="vt-right" x1="80" y1="0" x2="40" y2="86" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#C060F0"/><stop offset="100%" stopColor="#7B2FC0"/>
+              </linearGradient>
+              <linearGradient id="vt-inner" x1="40" y1="20" x2="40" y2="70" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#4A4A6A"/><stop offset="100%" stopColor="#2E2E48"/>
+              </linearGradient>
+              <linearGradient id="vt-gem" x1="24" y1="0" x2="32" y2="14" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#7BB8FF"/><stop offset="100%" stopColor="#3B7EF0"/>
+              </linearGradient>
+            </defs>
+            <polygon points="0,8 18,8 40,70 22,70" fill="url(#vt-left)"/>
+            <polygon points="80,8 62,8 40,70 58,70" fill="url(#vt-right)"/>
+            <polygon points="18,14 28,14 40,52 52,14 62,14 40,66 18,14" fill="url(#vt-inner)"/>
+            <polygon points="28,12 32,4 36,12 32,16" fill="url(#vt-gem)" opacity="0.95"/>
+          </svg>
+          <span style={{fontFamily:"'Plus Jakarta Sans', sans-serif",fontSize:13,fontWeight:800,color:T.ink,letterSpacing:"0.12em",textTransform:"uppercase"}}>VERIS</span>
+        </div>}
+        {!isMobile&&<div style={{display:"flex",gap:3,background:T.bg,borderRadius:8,padding:3,border:`1px solid ${T.border}`}}>
+          {Object.values(ROLES).map(r2=><button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:role===r2.id?RC(r2.id)+"20":"transparent",border:role===r2.id?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:6,padding:"4px 13px",color:role===r2.id?RC(r2.id):T.ink4,fontSize:11,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>)}
+        </div>}
+        {isMobile&&<div style={{display:"flex",gap:3,background:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1}}>
+          {Object.values(ROLES).map(r2=><button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:role===r2.id?RC(r2.id)+"20":"transparent",border:role===r2.id?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:role===r2.id?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>)}
+        </div>}
+        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          {hitlCount>0&&<button onClick={()=>setTab("hitl")} style={{display:"flex",alignItems:"center",gap:6,background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:20,padding:"4px 10px"}}>
+            <div style={{width:5,height:5,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/>
+            <span style={{fontSize:10,fontWeight:700,color:T.amber,fontFamily:F.b}}>{hitlCount}</span>
+          </button>}
+          <div style={{width:26,height:26,borderRadius:"50%",background:rc,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{color:"#fff",fontSize:9,fontWeight:700}}>{R.initials}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Page content */}
+      <div style={{flex:1,padding:"20px 16px 60px",maxWidth:1140,width:"100%",margin:"0 auto"}}>
+        {tab==="home"       &&<PageHome       role={role} setTab={setTab}/>}
+        {tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
+        {tab==="strategy"   &&<PageStrategy   role={role}/>}
+        {tab==="playbook"   &&<PagePlaybook   role={role}/>}
+        {tab==="compliance" &&<PageCompliance role={role}/>}
+        {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
+        {tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
+        {tab==="aia"        &&<PageAIA        role={role}/>}
+        {tab==="aira"       &&role==="caio"&&<PageAIRA/>}
+        {tab==="airt"       &&role==="caio"&&<PageAIRT/>}
+        {tab==="registry"   &&role==="caio"&&<PageModelRegistry setTab={setTab}/>}
+        {tab==="maturity"   &&role==="caio"&&<PageMaturityRadar/>}
+        {tab==="usecases"   &&role==="caio"&&<PageUseCases/>}
+        {tab==="aiia"       &&<PageAIIA       role={role} setTab={setTab}/>}
+        {tab==="impl"       &&<PageImpl       role={role}/>}
+        {tab==="roadmap"    &&<PageRoadmap    role={role}/>}
+        {tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
+        {tab==="reports"    &&<PageReports    role={role}/>}
+      </div>
+    </div>
+  </div>;
+}
