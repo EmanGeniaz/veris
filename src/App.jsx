@@ -86,21 +86,44 @@ const ROLES = {
 /* ─────────────────────────────────────────────
    NAVIGATION
 ───────────────────────────────────────────── */
-const NAV = [
-  {id:"home",      icon:"⊞", label:"Dashboard"},
-  {id:"onboard",   icon:"◎", label:"Start Here"},
-  {id:"strategy",  icon:"◈", label:"Strategy"},
-  {id:"playbook",  icon:"☰", label:"Playbook"},
-  {id:"compliance",icon:"◉", label:"Compliance"},
-  {id:"checklists",icon:"☑", label:"ISO Checklists"},
-  {id:"hitl",      icon:"⚡", label:"HITL Queue"},
-  {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
-  {id:"aiia",      icon:"◬", label:"Impact Assessment (AIIA)"},
-  {id:"impl",      icon:"⊕", label:"ISO 42001 Implementation"},
-  {id:"roadmap",   icon:"⬢", label:"Roadmap"},
-  {id:"templates", icon:"◐", label:"Templates"},
-  {id:"reports",   icon:"▣", label:"Reports"},
+/* Categorised navigation — like Vanta / Drata. Each group has a header
+   and a list of items. CAIO-only group is rendered conditionally. */
+const NAV_GROUPS = [
+  {id:"overview", label:"Overview", items:[
+    {id:"home", icon:"⊞", label:"Dashboard"},
+  ]},
+  {id:"work", label:"My Work", items:[
+    {id:"onboard",  icon:"◎", label:"Start Here"},
+    {id:"playbook", icon:"☰", label:"Playbook"},
+    {id:"hitl",     icon:"⚡", label:"HITL Queue"},
+    {id:"strategy", icon:"◈", label:"Strategy"},
+  ]},
+  {id:"frameworks", label:"Frameworks", items:[
+    {id:"compliance",icon:"◉", label:"Compliance"},
+    {id:"checklists",icon:"☑", label:"ISO Checklists"},
+    {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
+    {id:"aiia",      icon:"◬", label:"Impact Assessment"},
+  ]},
+  {id:"ai", label:"AI Governance", caioOnly:true, items:[
+    {id:"registry", icon:"⊟", label:"Model Registry"},
+    {id:"usecases", icon:"◈", label:"Use Case Pipeline"},
+    {id:"aira",     icon:"⬟", label:"Risk Register (AIRA)"},
+    {id:"airt",     icon:"◆", label:"Risk Treatment (AIRT)"},
+    {id:"maturity", icon:"◎", label:"Governance Maturity"},
+  ]},
+  {id:"programme", label:"Programme", items:[
+    {id:"roadmap", icon:"⬢", label:"Roadmap"},
+    {id:"impl",    icon:"⊕", label:"ISO 42001 Implementation"},
+  ]},
+  {id:"outputs", label:"Outputs", items:[
+    {id:"templates", icon:"◐", label:"Templates"},
+    {id:"reports",   icon:"▣", label:"Reports"},
+  ]},
 ];
+
+/* Flat NAV kept for backward compatibility with audit script and router.
+   Derived from NAV_GROUPS so adding items in one place updates both. */
+const NAV = NAV_GROUPS.flatMap(g => g.items);
 
 /* ─────────────────────────────────────────────
    ISO 42001 CLAUSE CHECKLIST DATA
@@ -881,6 +904,13 @@ function Toast({msg,type}) {
 function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
   const rc=RC(role), R=ROLES[role];
   const isMobile=window.innerWidth<768;
+  /* Per-group expand/collapse state. All open by default; the group
+     containing the active tab is forced open after any role/tab change. */
+  const [openGroups,setOpenGroups]=useState({});
+  useEffect(()=>{
+    const activeGroup=NAV_GROUPS.find(g=>g.items.some(i=>i.id===tab));
+    if(activeGroup) setOpenGroups(g=>({...g,[activeGroup.id]:true}));
+  },[tab,role]);
   return <>
     {/* Overlay backdrop when open */}
     {open&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,20,35,.55)",zIndex:199,backdropFilter:"blur(4px)"}}/>}
@@ -939,29 +969,46 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
         </div>
         <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,fontSize:18,padding:4,cursor:"pointer"}}>×</button>
       </div>
-      <nav style={{flex:1,padding:"8px 6px",overflowY:"auto"}}>
-        {NAV.map(item=>{
-          const isA=tab===item.id;
-          const badge=item.id==="hitl"&&hitlCount>0;
-          return <button key={item.id} onClick={()=>{setTab(item.id);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
-            <span style={{fontSize:12,opacity:isA?1:.6,flexShrink:0}}>{item.icon}</span>
-            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
-            {badge&&<span style={{position:"absolute",right:6,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m}}>{hitlCount}</span>}
-          </button>;
-        })}
-        {/* CAIO-only nav items */}
-        {role==="caio"&&[
-          {id:"aira",    icon:"⬟", label:"Risk Register (AIRA)"},
-          {id:"airt",    icon:"◆", label:"Risk Treatment (AIRT)"},
-          {id:"registry",icon:"⊟", label:"AI Model Registry"},
-          {id:"maturity",icon:"◎", label:"Governance Maturity"},
-          {id:"usecases",icon:"◈", label:"Use Case Pipeline"},
-        ].map(item=>{
-          const isA=tab===item.id;
-          return <button key={item.id} onClick={()=>{setTab(item.id);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
-            <span style={{fontSize:12,opacity:isA?1:.6,flexShrink:0}}>{item.icon}</span>
-            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
-          </button>;
+      <nav style={{flex:1,padding:"6px 6px",overflowY:"auto"}}>
+        {NAV_GROUPS.filter(g=>!g.caioOnly||role==="caio").map(group=>{
+          /* default open; collapse state persisted per group in component state */
+          const isOpen=openGroups[group.id]!==false;
+          /* highlight section header if any item in it is the active tab */
+          const groupActive=group.items.some(it=>it.id===tab);
+          return <div key={group.id} style={{marginBottom:8}}>
+            <button onClick={()=>setOpenGroups(g=>({...g,[group.id]:!isOpen}))} style={{
+              width:"100%",display:"flex",alignItems:"center",gap:6,
+              padding:"8px 10px 6px",
+              background:"none",border:"none",cursor:"pointer",
+              fontSize:9.5,fontWeight:700,fontFamily:F.m,
+              color:groupActive?rc:T.ink3,
+              letterSpacing:"0.14em",textTransform:"uppercase",
+              textAlign:"left",
+            }}>
+              <span style={{fontSize:8,opacity:0.6,transform:isOpen?"rotate(90deg)":"rotate(0deg)",transition:"transform .15s ease",display:"inline-block",width:8}}>▸</span>
+              <span style={{flex:1}}>{group.label}</span>
+            </button>
+            {isOpen&&<div style={{paddingLeft:2}}>
+              {group.items.map(item=>{
+                const isA=tab===item.id;
+                const badge=item.id==="hitl"&&hitlCount>0;
+                return <button key={item.id} onClick={()=>{setTab(item.id);onClose();}} style={{
+                  width:"100%",display:"flex",alignItems:"center",gap:8,
+                  padding:"7px 10px 7px 18px",borderRadius:7,marginBottom:1,
+                  background:isA?rc+"18":"transparent",
+                  border:isA?`1px solid ${rc}30`:"1px solid transparent",
+                  color:isA?rc:T.ink2,
+                  fontSize:11.5,fontWeight:isA?600:500,fontFamily:F.b,
+                  textAlign:"left",position:"relative",transition:"all .12s",
+                  cursor:"pointer",
+                }}>
+                  <span style={{fontSize:12,opacity:isA?1:.55,flexShrink:0}}>{item.icon}</span>
+                  <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
+                  {badge&&<span style={{position:"absolute",right:8,background:T.amber,color:"#000",fontSize:8.5,fontWeight:800,borderRadius:8,padding:"1px 5px",fontFamily:F.m}}>{hitlCount}</span>}
+                </button>;
+              })}
+            </div>}
+          </div>;
         })}
       </nav>
       <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}>
