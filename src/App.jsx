@@ -5,41 +5,43 @@ import { useState, useEffect, useCallback, useRef } from "react";
    "Institutional AI Governance Operating System"
 ───────────────────────────────────────────── */
 const FONTS = `
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,6..72,300;1,6..72,400;1,6..72,500&display=swap');
 `;
 
-/* Token system — deep graphite, muted violet, institutional calm */
+/* Token system — clean blue and white. Modern institutional. */
 const T = {
-  /* Surfaces */
-  bg:      "#090B10",   /* deep graphite base */
-  s1:      "#0E1117",   /* primary surface */
-  s2:      "#131720",   /* card surface */
-  s3:      "#181D28",   /* elevated card */
-  s4:      "#1D2230",   /* input/table row */
-  s5:      "#222840",   /* hover state */
-  /* Borders */
-  border:  "#1E2536",   /* primary border — very subtle */
-  borderB: "#28304A",   /* medium border */
-  borderC: "#323C58",   /* strong border */
-  /* Typography */
-  ink:     "#F1F3F9",   /* primary text — off-white */
-  ink2:    "#A8B0CC",   /* secondary text */
-  ink3:    "#636B8A",   /* muted text */
-  ink4:    "#3A4260",   /* very muted */
-  ink5:    "#1E2536",   /* near-invisible */
-  /* Role accents — restrained, institutional */
-  ciso:  "#5B7FE8", cisoL: "#0D1530",
-  caio:  "#7C5CDB", caioL: "#130D2E",
-  cio:   "#2BA88A", cioL:  "#081C17",
-  cdpo:  "#C8842A", cdpoL: "#221408",
-  cgo:   "#3B8FD4", cgoL:  "#091525",
+  /* Surfaces — paper white with slate-tinted elevation */
+  bg:      "#FFFFFF",   /* pure paper white */
+  s1:      "#F8FAFC",   /* whisper-tint elevation */
+  s2:      "#F1F5F9",   /* card surface */
+  s3:      "#E8EEF6",   /* elevated card */
+  s4:      "#DDE5F0",   /* input/table row */
+  s5:      "#CBD5E1",   /* hover state */
+  /* Borders — slate hairlines */
+  border:  "#E2E8F0",   /* primary border */
+  borderB: "#CBD5E1",   /* medium border */
+  borderC: "#94A3B8",   /* strong border */
+  /* Typography — deep navy hierarchy */
+  ink:     "#0F172A",   /* primary text (slate-900) */
+  ink2:    "#475569",   /* secondary (slate-600) */
+  ink3:    "#94A3B8",   /* muted (slate-400) */
+  ink4:    "#CBD5E1",   /* very muted */
+  ink5:    "#F1F5F9",   /* near-invisible */
+  /* Role accents — blue family, slight shades for differentiation */
+  ciso:  "#2563EB", cisoL: "#EFF6FF",   /* royal blue */
+  caio:  "#1D4ED8", caioL: "#DBEAFE",   /* deeper royal */
+  cio:   "#0891B2", cioL:  "#CFFAFE",   /* sky cyan */
+  cdpo:  "#3B82F6", cdpoL: "#EFF6FF",   /* bright blue */
+  cgo:   "#1E40AF", cgoL:  "#DBEAFE",   /* deep navy blue */
   /* Semantic */
-  red:    "#C94040", redL:   "#1A0909",
-  amber:  "#C8842A", amberL: "#221408",
-  green:  "#2BA86A", greenL: "#081A0F",
-  blue:   "#5B7FE8", blueL:  "#0D1530",
-  violet: "#7C5CDB", violetL:"#130D2E",
-  teal:   "#2BA88A", tealL:  "#081C17",
+  red:    "#DC2626", redL:   "#FEE2E2",
+  amber:  "#D97706", amberL: "#FEF3C7",
+  green:  "#059669", greenL: "#D1FAE5",
+  blue:   "#2563EB", blueL:  "#EFF6FF",
+  violet: "#6366F1", violetL:"#EEF2FF",   /* shifted to indigo to stay in palette */
+  teal:   "#0D9488", tealL:  "#CCFBF1",
+  gold:   "#2563EB", goldL:  "#EFF6FF",   /* gold key → blue value, for compat */
+  royal:  "#2563EB", royalL: "#EFF6FF",
 };
 
 const RC  = r => T[r]      || T.blue;
@@ -52,7 +54,7 @@ const CSS = `
 ${FONTS}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:15px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
-body{background:${T.bg};color:${T.ink};font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0em;}
+body{background:#F5F4EE;background-attachment:fixed;color:${T.ink};font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0em;min-height:100vh;}
 ::-webkit-scrollbar{width:3px;height:3px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:${T.border};border-radius:8px;}
@@ -63,6 +65,7 @@ input::placeholder,textarea::placeholder{color:${T.ink4};}
 select option{background:${T.s3};color:${T.ink};}
 @keyframes up   {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fade {from{opacity:0}to{opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes spin {to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
@@ -879,9 +882,9 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
   const rc=RC(role), R=ROLES[role];
   const isMobile=window.innerWidth<768;
   return <>
-    {/* Overlay on mobile */}
-    {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
-    <div style={{width:200,background:T.s1,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden"}}>
+    {/* Overlay backdrop when open */}
+    {open&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,20,35,.55)",zIndex:199,backdropFilter:"blur(4px)"}}/>}
+    <div style={{width:240,background:T.s1,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:open?"translateX(0)":"translateX(-100%)",transition:"transform .28s cubic-bezier(.16,1,.3,1)",overflowX:"hidden",boxShadow:open?"4px 0 32px rgba(15,20,35,0.12)":"none"}}>
       <div style={{padding:"14px 14px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:9}}>
         {/* VERIS Logo — V-mark: outer V gradient + inner V dark + diamond gem */}
         <svg width="26" height="28" viewBox="0 0 80 86" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -934,13 +937,13 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
             lineHeight:1,
           }}>Govern with certainty.</span>
         </div>
-        {isMobile&&<button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,fontSize:18,padding:4}}>×</button>}
+        <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,fontSize:18,padding:4,cursor:"pointer"}}>×</button>
       </div>
       <nav style={{flex:1,padding:"8px 6px",overflowY:"auto"}}>
         {NAV.map(item=>{
           const isA=tab===item.id;
           const badge=item.id==="hitl"&&hitlCount>0;
-          return <button key={item.id} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
+          return <button key={item.id} onClick={()=>{setTab(item.id);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
             <span style={{fontSize:12,opacity:isA?1:.6,flexShrink:0}}>{item.icon}</span>
             <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
             {badge&&<span style={{position:"absolute",right:6,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m}}>{hitlCount}</span>}
@@ -955,7 +958,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
           {id:"usecases",icon:"◈", label:"Use Case Pipeline"},
         ].map(item=>{
           const isA=tab===item.id;
-          return <button key={item.id} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
+          return <button key={item.id} onClick={()=>{setTab(item.id);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:7,marginBottom:1,background:isA?rc+"18":"transparent",border:isA?`1px solid ${rc}30`:"1px solid transparent",color:isA?rc:T.ink3,fontSize:11,fontWeight:isA?600:400,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s"}}>
             <span style={{fontSize:12,opacity:isA?1:.6,flexShrink:0}}>{item.icon}</span>
             <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
           </button>;
@@ -978,163 +981,394 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose}) {
    PAGE: DASHBOARD
 ───────────────────────────────────────────── */
 function PageHome({role,setTab}) {
-  const rc=RC(role), K=KPI[role];
-  const metrics=DOMAIN_METRICS[role]||[];
-  const roleKpis=ROLE_KPIS[role]||[];
+  const K=KPI[role];
   const standards=STANDARDS_MAP[role]||[];
-  const hr=new Date().getHours();
-  const greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
   const R=ROLES[role];
-  const [kpiPage,setKpiPage]=useState(0);
-  const KPI_PAGE_SIZE=5;
-  const pagedKpis=roleKpis.slice(kpiPage*KPI_PAGE_SIZE,(kpiPage+1)*KPI_PAGE_SIZE);
-  const totalKpiPages=Math.ceil(roleKpis.length/KPI_PAGE_SIZE);
+  const hr=new Date().getHours();
+  const greet=hr<12?"morning":hr<17?"afternoon":"evening";
+  const date=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"});
 
-  const topKpis=[
-    {label:K.domainLabel,       value:K.score+"/100", sub:K.scoreLabel,    color:rc,         icon:"◎", tab:"compliance"},
-    {label:"Overall Compliance", value:K.compliance+"%",sub:"All frameworks",color:T.teal,    icon:"◉", tab:"compliance"},
-    {label:"Active Risks",       value:K.risks,        sub:"In register",   color:T.amber,    icon:"⬟", tab:role==="caio"?"aira":"compliance"},
-    {label:"HITL Pending",       value:K.hitl,         sub:"Need approval", color:T.violet,   icon:"⚡",tab:"hitl"},
+  /* ─── Navy + white + lime palette ──────────────────────
+     Deep navy heroes, white cards, single lime accent.
+     "Hello, Emanuel" combo from the reference image. */
+  const K_ = {
+    bg:        "#F5F4EE",
+    surface:   "#FFFFFF",
+    s1:        "#FAFAF5",
+    s2:        "#F1F0E9",
+    line:      "rgba(15,20,55,0.08)",
+    lineH:     "rgba(15,20,55,0.14)",
+    navy:      "#0F1B5C",
+    navy2:     "#1A2470",
+    navyT:     "#FFFFFF",
+    navyT2:    "rgba(255,255,255,0.65)",
+    navyT3:    "rgba(255,255,255,0.40)",
+    ink:       "#0F1428",
+    ink2:      "#475569",
+    ink3:      "#94A3B8",
+    ink4:      "#CBD5E1",
+    gold:      "#D6F76A",
+    goldText:  "#0F1B5C",
+    goldL:     "rgba(214,247,106,0.18)",
+    sage:      "#22C55E",
+    sageL:     "rgba(34,197,94,0.10)",
+    crit:      "#EF4444",
+    critL:     "rgba(239,68,68,0.10)",
+  };
+
+  const fSerif = "'Newsreader', 'PP Editorial Old', 'Tinos', Georgia, serif";
+  const fSans  = "'Plus Jakarta Sans', system-ui, sans-serif";
+  const fMono  = "'JetBrains Mono', ui-monospace, monospace";
+
+  /* Multi-series area-line chart */
+  const Trace = ({series, h=130, w=800}) => {
+    const all = series.flatMap(s=>s.points);
+    const max=Math.max(...all), min=Math.min(...all), range=max-min||1;
+    return <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{display:"block"}}>
+      <defs>
+        {series.map((s,i)=>(
+          <linearGradient key={i} id={`g-${i}-${s.color.replace("#","")}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={s.color} stopOpacity={s.fill||0.14}/>
+            <stop offset="100%" stopColor={s.color} stopOpacity="0"/>
+          </linearGradient>
+        ))}
+      </defs>
+      {series.map((s,si)=>{
+        const pts=s.points.map((p,i)=>`${(i/(s.points.length-1))*w},${h-((p-min)/range)*(h-14)-7}`).join(" ");
+        const area=`0,${h} ${pts} ${w},${h}`;
+        return <g key={si} style={{opacity:0,animation:`fadeIn 1s ease ${si*0.15}s forwards`}}>
+          {s.fill!==false && <polygon points={area} fill={`url(#g-${si}-${s.color.replace("#","")})`}/>}
+          <polyline points={pts} fill="none" stroke={s.color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round"/>
+        </g>;
+      })}
+    </svg>;
+  };
+
+  const trend=[5.2,5.4,5.5,5.4,5.8,5.6,6.0,5.9,6.3,6.5,6.8,7.4];
+  const trendOp=[4.2,4.5,4.3,4.7,4.5,4.9,5.0,5.2,5.5,5.4,5.7,5.9];
+
+  const activity=[
+    {kind:"REGISTRY",  text:"GPT-4 enterprise tier reviewed by CAIO", t:"14:00", dot:K_.sage},
+    {kind:"EVIDENCE",  text:"ISO 42001 control C.8.4 evidence ingested", t:"13:42", dot:K_.gold},
+    {kind:"POLICY",    text:"Responsible Use policy v2.3 circulated to the board", t:"11:18", dot:K_.ink2},
+    {kind:"USE CASE",  text:"Customer service AI approved for pilot scope", t:"09:50", dot:K_.sage},
+    {kind:"MATURITY",  text:"Governance maturity refreshed across eight domains", t:"08:30", dot:K_.ink2},
   ];
 
-  const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink3;
+  /* The three hero KPIs */
+  const heroKpis = [
+    {label:"Composite risk", val:"7.4", suf:"/ 10", delta:"▲ 0.3 wk", dC:K_.sage, tab:"compliance"},
+    {label:"Models in scope", val:String(24).padStart(2,"0"), suf:"", delta:"+3 / 90d", dC:K_.ink2, tab:role==="caio"?"registry":"compliance"},
+    {label:"Awaiting you",    val:String(K.hitl||2).padStart(2,"0"), suf:"", delta:"oldest 2h", dC:K_.gold, tab:"hitl"},
+  ];
 
-  return <div style={{animation:"up .3s ease"}}>
-    {/* Header */}
-    <div style={{marginBottom:18}}>
-      <h1 style={{fontFamily:F.h,fontSize:24,fontWeight:800,color:T.ink,letterSpacing:"-0.03em",marginBottom:4}}>{greet}, {R.name.split(" ")[0]} 👋</h1>
-      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{R.title} · {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",
+    margin:"-12px -12px",
+    minHeight:"calc(100vh - 56px)",
+    fontFamily:fSans,
+    color:K_.ink,
+    padding:"16px",
+  }}>
+   <div style={{
+    background:"transparent",
+    backdropFilter:"none",
+    WebkitBackdropFilter:"none",
+    border:"none",
+    borderRadius:0,
+    padding:0,
+    boxShadow:"none",
+   }}>
+
+    {/* ── 1. Deep navy hero card ──────────────────── */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,
+      padding:"36px 40px 40px",
+      marginBottom:14,
+      position:"relative",overflow:"hidden",
+      animation:"up .55s cubic-bezier(.16,1,.3,1) .05s both",
+    }}>
+      {/* Subtle dot pattern overlay */}
+      <div style={{
+        position:"absolute",inset:0,opacity:0.4,
+        backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,
+        backgroundSize:"24px 24px",
+        pointerEvents:"none",
+      }}/>
+      {/* Brand tag */}
+      <div style={{position:"relative",display:"flex",alignItems:"center",gap:7,fontSize:11,color:K_.navyT,fontWeight:600,marginBottom:32,letterSpacing:"0.01em"}}>
+        <span style={{color:K_.gold,fontSize:14}}>✦</span>
+        <span><strong>geniaz</strong> <span style={{color:K_.navyT2,fontWeight:400}}>· veris ai</span></span>
+      </div>
+      {/* Eyebrow */}
+      <div style={{position:"relative",fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
+        <span>▸</span><span>good {greet}</span>
+      </div>
+      {/* Hero title */}
+      <h1 style={{
+        position:"relative",
+        fontFamily:fSerif,fontWeight:400,
+        fontSize:"clamp(36px, 4.5vw, 56px)",lineHeight:1.05,letterSpacing:"-0.025em",
+        color:K_.navyT,margin:0,
+      }}>
+        Hello, <span style={{fontStyle:"italic"}}>{R.name.split(" ")[0]}.</span>
+      </h1>
+      {/* Subtitle */}
+      <p style={{
+        position:"relative",
+        fontSize:14.5,lineHeight:1.5,color:K_.navyT2,
+        margin:"14px 0 0",fontWeight:400,maxWidth:600,
+      }}>
+        <span style={{color:K_.navyT,fontWeight:600}}>{K.hitl||2} {(K.hitl||2)===1?"item":"items"} need your sign-off</span> today.
+        Your governance workspace, all in one place.
+      </p>
     </div>
 
-    {/* Top KPI strip */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-      {topKpis.map((k,i)=><div key={k.label} onClick={()=>setTab(k.tab)}
-        style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",position:"relative",overflow:"hidden",transition:"border-color .2s"}}
-        onMouseEnter={e=>e.currentTarget.style.borderColor=k.color+"60"}
-        onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
-        <div style={{position:"absolute",top:0,right:0,width:50,height:50,background:`radial-gradient(circle at top right,${k.color}15,transparent 70%)`}}/>
-        <div style={{fontSize:14,opacity:.6,marginBottom:6}}>{k.icon}</div>
-        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}>{k.value}</div>
-        <div style={{fontSize:10,fontWeight:600,color:T.ink2,fontFamily:F.b,marginBottom:1}}>{k.label}</div>
-        <div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
-      </div>)}
-    </div>
+    {/* ── 2. KPI strip — first navy, rest white ──── */}
+    <div style={{
+      display:"grid",gridTemplateColumns:"repeat(4, minmax(0,1fr))",gap:14,
+      marginBottom:18,
+    }}>
+      {/* First KPI — deep navy with lime button */}
+      <div onClick={()=>setTab("hitl")} style={{
+        background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+        borderRadius:20,padding:"24px 26px",
+        cursor:"pointer",position:"relative",overflow:"hidden",
+        animation:"up .55s cubic-bezier(.16,1,.3,1) .1s both",
+      }}>
+        <div style={{
+          position:"absolute",inset:0,opacity:0.3,
+          backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,
+          backgroundSize:"22px 22px",pointerEvents:"none",
+        }}/>
+        <div style={{position:"relative",fontSize:10,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:16}}>Awaiting you</div>
+        <div style={{position:"relative",fontFamily:fSerif,fontStyle:"italic",fontSize:64,lineHeight:0.9,letterSpacing:"-0.04em",color:K_.navyT,marginBottom:22}}>{String(K.hitl||2).padStart(1,"0")}</div>
+        <button style={{
+          position:"relative",
+          background:K_.gold,color:K_.goldText,
+          border:"none",borderRadius:100,padding:"7px 14px",
+          fontSize:11.5,fontWeight:700,letterSpacing:"0.01em",
+          cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,
+          fontFamily:fSans,
+        }}>
+          <span>✦</span> Start now →
+        </button>
+      </div>
 
-    {/* Domain metrics — role-specific */}
-    <Card style={{padding:16,marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink}}>{R.label} Domain Metrics</h3>
-        <button onClick={()=>setTab("compliance")} style={{fontSize:9,color:rc,background:"none",border:"none",fontFamily:F.b,fontWeight:600}}>Full scorecard →</button>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
-        {metrics.map((m,i)=>{
-          const col=m.color;
-          return <div key={m.label} style={{background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${col}`,animation:`up ${.3+i*.05}s ease both`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:500,lineHeight:1.3,flex:1,paddingRight:6}}>{m.label}</span>
-              <span style={{fontSize:9,fontFamily:F.m,color:m.trend>0&&m.label.includes("Violation")?"red":m.trend>0?T.green:T.red,whiteSpace:"nowrap"}}>
-                {m.trend>0?"▲":"▼"} {Math.abs(m.trend)}{m.unit==="%" ?"%":""}
-              </span>
-            </div>
-            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}>{m.value}{m.unit}</div>
-            <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,marginTop:3}}>{m.fw}</div>
-          </div>;
-        })}
-      </div>
-    </Card>
-
-    {/* Role-specific KPI table */}
-    <Card style={{marginBottom:12,overflow:"hidden"}}>
-      <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>{R.label} KPI & Standards Table</h3>
-        <button onClick={()=>setTab("compliance")} style={{fontSize:9,color:rc,background:"none",border:"none",fontFamily:F.b,fontWeight:600}}>View all →</button>
-      </div>
-      {/* Table header */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"7px 14px",background:T.s4,borderBottom:`1px solid ${T.border}`}}>
-        {["KPI Category","KPI / Metric","Target","Threshold","Framework","Status"].map(h=>
-          <span key={h} style={{fontSize:8,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F.m}}>{h}</span>
-        )}
-      </div>
-      {pagedKpis.map((k,i)=>{
-        const sc=stColor(k.status);
-        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"9px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:i%2===0?T.s1:T.bg}}>
-          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.cat}</span>
-          <div>
-            <div style={{fontSize:10,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
-            <span style={{fontSize:9,color:rc,fontFamily:F.m,fontWeight:700}}>{k.value}</span>
+      {/* Other 3 KPIs — white */}
+      {[
+        {label:"Composite risk", val:"7.4", suf:"/ 10", delta:"▲ 0.3 wk", dC:K_.sage, tab:"compliance"},
+        {label:"Models in scope", val:"24", suf:"", delta:"+3 / 90d", dC:K_.ink2, tab:role==="caio"?"registry":"compliance"},
+        {label:"Compliance",     val:String(K.compliance||83), suf:"%", delta:"all frameworks", dC:K_.ink2, tab:"compliance"},
+      ].map((c,i)=>(
+        <div key={c.label} onClick={()=>setTab(c.tab)} style={{
+          background:K_.surface,
+          borderRadius:20,padding:"24px 26px",
+          border:`1px solid ${K_.line}`,
+          cursor:"pointer",
+          animation:`up .55s cubic-bezier(.16,1,.3,1) ${.15+i*.05}s both`,
+        }}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:16}}>{c.label}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:18}}>
+            <span style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:56,lineHeight:0.9,letterSpacing:"-0.04em",color:K_.ink}}>{c.val}</span>
+            {c.suf&&<span style={{fontSize:18,color:K_.ink3,fontFamily:fSerif,fontStyle:"italic"}}>{c.suf}</span>}
           </div>
-          <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
-          <span style={{fontSize:9,color:T.red,fontFamily:F.m}}>{k.threshold}</span>
-          <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{k.fw}</span>
-          <Tag label={k.status} color={sc} bg={sc+"18"}/>
-        </div>;
-      })}
-      {totalKpiPages>1&&<div style={{padding:"8px 14px",display:"flex",gap:6,alignItems:"center",borderTop:`1px solid ${T.border}`}}>
-        <button onClick={()=>setKpiPage(p=>Math.max(0,p-1))} disabled={kpiPage===0}
-          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 10px",fontSize:10,color:kpiPage===0?T.ink4:T.ink,fontFamily:F.b,opacity:kpiPage===0?.4:1}}>←</button>
-        <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{kpiPage+1}/{totalKpiPages}</span>
-        <button onClick={()=>setKpiPage(p=>Math.min(totalKpiPages-1,p+1))} disabled={kpiPage===totalKpiPages-1}
-          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 10px",fontSize:10,color:kpiPage===totalKpiPages-1?T.ink4:T.ink,fontFamily:F.b,opacity:kpiPage===totalKpiPages-1?.4:1}}>→</button>
-        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:4}}>{roleKpis.length} KPIs total</span>
-      </div>}
-    </Card>
+          <div style={{fontSize:11,color:c.dC,fontFamily:fMono,letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{width:5,height:5,borderRadius:"50%",background:c.dC}}/>
+            {c.delta}
+          </div>
+        </div>
+      ))}
+    </div>
 
-    {/* Standards mapping */}
-    <Card style={{padding:16,marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>Standards & Regulatory Mapping</h3>
+    {/* Wrap remaining sections in a white card */}
+    <div style={{background:K_.surface,borderRadius:20,padding:"28px 30px",border:`1px solid ${K_.line}`,animation:"up .55s cubic-bezier(.16,1,.3,1) .3s both"}}>
+
+    {/* ── (was 1) Tracker line — removed, replaced by hero ── */}
+
+    {/* ── (was 2) Hero band — removed, replaced by navy hero card above ── */}
+    <div style={{display:"none"}}>{/* placeholder for removed hero band */}</div>
+
+    {/* ── 3. Risk trajectory chart ─────────────────── */}
+    <div style={{
+      display:"grid",gridTemplateColumns:"minmax(0,2.2fr) minmax(0,1fr)",gap:32,
+      paddingBottom:24,marginBottom:24,
+      borderBottom:`1px solid ${K_.line}`,
+      animation:"up .65s cubic-bezier(.16,1,.3,1) .25s both",
+    }}>
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14}}>
+          <div>
+            <div style={{
+              fontSize:10,color:K_.ink3,fontFamily:fMono,
+              letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+              marginBottom:6,
+            }}>Risk trajectory · 12 weeks</div>
+            <h2 style={{
+              fontFamily:fSerif,fontStyle:"italic",fontWeight:400,
+              fontSize:18,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.3,
+            }}>Composite trending up. Operational has held the line.</h2>
+          </div>
+          <div style={{display:"flex",gap:18,fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>
+            <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:14,height:1,background:K_.gold}}/>Composite</span>
+            <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:14,height:1,background:K_.ink2}}/>Operational</span>
+          </div>
+        </div>
+        <Trace series={[
+          {color:K_.gold,points:trend,fill:0.16},
+          {color:K_.ink2,points:trendOp,fill:0.05},
+        ]} h={130}/>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:K_.ink4,fontFamily:fMono,marginTop:6,letterSpacing:"0.12em"}}>
+          <span>W-12</span><span>W-8</span><span>W-4</span><span>NOW</span>
+        </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
-        {standards.map((s,i)=>{
-          const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
-          return <div key={s.std} style={{background:T.s3,borderRadius:8,padding:"9px 12px",display:"flex",gap:10,alignItems:"center",animation:`up ${.3+i*.05}s ease both`}}>
-            <Ring score={s.score>0?s.score:0} color={col} size={38}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.m,marginBottom:2}}>{s.std}</div>
-              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.applies}</div>
-              <Tag label={s.status} color={stColor(s.status)} bg={stColor(s.status)+"18"}/>
+
+      {/* Side panel — quick context */}
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div>
+          <div style={{
+            fontSize:10,color:K_.ink3,fontFamily:fMono,
+            letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+            marginBottom:10,
+          }}>Current peak</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:7}}>
+            <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:34,letterSpacing:"-0.03em",color:K_.gold,lineHeight:1}}>7.4</span>
+            <span style={{fontSize:11,color:K_.ink3,fontFamily:fMono}}>this week</span>
+          </div>
+        </div>
+        <div>
+          <div style={{
+            fontSize:10,color:K_.ink3,fontFamily:fMono,
+            letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+            marginBottom:10,
+          }}>12-week avg</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:7}}>
+            <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:34,letterSpacing:"-0.03em",color:K_.ink,lineHeight:1}}>6.1</span>
+            <span style={{fontSize:11,color:K_.sage,fontFamily:fMono}}>stable</span>
+          </div>
+        </div>
+        <div style={{paddingTop:12,borderTop:`1px solid ${K_.line}`}}>
+          <div style={{
+            fontSize:10,color:K_.ink3,fontFamily:fMono,
+            letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+            marginBottom:6,
+          }}>Trend</div>
+          <p style={{fontSize:12,color:K_.ink2,margin:0,lineHeight:1.5}}>Three new high-risk models added this quarter explain the composite uplift. Operational controls have absorbed the load.</p>
+        </div>
+      </div>
+    </div>
+
+    {/* ── 4. Two-column: activity & standards ──────── */}
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.15fr) minmax(0,1fr)",gap:44,paddingBottom:24,marginBottom:24,borderBottom:`1px solid ${K_.line}`}}>
+
+      <div style={{animation:"up .65s cubic-bezier(.16,1,.3,1) .35s both"}}>
+        <div style={{
+          fontSize:10,color:K_.ink3,fontFamily:fMono,
+          letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+          paddingBottom:12,borderBottom:`1px solid ${K_.line}`,
+          marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center",
+        }}>
+          <span>Recent activity</span>
+          <span style={{color:K_.gold,cursor:"pointer",letterSpacing:"0.04em"}}>view all →</span>
+        </div>
+        {activity.map((a,i)=>(
+          <div key={i} style={{
+            display:"grid",gridTemplateColumns:"auto 1fr auto",
+            gap:18,alignItems:"baseline",
+            padding:"14px 0",borderBottom:i<activity.length-1?`1px solid ${K_.line}`:"none",
+          }}>
+            <span style={{
+              fontSize:9.5,color:K_.ink3,fontFamily:fMono,
+              letterSpacing:"0.16em",fontWeight:500,
+              minWidth:66,
+            }}>{a.kind}</span>
+            <span style={{fontSize:13.5,color:K_.ink,lineHeight:1.4,fontWeight:400}}>{a.text}</span>
+            <span style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>{a.t}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{animation:"up .65s cubic-bezier(.16,1,.3,1) .42s both"}}>
+        <div style={{
+          fontSize:10,color:K_.ink3,fontFamily:fMono,
+          letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+          paddingBottom:12,borderBottom:`1px solid ${K_.line}`,
+          marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center",
+        }}>
+          <span>Standards posture</span>
+          <span onClick={()=>setTab("checklists")} style={{color:K_.gold,cursor:"pointer",letterSpacing:"0.04em"}}>checklists →</span>
+        </div>
+        {standards.slice(0,5).map((s,i,arr)=>{
+          const c = s.score>=85 ? K_.sage : s.score>=70 ? K_.gold : s.score>0 ? K_.crit : K_.ink3;
+          return <div key={s.std} style={{
+            padding:"14px 0",borderBottom:i<arr.length-1?`1px solid ${K_.line}`:"none",
+          }}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:9}}>
+              <div>
+                <div style={{fontSize:13.5,color:K_.ink,fontWeight:500,letterSpacing:"-0.003em"}}>{s.std}</div>
+                <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em",marginTop:3}}>{s.applies}</div>
+              </div>
+              <span style={{
+                fontFamily:fSerif,fontStyle:"italic",fontSize:20,fontWeight:400,
+                color:c,letterSpacing:"-0.02em",
+              }}>{s.score}</span>
+            </div>
+            <div style={{height:2,background:K_.s2,position:"relative",overflow:"hidden",borderRadius:1}}>
+              <div style={{
+                position:"absolute",left:0,top:0,height:"100%",
+                width:`${s.score}%`,background:c,
+                transition:"width 1.4s cubic-bezier(.16,1,.3,1)",
+              }}/>
             </div>
           </div>;
         })}
       </div>
-    </Card>
+    </div>
+    </div>{/* close white card wrapper */}
 
-    {/* Quick actions */}
-    <Card style={{padding:14,marginBottom:12}}>
-      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginBottom:10}}>Quick Access</h3>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
-        {[
-          {label:"HITL Queue",    icon:"⚡",tab:"hitl",    color:T.amber},
-          {label:"Playbook",      icon:"☰", tab:"playbook", color:rc},
-          {label:"ISO Checklists",icon:"☑", tab:"checklists",color:T.teal},
-          {label:"AI Risk (AIRA)",icon:"⬟", tab:role==="caio"?"aira":"aia",color:T.red},
-          {label:role==="caio"?"Model Registry":"Templates",icon:role==="caio"?"⊟":"◐",tab:role==="caio"?"registry":"templates",color:T.violet},
-          {label:role==="caio"?"Use Case Pipeline":"Roadmap",icon:role==="caio"?"◈":"⬢",tab:role==="caio"?"usecases":"roadmap",color:T.green},
-        ].map(q=><button key={q.label} onClick={()=>setTab(q.tab)}
-          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 10px",display:"flex",alignItems:"center",gap:7,color:T.ink2,fontSize:10,fontWeight:500,fontFamily:F.b,textAlign:"left",transition:"all .12s"}}
-          onMouseEnter={e=>{e.currentTarget.style.borderColor=q.color+"50";e.currentTarget.style.color=q.color;}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.ink2;}}>
-          <span style={{fontSize:12}}>{q.icon}</span>{q.label}
-        </button>)}
+    {/* ── HITL signature line — vibrant lime callout ──────── */}
+    {K.hitl>0 && <div onClick={()=>setTab("hitl")} style={{
+      display:"flex",alignItems:"center",justifyContent:"space-between",gap:24,
+      padding:"22px 28px",borderRadius:20,
+      background:K_.gold,
+      cursor:"pointer",
+      marginTop:14,marginBottom:14,
+      boxShadow:`0 8px 24px -8px ${K_.gold}80`,
+      animation:"up .65s cubic-bezier(.16,1,.3,1) .5s both",
+    }}>
+      <div style={{display:"flex",alignItems:"baseline",gap:18}}>
+        <span style={{
+          fontFamily:fSerif,fontStyle:"italic",fontSize:42,fontWeight:400,
+          color:K_.navy,letterSpacing:"-0.03em",lineHeight:1,
+        }}>{String(K.hitl).padStart(2,"0")}</span>
+        <span style={{fontSize:14.5,color:K_.navy,fontWeight:600,lineHeight:1.4,maxWidth:520}}>
+          {K.hitl===1?"decision":"decisions"} await your signature.
+          <span style={{color:"rgba(15,27,92,0.65)",fontWeight:400}}> The AI cannot proceed without you.</span>
+        </span>
       </div>
-    </Card>
-
-    {/* HITL alert */}
-    {K.hitl>0&&<div onClick={()=>setTab("hitl")}
-      style={{background:`linear-gradient(135deg,${T.amberL},${T.s2})`,border:`1px solid ${T.amber}40`,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
-      <div style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite",flexShrink:0}}/>
-      <div style={{flex:1}}>
-        <div style={{fontSize:12,fontWeight:600,color:T.amber,fontFamily:F.b}}>{K.hitl} items awaiting your approval in the HITL Queue</div>
-        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>High-stakes decisions the AI cannot act on without your explicit sign-off.</p>
-      </div>
-      <span style={{color:T.amber,fontSize:16}}>→</span>
+      <span style={{
+        fontSize:11,color:K_.navy,fontFamily:fMono,
+        letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:700,
+      }}>review queue →</span>
     </div>}
+
+    {/* ── Footer ──────────────────────────────────── */}
+    <div style={{
+      display:"flex",justifyContent:"space-between",alignItems:"baseline",
+      fontSize:10.5,color:K_.ink3,fontFamily:fMono,
+      letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:500,
+      paddingTop:18,paddingBottom:8,
+    }}>
+      <span>VERIS 1.0</span>
+      <span style={{fontFamily:fSerif,fontStyle:"italic",letterSpacing:0,textTransform:"none",fontSize:13,color:K_.ink}}>A Geniaz product.</span>
+      <span>Synced 14:02 UTC</span>
+    </div>
+
+   </div>
   </div>;
 }
-
-/* ─────────────────────────────────────────────
-   PAGE: ONBOARDING
-───────────────────────────────────────────── */
 function PageOnboard({role,showToast}) {
   const rc=RC(role), R=ROLES[role], steps=ONBOARD[role];
   const [done,setDone]=useState({});
@@ -2853,11 +3087,11 @@ export default function VERIS() {
     <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)}/>
 
     {/* Main */}
-    <div style={{marginLeft:isMobile?0:200,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+    <div style={{marginLeft:0,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
       {/* Top bar */}
-      <div style={{background:T.s1,borderBottom:`1px solid ${T.border}`,height:52,display:"flex",alignItems:"center",padding:"0 16px",position:"sticky",top:0,zIndex:100,gap:12}}>
-        {isMobile&&<button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",color:T.ink3,fontSize:20,padding:"4px 6px",flexShrink:0}}>☰</button>}
-        {isMobile&&<div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
+      <div style={{background:T.s1,borderBottom:`1px solid ${T.border}`,height:56,display:"flex",alignItems:"center",padding:"0 18px",position:"sticky",top:0,zIndex:100,gap:14}}>
+        <button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",color:T.ink2,fontSize:22,padding:"6px 8px",flexShrink:0,cursor:"pointer",lineHeight:1}}>☰</button>
+        <div style={{display:"flex",alignItems:"center",gap:8,flex:"0 0 auto"}}>
           <svg width="18" height="20" viewBox="0 0 80 86" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="vt-left" x1="0" y1="0" x2="40" y2="86" gradientUnits="userSpaceOnUse">
