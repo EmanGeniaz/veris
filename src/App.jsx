@@ -830,12 +830,36 @@ const MATURITY_DOMAINS = [
    USE CASE PIPELINE (from CAIO Kit Part 2)
 ───────────────────────────────────────────── */
 const USE_CASES = [
-  {id:"uc1",name:"AI-Powered Contract Review",dept:"Legal",stage:"POC",impact:9,feasibility:7,risk:4,score:86,owner:"Legal + Engineering",eta:"Q3 2026",status:"Active",desc:"LLM-based contract analysis to extract obligations, risk clauses, and renewal dates. Estimated 60% reduction in review time."},
-  {id:"uc2",name:"Predictive Churn Model",dept:"Sales",stage:"Pilot",impact:8,feasibility:8,risk:3,score:90,owner:"Data Science + Sales",eta:"Q2 2026",status:"Active",desc:"ML model predicting customer churn 90 days in advance. Pilot on 5k accounts showing 73% accuracy vs 45% baseline."},
-  {id:"uc3",name:"AI Invoice Processing",dept:"Finance",stage:"Scale",impact:7,feasibility:9,risk:2,score:92,owner:"Finance + IT",eta:"Live",status:"Complete",desc:"IDP (Intelligent Document Processing) for invoice extraction. 94% straight-through processing. ROI: £340k saved annually."},
-  {id:"uc4",name:"HR Onboarding Automation",dept:"HR",stage:"POC",impact:6,feasibility:6,risk:5,score:62,owner:"HR + IT",eta:"Q4 2026",status:"Active",desc:"AI-guided onboarding journey. Ethics risk: employee data processing at scale. DPIA required before pilot."},
-  {id:"uc5",name:"Regulatory Change Monitor",dept:"Compliance",stage:"Pilot",impact:9,feasibility:5,risk:3,score:78,owner:"CGO + Legal",eta:"Q3 2026",status:"Active",desc:"LLM monitoring regulatory feeds (EU AI Act, GDPR, FCA) for changes affecting the organisation. Alerts to CGO and CAIO."},
-  {id:"uc6",name:"GenAI Code Assistant",dept:"Engineering",stage:"Scale",impact:7,feasibility:9,risk:3,score:88,owner:"Engineering",eta:"Live",status:"Complete",desc:"GitHub Copilot Enterprise deployment. 35% faster development velocity. IP and data leakage policy in place."},
+  {id:"uc1",name:"AI-Powered Contract Review",dept:"Legal",system:"Claude 3.5 Sonnet",dataClass:"Confidential",decisionImpact:"Advisory",affectedUsers:24,stage:"POC",impact:9,feasibility:7,risk:4,score:86,owner:"Legal + Engineering",eta:"Q3 2026",status:"Active",pipelineStage:"Under Review",tier:"Limited",iso42001Controls:["6.1.2","8.2","8.4","9.2"],submittedAt:"2026-04-12",submittedBy:"Priya Shah (Legal Director)",desc:"LLM-based contract analysis to extract obligations, risk clauses, and renewal dates. Estimated 60% reduction in review time.",decisions:[
+    {role:"caio",decision:"approve",reasoning:"AI risk profile acceptable. Advisory-only with mandatory legal sign-off on every output. ISO 42001 § 8.2 evidence captured.",signer:"Saif Ali (CAIO)",timestamp:"2026-04-15 10:24"},
+    {role:"ciso",decision:"approve_with_conditions",reasoning:"Confidential client data requires data residency in EU. Anthropic EU endpoint mandated. No model fine-tuning on client docs.",signer:"M. Khan (CISO)",timestamp:"2026-04-15 14:50"},
+    {role:"cdpo",decision:"pending",reasoning:"",signer:"",timestamp:""},
+  ]},
+  {id:"uc2",name:"Predictive Churn Model",dept:"Sales",system:"Internal XGBoost",dataClass:"Internal",decisionImpact:"Advisory",affectedUsers:8,stage:"Pilot",impact:8,feasibility:8,risk:3,score:90,owner:"Data Science + Sales",eta:"Q2 2026",status:"Active",pipelineStage:"Approved",tier:"Limited",iso42001Controls:["6.1.2","8.2","8.5"],submittedAt:"2026-02-08",submittedBy:"Alex Mendez (Head of Sales)",desc:"ML model predicting customer churn 90 days in advance. Pilot on 5k accounts showing 73% accuracy vs 45% baseline.",decisions:[
+    {role:"caio",decision:"approve",reasoning:"Internal-only model on commercial data. Acceptable AI risk.",signer:"Saif Ali (CAIO)",timestamp:"2026-02-14 09:10"},
+    {role:"ciso",decision:"approve",reasoning:"No external data exfiltration. Model hosted on internal infra.",signer:"M. Khan (CISO)",timestamp:"2026-02-14 11:32"},
+    {role:"cdpo",decision:"approve",reasoning:"PII pseudonymised in training set. GDPR Article 22 advisory carve-out applies.",signer:"R. Patel (CDPO)",timestamp:"2026-02-15 08:45"},
+  ]},
+  {id:"uc3",name:"AI Invoice Processing",dept:"Finance",system:"Microsoft Azure AI Document Intelligence",dataClass:"Internal",decisionImpact:"Automated",affectedUsers:6,stage:"Scale",impact:7,feasibility:9,risk:2,score:92,owner:"Finance + IT",eta:"Live",status:"Complete",pipelineStage:"Production",tier:"Minimal",iso42001Controls:["6.1.2","8.2","8.4","9.4"],submittedAt:"2025-09-20",submittedBy:"David Lee (Head of Finance)",desc:"IDP (Intelligent Document Processing) for invoice extraction. 94% straight-through processing. ROI: £340k saved annually.",decisions:[
+    {role:"caio",decision:"approve",reasoning:"Minimal-risk OCR/extraction. Automated decisioning bounded with human review on flagged exceptions.",signer:"Saif Ali (CAIO)",timestamp:"2025-10-02 14:20"},
+    {role:"ciso",decision:"approve",reasoning:"Azure compliance with internal procurement spec. No issues.",signer:"M. Khan (CISO)",timestamp:"2025-10-03 10:00"},
+    {role:"cdpo",decision:"approve",reasoning:"No personal data in invoice content. Business data only.",signer:"R. Patel (CDPO)",timestamp:"2025-10-03 11:15"},
+  ]},
+  {id:"uc4",name:"HR Onboarding Automation",dept:"HR",system:"GPT-4 Enterprise",dataClass:"Restricted",decisionImpact:"Advisory",affectedUsers:340,stage:"POC",impact:6,feasibility:6,risk:5,score:62,owner:"HR + IT",eta:"Q4 2026",status:"Active",pipelineStage:"Conditions",tier:"High-Risk",iso42001Controls:["6.1.2","8.2","8.3","8.4","9.2","9.3"],submittedAt:"2026-05-02",submittedBy:"Jenna Brooks (Head of People)",desc:"AI-guided onboarding journey. Ethics risk: employee data processing at scale. DPIA required before pilot.",decisions:[
+    {role:"caio",decision:"approve_with_conditions",reasoning:"High-risk under EU AI Act Annex III (employment). DPIA mandatory before any user interaction. Bias testing across protected groups required.",signer:"Saif Ali (CAIO)",timestamp:"2026-05-08 16:00"},
+    {role:"ciso",decision:"pending",reasoning:"",signer:"",timestamp:""},
+    {role:"cdpo",decision:"reject",reasoning:"Cannot proceed without completed DPIA, Article 35 consultation, and explicit employee transparency notice. Resubmit once these are in place.",signer:"R. Patel (CDPO)",timestamp:"2026-05-09 09:30"},
+  ]},
+  {id:"uc5",name:"Regulatory Change Monitor",dept:"Compliance",system:"Claude 3.5 Sonnet + Internal RAG",dataClass:"Internal",decisionImpact:"Advisory",affectedUsers:4,stage:"Pilot",impact:9,feasibility:5,risk:3,score:78,owner:"CGO + Legal",eta:"Q3 2026",status:"Active",pipelineStage:"Approved",tier:"Limited",iso42001Controls:["6.1.2","8.2","8.4"],submittedAt:"2026-03-15",submittedBy:"H. Williams (CGO)",desc:"LLM monitoring regulatory feeds (EU AI Act, GDPR, FCA) for changes affecting the organisation. Alerts to CGO and CAIO.",decisions:[
+    {role:"caio",decision:"approve",reasoning:"Advisory only. Outputs reviewed by Legal before any policy action.",signer:"Saif Ali (CAIO)",timestamp:"2026-03-22 13:00"},
+    {role:"ciso",decision:"approve",reasoning:"Public regulatory data only. No internal data leaves the perimeter.",signer:"M. Khan (CISO)",timestamp:"2026-03-22 15:30"},
+    {role:"cdpo",decision:"approve",reasoning:"No personal data processed. Acceptable.",signer:"R. Patel (CDPO)",timestamp:"2026-03-23 10:00"},
+  ]},
+  {id:"uc6",name:"GenAI Code Assistant",dept:"Engineering",system:"GitHub Copilot Enterprise",dataClass:"Confidential",decisionImpact:"Advisory",affectedUsers:78,stage:"Scale",impact:7,feasibility:9,risk:3,score:88,owner:"Engineering",eta:"Live",status:"Complete",pipelineStage:"Production",tier:"Limited",iso42001Controls:["6.1.2","8.2","8.4","9.2"],submittedAt:"2025-08-10",submittedBy:"K. Nakamura (CTO)",desc:"GitHub Copilot Enterprise deployment. 35% faster development velocity. IP and data leakage policy in place.",decisions:[
+    {role:"caio",decision:"approve",reasoning:"Acceptable AI risk. Copilot Enterprise with code retention disabled.",signer:"Saif Ali (CAIO)",timestamp:"2025-08-20 09:00"},
+    {role:"ciso",decision:"approve",reasoning:"Repository scoping enforced. Secrets scanning enabled. No issues.",signer:"M. Khan (CISO)",timestamp:"2025-08-20 11:30"},
+    {role:"cdpo",decision:"approve",reasoning:"No PII in source code. No issues.",signer:"R. Patel (CDPO)",timestamp:"2025-08-21 10:00"},
+  ]},
 ];
 
 
@@ -3032,73 +3056,437 @@ function PageMaturityRadar() {
    PAGE: USE CASE PIPELINE (CAIO Kit Part 2)
 ───────────────────────────────────────────── */
 function PageUseCases() {
-  const [sel,setSel]=useState(USE_CASES[0]);
-  const stageCol=s=>s==="Scale"?T.green:s==="Pilot"?T.blue:T.amber;
-  const scoreCol=s=>s>=85?T.green:s>=70?T.blue:s>=55?T.amber:T.red;
-  const byStage=(stage)=>USE_CASES.filter(u=>u.stage===stage);
-  return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Use Case Pipeline" sub="CAIO Kit Part 2 — POC → Pilot → Scale. Impact × Feasibility × Risk scoring framework."/>
-    {/* Pipeline kanban */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-      {[["POC","Validate Assumption",T.amber],["Pilot","Validate Value",T.blue],["Scale","Validate Operations",T.green]].map(([stage,sub,col])=><div key={stage}>
-        <div style={{background:col+"18",border:`1px solid ${col}30`,borderRadius:"8px 8px 0 0",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+  const [view,setView]=useState("inventory");        /* "inventory" | "intake" | "detail" */
+  const [selectedId,setSelectedId]=useState(USE_CASES[0].id);
+  const [filter,setFilter]=useState("all");          /* pipeline-stage filter */
+  const [tierFilter,setTierFilter]=useState("all");
+  const [intake,setIntake]=useState({
+    name:"", dept:"", system:"GPT-4 Enterprise", dataClass:"Internal",
+    decisionImpact:"Advisory", affectedUsers:"", desc:"", submittedBy:"",
+  });
+  const [cases,setCases]=useState(USE_CASES);
+
+  /* ─── Palette (consistent with PageHome) ─── */
+  const K_ = {
+    bg:"#F5F4EE", surface:"#FFFFFF",
+    line:"rgba(15,20,55,0.08)", lineH:"rgba(15,20,55,0.14)",
+    navy:"#0F1B5C", navy2:"#1A2470", navyT:"#FFFFFF", navyT2:"rgba(255,255,255,0.65)", navyT3:"rgba(255,255,255,0.40)",
+    ink:"#0F1428", ink2:"#475569", ink3:"#94A3B8", ink4:"#CBD5E1",
+    gold:"#D6F76A", goldText:"#0F1B5C", goldL:"rgba(214,247,106,0.18)",
+    sage:"#22C55E", sageL:"rgba(34,197,94,0.10)",
+    amber:"#F59E0B", amberL:"rgba(245,158,11,0.10)",
+    crit:"#EF4444", critL:"rgba(239,68,68,0.10)",
+  };
+  const fSerif="'Newsreader','PP Editorial Old','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* ─── Helpers ─── */
+  const tierColor = t => ({
+    "Prohibited":K_.crit, "High-Risk":K_.amber, "Limited":K_.sage, "Minimal":K_.ink3,
+  })[t] || K_.ink3;
+  const stageColor = s => ({
+    "Submitted":K_.ink3, "Under Review":K_.amber, "Approved":K_.sage,
+    "Conditions":K_.amber, "Production":K_.navy, "Retired":K_.ink3,
+  })[s] || K_.ink3;
+  const decisionColor = d => ({
+    "approve":K_.sage, "approve_with_conditions":K_.amber,
+    "reject":K_.crit, "pending":K_.ink3,
+  })[d] || K_.ink3;
+  const decisionLabel = d => ({
+    "approve":"Approved", "approve_with_conditions":"Approved · conditions",
+    "reject":"Rejected", "pending":"Pending",
+  })[d] || d;
+
+  /* Auto-classify tier from the intake form */
+  const classifyTier = (form) => {
+    if(form.affectedUsers > 100 || form.dataClass==="Restricted") return "High-Risk";
+    if(form.decisionImpact==="Automated") return "High-Risk";
+    if(form.dataClass==="Confidential") return "Limited";
+    return "Minimal";
+  };
+
+  /* Filter cases */
+  const filteredCases = cases.filter(uc => {
+    if(filter!=="all" && uc.pipelineStage!==filter) return false;
+    if(tierFilter!=="all" && uc.tier!==tierFilter) return false;
+    return true;
+  });
+
+  const sel = cases.find(c => c.id===selectedId) || cases[0];
+
+  /* Submit intake form */
+  const submitIntake = () => {
+    if(!intake.name || !intake.dept) return;
+    const tier = classifyTier(intake);
+    const newCase = {
+      id:"uc"+(cases.length+1),
+      name:intake.name, dept:intake.dept, system:intake.system,
+      dataClass:intake.dataClass, decisionImpact:intake.decisionImpact,
+      affectedUsers:Number(intake.affectedUsers)||0,
+      stage:"POC", impact:5, feasibility:5, risk:5, score:50,
+      owner:intake.submittedBy, eta:"TBD", status:"Active",
+      pipelineStage:"Submitted", tier, iso42001Controls:["6.1.2","8.2"],
+      submittedAt:new Date().toISOString().slice(0,10),
+      submittedBy:intake.submittedBy, desc:intake.desc,
+      decisions:[
+        {role:"caio",decision:"pending",reasoning:"",signer:"",timestamp:""},
+        {role:"ciso",decision:"pending",reasoning:"",signer:"",timestamp:""},
+        {role:"cdpo",decision:"pending",reasoning:"",signer:"",timestamp:""},
+      ],
+    };
+    setCases([newCase, ...cases]);
+    setSelectedId(newCase.id);
+    setView("detail");
+    setIntake({name:"",dept:"",system:"GPT-4 Enterprise",dataClass:"Internal",decisionImpact:"Advisory",affectedUsers:"",desc:"",submittedBy:""});
+  };
+
+  /* ════════ INVENTORY VIEW ════════ */
+  const InventoryView = () => (
+    <>
+      {/* Page header */}
+      <div style={{
+        background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+        borderRadius:20, padding:"32px 36px", marginBottom:14,
+        position:"relative", overflow:"hidden",
+      }}>
+        <div style={{
+          position:"absolute",inset:0,opacity:0.4,
+          backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,
+          backgroundSize:"24px 24px", pointerEvents:"none",
+        }}/>
+        <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:24,flexWrap:"wrap"}}>
           <div>
-            <div style={{fontSize:11,fontWeight:700,color:col,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{stage}</div>
-            <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{sub}</div>
+            <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+              <span>▸</span><span>AI Governance · Use Case Pipeline</span>
+            </div>
+            <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,3.8vw,46px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+              Every AI use case, <span style={{fontStyle:"italic"}}>under control.</span>
+            </h1>
+            <p style={{fontSize:14,lineHeight:1.5,color:K_.navyT2,margin:"12px 0 0",maxWidth:520}}>
+              From intake to production, every AI system in scope is registered, classified, and signed off by the right role.
+            </p>
           </div>
-          <div style={{width:22,height:22,borderRadius:"50%",background:col,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{fontSize:11,fontWeight:800,color:"#fff",fontFamily:F.m}}>{byStage(stage).length}</span>
+          <button onClick={()=>setView("intake")} style={{
+            background:K_.gold, color:K_.goldText,
+            border:"none", borderRadius:100, padding:"11px 22px",
+            fontSize:13, fontWeight:700, letterSpacing:"0.01em",
+            cursor:"pointer", display:"inline-flex", alignItems:"center", gap:8,
+            fontFamily:fSans, position:"relative", flexShrink:0,
+          }}>
+            <span>✦</span> New use case
+          </button>
+        </div>
+      </div>
+
+      {/* Stats strip */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+        {[
+          {label:"Total in scope", val:String(cases.length), suf:"", c:K_.ink},
+          {label:"Awaiting review", val:String(cases.filter(c=>c.pipelineStage==="Submitted"||c.pipelineStage==="Under Review").length), suf:"", c:K_.amber},
+          {label:"High-risk tier",  val:String(cases.filter(c=>c.tier==="High-Risk").length), suf:"", c:K_.crit},
+          {label:"In production",   val:String(cases.filter(c=>c.pipelineStage==="Production").length), suf:"", c:K_.sage},
+        ].map((s,i)=>(
+          <div key={s.label} style={{
+            background:K_.surface, borderRadius:18, padding:"22px 24px",
+            border:`1px solid ${K_.line}`,
+          }}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+            <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter row + table card */}
+      <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"20px 24px",marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,flexWrap:"wrap"}}>
+          <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600}}>Stage</span>
+          {[["all","All"],["Submitted","Submitted"],["Under Review","Under review"],["Approved","Approved"],["Conditions","Conditions"],["Production","Production"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setFilter(k)} style={{
+              background:filter===k?K_.navy:"transparent",
+              color:filter===k?K_.navyT:K_.ink2,
+              border:`1px solid ${filter===k?K_.navy:K_.line}`,
+              borderRadius:100,padding:"6px 14px",
+              fontSize:11.5,fontWeight:filter===k?600:500,fontFamily:fSans,
+              cursor:"pointer",transition:"all .15s",
+            }}>{l}</button>
+          ))}
+          <span style={{width:1,height:20,background:K_.line,margin:"0 4px"}}/>
+          <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600}}>Tier</span>
+          {[["all","All"],["High-Risk","High-Risk"],["Limited","Limited"],["Minimal","Minimal"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setTierFilter(k)} style={{
+              background:tierFilter===k?tierColor(k):"transparent",
+              color:tierFilter===k?"#fff":K_.ink2,
+              border:`1px solid ${tierFilter===k?tierColor(k):K_.line}`,
+              borderRadius:100,padding:"6px 14px",
+              fontSize:11.5,fontWeight:tierFilter===k?600:500,fontFamily:fSans,
+              cursor:"pointer",transition:"all .15s",
+            }}>{l}</button>
+          ))}
+        </div>
+
+        {/* Table */}
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead>
+              <tr style={{borderBottom:`1px solid ${K_.line}`}}>
+                {["ID","Use case","Department","System","Tier","Stage","Owner","Submitted"].map(h=>(
+                  <th key={h} style={{textAlign:"left",padding:"10px 12px",fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCases.map(uc=>(
+                <tr key={uc.id} onClick={()=>{setSelectedId(uc.id);setView("detail");}} style={{
+                  borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.background=K_.bg;}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                  <td style={{padding:"14px 12px",fontFamily:fMono,fontSize:11,color:K_.ink3,letterSpacing:"0.05em"}}>{uc.id.toUpperCase()}</td>
+                  <td style={{padding:"14px 12px",color:K_.ink,fontWeight:500}}>{uc.name}</td>
+                  <td style={{padding:"14px 12px",color:K_.ink2}}>{uc.dept}</td>
+                  <td style={{padding:"14px 12px",color:K_.ink2,fontSize:12}}>{uc.system}</td>
+                  <td style={{padding:"14px 12px"}}>
+                    <span style={{display:"inline-block",background:tierColor(uc.tier)+"18",color:tierColor(uc.tier),border:`1px solid ${tierColor(uc.tier)}30`,borderRadius:100,padding:"3px 10px",fontSize:10.5,fontWeight:600,fontFamily:fSans,letterSpacing:"0.01em"}}>{uc.tier}</span>
+                  </td>
+                  <td style={{padding:"14px 12px"}}>
+                    <span style={{display:"inline-flex",alignItems:"center",gap:6,color:stageColor(uc.pipelineStage),fontSize:12,fontWeight:500}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:stageColor(uc.pipelineStage)}}/>
+                      {uc.pipelineStage}
+                    </span>
+                  </td>
+                  <td style={{padding:"14px 12px",color:K_.ink2,fontSize:12}}>{uc.owner}</td>
+                  <td style={{padding:"14px 12px",color:K_.ink3,fontFamily:fMono,fontSize:11,letterSpacing:"0.04em"}}>{uc.submittedAt}</td>
+                </tr>
+              ))}
+              {filteredCases.length===0 && (
+                <tr><td colSpan={8} style={{padding:"40px 12px",textAlign:"center",color:K_.ink3,fontSize:13,fontStyle:"italic"}}>No use cases match these filters.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+
+  /* ════════ INTAKE FORM VIEW ════════ */
+  const IntakeView = () => {
+    const tierPreview = classifyTier(intake);
+    const field = (label, child, hint) => (
+      <div style={{marginBottom:18}}>
+        <label style={{display:"block",fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>{label}</label>
+        {child}
+        {hint && <div style={{fontSize:11,color:K_.ink3,marginTop:6,lineHeight:1.4}}>{hint}</div>}
+      </div>
+    );
+    const inputStyle = {
+      width:"100%",padding:"11px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+      fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,
+      transition:"border .15s",
+    };
+    return (
+      <>
+        <div style={{
+          background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+          borderRadius:20,padding:"32px 36px",marginBottom:14,position:"relative",overflow:"hidden",
+        }}>
+          <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setView("inventory")} style={{
+              background:"none",border:"none",color:K_.navyT2,
+              fontSize:11,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",
+              cursor:"pointer",padding:0,marginBottom:18,fontWeight:500,
+            }}>← Back to inventory</button>
+            <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(28px,3.4vw,40px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+              Propose a new <span style={{fontStyle:"italic"}}>AI use case.</span>
+            </h1>
+            <p style={{fontSize:13.5,lineHeight:1.5,color:K_.navyT2,margin:"12px 0 0",maxWidth:560}}>
+              Fill the form. VERIS will auto-classify EU AI Act tier and route to CAIO, CISO, and CDPO for sign-off.
+            </p>
           </div>
         </div>
-        <div style={{border:`1px solid ${col}30`,borderTop:"none",borderRadius:"0 0 8px 8px",padding:"8px 8px",background:T.s1,minHeight:120}}>
-          {byStage(stage).map(uc=><div key={uc.id} onClick={()=>setSel(uc)} style={{background:sel?.id===uc.id?col+"14":T.s3,border:`1px solid ${sel?.id===uc.id?col+"50":T.border}`,borderRadius:8,padding:"10px 12px",marginBottom:8,cursor:"pointer",transition:"all .15s"}}>
-            <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.3}}>{uc.name}</div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{uc.dept}</span>
-              <div style={{display:"flex",alignItems:"center",gap:5}}>
-                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Score:</span>
-                <span style={{fontSize:11,fontWeight:800,fontFamily:F.m,color:scoreCol(uc.score)}}>{uc.score}</span>
+
+        <div style={{display:"grid",gridTemplateColumns:"1.6fr 1fr",gap:14}}>
+          <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"28px 32px"}}>
+            {field("Name of use case",
+              <input value={intake.name} onChange={e=>setIntake({...intake,name:e.target.value})} placeholder="e.g. AI-powered customer service triage" style={inputStyle}/>)}
+            {field("Business unit",
+              <input value={intake.dept} onChange={e=>setIntake({...intake,dept:e.target.value})} placeholder="e.g. Customer Support" style={inputStyle}/>)}
+            {field("Submitted by",
+              <input value={intake.submittedBy} onChange={e=>setIntake({...intake,submittedBy:e.target.value})} placeholder="Your name and title" style={inputStyle}/>)}
+            {field("AI system",
+              <select value={intake.system} onChange={e=>setIntake({...intake,system:e.target.value})} style={inputStyle}>
+                {["GPT-4 Enterprise","Claude 3.5 Sonnet","Claude Opus 4","Gemini 1.5 Pro","AWS Bedrock","Azure OpenAI","Internal model","Other"].map(s=><option key={s}>{s}</option>)}
+              </select>
+            )}
+            {field("Data classification",
+              <select value={intake.dataClass} onChange={e=>setIntake({...intake,dataClass:e.target.value})} style={inputStyle}>
+                {["Public","Internal","Confidential","Restricted"].map(s=><option key={s}>{s}</option>)}
+              </select>,
+              "Higher classifications trigger stricter controls."
+            )}
+            {field("Decision impact",
+              <select value={intake.decisionImpact} onChange={e=>setIntake({...intake,decisionImpact:e.target.value})} style={inputStyle}>
+                {["Advisory","Automated"].map(s=><option key={s}>{s}</option>)}
+              </select>,
+              "Automated decisioning typically triggers EU AI Act high-risk classification."
+            )}
+            {field("Affected users (estimate)",
+              <input type="number" value={intake.affectedUsers} onChange={e=>setIntake({...intake,affectedUsers:e.target.value})} placeholder="e.g. 240" style={inputStyle}/>)}
+            {field("Description",
+              <textarea value={intake.desc} onChange={e=>setIntake({...intake,desc:e.target.value})} rows={4} placeholder="What does this AI system do? What problem does it solve?" style={{...inputStyle,resize:"vertical",fontFamily:fSans}}/>)}
+
+            <div style={{display:"flex",gap:10,marginTop:24}}>
+              <button onClick={submitIntake} disabled={!intake.name||!intake.dept} style={{
+                background:K_.gold,color:K_.goldText,
+                border:"none",borderRadius:100,padding:"12px 24px",
+                fontSize:13,fontWeight:700,cursor:intake.name&&intake.dept?"pointer":"not-allowed",
+                opacity:intake.name&&intake.dept?1:0.4,
+                fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:8,
+              }}>
+                <span>✦</span> Submit for review
+              </button>
+              <button onClick={()=>setView("inventory")} style={{
+                background:"transparent",color:K_.ink2,
+                border:`1px solid ${K_.line}`,borderRadius:100,
+                padding:"12px 24px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:fSans,
+              }}>Cancel</button>
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"28px 30px",alignSelf:"start",position:"sticky",top:74}}>
+            <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:18}}>Live classification</div>
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,color:K_.ink2,marginBottom:8}}>EU AI Act tier</div>
+              <div style={{display:"inline-block",background:tierColor(tierPreview)+"18",color:tierColor(tierPreview),border:`1px solid ${tierColor(tierPreview)}40`,borderRadius:100,padding:"5px 14px",fontSize:13,fontWeight:600,fontFamily:fSans}}>{tierPreview}</div>
+            </div>
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,color:K_.ink2,marginBottom:8}}>Will route to</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {["CAIO","CISO","CDPO"].map(r=>(
+                  <span key={r} style={{display:"inline-block",background:K_.navy+"12",color:K_.navy,border:`1px solid ${K_.navy}24`,borderRadius:100,padding:"4px 10px",fontSize:11,fontWeight:600,fontFamily:fSans}}>{r}</span>
+                ))}
               </div>
             </div>
-          </div>)}
-        </div>
-      </div>)}
-    </div>
-    {/* Detail */}
-    {sel&&<Card style={{overflow:"hidden",animation:"fade .25s ease"}}>
-      <div style={{background:`linear-gradient(135deg,${stageCol(sel.stage)}18,${T.s2})`,borderBottom:`1px solid ${stageCol(sel.stage)}30`,padding:"16px 18px",display:"flex",gap:12,alignItems:"flex-start"}}>
-        <div style={{flex:1}}>
-          <div style={{display:"flex",gap:7,marginBottom:9,flexWrap:"wrap"}}>
-            <Tag label={sel.stage} color={stageCol(sel.stage)} bg={stageCol(sel.stage)+"20"}/>
-            <Tag label={sel.dept} color={T.ink3} bg={T.s3}/>
-            <Tag label={sel.status} color={sel.status==="Complete"?T.green:T.blue} bg={sel.status==="Complete"?T.greenL:T.blueL}/>
+            <div>
+              <div style={{fontSize:11,color:K_.ink2,marginBottom:8}}>Likely ISO 42001 controls</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {(tierPreview==="High-Risk" ? ["6.1.2","8.2","8.3","8.4","9.2","9.3"] : ["6.1.2","8.2","8.4"]).map(c=>(
+                  <span key={c} style={{background:K_.bg,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:6,padding:"3px 8px",fontSize:11,fontFamily:fMono,letterSpacing:"0.02em"}}>§ {c}</span>
+                ))}
+              </div>
+            </div>
           </div>
-          <h3 style={{fontFamily:F.h,fontSize:16,fontWeight:700,color:T.ink,marginBottom:6}}>{sel.name}</h3>
-          <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>{sel.desc}</p>
         </div>
-        <div style={{background:T.s3,borderRadius:10,padding:"12px 16px",textAlign:"center",flexShrink:0,border:`1px solid ${scoreCol(sel.score)}40`}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Score</div>
-          <div style={{fontSize:32,fontWeight:800,fontFamily:F.m,color:scoreCol(sel.score),letterSpacing:"-0.03em"}}>{sel.score}</div>
-          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>/100</div>
+      </>
+    );
+  };
+
+  /* ════════ DETAIL VIEW (with decision ledger) ════════ */
+  const DetailView = () => {
+    if(!sel) return null;
+    const ROLE_LABELS = {caio:"CAIO · AI Officer", ciso:"CISO · Security", cdpo:"CDPO · Privacy"};
+    return (
+      <>
+        <div style={{
+          background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+          borderRadius:20,padding:"28px 32px 32px",marginBottom:14,position:"relative",overflow:"hidden",
+        }}>
+          <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setView("inventory")} style={{
+              background:"none",border:"none",color:K_.navyT2,
+              fontSize:11,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",
+              cursor:"pointer",padding:0,marginBottom:18,fontWeight:500,
+            }}>← Back to inventory</button>
+            <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+              <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id.toUpperCase()}</span>
+              <span style={{background:tierColor(sel.tier)+"30",color:K_.navyT,border:`1px solid ${tierColor(sel.tier)}80`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600,fontFamily:fSans}}>EU AI Act · {sel.tier}</span>
+              <span style={{background:"rgba(255,255,255,0.10)",color:K_.navyT,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:500,fontFamily:fSans}}>{sel.pipelineStage}</span>
+            </div>
+            <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(28px,3.4vw,42px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+              {sel.name}
+            </h1>
+            <p style={{fontSize:14,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:680}}>{sel.desc}</p>
+          </div>
         </div>
-      </div>
-      <div style={{padding:"14px 18px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-        {[["Impact",sel.impact],["Feasibility",sel.feasibility],["Risk (inverted)",10-sel.risk]].map(([label,val])=>{
-          const col=val>=8?T.green:val>=6?T.blue:val>=4?T.amber:T.red;
-          return <div key={label} style={{background:T.s3,borderRadius:8,padding:"11px 13px",textAlign:"center"}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>{label}</div>
-            <div style={{fontSize:22,fontWeight:800,fontFamily:F.m,color:col}}>{val}<span style={{fontSize:11,color:T.ink4}}>/10</span></div>
-            <Bar value={val*10} color={col}/>
-          </div>;
-        })}
-      </div>
-      <div style={{padding:"0 18px 16px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-        {[["Owner",sel.owner],["Target ETA",sel.eta],["Status",sel.status]].map(([l,v])=><div key={l} style={{padding:"9px 10px",background:T.s3,borderRadius:7}}>
-          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>{l}</div>
-          <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b}}>{v}</div>
-        </div>)}
-      </div>
-    </Card>}
+
+        {/* Facts grid */}
+        <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14}}>
+          <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:18}}>Facts</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:24,rowGap:22}}>
+            {[
+              ["Department",sel.dept],
+              ["AI system",sel.system],
+              ["Data class",sel.dataClass],
+              ["Decision impact",sel.decisionImpact],
+              ["Affected users",String(sel.affectedUsers)],
+              ["Owner",sel.owner],
+              ["Submitted",sel.submittedAt],
+              ["Submitted by",sel.submittedBy],
+            ].map(([l,v])=>(
+              <div key={l}>
+                <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>{l}</div>
+                <div style={{fontSize:14,color:K_.ink,fontWeight:500,lineHeight:1.35}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ISO 42001 controls */}
+        <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14}}>
+          <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>ISO 42001 controls in scope</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {sel.iso42001Controls.map(c=>(
+              <span key={c} style={{background:K_.bg,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 12px",fontSize:12,fontFamily:fMono,letterSpacing:"0.02em"}}>§ {c}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* DECISION LEDGER — the patent-candidate */}
+        <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:18}}>
+            <div>
+              <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Decision ledger</div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:22,letterSpacing:"-0.015em",color:K_.ink,margin:0}}>Three roles, one signature trail.</h2>
+            </div>
+            <span style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.06em"}}>immutable · audit-ready</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {sel.decisions.map((d,i)=>(
+              <div key={d.role+i} style={{
+                background:K_.bg, borderRadius:14,
+                border:`1px solid ${decisionColor(d.decision)}30`,
+                borderLeft:`4px solid ${decisionColor(d.decision)}`,
+                padding:"18px 22px",
+              }}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,flexWrap:"wrap",gap:8}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:14,flexWrap:"wrap"}}>
+                    <span style={{fontSize:12.5,fontWeight:700,color:K_.ink,letterSpacing:"0.01em"}}>{ROLE_LABELS[d.role]||d.role.toUpperCase()}</span>
+                    <span style={{fontSize:11.5,color:decisionColor(d.decision),fontWeight:600,fontFamily:fSans}}>{decisionLabel(d.decision)}</span>
+                  </div>
+                  {d.timestamp && <span style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>{d.timestamp}</span>}
+                </div>
+                {d.reasoning ? (
+                  <p style={{fontSize:13,color:K_.ink2,lineHeight:1.55,margin:"0 0 8px"}}>{d.reasoning}</p>
+                ) : (
+                  <p style={{fontSize:12.5,color:K_.ink3,fontStyle:"italic",margin:"0 0 8px"}}>Awaiting review.</p>
+                )}
+                {d.signer && <div style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>signed: {d.signer}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  /* ════════ Render ════════ */
+  return <div style={{animation:"up .35s cubic-bezier(.16,1,.3,1)",background:"transparent",fontFamily:fSans,color:K_.ink,margin:"-12px -12px",padding:"16px",minHeight:"calc(100vh - 56px)"}}>
+    {view==="inventory" && <InventoryView/>}
+    {view==="intake"    && <IntakeView/>}
+    {view==="detail"    && <DetailView/>}
   </div>;
 }
 
@@ -3160,7 +3548,7 @@ export default function VERIS() {
             <polygon points="28,12 32,4 36,12 32,16" fill="url(#vt-gem)" opacity="0.95"/>
           </svg>
           <span style={{fontFamily:"'Plus Jakarta Sans', sans-serif",fontSize:13,fontWeight:800,color:T.ink,letterSpacing:"0.12em",textTransform:"uppercase"}}>VERIS</span>
-        </div>}
+        </div>
         {!isMobile&&<div style={{display:"flex",gap:3,background:T.bg,borderRadius:8,padding:3,border:`1px solid ${T.border}`}}>
           {Object.values(ROLES).map(r2=><button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:role===r2.id?RC(r2.id)+"20":"transparent",border:role===r2.id?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:6,padding:"4px 13px",color:role===r2.id?RC(r2.id):T.ink4,fontSize:11,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>)}
         </div>}
