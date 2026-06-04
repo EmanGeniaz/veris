@@ -103,6 +103,7 @@ const NAV_GROUPS = [
     {id:"iso27",     icon:"🛡", label:"ISO 27001 Workspace"},
     {id:"annexa",    icon:"☑", label:"Annex A Tracker"},
     {id:"risks",     icon:"⬟", label:"Risk Register"},
+    {id:"soa",       icon:"📋", label:"Statement of Applicability"},
     {id:"gap",       icon:"📐", label:"Gap Analysis"},
     {id:"compliance",icon:"◉", label:"Compliance"},
     {id:"checklists",icon:"☑", label:"ISO Checklists"},
@@ -1942,7 +1943,7 @@ const ISO27001_MODULES = [
   {id:"iso27_register",   name:"Risk Register",                   category:"Risk",        clause:"§ 6.1.2 / 8.2", icon:"⬟", status:"In Progress", complete:65, owner:"S. Ali (CAIO)",                  link:{tab:"risks"}},
   {id:"iso27_treatment",  name:"Risk Treatment Plan",             category:"Risk",        clause:"§ 6.1.3 / 8.3", icon:"◆", status:"In Progress", complete:55, owner:"S. Ali (CAIO)",                  link:{tab:"templates"}},
   /* CONTROLS */
-  {id:"iso27_soa",        name:"Statement of Applicability",      category:"Controls",    clause:"§ 6.1.3",   icon:"📋", status:"In Review",    complete:90,  owner:"M. Khan (CISO)",                     link:{tab:"templates"}},
+  {id:"iso27_soa",        name:"Statement of Applicability",      category:"Controls",    clause:"§ 6.1.3",   icon:"📋", status:"In Review",    complete:90,  owner:"M. Khan (CISO)",                     link:{tab:"soa"}},
   {id:"iso27_annexa",     name:"Annex A Control Tracker",         category:"Controls",    clause:"Annex A (93)", icon:"☑", status:"In Progress", complete:72, owner:"M. Khan (CISO)",                  link:{tab:"annexa"}},
   /* DOCUMENTATION */
   {id:"iso27_policies",   name:"Policy Library",                  category:"Documentation", clause:"§ A.5.1 / A.5.36", icon:"📜", status:"In Progress", complete:80, owner:"M. Khan (CISO)",          link:{tab:"templates"}},
@@ -3249,6 +3250,311 @@ function PageRiskRegister({setTab,showToast}) {
         </div>
       </div>;
     })()}
+  </div>;
+}
+/* ─────────────────────────────────────────────
+   PAGE: STATEMENT OF APPLICABILITY (ISO 27001 § 6.1.3)
+   The auditor-facing document. Same 93 controls as Annex A
+   Tracker but viewed through applicability lens.
+───────────────────────────────────────────── */
+
+/* Not-applicable justifications for the 4 controls excluded from scope */
+const SOA_NA_JUSTIFICATIONS = {
+  "A.5.6":  "Organisation is too small to justify formal participation in special interest groups. Threat intelligence (A.5.7) and supplier monitoring (A.5.22) provide equivalent coverage.",
+  "A.7.11": "All production infrastructure is fully cloud-based (AWS / Azure). Supporting utilities (power, HVAC, water) are inherited from cloud provider physical security obligations as documented in Cloud Security Policy.",
+  "A.7.12": "No on-premises data centre cabling within ISMS scope. All connectivity is via cloud provider networks or commodity internet. Office network cabling falls outside ISMS scope per scope statement.",
+  "A.8.30": "All software development is performed in-house by employees. No outsourced development arrangements in scope. Reassessed annually as part of supplier review.",
+};
+
+function PageSOA({setTab,showToast}) {
+  const [themeFilter,setThemeFilter]=useState("all");
+  const [applicabilityFilter,setApplicabilityFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [selectedId,setSelectedId]=useState(null);
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* Enrich controls with applicability info (derived from N/A justification map) */
+  const enriched = ANNEX_A_CONTROLS.map(c => ({
+    ...c,
+    applicable: !SOA_NA_JUSTIFICATIONS[c.id],
+    naJustification: SOA_NA_JUSTIFICATIONS[c.id] || null,
+  }));
+
+  const statusColor = s => ({
+    "Implemented":K_.sage, "In Progress":K_.gold, "Planned":K_.amber,
+    "Not Implemented":K_.crit, "Compensating Control":K_.amber,
+  })[s] || K_.ink3;
+
+  /* Stats */
+  const total = enriched.length;
+  const applicable = enriched.filter(c=>c.applicable).length;
+  const notApplicable = enriched.filter(c=>!c.applicable).length;
+  const implemented = enriched.filter(c=>c.applicable && c.status==="Implemented").length;
+  const coverage = Math.round(implemented / applicable * 100);
+
+  const THEMES = [
+    {id:"all", label:"All themes", count:total},
+    {id:"Organisational", label:"A.5 Organisational", count:37},
+    {id:"People",         label:"A.6 People",         count:8},
+    {id:"Physical",       label:"A.7 Physical",       count:14},
+    {id:"Technological",  label:"A.8 Technological",  count:34},
+  ];
+
+  const filtered = enriched.filter(c=>{
+    if(themeFilter!=="all" && c.theme!==themeFilter) return false;
+    if(applicabilityFilter==="applicable" && !c.applicable) return false;
+    if(applicabilityFilter==="na" && c.applicable) return false;
+    if(search){
+      const q=search.toLowerCase();
+      if(!(c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const sel = selectedId ? enriched.find(c=>c.id===selectedId) : null;
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* HERO */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+      <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:48,alignItems:"end"}}>
+        <div>
+          <button onClick={()=>setTab("iso27")} style={{background:"none",border:"none",color:K_.navyT2,fontSize:11,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",padding:0,marginBottom:18,fontWeight:500}}>← ISO 27001 Workspace</button>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <span>▸</span><span>ISO 27001 § 6.1.3 · Statement of Applicability</span>
+          </div>
+          <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+            The auditor's <span style={{fontStyle:"italic"}}>document.</span>
+          </h1>
+          <p style={{fontSize:14.5,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:560}}>
+            Every Annex A control with its applicability decision, justification, and current implementation status. The single document an external auditor reviews to confirm ISMS scope coverage.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Coverage</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:96,lineHeight:0.9,letterSpacing:"-0.045em",color:K_.gold}}>{coverage}<span style={{fontSize:48,color:K_.navyT2,fontStyle:"normal"}}>%</span></div>
+          <div style={{fontSize:12,color:K_.navyT2,marginTop:10}}>{implemented} of {applicable} applicable controls implemented</div>
+        </div>
+      </div>
+    </div>
+
+    {/* DOCUMENT METADATA STRIP */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"22px 28px",marginBottom:14,display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:24}}>
+      {[
+        ["Document version","v0.9 · in review"],
+        ["Approval status","Pending CISO"],
+        ["ISMS scope","Production services + HQ"],
+        ["Reference standard","ISO/IEC 27001:2022"],
+        ["Owner","M. Khan (CISO)"],
+      ].map(([l,v])=>(
+        <div key={l}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>{l}</div>
+          <div style={{fontSize:13,color:K_.ink,fontWeight:600,lineHeight:1.3}}>{v}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* STATS */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+      {[
+        {label:"Total controls",   val:String(total), c:K_.ink},
+        {label:"Applicable",       val:String(applicable), c:K_.sage, sub:`${Math.round(applicable/total*100)}% of Annex A`},
+        {label:"Not Applicable",   val:String(notApplicable), c:K_.ink3, sub:"with justifications"},
+        {label:"Implemented",      val:String(implemented), c:K_.gold, sub:`of ${applicable} applicable`},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:18,padding:"22px 24px",border:`1px solid ${K_.line}`}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+          {s.sub && <div style={{fontSize:11,color:K_.ink3,marginTop:8}}>{s.sub}</div>}
+        </div>
+      ))}
+    </div>
+
+    {/* FILTERS */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"18px 22px",marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:12}}>
+        {THEMES.map(t=>(
+          <button key={t.id} onClick={()=>setThemeFilter(t.id)} style={{
+            background:themeFilter===t.id?K_.navy:"transparent",
+            color:themeFilter===t.id?K_.navyT:K_.ink2,
+            border:`1px solid ${themeFilter===t.id?K_.navy:K_.line}`,
+            borderRadius:100,padding:"7px 14px",
+            fontSize:12,fontWeight:themeFilter===t.id?600:500,fontFamily:fSans,cursor:"pointer",
+            display:"inline-flex",alignItems:"center",gap:7,
+          }}>
+            <span>{t.label}</span>
+            <span style={{fontSize:10,opacity:0.7,fontFamily:fMono}}>{t.count}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:14,alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by control ID or name…" style={{
+          flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+          fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
+        }}/>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600}}>Applicability</span>
+          {[["all","All"],["applicable","Applicable"],["na","Not Applicable"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setApplicabilityFilter(k)} style={{
+              background:applicabilityFilter===k?K_.navy:"transparent",
+              color:applicabilityFilter===k?"#fff":K_.ink2,
+              border:`1px solid ${applicabilityFilter===k?K_.navy:K_.line}`,
+              borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:applicabilityFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+            }}>{l}</button>
+          ))}
+        </div>
+        <button onClick={()=>showToast("SOA export to Excel — coming with backend","info")} style={{
+          marginLeft:"auto",background:K_.gold,color:K_.goldText,
+          border:"none",borderRadius:100,padding:"9px 18px",
+          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,
+          display:"inline-flex",alignItems:"center",gap:6,
+        }}>
+          <span>⤓</span> Export SOA
+        </button>
+      </div>
+    </div>
+
+    {/* TABLE */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:900}}>
+        <thead>
+          <tr style={{borderBottom:`1px solid ${K_.line}`}}>
+            {["Ref","Theme","Control","Applicable","Status / Justification","Evidence","Owner"].map(h=>(
+              <th key={h} style={{textAlign:"left",padding:"14px 14px",fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(c=>(
+            <tr key={c.id} onClick={()=>setSelectedId(c.id===selectedId?null:c.id)} style={{
+              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
+              background:selectedId===c.id?K_.s1:"transparent",opacity:c.applicable?1:0.78,
+            }}
+            onMouseEnter={e=>{if(selectedId!==c.id)e.currentTarget.style.background=K_.bg;}}
+            onMouseLeave={e=>{if(selectedId!==c.id)e.currentTarget.style.background="transparent";}}>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:11.5,color:K_.gold,fontWeight:700,letterSpacing:"0.04em"}}>{c.id}</td>
+              <td style={{padding:"14px",color:K_.ink2,fontSize:11.5}}>{c.theme}</td>
+              <td style={{padding:"14px",color:K_.ink,fontWeight:500,maxWidth:340}}>{c.name}</td>
+              <td style={{padding:"14px"}}>
+                {c.applicable
+                  ? <span style={{display:"inline-flex",alignItems:"center",gap:5,background:K_.sage+"15",color:K_.sage,border:`1px solid ${K_.sage}30`,borderRadius:100,padding:"3px 10px",fontSize:10.5,fontWeight:700}}><span style={{width:5,height:5,borderRadius:"50%",background:K_.sage}}/>Yes</span>
+                  : <span style={{display:"inline-flex",alignItems:"center",gap:5,background:K_.ink3+"15",color:K_.ink3,border:`1px solid ${K_.ink3}30`,borderRadius:100,padding:"3px 10px",fontSize:10.5,fontWeight:700}}><span style={{width:5,height:5,borderRadius:"50%",background:K_.ink3}}/>No</span>}
+              </td>
+              <td style={{padding:"14px",maxWidth:380}}>
+                {c.applicable
+                  ? <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(c.status)+"15",color:statusColor(c.status),border:`1px solid ${statusColor(c.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>
+                      <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(c.status)}}/>{c.status}
+                    </span>
+                  : <span style={{fontSize:12,color:K_.ink3,fontStyle:"italic",lineHeight:1.4,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{c.naJustification?.slice(0,90)}…</span>}
+              </td>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:11.5,color:c.ev>0?K_.ink:K_.ink3}}>{c.applicable?(c.ev>0?c.ev:"—"):"n/a"}</td>
+              <td style={{padding:"14px",color:K_.ink2,fontSize:12}}>{c.applicable?c.owner:"—"}</td>
+            </tr>
+          ))}
+          {filtered.length===0 && (
+            <tr><td colSpan={7} style={{padding:"40px",textAlign:"center",color:K_.ink3,fontStyle:"italic"}}>No controls match the current filters.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {/* DETAIL PANEL */}
+    {sel && (
+      <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"28px 32px",marginBottom:14,animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,gap:14,flexWrap:"wrap"}}>
+          <div>
+            <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+              <span style={{background:K_.s1,color:K_.ink2,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:500,fontFamily:fSans}}>{sel.theme}</span>
+              {sel.applicable
+                ? <span style={{background:K_.sage+"15",color:K_.sage,border:`1px solid ${K_.sage}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600}}>Applicable: Yes</span>
+                : <span style={{background:K_.ink3+"15",color:K_.ink3,border:`1px solid ${K_.ink3}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600}}>Applicable: No</span>}
+              {sel.applicable && <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.status)+"15",color:statusColor(sel.status),border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>{sel.status}
+              </span>}
+            </div>
+            <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.3}}>{sel.name}</h2>
+          </div>
+          <button onClick={()=>setSelectedId(null)} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:"pointer",fontWeight:600}}>Close</button>
+        </div>
+
+        {/* Justification or facts */}
+        {!sel.applicable
+          ? <div>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Justification for exclusion</div>
+              <div style={{fontSize:14,color:K_.ink,lineHeight:1.65,background:K_.s1,padding:"18px 22px",borderRadius:12,borderLeft:`3px solid ${K_.ink3}`}}>{sel.naJustification}</div>
+              <div style={{marginTop:18,fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>Decision reviewed: <strong style={{color:K_.ink2}}>annually</strong> · Last reaffirmed: <strong style={{color:K_.ink2}}>2026-01-15</strong></div>
+            </div>
+          : <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:24,rowGap:22}}>
+              <div>
+                <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Effectiveness</div>
+                {sel.eff>0 ? <div style={{display:"flex",gap:3}}>{[1,2,3,4,5].map(n=><span key={n} style={{width:8,height:14,borderRadius:2,background:n<=sel.eff?K_.gold:K_.ink4}}/>)}</div> : <span style={{color:K_.ink3,fontSize:12,fontStyle:"italic"}}>Not measured</span>}
+              </div>
+              <div>
+                <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Evidence linked</div>
+                <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:24,color:K_.ink,letterSpacing:"-0.02em"}}>{sel.ev}<span style={{fontSize:14,color:K_.ink3}}> artefacts</span></div>
+              </div>
+              <div>
+                <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner</div>
+                <div style={{fontSize:13,color:K_.ink,fontWeight:600}}>{sel.owner}</div>
+              </div>
+              <div>
+                <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Last reviewed</div>
+                <div style={{fontSize:13,color:K_.ink,fontWeight:600,fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.lastReviewed||"—"}</div>
+              </div>
+            </div>}
+
+        <div style={{display:"flex",gap:10,marginTop:24,flexWrap:"wrap"}}>
+          {sel.applicable && <button onClick={()=>setTab("annexa")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+            <span>✦</span> Open in Annex A Tracker
+          </button>}
+          <button onClick={()=>showToast("Applicability decision history — backend required","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+            Decision history
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* APPROVAL FOOTER */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"24px 32px",marginBottom:14}}>
+      <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Approval trail</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:20}}>
+        {[
+          {role:"Prepared by", name:"M. Khan (CISO)", date:"2026-04-10", state:"complete"},
+          {role:"Reviewed by", name:"H. Williams (CGO)", date:"Pending", state:"pending"},
+          {role:"Approved by", name:"CEO", date:"Pending", state:"pending"},
+        ].map(s=>(
+          <div key={s.role} style={{padding:"16px 18px",background:K_.s1,borderRadius:12,borderLeft:`3px solid ${s.state==="complete"?K_.sage:K_.amber}`}}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>{s.role}</div>
+            <div style={{fontSize:13,color:K_.ink,fontWeight:600,marginBottom:4}}>{s.name}</div>
+            <div style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>{s.date}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   </div>;
 }
 /* ─────────────────────────────────────────────
@@ -5356,6 +5662,7 @@ export default function VERIS() {
         {tab==="iso27" &&<PageISO27001 setTab={setTab} showToast={showToast}/>}
         {tab==="annexa" &&<PageAnnexA setTab={setTab} showToast={showToast}/>}
         {tab==="risks" &&<PageRiskRegister setTab={setTab} showToast={showToast}/>}
+        {tab==="soa" &&<PageSOA setTab={setTab} showToast={showToast}/>}
         {tab==="gap" &&<PageGapAnalysis setTab={setTab} showToast={showToast}/>}
         {tab==="compliance" &&<PageCompliance role={role}/>}
         {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
