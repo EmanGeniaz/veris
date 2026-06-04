@@ -123,6 +123,7 @@ const NAV_GROUPS = [
   ]},
   {id:"library", label:"Policies & Evidence", items:[
     {id:"templates", icon:"📋", label:"Template Library"},
+    {id:"evidence",  icon:"📁", label:"Evidence Library"},
   ]},
   {id:"outputs", label:"Outputs", items:[
     {id:"reports",   icon:"▣", label:"Reports"},
@@ -1948,7 +1949,7 @@ const ISO27001_MODULES = [
   /* DOCUMENTATION */
   {id:"iso27_policies",   name:"Policy Library",                  category:"Documentation", clause:"§ A.5.1 / A.5.36", icon:"📜", status:"In Progress", complete:80, owner:"M. Khan (CISO)",          link:{tab:"templates"}},
   {id:"iso27_procedures", name:"Procedure Library",               category:"Documentation", clause:"§ 7.5",    icon:"📑", status:"Not Started", complete:0,   owner:"M. Khan (CISO)",                     link:null},
-  {id:"iso27_evidence",   name:"Evidence Library",                category:"Documentation", clause:"§ 7.5 / 9.2", icon:"📁", status:"In Progress", complete:60, owner:"Internal Audit",                  link:null},
+  {id:"iso27_evidence",   name:"Evidence Library",                category:"Documentation", clause:"§ 7.5 / 9.2", icon:"📁", status:"In Progress", complete:60, owner:"Internal Audit",                  link:{tab:"evidence"}},
   /* AUDIT */
   {id:"iso27_internal",   name:"Internal Audit Plan",             category:"Audit",       clause:"§ 9.2",     icon:"🔍", status:"Complete",     complete:100, owner:"Internal Audit",                     link:{tab:"templates"}},
   {id:"iso27_mgmt",       name:"Management Review",               category:"Audit",       clause:"§ 9.3",     icon:"📅", status:"In Progress",  complete:50,  owner:"H. Williams (CGO)",                  link:{tab:"templates"}},
@@ -3555,6 +3556,360 @@ function PageSOA({setTab,showToast}) {
         ))}
       </div>
     </div>
+  </div>;
+}
+/* ─────────────────────────────────────────────
+   EVIDENCE LIBRARY (ISO 27001 § 7.5 / § 9.2)
+   The metadata registry of audit evidence artefacts. Files
+   themselves require backend storage — this is the index layer.
+───────────────────────────────────────────── */
+const EVIDENCE_LIBRARY = [
+  /* External certifications & attestations */
+  {id:"EV-001", name:"ISO 27001:2022 Certificate", type:"Certificate", source:"BSI Group", description:"Annex SL certificate of conformity, scope: Production services + HQ.", method:"Vendor-provided", format:"PDF", size:"1.2 MB", uploadedBy:"M. Khan (CISO)", collected:"2025-11-22", expires:"2028-11-22", linkedControls:["A.5.1","A.5.31","A.5.36"], linkedRisks:["R-019"], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-002", name:"SOC 2 Type II Report", type:"Report", source:"PwC", description:"Audit period 2025-01-01 to 2025-12-31. Five trust services criteria assessed. No exceptions noted.", method:"Vendor-provided", format:"PDF", size:"3.4 MB", uploadedBy:"M. Khan (CISO)", collected:"2026-02-14", expires:"2027-02-14", linkedControls:["A.5.36","A.8.15","A.8.16"], linkedRisks:[], frameworks:["SOC 2","ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-003", name:"ISO 27701:2019 Certificate (Privacy extension)", type:"Certificate", source:"BSI Group", description:"Privacy information management system certificate.", method:"Vendor-provided", format:"PDF", size:"980 KB", uploadedBy:"R. Patel (CDPO)", collected:"2025-11-22", expires:"2028-11-22", linkedControls:["A.5.34"], linkedRisks:["R-010","R-011"], frameworks:["ISO 27701","GDPR"], status:"Current", owner:"R. Patel (CDPO)"},
+  {id:"EV-004", name:"Cyber Essentials Plus Certificate", type:"Certificate", source:"NCSC-approved certifier", description:"UK Cyber Essentials Plus certification — perimeter, malware, patching, user access, secure configuration.", method:"Vendor-provided", format:"PDF", size:"450 KB", uploadedBy:"M. Khan (CISO)", collected:"2025-09-10", expires:"2026-09-10", linkedControls:["A.8.7","A.8.8","A.8.9"], linkedRisks:[], frameworks:["Cyber Essentials"], status:"Expiring Soon", owner:"M. Khan (CISO)"},
+  {id:"EV-005", name:"AWS SOC 2 inheritance letter", type:"Attestation", source:"AWS", description:"Customer attestation letter confirming shared-responsibility scope and inherited controls.", method:"Vendor-provided", format:"PDF", size:"320 KB", uploadedBy:"D. Lee (Head of IT)", collected:"2026-01-15", expires:"2027-01-15", linkedControls:["A.5.23"], linkedRisks:[], frameworks:["SOC 2"], status:"Current", owner:"D. Lee (Head of IT)"},
+
+  /* Penetration tests, scans, exercises */
+  {id:"EV-006", name:"Annual Penetration Test Report", type:"Test result", source:"Sentinel Red (external)", description:"Black-box and grey-box testing against production environment. 2 medium, 4 low findings — all remediated by 2026-01.", method:"Vendor-provided", format:"PDF", size:"5.8 MB", uploadedBy:"M. Khan (CISO)", collected:"2025-11-15", expires:"2026-11-15", linkedControls:["A.8.8","A.8.29"], linkedRisks:["R-001","R-014"], frameworks:["ISO 27001","SOC 2"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-007", name:"Quarterly Vulnerability Scan Results — Q1 2026", type:"Scan", source:"Qualys VMDR", description:"Automated authenticated scan of all production assets. 0 critical, 3 high (patched within SLA), 12 medium.", method:"Automated", format:"PDF + CSV", size:"2.1 MB", uploadedBy:"Automated (Qualys API)", collected:"2026-04-03", expires:"2026-07-03", linkedControls:["A.8.8"], linkedRisks:["R-002"], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-008", name:"Annual DR Test Results", type:"Test result", source:"Internal", description:"Full failover to DR site executed 2026-01-18. RPO target 1h achieved (actual 47min). RTO target 4h achieved (actual 3h 12min).", method:"Manual", format:"DOCX", size:"680 KB", uploadedBy:"D. Lee (Head of IT)", collected:"2026-01-25", expires:"2027-01-25", linkedControls:["A.5.30","A.8.14"], linkedRisks:["R-002","R-013"], frameworks:["ISO 27001","ISO 22301"], status:"Current", owner:"D. Lee (Head of IT)"},
+  {id:"EV-009", name:"BCP Tabletop Exercise — Ransomware Scenario", type:"Test result", source:"Internal + Marsh advisory", description:"Half-day tabletop with executive team. 4 process gaps identified, all closed by 2026-03.", method:"Manual", format:"PDF", size:"1.1 MB", uploadedBy:"H. Williams (CGO)", collected:"2026-01-30", expires:"2027-01-30", linkedControls:["A.5.24","A.5.30"], linkedRisks:["R-002"], frameworks:["ISO 27001","ISO 22301"], status:"Current", owner:"H. Williams (CGO)"},
+  {id:"EV-010", name:"Phishing Simulation — Q1 2026", type:"Test result", source:"KnowBe4", description:"Three campaigns. Click rate 4.2% (target ≤ 8%). Repeat-clickers enrolled in remedial training.", method:"Vendor-provided", format:"PDF", size:"890 KB", uploadedBy:"J. Brooks (HR)", collected:"2026-04-02", expires:"2026-07-02", linkedControls:["A.6.3","A.8.23"], linkedRisks:["R-004"], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+
+  /* Access reviews & operational records */
+  {id:"EV-011", name:"Privileged Access Review — Q1 2026", type:"Record", source:"Internal", description:"Quarterly review of all domain admin and cloud-root accounts. 3 dormant accounts removed, 2 access levels reduced.", method:"Manual", format:"XLSX", size:"420 KB", uploadedBy:"M. Khan (CISO)", collected:"2026-04-01", expires:"2026-07-01", linkedControls:["A.5.15","A.8.2","A.5.18"], linkedRisks:["R-003"], frameworks:["ISO 27001","SOC 2"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-012", name:"User Access Recertification — Q1 2026", type:"Record", source:"Okta + manual review", description:"All employee + contractor access reviewed by line manager. 17 entitlements revoked. 100% manager attestation.", method:"Manual", format:"PDF + XLSX", size:"1.8 MB", uploadedBy:"M. Khan (CISO)", collected:"2026-03-28", expires:"2026-06-28", linkedControls:["A.5.18","A.8.3"], linkedRisks:[], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-013", name:"Joiners / Movers / Leavers Log — Q1 2026", type:"Record", source:"HRIS export + Okta", description:"All employment changes with access provisioning + de-provisioning timestamps. Average de-provisioning time 18 minutes.", method:"Automated", format:"XLSX", size:"310 KB", uploadedBy:"J. Brooks (HR)", collected:"2026-04-02", expires:"2027-04-02", linkedControls:["A.5.11","A.6.5","A.5.18"], linkedRisks:["R-022"], frameworks:["ISO 27001"], status:"Current", owner:"J. Brooks (HR)"},
+  {id:"EV-014", name:"Tier-1 Supplier SOC 2 Review Pack", type:"Report", source:"Vendor SOC 2 reports + internal review", description:"Annual review of 12 tier-1 suppliers' SOC 2 Type II reports. No material gaps. Two supplier exits initiated.", method:"Manual", format:"PDF (12 docs)", size:"68 MB", uploadedBy:"M. Khan (CISO)", collected:"2026-02-20", expires:"2027-02-20", linkedControls:["A.5.19","A.5.20","A.5.22"], linkedRisks:["R-016"], frameworks:["ISO 27001","DORA"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-015", name:"Cloud Configuration Review — Production", type:"Scan", source:"AWS Config + Wiz", description:"Continuous CSPM scan. 0 critical, 5 high (all in remediation queue with 14-day SLA).", method:"Automated", format:"PDF", size:"2.4 MB", uploadedBy:"Automated (Wiz API)", collected:"2026-04-04", expires:"2026-05-04", linkedControls:["A.5.23","A.8.9"], linkedRisks:["R-001"], frameworks:["ISO 27001"], status:"Current", owner:"D. Lee (Head of IT)"},
+
+  /* Approved policy/procedure artefacts */
+  {id:"EV-016", name:"Information Security Policy — signed v2.1", type:"Policy", source:"Internal", description:"Top-level ISMS policy. Approved by CEO 2026-01-05. Distributed organisation-wide.", method:"Manual", format:"PDF", size:"540 KB", uploadedBy:"M. Khan (CISO)", collected:"2026-01-05", expires:"2027-01-05", linkedControls:["A.5.1"], linkedRisks:[], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-017", name:"Risk Treatment Plan — approved 2026 Q1", type:"Policy", source:"Internal", description:"Risk treatment decisions for all risks scoring ≥ 13 inherent. Signed by CISO and CGO.", method:"Manual", format:"PDF + XLSX", size:"1.5 MB", uploadedBy:"S. Ali (CAIO)", collected:"2026-02-10", expires:"2026-08-10", linkedControls:[], linkedRisks:["R-001","R-002","R-006","R-016"], frameworks:["ISO 27001","ISO 42001"], status:"Current", owner:"S. Ali (CAIO)"},
+  {id:"EV-018", name:"Statement of Applicability — v0.9 draft", type:"Policy", source:"Internal", description:"Current SOA covering all 93 Annex A controls. Pending CISO + CEO signoff before stage-2 audit.", method:"Manual", format:"PDF", size:"890 KB", uploadedBy:"M. Khan (CISO)", collected:"2026-04-10", expires:null, linkedControls:[], linkedRisks:[], frameworks:["ISO 27001"], status:"Pending Review", owner:"M. Khan (CISO)"},
+  {id:"EV-019", name:"Incident Response Plan v3.0", type:"Procedure", source:"Internal", description:"Current IR plan covering detection, containment, eradication, recovery, post-incident review. Tested 2026-04.", method:"Manual", format:"PDF", size:"1.2 MB", uploadedBy:"M. Khan (CISO)", collected:"2026-04-05", expires:"2027-04-05", linkedControls:["A.5.24","A.5.26"], linkedRisks:["R-002"], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+  {id:"EV-020", name:"Business Continuity Plan v2.4", type:"Procedure", source:"Internal", description:"Site-wide BCP with role-based responsibilities, MAO/RPO/RTO targets per service.", method:"Manual", format:"PDF", size:"2.0 MB", uploadedBy:"H. Williams (CGO)", collected:"2026-01-15", expires:"2027-01-15", linkedControls:["A.5.29","A.5.30"], linkedRisks:["R-002","R-013"], frameworks:["ISO 27001","ISO 22301"], status:"Current", owner:"H. Williams (CGO)"},
+
+  /* Training records */
+  {id:"EV-021", name:"Annual Security Training Completion — 2026", type:"Training", source:"KnowBe4", description:"100% workforce completion of mandatory annual security awareness training. Records retained 3 years.", method:"Automated", format:"XLSX", size:"180 KB", uploadedBy:"J. Brooks (HR)", collected:"2026-03-28", expires:"2027-03-28", linkedControls:["A.6.3"], linkedRisks:["R-004"], frameworks:["ISO 27001"], status:"Current", owner:"J. Brooks (HR)"},
+  {id:"EV-022", name:"AI Acceptable Use Training — Q1 2026 (new)", type:"Training", source:"Internal LMS", description:"Mandatory training on AI tools usage, data classification when using LLMs, prohibited use cases. 94% completion.", method:"Automated", format:"XLSX", size:"120 KB", uploadedBy:"S. Ali (CAIO)", collected:"2026-03-30", expires:"2027-03-30", linkedControls:["A.6.3","A.5.10"], linkedRisks:["R-008"], frameworks:["ISO 42001"], status:"Current", owner:"S. Ali (CAIO)"},
+  {id:"EV-023", name:"GDPR Refresher Training — All staff 2025", type:"Training", source:"OneTrust", description:"Annual GDPR refresher. 100% completion + role-specific modules for data-processing teams.", method:"Automated", format:"XLSX", size:"240 KB", uploadedBy:"R. Patel (CDPO)", collected:"2025-11-15", expires:"2026-11-15", linkedControls:["A.5.34","A.6.3"], linkedRisks:["R-010"], frameworks:["GDPR","ISO 27701"], status:"Current", owner:"R. Patel (CDPO)"},
+
+  /* Operational evidence (automated) */
+  {id:"EV-024", name:"Backup Test Results — March 2026", type:"Test result", source:"Veeam + manual restore test", description:"Monthly restore test of randomly-selected production backup. 100% success rate over trailing 12 months.", method:"Automated", format:"PDF", size:"460 KB", uploadedBy:"Automated (Veeam API)", collected:"2026-03-28", expires:"2026-04-28", linkedControls:["A.8.13"], linkedRisks:["R-002"], frameworks:["ISO 27001"], status:"Current", owner:"D. Lee (Head of IT)"},
+  {id:"EV-025", name:"Patch Compliance Report — April 2026", type:"Scan", source:"Tanium", description:"Critical patches: 99.2% within 14-day SLA. High patches: 96.8% within 30-day SLA.", method:"Automated", format:"PDF", size:"680 KB", uploadedBy:"Automated (Tanium API)", collected:"2026-04-01", expires:"2026-05-01", linkedControls:["A.8.8"], linkedRisks:["R-002"], frameworks:["ISO 27001"], status:"Current", owner:"D. Lee (Head of IT)"},
+  {id:"EV-026", name:"Encryption Key Rotation Log — 2025–2026", type:"Log", source:"AWS KMS CloudTrail", description:"All KMS keys rotated within 365-day SLA. Continuous CloudTrail logging retained 7 years.", method:"Automated", format:"JSON + PDF", size:"4.2 MB", uploadedBy:"Automated (CloudTrail)", collected:"2026-04-01", expires:"2027-04-01", linkedControls:["A.8.24"], linkedRisks:["R-005"], frameworks:["ISO 27001"], status:"Current", owner:"M. Khan (CISO)"},
+
+  /* DPIAs */
+  {id:"EV-027", name:"DPIA — HR Onboarding AI (UC-4)", type:"Assessment", source:"Internal + Legal review", description:"GDPR Article 35 DPIA + EU AI Act Annex III high-risk assessment. Fairness testing committed quarterly.", method:"Manual", format:"PDF", size:"1.4 MB", uploadedBy:"R. Patel (CDPO)", collected:"2026-04-15", expires:"2027-04-15", linkedControls:["A.5.34"], linkedRisks:["R-006"], frameworks:["GDPR","ISO 42001","EU AI Act"], status:"Current", owner:"R. Patel (CDPO)"},
+  {id:"EV-028", name:"DPIA — Contract Review AI (UC-1)", type:"Assessment", source:"Internal + Legal review", description:"Risk-of-hallucination assessment. Mandatory legal review of outputs documented as treatment.", method:"Manual", format:"PDF", size:"980 KB", uploadedBy:"R. Patel (CDPO)", collected:"2026-04-15", expires:"2027-04-15", linkedControls:[], linkedRisks:["R-007"], frameworks:["GDPR","ISO 42001"], status:"Current", owner:"R. Patel (CDPO)"},
+  {id:"EV-029", name:"DSAR Log — Q1 2026", type:"Record", source:"Privacy portal export", description:"All data subject access requests handled in Q1. 100% within 30-day SLA. Average response: 11 days.", method:"Automated", format:"XLSX", size:"95 KB", uploadedBy:"R. Patel (CDPO)", collected:"2026-04-02", expires:"2027-04-02", linkedControls:["A.5.34"], linkedRisks:["R-011"], frameworks:["GDPR"], status:"Current", owner:"R. Patel (CDPO)"},
+
+  /* Internal audit & management review */
+  {id:"EV-030", name:"Internal ISMS Audit Report — January 2026", type:"Audit", source:"Internal Audit team", description:"Half-yearly internal audit. 12 minor findings (all closed by 2026-03). No major NCRs.", method:"Manual", format:"PDF", size:"3.1 MB", uploadedBy:"Internal Audit", collected:"2026-01-22", expires:"2026-07-22", linkedControls:["A.5.35","A.8.34"], linkedRisks:["R-019"], frameworks:["ISO 27001"], status:"Current", owner:"Internal Audit"},
+  {id:"EV-031", name:"Management Review Minutes — Q4 2025", type:"Record", source:"CGO office", description:"Quarterly ISMS management review. Inputs covered per § 9.3. Six action items, all assigned and tracked.", method:"Manual", format:"PDF", size:"720 KB", uploadedBy:"H. Williams (CGO)", collected:"2026-01-10", expires:"2026-04-10", linkedControls:["A.5.4"], linkedRisks:[], frameworks:["ISO 27001"], status:"Expired", owner:"H. Williams (CGO)"},
+  {id:"EV-032", name:"NCRs Closed — Q1 2026", type:"Record", source:"Internal", description:"Non-conformity register Q1 closeout. 4 NCRs closed with root-cause analysis and corrective actions evidenced.", method:"Manual", format:"XLSX", size:"180 KB", uploadedBy:"Internal Audit", collected:"2026-04-05", expires:"2027-04-05", linkedControls:["A.5.36"], linkedRisks:[], frameworks:["ISO 27001"], status:"Current", owner:"Internal Audit"},
+
+  /* Expiring / overdue */
+  {id:"EV-033", name:"Vendor Risk Assessment — CloudVendor X", type:"Assessment", source:"Internal + vendor questionnaire", description:"Annual third-party risk review for tier-2 supplier. Expired 2026-02. Refresh in progress.", method:"Manual", format:"PDF", size:"620 KB", uploadedBy:"M. Khan (CISO)", collected:"2025-02-18", expires:"2026-02-18", linkedControls:["A.5.19"], linkedRisks:["R-016"], frameworks:["ISO 27001"], status:"Expired", owner:"M. Khan (CISO)"},
+  {id:"EV-034", name:"Web Application Security Test — November 2024", type:"Test result", source:"Sentinel Red", description:"Previous pen test before 2025 annual. Superseded by EV-006.", method:"Vendor-provided", format:"PDF", size:"4.8 MB", uploadedBy:"M. Khan (CISO)", collected:"2024-11-12", expires:"2025-11-12", linkedControls:["A.8.29"], linkedRisks:[], frameworks:["ISO 27001"], status:"Expired", owner:"M. Khan (CISO)"},
+];
+
+/* ─────────────────────────────────────────────
+   PAGE: EVIDENCE LIBRARY
+───────────────────────────────────────────── */
+function PageEvidence({setTab,showToast}) {
+  const [typeFilter,setTypeFilter]=useState("all");
+  const [statusFilter,setStatusFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [selectedId,setSelectedId]=useState(null);
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* Compute expiring-soon dynamically — within 30 days of today */
+  const today = new Date("2026-06-04");
+  const enriched = EVIDENCE_LIBRARY.map(e=>{
+    if(!e.expires) return e;
+    const exp = new Date(e.expires);
+    const days = Math.round((exp - today) / 86400000);
+    let dynamicStatus = e.status;
+    if(e.status==="Current" && days <= 30 && days >= 0) dynamicStatus = "Expiring Soon";
+    if(e.status==="Current" && days < 0) dynamicStatus = "Expired";
+    return {...e, daysToExpiry:days, dynamicStatus};
+  });
+
+  const statusColor = s => ({
+    "Current":K_.sage, "Expiring Soon":K_.amber, "Expired":K_.crit,
+    "Pending Review":K_.gold, "Archived":K_.ink3,
+  })[s] || K_.ink3;
+  const typeColor = t => ({
+    "Certificate":K_.gold, "Report":K_.navy, "Policy":K_.sage,
+    "Procedure":K_.sage, "Record":K_.ink2, "Test result":K_.amber,
+    "Scan":K_.amber, "Attestation":K_.gold, "Training":K_.sage,
+    "Audit":K_.crit, "Assessment":K_.crit, "Log":K_.ink2,
+  })[t] || K_.ink3;
+
+  /* Stats */
+  const total = enriched.length;
+  const current = enriched.filter(e=>(e.dynamicStatus||e.status)==="Current").length;
+  const expiringSoon = enriched.filter(e=>(e.dynamicStatus||e.status)==="Expiring Soon").length;
+  const expired = enriched.filter(e=>(e.dynamicStatus||e.status)==="Expired").length;
+
+  /* Distinct types */
+  const allTypes = Array.from(new Set(EVIDENCE_LIBRARY.map(e=>e.type)));
+  const allStatuses = ["Current","Expiring Soon","Expired","Pending Review","Archived"];
+
+  const filtered = enriched.filter(e=>{
+    const s = e.dynamicStatus || e.status;
+    if(typeFilter!=="all" && e.type!==typeFilter) return false;
+    if(statusFilter!=="all" && s!==statusFilter) return false;
+    if(search){
+      const q=search.toLowerCase();
+      if(!(e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.owner.toLowerCase().includes(q) || e.source.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  /* Sort: expired/expiring at top */
+  const statusOrder = {"Expired":0,"Expiring Soon":1,"Pending Review":2,"Current":3,"Archived":4};
+  filtered.sort((a,b)=>{
+    const sa = statusOrder[a.dynamicStatus||a.status] ?? 5;
+    const sb = statusOrder[b.dynamicStatus||b.status] ?? 5;
+    if(sa!==sb) return sa-sb;
+    return (a.daysToExpiry??99999) - (b.daysToExpiry??99999);
+  });
+
+  const sel = selectedId ? enriched.find(e=>e.id===selectedId) : null;
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* HERO */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+      <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:48,alignItems:"end"}}>
+        <div>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <span>▸</span><span>ISO 27001 § 7.5 / § 9.2 · Evidence Library</span>
+          </div>
+          <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+            Proof, <span style={{fontStyle:"italic"}}>indexed.</span>
+          </h1>
+          <p style={{fontSize:14.5,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:560}}>
+            The metadata index of every audit artefact — certificates, test results, signed policies, training records, scans. Linked to the controls and risks they evidence.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Total artefacts</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:96,lineHeight:0.9,letterSpacing:"-0.045em",color:K_.gold}}>{total}</div>
+          <div style={{fontSize:12,color:K_.navyT2,marginTop:10}}>{current} current · {expiringSoon+expired} need attention</div>
+        </div>
+      </div>
+    </div>
+
+    {/* STATS STRIP */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+      {[
+        {label:"Current",         val:String(current),       c:K_.sage,  sub:"within validity window"},
+        {label:"Expiring soon",   val:String(expiringSoon),  c:K_.amber, sub:"within 30 days"},
+        {label:"Expired",         val:String(expired),       c:K_.crit,  sub:"renewal overdue"},
+        {label:"Total in scope",  val:String(total),         c:K_.ink},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:18,padding:"22px 24px",border:`1px solid ${K_.line}`}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+          {s.sub && <div style={{fontSize:11,color:K_.ink3,marginTop:8}}>{s.sub}</div>}
+        </div>
+      ))}
+    </div>
+
+    {/* FILTERS */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"18px 22px",marginBottom:14}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:14,alignItems:"center",marginBottom:12}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by ID, name, source, owner…" style={{
+          flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+          fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
+        }}/>
+        <button onClick={()=>showToast("Upload evidence — backend storage required","info")} style={{
+          background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",
+          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
+        }}>
+          <span>+</span> Upload evidence
+        </button>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:10}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4}}>Type</span>
+        {[["all","All"],...allTypes.map(t=>[t,t])].map(([k,l])=>(
+          <button key={k} onClick={()=>setTypeFilter(k)} style={{
+            background:typeFilter===k?(k==="all"?K_.navy:typeColor(k)):"transparent",
+            color:typeFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${typeFilter===k?(k==="all"?K_.navy:typeColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:typeFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4}}>Status</span>
+        {[["all","All"],...allStatuses.map(s=>[s,s])].map(([k,l])=>(
+          <button key={k} onClick={()=>setStatusFilter(k)} style={{
+            background:statusFilter===k?(k==="all"?K_.navy:statusColor(k)):"transparent",
+            color:statusFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${statusFilter===k?(k==="all"?K_.navy:statusColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:statusFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+    </div>
+
+    {/* TABLE */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:1100}}>
+        <thead>
+          <tr style={{borderBottom:`1px solid ${K_.line}`}}>
+            {["Ref","Artefact","Type","Source","Collected","Expires","Linked","Status","Owner"].map(h=>(
+              <th key={h} style={{textAlign:"left",padding:"14px 14px",fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(e=>{
+            const stat = e.dynamicStatus || e.status;
+            const linkCount = (e.linkedControls?.length||0) + (e.linkedRisks?.length||0);
+            return <tr key={e.id} onClick={()=>setSelectedId(e.id===selectedId?null:e.id)} style={{
+              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
+              background:selectedId===e.id?K_.s1:"transparent",
+            }}
+            onMouseEnter={ev=>{if(selectedId!==e.id)ev.currentTarget.style.background=K_.bg;}}
+            onMouseLeave={ev=>{if(selectedId!==e.id)ev.currentTarget.style.background="transparent";}}>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:11.5,color:K_.gold,fontWeight:700,letterSpacing:"0.04em"}}>{e.id}</td>
+              <td style={{padding:"14px",color:K_.ink,fontWeight:500,maxWidth:340,lineHeight:1.3}}>{e.name}</td>
+              <td style={{padding:"14px"}}>
+                <span style={{background:typeColor(e.type)+"15",color:typeColor(e.type),border:`1px solid ${typeColor(e.type)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>{e.type}</span>
+              </td>
+              <td style={{padding:"14px",color:K_.ink2,fontSize:11.5,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.source}</td>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:10.5,color:K_.ink3,letterSpacing:"0.04em"}}>{e.collected}</td>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:10.5,letterSpacing:"0.04em",color:stat==="Expired"?K_.crit:stat==="Expiring Soon"?K_.amber:K_.ink3}}>
+                {e.expires ? e.expires : <span style={{fontStyle:"italic"}}>permanent</span>}
+              </td>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:11.5,color:linkCount>0?K_.ink:K_.ink3}}>{linkCount>0?linkCount:"—"}</td>
+              <td style={{padding:"14px"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(stat)+"15",color:statusColor(stat),border:`1px solid ${statusColor(stat)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(stat)}}/>
+                  {stat}
+                </span>
+              </td>
+              <td style={{padding:"14px",color:K_.ink2,fontSize:12}}>{e.owner}</td>
+            </tr>;
+          })}
+          {filtered.length===0 && (
+            <tr><td colSpan={9} style={{padding:"40px",textAlign:"center",color:K_.ink3,fontStyle:"italic"}}>No evidence artefacts match the current filters.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {/* DETAIL PANEL */}
+    {sel && (() => {
+      const stat = sel.dynamicStatus || sel.status;
+      return <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"28px 32px",marginBottom:14,animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,gap:14,flexWrap:"wrap"}}>
+          <div style={{flex:"1 1 400px"}}>
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+              <span style={{background:typeColor(sel.type)+"15",color:typeColor(sel.type),border:`1px solid ${typeColor(sel.type)}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600}}>{sel.type}</span>
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(stat)+"15",color:statusColor(stat),border:`1px solid ${statusColor(stat)}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(stat)}}/>{stat}
+              </span>
+              {sel.method==="Automated" && <span style={{background:K_.s1,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:500,display:"inline-flex",alignItems:"center",gap:5}}><span>⚡</span>Automated</span>}
+            </div>
+            <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.3}}>{sel.name}</h2>
+            {sel.description && <p style={{fontSize:13.5,color:K_.ink2,lineHeight:1.55,margin:"12px 0 0",maxWidth:680}}>{sel.description}</p>}
+          </div>
+          <button onClick={()=>setSelectedId(null)} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:"pointer",fontWeight:600}}>Close</button>
+        </div>
+
+        {/* Facts grid */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:24,rowGap:22,marginBottom:24,paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+          {[
+            ["Source", sel.source],
+            ["Collection method", sel.method],
+            ["Format", sel.format + (sel.size ? ` · ${sel.size}` : "")],
+            ["Uploaded by", sel.uploadedBy],
+            ["Collected", sel.collected],
+            ["Expires", sel.expires || "Permanent"],
+            ["Owner", sel.owner],
+            ["Reference", sel.id],
+          ].map(([l,v])=>(
+            <div key={l}>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>{l}</div>
+              <div style={{fontSize:13,color:K_.ink,fontWeight:500,lineHeight:1.4}}>{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Linked entities */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:24,marginBottom:18}}>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Linked Annex A controls</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.linkedControls?.length>0 ? sel.linkedControls.map(c=>(
+                <span key={c} onClick={(e)=>{e.stopPropagation();setTab("annexa");}} style={{background:K_.navy+"10",color:K_.navy,border:`1px solid ${K_.navy}25`,borderRadius:8,padding:"4px 10px",fontSize:11,fontFamily:fMono,letterSpacing:"0.02em",fontWeight:600,cursor:"pointer"}}>{c}</span>
+              )) : <span style={{color:K_.ink3,fontSize:12,fontStyle:"italic"}}>none</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Linked risks</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.linkedRisks?.length>0 ? sel.linkedRisks.map(r=>(
+                <span key={r} onClick={(e)=>{e.stopPropagation();setTab("risks");}} style={{background:K_.crit+"15",color:K_.crit,border:`1px solid ${K_.crit}30`,borderRadius:8,padding:"4px 10px",fontSize:11,fontFamily:fMono,letterSpacing:"0.04em",fontWeight:700,cursor:"pointer"}}>{r}</span>
+              )) : <span style={{color:K_.ink3,fontSize:12,fontStyle:"italic"}}>none</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Frameworks</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.frameworks?.map((f,i)=>(
+                <span key={i} style={{background:K_.s1,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:8,padding:"4px 10px",fontSize:11,fontFamily:fSans,fontWeight:500}}>{f}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{display:"flex",gap:10,paddingTop:18,borderTop:`1px solid ${K_.line}`,flexWrap:"wrap"}}>
+          <button onClick={()=>showToast("Download — backend file storage required","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+            <span>⤓</span> Download artefact
+          </button>
+          <button onClick={()=>showToast("Refresh from source — automation engine required","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+            Refresh from source
+          </button>
+          <button onClick={()=>showToast("Version history — backend required","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+            Version history
+          </button>
+        </div>
+      </div>;
+    })()}
   </div>;
 }
 /* ─────────────────────────────────────────────
@@ -5677,6 +6032,7 @@ export default function VERIS() {
         {tab==="impl"       &&<PageImpl       role={role}/>}
         {tab==="roadmap"    &&<PageRoadmap    role={role}/>}
         {tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
+        {tab==="evidence"   &&<PageEvidence setTab={setTab} showToast={showToast}/>}
         {tab==="reports"    &&<PageReports    role={role}/>}
       </div>
     </div>
