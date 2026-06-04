@@ -100,6 +100,7 @@ const NAV_GROUPS = [
     {id:"strategy", icon:"◈", label:"Strategy"},
   ]},
   {id:"frameworks", label:"Frameworks", items:[
+    {id:"iso27",     icon:"🛡", label:"ISO 27001 Workspace"},
     {id:"compliance",icon:"◉", label:"Compliance"},
     {id:"checklists",icon:"☑", label:"ISO Checklists"},
     {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
@@ -1920,6 +1921,215 @@ function PageCompliance({role}) {
   </div>;
 }
 
+/* ─────────────────────────────────────────────
+   ISO 27001 IMPLEMENTATION WORKSPACE
+   The landing surface for all 18 ISO 27001 implementation
+   sub-modules. Each module shows status + % complete + owner
+   + optional deep-link to a related page (e.g. Template Library).
+───────────────────────────────────────────── */
+const ISO27001_MODULES = [
+  /* FOUNDATIONS */
+  {id:"iso27_scope",      name:"ISMS Scope Statement",            category:"Foundations", clause:"§ 4.3",     icon:"🎯", status:"In Progress",  complete:60,  owner:"H. Williams (CGO)",                  link:{tab:"templates"}},
+  {id:"iso27_context",    name:"Context of the Organisation",     category:"Foundations", clause:"§ 4.1",     icon:"🏢", status:"Complete",     complete:100, owner:"H. Williams (CGO)",                  link:null},
+  {id:"iso27_parties",    name:"Interested Parties Register",     category:"Foundations", clause:"§ 4.2",     icon:"👥", status:"In Progress",  complete:75,  owner:"H. Williams (CGO)",                  link:null},
+  {id:"iso27_legal",      name:"Legal & Regulatory Register",     category:"Foundations", clause:"§ 4.2 / A.5.31", icon:"⚖", status:"Complete", complete:100, owner:"H. Williams (CGO) + R. Patel (CDPO)", link:null},
+  /* RISK */
+  {id:"iso27_method",     name:"Risk Assessment Methodology",     category:"Risk",        clause:"§ 6.1.2",   icon:"📐", status:"Complete",     complete:100, owner:"S. Ali (CAIO)",                      link:{tab:"templates"}},
+  {id:"iso27_assets",     name:"Asset Inventory",                 category:"Risk",        clause:"§ A.5.9",   icon:"📦", status:"In Progress",  complete:80,  owner:"D. Lee (Head of IT)",                link:{tab:"templates"}},
+  {id:"iso27_register",   name:"Risk Register",                   category:"Risk",        clause:"§ 6.1.2 / 8.2", icon:"⬟", status:"In Progress", complete:65, owner:"S. Ali (CAIO)",                  link:{tab:"templates"}},
+  {id:"iso27_treatment",  name:"Risk Treatment Plan",             category:"Risk",        clause:"§ 6.1.3 / 8.3", icon:"◆", status:"In Progress", complete:55, owner:"S. Ali (CAIO)",                  link:{tab:"templates"}},
+  /* CONTROLS */
+  {id:"iso27_soa",        name:"Statement of Applicability",      category:"Controls",    clause:"§ 6.1.3",   icon:"📋", status:"In Review",    complete:90,  owner:"M. Khan (CISO)",                     link:{tab:"templates"}},
+  {id:"iso27_annexa",     name:"Annex A Control Tracker",         category:"Controls",    clause:"Annex A (93)", icon:"☑", status:"In Progress", complete:72, owner:"M. Khan (CISO)",                  link:null},
+  /* DOCUMENTATION */
+  {id:"iso27_policies",   name:"Policy Library",                  category:"Documentation", clause:"§ A.5.1 / A.5.36", icon:"📜", status:"In Progress", complete:80, owner:"M. Khan (CISO)",          link:{tab:"templates"}},
+  {id:"iso27_procedures", name:"Procedure Library",               category:"Documentation", clause:"§ 7.5",    icon:"📑", status:"Not Started", complete:0,   owner:"M. Khan (CISO)",                     link:null},
+  {id:"iso27_evidence",   name:"Evidence Library",                category:"Documentation", clause:"§ 7.5 / 9.2", icon:"📁", status:"In Progress", complete:60, owner:"Internal Audit",                  link:null},
+  /* AUDIT */
+  {id:"iso27_internal",   name:"Internal Audit Plan",             category:"Audit",       clause:"§ 9.2",     icon:"🔍", status:"Complete",     complete:100, owner:"Internal Audit",                     link:{tab:"templates"}},
+  {id:"iso27_mgmt",       name:"Management Review",               category:"Audit",       clause:"§ 9.3",     icon:"📅", status:"In Progress",  complete:50,  owner:"H. Williams (CGO)",                  link:{tab:"templates"}},
+  {id:"iso27_corrective", name:"Corrective Actions",              category:"Audit",       clause:"§ 10.1",    icon:"🔧", status:"Not Started",  complete:0,   owner:"H. Williams (CGO)",                  link:{tab:"templates"}},
+  /* IMPROVEMENT */
+  {id:"iso27_continual",  name:"Continual Improvement",           category:"Improvement", clause:"§ 10.1",    icon:"🔄", status:"Not Started",  complete:0,   owner:"H. Williams (CGO)",                  link:null},
+  {id:"iso27_auditor",    name:"Auditor Collaboration Workspace", category:"Improvement", clause:"§ 9.2",     icon:"🤝", status:"Not Started",  complete:0,   owner:"H. Williams (CGO)",                  link:null},
+];
+
+const ISO27001_CATEGORIES = [
+  {id:"Foundations",   label:"Foundations",   tagline:"Define the scope and context of your ISMS."},
+  {id:"Risk",          label:"Risk Management", tagline:"Assess and treat information-security risks."},
+  {id:"Controls",      label:"Controls",       tagline:"Annex A applicability and implementation."},
+  {id:"Documentation", label:"Documentation",  tagline:"Policies, procedures, and evidence."},
+  {id:"Audit",         label:"Audit & Review", tagline:"Internal audit, management review, and corrective actions."},
+  {id:"Improvement",   label:"Improvement",    tagline:"Continual improvement and auditor collaboration."},
+];
+
+function PageISO27001({setTab,showToast}) {
+  /* Palette — quiet luxury */
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* Status colour mapping */
+  const statusColor = s => ({
+    "Complete":K_.sage, "In Review":K_.amber, "In Progress":K_.gold,
+    "Not Started":K_.ink3, "Needs Update":K_.crit,
+  })[s] || K_.ink3;
+
+  /* Aggregate readiness */
+  const readiness = Math.round(ISO27001_MODULES.reduce((s,m)=>s+m.complete,0) / ISO27001_MODULES.length);
+  const complete = ISO27001_MODULES.filter(m=>m.complete===100).length;
+  const inProgress = ISO27001_MODULES.filter(m=>m.complete>0 && m.complete<100).length;
+  const notStarted = ISO27001_MODULES.filter(m=>m.complete===0).length;
+  const annexA = ISO27001_MODULES.find(m=>m.id==="iso27_annexa");
+
+  /* Click target — link or toast */
+  const onTileClick = (mod) => {
+    if(mod.link && mod.link.tab) setTab(mod.link.tab);
+    else showToast(`${mod.name} — coming in the next module build`,"info");
+  };
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* ── HERO ── */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"36px 40px 40px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.4,
+        backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,
+        backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+      <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:48,alignItems:"end"}}>
+        <div>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:6}}>
+            <span>▸</span><span>Frameworks · ISO/IEC 27001:2022</span>
+          </div>
+          <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(34px,4.2vw,52px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+            Information Security <span style={{fontStyle:"italic"}}>Management.</span>
+          </h1>
+          <p style={{fontSize:14.5,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:560}}>
+            All 18 sub-modules of your ISO 27001 implementation, in one workspace. From ISMS scope through Annex A controls to management review.
+            <span style={{display:"block",marginTop:8,color:K_.gold,fontWeight:600}}>On track for Q4 2026 stage-2 audit.</span>
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Certification readiness</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:96,lineHeight:0.9,letterSpacing:"-0.045em",color:K_.gold}}>{readiness}<span style={{fontSize:48,color:K_.navyT2,fontStyle:"normal"}}>%</span></div>
+          <div style={{fontSize:12,color:K_.navyT2,marginTop:10,letterSpacing:"0.02em"}}>across {ISO27001_MODULES.length} ISMS modules</div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── STATS STRIP ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+      {[
+        {label:"Complete",      val:String(complete),                  c:K_.sage},
+        {label:"In progress",   val:String(inProgress),                c:K_.gold},
+        {label:"Not started",   val:String(notStarted),                c:K_.ink3},
+        {label:"Annex A controls", val:(annexA?Math.round(annexA.complete*0.93):0)+" / 93", c:K_.ink, suffixSmall:true},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:18,padding:"22px 24px",border:`1px solid ${K_.line}`}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:s.suffixSmall?40:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* ── MODULES BY CATEGORY ── */}
+    {ISO27001_CATEGORIES.map(cat=>{
+      const mods = ISO27001_MODULES.filter(m=>m.category===cat.id);
+      const catComplete = Math.round(mods.reduce((s,m)=>s+m.complete,0) / (mods.length||1));
+      return <div key={cat.id} style={{marginBottom:18}}>
+        {/* Section header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12,padding:"0 4px"}}>
+          <div>
+            <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>{cat.label}</div>
+            <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:22,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.2}}>{cat.tagline}</h2>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Section</div>
+            <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:22,color:K_.ink,letterSpacing:"-0.02em"}}>{catComplete}<span style={{fontSize:14,color:K_.ink3}}>%</span></div>
+          </div>
+        </div>
+
+        {/* Module tiles */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+          {mods.map(mod=>{
+            const c = statusColor(mod.status);
+            return <div key={mod.id} onClick={()=>onTileClick(mod)} style={{
+              background:K_.surface,borderRadius:16,padding:"20px 22px",
+              border:`1px solid ${K_.line}`,cursor:"pointer",
+              transition:"all .15s",display:"flex",flexDirection:"column",gap:14,
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=K_.navy+"30";e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 20px -10px rgba(28,27,31,0.12)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=K_.line;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}
+            >
+              {/* Top: icon + clause + status */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:34,height:34,borderRadius:10,background:K_.s1,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{mod.icon}</div>
+                  <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.06em",fontWeight:500}}>{mod.clause}</span>
+                </div>
+                <span style={{
+                  display:"inline-flex",alignItems:"center",gap:5,
+                  background:c+"15",color:c,border:`1px solid ${c}30`,
+                  borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600,fontFamily:fSans,
+                }}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:c}}/>
+                  {mod.status}
+                </span>
+              </div>
+              {/* Name + owner */}
+              <div>
+                <h3 style={{fontSize:14.5,fontWeight:600,color:K_.ink,margin:"0 0 6px",letterSpacing:"-0.005em",lineHeight:1.3}}>{mod.name}</h3>
+                <div style={{fontSize:11.5,color:K_.ink3,lineHeight:1.4}}>{mod.owner}</div>
+              </div>
+              {/* Progress bar */}
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em",marginBottom:6}}>
+                  <span>Progress</span>
+                  <span style={{color:c,fontWeight:700}}>{mod.complete}%</span>
+                </div>
+                <div style={{height:3,background:K_.s2,borderRadius:2,overflow:"hidden"}}>
+                  <div style={{width:`${mod.complete}%`,height:"100%",background:c,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
+                </div>
+              </div>
+            </div>;
+          })}
+        </div>
+      </div>;
+    })}
+
+    {/* ── FOOTER: audit timeline ── */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"22px 28px",marginTop:18,marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",gap:24,flexWrap:"wrap"}}>
+      <div>
+        <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Audit timeline</div>
+        <div style={{fontSize:13.5,color:K_.ink,lineHeight:1.5,maxWidth:540}}>
+          Last internal audit: <strong>15 Jan 2026</strong> · Next internal audit: <strong>20 Jul 2026</strong> · Stage-1 external audit: <strong>3 Sep 2026</strong> · Stage-2: <strong>18 Nov 2026</strong>
+        </div>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Certification body</div>
+        <div style={{fontSize:13.5,color:K_.ink,fontWeight:600}}>BSI Group</div>
+      </div>
+    </div>
+  </div>;
+}
 /* ─────────────────────────────────────────────
    PAGE: ISO CHECKLISTS
 ───────────────────────────────────────────── */
@@ -4022,6 +4232,7 @@ export default function VERIS() {
         {tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {tab==="strategy"   &&<PageStrategy   role={role}/>}
         {tab==="playbook"   &&<PagePlaybook   role={role}/>}
+        {tab==="iso27" &&<PageISO27001 setTab={setTab} showToast={showToast}/>}
         {tab==="compliance" &&<PageCompliance role={role}/>}
         {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
         {tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
