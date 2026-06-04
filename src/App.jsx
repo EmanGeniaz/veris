@@ -102,6 +102,7 @@ const NAV_GROUPS = [
   {id:"frameworks", label:"Frameworks", items:[
     {id:"iso27",     icon:"🛡", label:"ISO 27001 Workspace"},
     {id:"annexa",    icon:"☑", label:"Annex A Tracker"},
+    {id:"risks",     icon:"⬟", label:"Risk Register"},
     {id:"gap",       icon:"📐", label:"Gap Analysis"},
     {id:"compliance",icon:"◉", label:"Compliance"},
     {id:"checklists",icon:"☑", label:"ISO Checklists"},
@@ -1938,7 +1939,7 @@ const ISO27001_MODULES = [
   /* RISK */
   {id:"iso27_method",     name:"Risk Assessment Methodology",     category:"Risk",        clause:"§ 6.1.2",   icon:"📐", status:"Complete",     complete:100, owner:"S. Ali (CAIO)",                      link:{tab:"templates"}},
   {id:"iso27_assets",     name:"Asset Inventory",                 category:"Risk",        clause:"§ A.5.9",   icon:"📦", status:"In Progress",  complete:80,  owner:"D. Lee (Head of IT)",                link:{tab:"templates"}},
-  {id:"iso27_register",   name:"Risk Register",                   category:"Risk",        clause:"§ 6.1.2 / 8.2", icon:"⬟", status:"In Progress", complete:65, owner:"S. Ali (CAIO)",                  link:{tab:"templates"}},
+  {id:"iso27_register",   name:"Risk Register",                   category:"Risk",        clause:"§ 6.1.2 / 8.2", icon:"⬟", status:"In Progress", complete:65, owner:"S. Ali (CAIO)",                  link:{tab:"risks"}},
   {id:"iso27_treatment",  name:"Risk Treatment Plan",             category:"Risk",        clause:"§ 6.1.3 / 8.3", icon:"◆", status:"In Progress", complete:55, owner:"S. Ali (CAIO)",                  link:{tab:"templates"}},
   /* CONTROLS */
   {id:"iso27_soa",        name:"Statement of Applicability",      category:"Controls",    clause:"§ 6.1.3",   icon:"📋", status:"In Review",    complete:90,  owner:"M. Khan (CISO)",                     link:{tab:"templates"}},
@@ -2665,6 +2666,589 @@ function PageGapAnalysis({setTab,showToast}) {
         ))}
       </div>
     </div>
+  </div>;
+}
+/* ─────────────────────────────────────────────
+   RISK REGISTER — ISO 27001 § 6.1.2 / § 8.2
+   Realistic seed across 7 categories. Each risk has full
+   inherent + treatment + residual scoring, linked controls,
+   linked use cases. The master risk inventory.
+───────────────────────────────────────────── */
+const RISK_REGISTER = [
+  /* ── Information Security ── */
+  {id:"R-001", title:"Unauthorised access to customer PII via misconfigured cloud storage",
+    category:"Information Security", owner:"M. Khan (CISO)", asset:"AWS S3 — customer data bucket",
+    threat:"External attacker / insider misuse", vulnerability:"Bucket ACL misconfiguration, lack of automated scanning",
+    inherentL:4, inherentI:5, treatmentOption:"Mitigate",
+    treatmentActions:"AWS Config rules + Macie + quarterly access review + automated public-bucket detection alerting CISO within 15 minutes.",
+    residualL:1, residualI:5, status:"In Treatment",
+    linkedControls:["A.5.23","A.8.3","A.8.16"], linkedUseCases:[],
+    frameworks:["ISO 27001","GDPR","SOC 2"],
+    dateIdentified:"2025-09-12", lastReviewed:"2026-03-22", nextReview:"2026-06-22"},
+
+  {id:"R-002", title:"Ransomware attack disabling production systems",
+    category:"Information Security", owner:"M. Khan (CISO)", asset:"All production infrastructure",
+    threat:"Organised cybercrime", vulnerability:"Patching cadence, email attachment policy, RDP exposure",
+    inherentL:4, inherentI:5, treatmentOption:"Mitigate",
+    treatmentActions:"EDR on all endpoints + immutable backups + isolated DR environment + tested IR playbook + tabletop exercise twice yearly + cyber insurance.",
+    residualL:2, residualI:5, status:"In Treatment",
+    linkedControls:["A.5.24","A.5.26","A.5.30","A.8.7","A.8.13"], linkedUseCases:[],
+    frameworks:["ISO 27001","ISO 22301"],
+    dateIdentified:"2025-06-04", lastReviewed:"2026-04-05", nextReview:"2026-07-05"},
+
+  {id:"R-003", title:"Privileged account compromise leading to lateral movement",
+    category:"Information Security", owner:"M. Khan (CISO)", asset:"Domain admin / cloud root accounts",
+    threat:"Credential theft, phishing", vulnerability:"Weak MFA enforcement on admin accounts, shared credentials",
+    inherentL:3, inherentI:5, treatmentOption:"Mitigate",
+    treatmentActions:"Hardware-MFA mandatory for all privileged accounts + PAM tooling (CyberArk) + just-in-time access + 90-day rotation + session recording.",
+    residualL:1, residualI:5, status:"Treated",
+    linkedControls:["A.5.15","A.8.2","A.8.5"], linkedUseCases:[],
+    frameworks:["ISO 27001","SOC 2","NIST CSF"],
+    dateIdentified:"2025-03-18", lastReviewed:"2026-02-10", nextReview:"2027-02-10"},
+
+  {id:"R-004", title:"Phishing attack succeeding against finance team — wire fraud",
+    category:"Information Security", owner:"M. Khan (CISO)", asset:"Finance email / payment systems",
+    threat:"Business email compromise (BEC)", vulnerability:"Email spoofing controls, payment approval workflow",
+    inherentL:4, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"DMARC strict, dual-approval for all wire transfers > £10k, mandatory phishing simulations quarterly, callback verification protocol.",
+    residualL:2, residualI:3, status:"In Treatment",
+    linkedControls:["A.6.3","A.8.7","A.8.23"], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-11-04", lastReviewed:"2026-02-28", nextReview:"2026-05-28"},
+
+  {id:"R-005", title:"Encryption key compromise via HSM misconfiguration",
+    category:"Information Security", owner:"M. Khan (CISO)", asset:"AWS KMS / HSM",
+    threat:"Insider, accidental disclosure", vulnerability:"Key access policy, rotation schedule",
+    inherentL:2, inherentI:5, treatmentOption:"Mitigate",
+    treatmentActions:"KMS access via IAM roles only + CloudTrail logging + 365-day rotation + envelope encryption for all data at rest + dual-control for key destruction.",
+    residualL:1, residualI:5, status:"Treated",
+    linkedControls:["A.8.24"], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-08-15", lastReviewed:"2026-02-05", nextReview:"2027-02-05"},
+
+  /* ── AI Governance ── */
+  {id:"R-006", title:"AI model bias affecting hiring decisions (Annex III high-risk)",
+    category:"AI Governance", owner:"S. Ali (CAIO)", asset:"HR onboarding AI (GPT-4 Enterprise)",
+    threat:"Discriminatory outcomes against protected groups", vulnerability:"Bias in training data, lack of bias testing in deployment",
+    inherentL:4, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Mandatory DPIA + bias testing across 12 protected attributes pre-deployment + human-in-the-loop for all hiring decisions + quarterly fairness audits + ISO 42001 § A.7.4 controls.",
+    residualL:2, residualI:3, status:"Identified",
+    linkedControls:["A.5.34","A.6.3"], linkedUseCases:["uc4"],
+    frameworks:["ISO 42001","EU AI Act (Annex III)","GDPR Art.22"],
+    dateIdentified:"2026-05-02", lastReviewed:"2026-05-08", nextReview:"2026-06-08"},
+
+  {id:"R-007", title:"AI hallucination in customer-facing chatbot causing financial misstatement",
+    category:"AI Governance", owner:"S. Ali (CAIO)", asset:"Contract Review AI (Claude 3.5 Sonnet)",
+    threat:"Model error, prompt injection", vulnerability:"No output validation, no human review on critical advice",
+    inherentL:3, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Mandatory legal sign-off on every output + structured output validation + prompt injection guardrails + monthly red-teaming + ISO 42001 § A.6.2.",
+    residualL:2, residualI:3, status:"In Treatment",
+    linkedControls:[], linkedUseCases:["uc1"],
+    frameworks:["ISO 42001","EU AI Act"],
+    dateIdentified:"2026-04-12", lastReviewed:"2026-04-15", nextReview:"2026-07-15"},
+
+  {id:"R-008", title:"Shadow AI — unauthorised LLM use exposing confidential data",
+    category:"AI Governance", owner:"S. Ali (CAIO)", asset:"Employee endpoints, browser sessions",
+    threat:"Employees pasting confidential data into public ChatGPT / Claude / Gemini", vulnerability:"No DLP for AI services, no AI usage policy enforcement",
+    inherentL:5, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"DLP rules block paste-to-AI on confidential data + approved AI services list + mandatory training + monthly browser session audit + AI usage policy with disciplinary consequences.",
+    residualL:3, residualI:2, status:"In Treatment",
+    linkedControls:["A.5.10","A.6.3","A.8.12"], linkedUseCases:[],
+    frameworks:["ISO 27001","ISO 42001"],
+    dateIdentified:"2025-12-08", lastReviewed:"2026-03-10", nextReview:"2026-06-10"},
+
+  {id:"R-009", title:"EU AI Act high-risk classification missed — non-compliance fine",
+    category:"AI Governance", owner:"S. Ali (CAIO)", asset:"All AI use cases in registry",
+    threat:"Regulatory enforcement", vulnerability:"Manual classification, risk of human error",
+    inherentL:3, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Auto-classification in intake form + mandatory CAIO sign-off on tier + quarterly review of all production AI systems against Annex III + legal review for borderline cases.",
+    residualL:2, residualI:3, status:"In Treatment",
+    linkedControls:[], linkedUseCases:["uc1","uc2","uc3","uc4","uc5","uc6"],
+    frameworks:["ISO 42001","EU AI Act"],
+    dateIdentified:"2025-10-15", lastReviewed:"2026-04-15", nextReview:"2026-07-15"},
+
+  /* ── Privacy ── */
+  {id:"R-010", title:"GDPR Article 32 — inadequate technical and organisational measures",
+    category:"Privacy", owner:"R. Patel (CDPO)", asset:"All personal data processing systems",
+    threat:"Supervisory authority enforcement, data subject complaints", vulnerability:"Encryption coverage gaps, access log retention",
+    inherentL:3, inherentI:5, treatmentOption:"Mitigate",
+    treatmentActions:"Full encryption at rest + in transit (all systems by Q3) + Article 32 control matrix mapped to ISO 27001 + annual DPO audit + privacy training mandatory.",
+    residualL:2, residualI:4, status:"In Treatment",
+    linkedControls:["A.5.34","A.8.24"], linkedUseCases:[],
+    frameworks:["GDPR","ISO 27001","ISO 27701"],
+    dateIdentified:"2025-07-22", lastReviewed:"2026-02-28", nextReview:"2026-05-28"},
+
+  {id:"R-011", title:"Data subject access request (DSAR) SLA breach — 30-day window",
+    category:"Privacy", owner:"R. Patel (CDPO)", asset:"DSAR handling process",
+    threat:"Complaints to ICO / supervisory authority", vulnerability:"Manual DSAR workflow, no SLA tracking",
+    inherentL:3, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"DSAR portal with automated SLA tracking + escalation at day 20 + monthly KPI review by CDPO + integration with CRM and HR systems for data discovery.",
+    residualL:2, residualI:2, status:"Treated",
+    linkedControls:["A.5.34"], linkedUseCases:[],
+    frameworks:["GDPR","ISO 27701","DPDP Act India"],
+    dateIdentified:"2025-04-10", lastReviewed:"2026-02-28", nextReview:"2027-02-28"},
+
+  {id:"R-012", title:"International data transfer post-Schrems II — adequacy gap",
+    category:"Privacy", owner:"R. Patel (CDPO)", asset:"Customer data transfers EU → US, EU → India",
+    threat:"GDPR enforcement, customer complaints", vulnerability:"Standard contractual clauses not updated, no TIA on file",
+    inherentL:4, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Updated SCCs (2021 EU SCCs) signed with all sub-processors + TIA documented per transfer + supplementary measures (encryption, pseudonymisation) + monitoring of jurisdictional adequacy.",
+    residualL:2, residualI:3, status:"In Treatment",
+    linkedControls:["A.5.34"], linkedUseCases:[],
+    frameworks:["GDPR (Art.46)","Schrems II"],
+    dateIdentified:"2025-09-30", lastReviewed:"2026-03-05", nextReview:"2026-09-05"},
+
+  /* ── Operational / IT ── */
+  {id:"R-013", title:"Single point of failure in payment processing — Stripe API",
+    category:"Operational", owner:"D. Lee (Head of IT)", asset:"Payment processing pipeline",
+    threat:"Provider outage", vulnerability:"No failover payment provider",
+    inherentL:2, inherentI:4, treatmentOption:"Accept",
+    treatmentActions:"Risk formally accepted by CIO and CFO. Stripe SLA 99.99%. Failover to Adyen evaluated — cost/benefit does not justify dual-rail at current revenue. Quarterly review.",
+    residualL:2, residualI:4, status:"Accepted",
+    linkedControls:["A.5.30","A.8.14"], linkedUseCases:[],
+    frameworks:["ISO 27001","ISO 22301"],
+    dateIdentified:"2025-08-20", lastReviewed:"2026-01-25", nextReview:"2026-04-25"},
+
+  {id:"R-014", title:"DDoS attack on customer portal",
+    category:"Operational", owner:"D. Lee (Head of IT)", asset:"Customer portal / public APIs",
+    threat:"Volumetric / application-layer DDoS", vulnerability:"WAF rules, rate limiting coverage",
+    inherentL:3, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"CloudFlare Enterprise + AWS Shield Advanced + rate limiting on all public endpoints + runbook tested quarterly + on-call rotation.",
+    residualL:2, residualI:2, status:"Treated",
+    linkedControls:["A.8.20","A.8.21"], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-05-15", lastReviewed:"2026-02-22", nextReview:"2027-02-22"},
+
+  {id:"R-015", title:"Manual audit log gaps during incident — chain of custody broken",
+    category:"Operational", owner:"M. Khan (CISO)", asset:"All systems generating audit logs",
+    threat:"Forensic investigation failure, regulatory query unanswered", vulnerability:"Some legacy systems not centrally logged",
+    inherentL:3, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"SIEM coverage of all production systems by Q4 2026 + log integrity via WORM storage + 365-day retention + monthly log review by CISO.",
+    residualL:2, residualI:2, status:"In Treatment",
+    linkedControls:["A.5.28","A.8.15","A.8.16"], linkedUseCases:[],
+    frameworks:["ISO 27001","SOC 2"],
+    dateIdentified:"2026-01-08", lastReviewed:"2026-02-15", nextReview:"2026-05-15"},
+
+  /* ── Supply Chain ── */
+  {id:"R-016", title:"Third-party supplier breach (e.g. SaaS provider compromise)",
+    category:"Supply Chain", owner:"M. Khan (CISO)", asset:"Customer data shared with critical SaaS suppliers",
+    threat:"Supplier security failure", vulnerability:"Supplier due diligence depth, no continuous monitoring",
+    inherentL:4, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Tier-1 supplier annual SOC 2 review + tier-2 quarterly questionnaire + continuous monitoring via SecurityScorecard + breach notification clause in all contracts + supplier exit plan.",
+    residualL:2, residualI:4, status:"In Treatment",
+    linkedControls:["A.5.19","A.5.20","A.5.21","A.5.22"], linkedUseCases:[],
+    frameworks:["ISO 27001","DORA"],
+    dateIdentified:"2025-11-08", lastReviewed:"2026-04-01", nextReview:"2026-07-01"},
+
+  {id:"R-017", title:"Source code exfiltration via developer tooling (e.g. Copilot, ChatGPT, browser extension)",
+    category:"Supply Chain", owner:"K. Nakamura (CTO)", asset:"Production source code",
+    threat:"Inadvertent code leak", vulnerability:"Developer use of unapproved tools",
+    inherentL:2, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"GitHub Copilot Enterprise (no training on code) only + browser-extension allow-list + monthly access review + secrets scanning on all repos.",
+    residualL:1, residualI:3, status:"Treated",
+    linkedControls:["A.8.4","A.8.28"], linkedUseCases:["uc6"],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-08-10", lastReviewed:"2026-02-15", nextReview:"2027-02-15"},
+
+  {id:"R-018", title:"Vendor security questionnaire backlog — customer trust delays",
+    category:"Supply Chain", owner:"M. Khan (CISO)", asset:"Customer trust requests",
+    threat:"Lost deals, delayed renewals", vulnerability:"Manual questionnaire response, no trust pack",
+    inherentL:3, inherentI:2, treatmentOption:"Mitigate",
+    treatmentActions:"Trust center deployment Q3 2026 + AI-assisted questionnaire response + SOC 2 / ISO 27001 attestations pre-loaded + 3-day SLA for response.",
+    residualL:2, residualI:2, status:"Identified",
+    linkedControls:[], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2026-02-20", lastReviewed:"2026-04-10", nextReview:"2026-06-10"},
+
+  /* ── Compliance ── */
+  {id:"R-019", title:"ISO 27001 stage-2 certification audit failure",
+    category:"Compliance", owner:"H. Williams (CGO)", asset:"ISMS overall",
+    threat:"Major NCR finding", vulnerability:"Annex A control implementation gaps, documentation completeness",
+    inherentL:3, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Pre-audit gap analysis Q2 2026 + remediate all open Annex A gaps before Q3 + mock external audit by BSI advisory + SOA review + management review minutes complete.",
+    residualL:2, residualI:3, status:"In Treatment",
+    linkedControls:[], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-12-01", lastReviewed:"2026-04-10", nextReview:"2026-07-10"},
+
+  {id:"R-020", title:"DORA non-compliance — operational resilience evidence gap",
+    category:"Compliance", owner:"H. Williams (CGO)", asset:"Operational resilience programme",
+    threat:"Regulatory enforcement (Jan 2025 effective)", vulnerability:"Third-party register, ICT-incident reporting maturity",
+    inherentL:3, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"DORA gap assessment Q2 + third-party register linked to supplier evaluations + ICT incident reporting playbook + threat-led penetration testing (TLPT) annually.",
+    residualL:2, residualI:2, status:"Identified",
+    linkedControls:["A.5.30"], linkedUseCases:[],
+    frameworks:["DORA","ISO 27001"],
+    dateIdentified:"2026-01-15", lastReviewed:"2026-04-01", nextReview:"2026-07-01"},
+
+  /* ── Physical ── */
+  {id:"R-021", title:"Office break-in — laptop / hardware token loss",
+    category:"Physical", owner:"Facilities", asset:"Office laptops, hardware tokens",
+    threat:"Burglary, opportunistic theft", vulnerability:"Building access controls, asset tracking",
+    inherentL:2, inherentI:3, treatmentOption:"Mitigate",
+    treatmentActions:"All laptops full-disk encrypted + remote wipe via MDM + hardware tokens issued individually + after-hours access logged + alarmed perimeter + CCTV.",
+    residualL:1, residualI:2, status:"Treated",
+    linkedControls:["A.7.1","A.7.2","A.7.4","A.7.10"], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-06-30", lastReviewed:"2026-01-25", nextReview:"2027-01-25"},
+
+  /* ── HR / Insider ── */
+  {id:"R-022", title:"Insider threat — departing engineer with admin access",
+    category:"Information Security", owner:"M. Khan (CISO) + J. Brooks (HR)", asset:"Production systems, source code",
+    threat:"Malicious or accidental data exfil at termination", vulnerability:"Notice-period access controls, exit process",
+    inherentL:3, inherentI:4, treatmentOption:"Mitigate",
+    treatmentActions:"Immediate access revocation on notice of departure + reduced access during notice period + DLP monitoring elevated + post-exit log review + recovery of all assets + NDA reaffirmed.",
+    residualL:2, residualI:3, status:"Treated",
+    linkedControls:["A.6.5","A.5.11","A.5.18"], linkedUseCases:[],
+    frameworks:["ISO 27001"],
+    dateIdentified:"2025-09-08", lastReviewed:"2026-02-14", nextReview:"2027-02-14"},
+];
+
+/* ─────────────────────────────────────────────
+   PAGE: RISK REGISTER
+───────────────────────────────────────────── */
+function PageRiskRegister({setTab,showToast}) {
+  const [catFilter,setCatFilter]=useState("all");
+  const [statusFilter,setStatusFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [selectedId,setSelectedId]=useState(null);
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* Score → severity band */
+  const severityFor = (score) => {
+    if(score>=20) return {label:"Critical", color:K_.crit};
+    if(score>=13) return {label:"High",     color:K_.crit};
+    if(score>=5)  return {label:"Medium",   color:K_.amber};
+    return                {label:"Low",      color:K_.sage};
+  };
+  const statusColor = s => ({
+    "Identified":K_.crit, "In Treatment":K_.amber, "Treated":K_.sage,
+    "Accepted":K_.ink2, "Closed":K_.ink3,
+  })[s] || K_.ink3;
+  const categoryColor = c => ({
+    "Information Security":K_.navy, "AI Governance":K_.gold,
+    "Privacy":K_.crit, "Operational":K_.amber, "Supply Chain":K_.sage,
+    "Compliance":K_.ink2, "Physical":K_.ink3,
+  })[c] || K_.ink3;
+
+  /* Aggregate stats */
+  const total = RISK_REGISTER.length;
+  const enriched = RISK_REGISTER.map(r=>({
+    ...r, inherentScore:r.inherentL*r.inherentI, residualScore:r.residualL*r.residualI,
+  }));
+  const critical = enriched.filter(r=>r.residualScore>=20).length;
+  const high     = enriched.filter(r=>r.residualScore>=13 && r.residualScore<20).length;
+  const aboveAppetite = enriched.filter(r=>r.residualScore>=13).length;
+  const treated  = enriched.filter(r=>r.status==="Treated").length;
+
+  /* Distinct categories for filter pills */
+  const allCategories = Array.from(new Set(RISK_REGISTER.map(r=>r.category)));
+  const allStatuses   = ["Identified","In Treatment","Treated","Accepted","Closed"];
+
+  /* Filtered + enriched */
+  const filtered = enriched.filter(r=>{
+    if(catFilter!=="all" && r.category!==catFilter) return false;
+    if(statusFilter!=="all" && r.status!==statusFilter) return false;
+    if(search){
+      const q=search.toLowerCase();
+      if(!(r.id.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.owner.toLowerCase().includes(q) || r.category.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  /* Sort: residual score desc by default */
+  filtered.sort((a,b)=>b.residualScore-a.residualScore);
+
+  const sel = selectedId ? enriched.find(r=>r.id===selectedId) : null;
+
+  /* Visualise L×I as a tiny 5×5 dot grid */
+  const ScoreMatrix = ({L, I, color, size=4}) => (
+    <div style={{display:"inline-grid",gridTemplateColumns:`repeat(5,${size+1}px)`,gridTemplateRows:`repeat(5,${size+1}px)`,gap:1}}>
+      {Array.from({length:25}).map((_,i)=>{
+        const col = i%5, row = 4-Math.floor(i/5);
+        const inside = col<L && row<I;
+        return <span key={i} style={{width:size,height:size,borderRadius:1,background:inside?color:K_.ink4}}/>;
+      })}
+    </div>
+  );
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* HERO */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+      <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:48,alignItems:"end"}}>
+        <div>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <span>▸</span><span>ISO 27001 § 6.1.2 / § 8.2 · Risk Register</span>
+          </div>
+          <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+            Every risk, <span style={{fontStyle:"italic"}}>scored & treated.</span>
+          </h1>
+          <p style={{fontSize:14.5,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:560}}>
+            {total} risks across seven categories. Inherent L×I → treatment → residual L×I. Linked to Annex A controls, AI use cases, and the frameworks they impact.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Above risk appetite</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:96,lineHeight:0.9,letterSpacing:"-0.045em",color:K_.gold}}>{aboveAppetite}</div>
+          <div style={{fontSize:12,color:K_.navyT2,marginTop:10}}>residual score ≥ 13 — needs attention</div>
+        </div>
+      </div>
+    </div>
+
+    {/* STATS STRIP */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+      {[
+        {label:"Total risks",  val:String(total), c:K_.ink},
+        {label:"Critical",     val:String(critical), c:K_.crit, sub:"residual ≥ 20"},
+        {label:"High",         val:String(high), c:K_.crit, sub:"residual 13–19"},
+        {label:"Treated",      val:String(treated), c:K_.sage, sub:"residual ≤ appetite"},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:18,padding:"22px 24px",border:`1px solid ${K_.line}`}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+          {s.sub && <div style={{fontSize:11,color:K_.ink3,marginTop:8}}>{s.sub}</div>}
+        </div>
+      ))}
+    </div>
+
+    {/* FILTERS */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"18px 22px",marginBottom:14}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:14,alignItems:"center",marginBottom:12}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by ID, title, owner, category…" style={{
+          flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+          fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
+        }}/>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:10}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4}}>Category</span>
+        {[["all","All"],...allCategories.map(c=>[c,c])].map(([k,l])=>(
+          <button key={k} onClick={()=>setCatFilter(k)} style={{
+            background:catFilter===k?(k==="all"?K_.navy:categoryColor(k)):"transparent",
+            color:catFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${catFilter===k?(k==="all"?K_.navy:categoryColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:catFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4}}>Status</span>
+        {[["all","All"],...allStatuses.map(s=>[s,s])].map(([k,l])=>(
+          <button key={k} onClick={()=>setStatusFilter(k)} style={{
+            background:statusFilter===k?(k==="all"?K_.navy:statusColor(k)):"transparent",
+            color:statusFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${statusFilter===k?(k==="all"?K_.navy:statusColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:statusFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+    </div>
+
+    {/* RISK TABLE */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:1000}}>
+        <thead>
+          <tr style={{borderBottom:`1px solid ${K_.line}`}}>
+            {["Ref","Risk","Category","Inherent","→","Residual","Treatment","Status","Owner"].map((h,i)=>(
+              <th key={h+i} style={{textAlign:i===4?"center":"left",padding:"14px 14px",fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(r=>{
+            const iSev = severityFor(r.inherentScore);
+            const rSev = severityFor(r.residualScore);
+            return <tr key={r.id} onClick={()=>setSelectedId(r.id===selectedId?null:r.id)} style={{
+              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
+              background:selectedId===r.id?K_.s1:"transparent",
+            }}
+            onMouseEnter={e=>{if(selectedId!==r.id)e.currentTarget.style.background=K_.bg;}}
+            onMouseLeave={e=>{if(selectedId!==r.id)e.currentTarget.style.background="transparent";}}>
+              <td style={{padding:"14px",fontFamily:fMono,fontSize:11.5,color:K_.gold,fontWeight:700,letterSpacing:"0.04em"}}>{r.id}</td>
+              <td style={{padding:"14px",color:K_.ink,fontWeight:500,maxWidth:380,lineHeight:1.3}}>{r.title}</td>
+              <td style={{padding:"14px"}}>
+                <span style={{background:categoryColor(r.category)+"15",color:categoryColor(r.category),border:`1px solid ${categoryColor(r.category)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>{r.category}</span>
+              </td>
+              <td style={{padding:"14px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <ScoreMatrix L={r.inherentL} I={r.inherentI} color={iSev.color}/>
+                  <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:18,color:iSev.color,letterSpacing:"-0.03em"}}>{r.inherentScore}</span>
+                </div>
+              </td>
+              <td style={{padding:"14px",textAlign:"center",color:K_.ink3}}>→</td>
+              <td style={{padding:"14px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <ScoreMatrix L={r.residualL} I={r.residualI} color={rSev.color}/>
+                  <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:18,color:rSev.color,letterSpacing:"-0.03em"}}>{r.residualScore}</span>
+                </div>
+              </td>
+              <td style={{padding:"14px",fontSize:11.5,color:K_.ink2,fontWeight:500}}>{r.treatmentOption}</td>
+              <td style={{padding:"14px"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(r.status)+"15",color:statusColor(r.status),border:`1px solid ${statusColor(r.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(r.status)}}/>
+                  {r.status}
+                </span>
+              </td>
+              <td style={{padding:"14px",color:K_.ink2,fontSize:12}}>{r.owner}</td>
+            </tr>;
+          })}
+          {filtered.length===0 && (
+            <tr><td colSpan={9} style={{padding:"40px 16px",textAlign:"center",color:K_.ink3,fontStyle:"italic"}}>No risks match the current filters.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {/* SELECTED RISK DETAIL */}
+    {sel && (() => {
+      const iSev = severityFor(sel.inherentScore);
+      const rSev = severityFor(sel.residualScore);
+      return <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",marginBottom:14,animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22,gap:14,flexWrap:"wrap"}}>
+          <div style={{flex:"1 1 400px"}}>
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+              <span style={{background:categoryColor(sel.category)+"15",color:categoryColor(sel.category),border:`1px solid ${categoryColor(sel.category)}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600}}>{sel.category}</span>
+              <span style={{background:statusColor(sel.status)+"15",color:statusColor(sel.status),border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:600,display:"inline-flex",alignItems:"center",gap:5}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>
+                {sel.status}
+              </span>
+            </div>
+            <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.3}}>{sel.title}</h2>
+          </div>
+          <button onClick={()=>setSelectedId(null)} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:"pointer",fontWeight:600}}>Close</button>
+        </div>
+
+        {/* Threat + Vulnerability */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,marginBottom:24}}>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Threat</div>
+            <div style={{fontSize:13.5,color:K_.ink,lineHeight:1.5}}>{sel.threat}</div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Vulnerability</div>
+            <div style={{fontSize:13.5,color:K_.ink,lineHeight:1.5}}>{sel.vulnerability}</div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Asset at risk</div>
+            <div style={{fontSize:13.5,color:K_.ink,lineHeight:1.5}}>{sel.asset}</div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner</div>
+            <div style={{fontSize:13.5,color:K_.ink,fontWeight:600,lineHeight:1.5}}>{sel.owner}</div>
+          </div>
+        </div>
+
+        {/* Scoring flow: inherent → treatment → residual */}
+        <div style={{background:K_.s1,borderRadius:14,padding:"22px 24px",marginBottom:22}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto 1fr",gap:24,alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Inherent risk</div>
+              <div style={{display:"flex",alignItems:"center",gap:14}}>
+                <ScoreMatrix L={sel.inherentL} I={sel.inherentI} color={iSev.color} size={6}/>
+                <div>
+                  <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:34,color:iSev.color,letterSpacing:"-0.04em",lineHeight:1}}>{sel.inherentScore}</div>
+                  <div style={{fontSize:11,color:iSev.color,fontWeight:700,fontFamily:fMono,letterSpacing:"0.04em",marginTop:4}}>{iSev.label.toUpperCase()}</div>
+                </div>
+              </div>
+              <div style={{fontSize:11,color:K_.ink3,marginTop:8,fontFamily:fMono,letterSpacing:"0.04em"}}>L {sel.inherentL} × I {sel.inherentI}</div>
+            </div>
+            <span style={{color:K_.ink3,fontSize:22}}>→</span>
+            <div>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Treatment</div>
+              <div style={{fontSize:18,color:K_.ink,fontWeight:700,fontFamily:fSans,letterSpacing:"-0.005em"}}>{sel.treatmentOption}</div>
+              <div style={{fontSize:11,color:K_.ink3,marginTop:6,fontFamily:fMono,letterSpacing:"0.04em"}}>strategy applied</div>
+            </div>
+            <span style={{color:K_.ink3,fontSize:22}}>→</span>
+            <div>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Residual risk</div>
+              <div style={{display:"flex",alignItems:"center",gap:14}}>
+                <ScoreMatrix L={sel.residualL} I={sel.residualI} color={rSev.color} size={6}/>
+                <div>
+                  <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:34,color:rSev.color,letterSpacing:"-0.04em",lineHeight:1}}>{sel.residualScore}</div>
+                  <div style={{fontSize:11,color:rSev.color,fontWeight:700,fontFamily:fMono,letterSpacing:"0.04em",marginTop:4}}>{rSev.label.toUpperCase()}</div>
+                </div>
+              </div>
+              <div style={{fontSize:11,color:K_.ink3,marginTop:8,fontFamily:fMono,letterSpacing:"0.04em"}}>L {sel.residualL} × I {sel.residualI}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Treatment actions */}
+        <div style={{marginBottom:22}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Treatment actions</div>
+          <div style={{fontSize:13.5,color:K_.ink,lineHeight:1.6,background:K_.s1,padding:"16px 20px",borderRadius:12,borderLeft:`3px solid ${K_.gold}`}}>{sel.treatmentActions}</div>
+        </div>
+
+        {/* Linked entities */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:24,marginBottom:18}}>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Linked Annex A controls</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.linkedControls.length>0 ? sel.linkedControls.map(c=>(
+                <span key={c} onClick={(e)=>{e.stopPropagation();setTab("annexa");}} style={{background:K_.navy+"10",color:K_.navy,border:`1px solid ${K_.navy}25`,borderRadius:8,padding:"4px 10px",fontSize:11,fontFamily:fMono,letterSpacing:"0.02em",fontWeight:600,cursor:"pointer"}}>{c}</span>
+              )) : <span style={{color:K_.ink3,fontSize:12,fontStyle:"italic"}}>none</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Linked AI use cases</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.linkedUseCases.length>0 ? sel.linkedUseCases.map(uc=>(
+                <span key={uc} onClick={(e)=>{e.stopPropagation();setTab("usecases");}} style={{background:K_.gold+"15",color:K_.goldText,border:`1px solid ${K_.gold}40`,borderRadius:8,padding:"4px 10px",fontSize:11,fontFamily:fMono,letterSpacing:"0.04em",fontWeight:700,cursor:"pointer"}}>{uc.toUpperCase()}</span>
+              )) : <span style={{color:K_.ink3,fontSize:12,fontStyle:"italic"}}>none</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Frameworks</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.frameworks.map((f,i)=>(
+                <span key={i} style={{background:K_.s1,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:8,padding:"4px 10px",fontSize:11,fontFamily:fSans,fontWeight:500}}>{f}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Dates + actions */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:18,borderTop:`1px solid ${K_.line}`,gap:14,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:30,fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em",flexWrap:"wrap"}}>
+            <span>Identified: <strong style={{color:K_.ink2}}>{sel.dateIdentified}</strong></span>
+            <span>Last reviewed: <strong style={{color:K_.ink2}}>{sel.lastReviewed}</strong></span>
+            <span>Next review: <strong style={{color:K_.ink2}}>{sel.nextReview}</strong></span>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>showToast("Edit risk — backend required","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"8px 16px",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+              <span>✦</span> Edit risk
+            </button>
+            <button onClick={()=>showToast("Risk treatment plan — opens next module","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"8px 16px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+              Treatment plan →
+            </button>
+          </div>
+        </div>
+      </div>;
+    })()}
   </div>;
 }
 /* ─────────────────────────────────────────────
@@ -4771,6 +5355,7 @@ export default function VERIS() {
         {tab==="playbook"   &&<PagePlaybook   role={role}/>}
         {tab==="iso27" &&<PageISO27001 setTab={setTab} showToast={showToast}/>}
         {tab==="annexa" &&<PageAnnexA setTab={setTab} showToast={showToast}/>}
+        {tab==="risks" &&<PageRiskRegister setTab={setTab} showToast={showToast}/>}
         {tab==="gap" &&<PageGapAnalysis setTab={setTab} showToast={showToast}/>}
         {tab==="compliance" &&<PageCompliance role={role}/>}
         {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
