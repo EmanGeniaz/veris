@@ -42,6 +42,134 @@ function dbToRisk(row) {
   };
 }
 
+/* DB row → Annex A control component shape. */
+function dbToControl(row) {
+  return {
+    id: row.id,
+    theme: row.theme,
+    name: row.name,
+    applicable: row.applicable,
+    naJustification: row.na_justification,    /* used by SOA page */
+    status: row.status,
+    eff: row.eff,
+    ev: row.ev_count,
+    owner: row.owner,
+    lastReviewed: row.last_reviewed,
+  };
+}
+
+/* DB row → Template component shape. */
+function dbToTemplate(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    framework: row.framework,
+    frameworkRefs: row.framework_refs || [],
+    description: row.description,
+    icon: row.icon,
+    status: row.status,
+    owner: row.owner,
+    version: row.version,
+    lastReviewed: row.last_reviewed,
+    reviewFrequency: row.review_frequency,
+    nextReview: row.next_review,
+    linkedClauses: row.linked_clauses || [],
+    linkedControls: row.linked_controls || [],
+    linkedRisks: row.linked_risks_count,
+    linkedEvidence: row.linked_evidence_count,
+    exports: row.exports || [],
+    aiCustomization: row.ai_customization,
+    tags: row.tags || [],
+  };
+}
+
+/* DB row → Evidence component shape. */
+function dbToEvidence(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    description: row.description,
+    source: row.source,
+    method: row.method,
+    format: row.format,
+    size: row.size_label,
+    uploadedBy: row.uploaded_by,
+    collected: row.collected_date,
+    expires: row.expires_date,
+    linkedControls: row.linked_controls || [],
+    linkedRisks: row.linked_risks || [],
+    frameworks: row.frameworks || [],
+    status: row.status,
+    owner: row.owner,
+  };
+}
+
+/* DB row → Use Case component shape. Decisions merged in from
+   the child table fetch by the page. */
+function dbToUseCase(row, allDecisions = []) {
+  return {
+    id: row.id,
+    name: row.name,
+    dept: row.dept,
+    system: row.system,
+    dataClass: row.data_class,
+    decisionImpact: row.decision_impact,
+    affectedUsers: row.affected_users,
+    tier: row.tier,
+    iso42001Controls: row.iso42001_controls || [],
+    submittedAt: row.submitted_at,
+    submittedBy: row.submitted_by,
+    pipelineStage: row.pipeline_stage,
+    description: row.description,
+    decisions: allDecisions
+      .filter(d => d.use_case_id === row.id)
+      .sort((a,b) => (a.signed_at||"").localeCompare(b.signed_at||""))
+      .map(d => ({
+        role: d.role,
+        decision: d.decision,
+        reasoning: d.reasoning,
+        signer: d.signer,
+        timestamp: d.signed_at,
+      })),
+  };
+}
+
+/* Reusable hook — fetch a table on mount, fall back to a constant
+   if Supabase is unavailable / empty / errors. Returns [data, status]
+   where status ∈ 'live' | 'loading' | 'fallback-empty' | 'fallback-error' | 'constant'. */
+function useSupabaseTable(tableName, transformer, fallback, orderBy = "id") {
+  const [data, setData] = useState(fallback);
+  const [status, setStatus] = useState(supabase ? "loading" : "constant");
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    (async () => {
+      const { data: rows, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .order(orderBy, { ascending: true });
+      if (cancelled) return;
+      if (error || !rows || rows.length === 0) {
+        setStatus(error ? "fallback-error" : "fallback-empty");
+        return;
+      }
+      setData(rows.map(transformer));
+      setStatus("live");
+    })();
+    return () => { cancelled = true; };
+  }, [tableName]);
+  return [data, status];
+}
+
+/* Renders a small LIVE / SEEDED / LOADING pill — pass dataSource. */
+function DataSourcePill({ dataSource, mono="'JetBrains Mono',ui-monospace,monospace" }) {
+  if(dataSource==="live")    return <span style={{marginLeft:8,background:"rgba(91,122,94,0.20)",color:"#7DAA80",borderRadius:100,padding:"2px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.10em",fontFamily:mono,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#7DAA80",boxShadow:"0 0 0 2px rgba(125,170,128,0.25)"}}/>LIVE</span>;
+  if(dataSource==="loading") return <span style={{marginLeft:8,color:"rgba(245,242,234,0.40)",fontSize:9,fontFamily:mono,letterSpacing:"0.10em"}}>LOADING…</span>;
+  return <span style={{marginLeft:8,background:"rgba(184,149,106,0.18)",color:"#D9B98C",borderRadius:100,padding:"2px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.10em",fontFamily:mono,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#D9B98C"}}/>SEEDED</span>;
+}
+
 /* ─────────────────────────────────────────────
    DESIGN SYSTEM — Bloomberg × Palantir × OpenAI
    "Institutional AI Governance Operating System"
@@ -2291,6 +2419,9 @@ function PageAnnexA({setTab,showToast}) {
   const [search,setSearch]=useState("");
   const [selectedId,setSelectedId]=useState(null);
 
+  /* ─── Live data from Supabase, fallback to constant ─── */
+  const [controls, dataSource] = useSupabaseTable("annex_a_controls", dbToControl, ANNEX_A_CONTROLS);
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
@@ -2312,10 +2443,10 @@ function PageAnnexA({setTab,showToast}) {
   })[s] || K_.ink3;
 
   /* Aggregate stats */
-  const total = ANNEX_A_CONTROLS.length;
-  const implemented = ANNEX_A_CONTROLS.filter(c=>c.status==="Implemented").length;
-  const inProgress  = ANNEX_A_CONTROLS.filter(c=>c.status==="In Progress").length;
-  const gaps        = ANNEX_A_CONTROLS.filter(c=>c.status==="Planned" || c.status==="Not Implemented").length;
+  const total = controls.length;
+  const implemented = controls.filter(c=>c.status==="Implemented").length;
+  const inProgress  = controls.filter(c=>c.status==="In Progress").length;
+  const gaps        = controls.filter(c=>c.status==="Planned" || c.status==="Not Implemented").length;
   const readiness   = Math.round(implemented / total * 100);
 
   /* Theme tabs */
@@ -2328,7 +2459,7 @@ function PageAnnexA({setTab,showToast}) {
   ];
 
   /* Filtered list */
-  const filtered = ANNEX_A_CONTROLS.filter(c=>{
+  const filtered = controls.filter(c=>{
     if(themeFilter!=="all" && c.theme!==themeFilter) return false;
     if(statusFilter!=="all" && c.status!==statusFilter) return false;
     if(search){
@@ -2338,7 +2469,7 @@ function PageAnnexA({setTab,showToast}) {
     return true;
   });
 
-  const sel = selectedId ? ANNEX_A_CONTROLS.find(c=>c.id===selectedId) : null;
+  const sel = selectedId ? controls.find(c=>c.id===selectedId) : null;
 
   return <div style={{
     animation:"up .35s cubic-bezier(.16,1,.3,1)",
@@ -2358,6 +2489,7 @@ function PageAnnexA({setTab,showToast}) {
           <button onClick={()=>setTab("iso27")} style={{background:"none",border:"none",color:K_.navyT2,fontSize:11,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",padding:0,marginBottom:18,fontWeight:500}}>← ISO 27001 Workspace</button>
           <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
             <span>▸</span><span>ISO 27001 · Annex A Control Tracker</span>
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
           </div>
           <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
             Ninety-three <span style={{fontStyle:"italic"}}>controls.</span>
@@ -2530,9 +2662,12 @@ function PageAnnexA({setTab,showToast}) {
 
 /* ─────────────────────────────────────────────
    PAGE: GAP ANALYSIS DASHBOARD
-   Derives all gap data from ANNEX_A_CONTROLS in real time.
+   Derives all gap data from controls in real time.
 ───────────────────────────────────────────── */
 function PageGapAnalysis({setTab,showToast}) {
+  /* ─── Same control data as Annex A Tracker — derives gaps live ─── */
+  const [controls, dataSource] = useSupabaseTable("annex_a_controls", dbToControl, ANNEX_A_CONTROLS);
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", navy:"#1C1B1F", navy2:"#2A2826",
@@ -2546,21 +2681,21 @@ function PageGapAnalysis({setTab,showToast}) {
   const fMono ="'JetBrains Mono',ui-monospace,monospace";
 
   /* Derive gaps from Annex A */
-  const gaps = ANNEX_A_CONTROLS.filter(c=>c.status==="Planned" || c.status==="Not Implemented");
-  const weak = ANNEX_A_CONTROLS.filter(c=>c.status==="In Progress" && c.eff<=3);
+  const gaps = controls.filter(c=>c.status==="Planned" || c.status==="Not Implemented");
+  const weak = controls.filter(c=>c.status==="In Progress" && c.eff<=3);
   const allOpen = [...gaps, ...weak];
-  const total = ANNEX_A_CONTROLS.length;
-  const implemented = ANNEX_A_CONTROLS.filter(c=>c.status==="Implemented").length;
+  const total = controls.length;
+  const implemented = controls.filter(c=>c.status==="Implemented").length;
   const gapScore = Math.round(100 - (implemented / total * 100));
   const auditReadiness = Math.round(implemented / total * 100);
 
   /* Theme breakdown */
   const themes = ["Organisational","People","Physical","Technological"];
   const themeStats = themes.map(t=>{
-    const inTheme = ANNEX_A_CONTROLS.filter(c=>c.theme===t);
+    const inTheme = controls.filter(c=>c.theme===t);
     const imp = inTheme.filter(c=>c.status==="Implemented").length;
     const gp = inTheme.filter(c=>c.status==="Planned" || c.status==="Not Implemented").length;
-    return {theme:t, total:inTheme.length, implemented:imp, gaps:gp, pct:Math.round(imp/inTheme.length*100)};
+    return {theme:t, total:inTheme.length, implemented:imp, gaps:gp, pct:Math.round(imp/(inTheme.length||1)*100)};
   });
 
   /* Priority remediation list — sort gaps by theme criticality */
@@ -2593,6 +2728,7 @@ function PageGapAnalysis({setTab,showToast}) {
         <div>
           <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
             <span>▸</span><span>Frameworks · Gap Analysis</span>
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
           </div>
           <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
             What's missing, <span style={{fontStyle:"italic"}}>ranked.</span>
@@ -2957,30 +3093,8 @@ function PageRiskRegister({setTab,showToast}) {
   const [search,setSearch]=useState("");
   const [selectedId,setSelectedId]=useState(null);
 
-  /* ─── Live data from Supabase, with constant fallback ───
-     - If supabase client is null (env vars missing) → use RISK_REGISTER constant.
-     - If fetch fails or returns empty → keep constant (safe demo).
-     - If fetch succeeds → use DB rows. */
-  const [risks, setRisks] = useState(RISK_REGISTER);
-  const [dataSource, setDataSource] = useState(supabase ? "loading" : "constant");
-  useEffect(() => {
-    if (!supabase) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("risks")
-        .select("*")
-        .order("id", { ascending: true });
-      if (cancelled) return;
-      if (error || !data || data.length === 0) {
-        setDataSource(error ? "fallback-error" : "fallback-empty");
-        return; // keep RISK_REGISTER fallback
-      }
-      setRisks(data.map(dbToRisk));
-      setDataSource("live");
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  /* ─── Live data from Supabase, with constant fallback ─── */
+  const [risks, dataSource] = useSupabaseTable("risks", dbToRisk, RISK_REGISTER);
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -3072,9 +3186,7 @@ function PageRiskRegister({setTab,showToast}) {
         <div>
           <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
             <span>▸</span><span>ISO 27001 § 6.1.2 / § 8.2 · Risk Register</span>
-            {dataSource==="live" && <span style={{marginLeft:8,background:K_.sage+"20",color:"#7DAA80",borderRadius:100,padding:"2px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.10em",fontFamily:fMono,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#7DAA80",boxShadow:"0 0 0 2px rgba(125,170,128,0.25)"}}/>LIVE</span>}
-            {dataSource==="loading" && <span style={{marginLeft:8,color:K_.navyT3,fontSize:9,fontFamily:fMono,letterSpacing:"0.10em"}}>LOADING…</span>}
-            {(dataSource==="fallback-empty" || dataSource==="fallback-error" || dataSource==="constant") && <span style={{marginLeft:8,background:"rgba(184,149,106,0.18)",color:"#D9B98C",borderRadius:100,padding:"2px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.10em",fontFamily:fMono,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#D9B98C"}}/>SEEDED</span>}
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
           </div>
           <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
             Every risk, <span style={{fontStyle:"italic"}}>scored & treated.</span>
@@ -3343,6 +3455,9 @@ function PageSOA({setTab,showToast}) {
   const [search,setSearch]=useState("");
   const [selectedId,setSelectedId]=useState(null);
 
+  /* ─── Live data — annex A controls (with naJustification already on the row) ─── */
+  const [controls, dataSource] = useSupabaseTable("annex_a_controls", dbToControl, ANNEX_A_CONTROLS);
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
@@ -3358,12 +3473,19 @@ function PageSOA({setTab,showToast}) {
   const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
   const fMono ="'JetBrains Mono',ui-monospace,monospace";
 
-  /* Enrich controls with applicability info (derived from N/A justification map) */
-  const enriched = ANNEX_A_CONTROLS.map(c => ({
-    ...c,
-    applicable: !SOA_NA_JUSTIFICATIONS[c.id],
-    naJustification: SOA_NA_JUSTIFICATIONS[c.id] || null,
-  }));
+  /* Enrich controls with applicability info.
+     When live: every row already has na_justification populated by the
+     seed. When falling back to the local ANNEX_A_CONTROLS constant
+     (no Supabase), use SOA_NA_JUSTIFICATIONS map to apply the 4 N/A
+     justifications by id — same result either way. */
+  const enriched = controls.map(c => {
+    const naJust = c.naJustification ?? SOA_NA_JUSTIFICATIONS[c.id] ?? null;
+    return {
+      ...c,
+      applicable: naJust ? false : (c.applicable !== false),
+      naJustification: naJust,
+    };
+  });
 
   const statusColor = s => ({
     "Implemented":K_.sage, "In Progress":K_.gold, "Planned":K_.amber,
@@ -3416,6 +3538,7 @@ function PageSOA({setTab,showToast}) {
           <button onClick={()=>setTab("iso27")} style={{background:"none",border:"none",color:K_.navyT2,fontSize:11,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",padding:0,marginBottom:18,fontWeight:500}}>← ISO 27001 Workspace</button>
           <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
             <span>▸</span><span>ISO 27001 § 6.1.3 · Statement of Applicability</span>
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
           </div>
           <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
             The auditor's <span style={{fontStyle:"italic"}}>document.</span>
@@ -3696,6 +3819,9 @@ function PageEvidence({setTab,showToast}) {
   const [search,setSearch]=useState("");
   const [selectedId,setSelectedId]=useState(null);
 
+  /* ─── Live data from Supabase, fallback to constant ─── */
+  const [items, dataSource] = useSupabaseTable("evidence", dbToEvidence, EVIDENCE_LIBRARY);
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
@@ -3713,7 +3839,7 @@ function PageEvidence({setTab,showToast}) {
 
   /* Compute expiring-soon dynamically — within 30 days of today */
   const today = new Date("2026-06-04");
-  const enriched = EVIDENCE_LIBRARY.map(e=>{
+  const enriched = items.map(e=>{
     if(!e.expires) return e;
     const exp = new Date(e.expires);
     const days = Math.round((exp - today) / 86400000);
@@ -3741,7 +3867,7 @@ function PageEvidence({setTab,showToast}) {
   const expired = enriched.filter(e=>(e.dynamicStatus||e.status)==="Expired").length;
 
   /* Distinct types */
-  const allTypes = Array.from(new Set(EVIDENCE_LIBRARY.map(e=>e.type)));
+  const allTypes = Array.from(new Set(items.map(e=>e.type)));
   const allStatuses = ["Current","Expiring Soon","Expired","Pending Review","Archived"];
 
   const filtered = enriched.filter(e=>{
@@ -3782,6 +3908,7 @@ function PageEvidence({setTab,showToast}) {
         <div>
           <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
             <span>▸</span><span>ISO 27001 § 7.5 / § 9.2 · Evidence Library</span>
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
           </div>
           <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
             Proof, <span style={{fontStyle:"italic"}}>indexed.</span>
@@ -4373,11 +4500,14 @@ function PageRoadmap({role}) {
 ───────────────────────────────────────────── */
 function PageTemplates({role,showToast}) {
   const [view,setView]=useState("library");      /* "library" | "detail" */
-  const [selectedId,setSelectedId]=useState(TEMPLATES[0].id);
   const [search,setSearch]=useState("");
   const [catFilter,setCatFilter]=useState("all");
   const [statusFilter,setStatusFilter]=useState("all");
   const [frameworkFilter,setFrameworkFilter]=useState("all");
+
+  /* ─── Live data from Supabase, fallback to constant ─── */
+  const [tmpls, dataSource] = useSupabaseTable("templates", dbToTemplate, TEMPLATES);
+  const [selectedId,setSelectedId]=useState(TEMPLATES[0]?.id);
 
   /* ─── Quiet luxury palette — graphite + champagne + cream ─────
      Deep warm graphite heroes, cream surfaces, champagne accent.
@@ -4429,12 +4559,12 @@ function PageTemplates({role,showToast}) {
   })[c] || K_.ink3;
 
   /* ─── Distinct values for filters ─── */
-  const allCategories = Array.from(new Set(TEMPLATES.map(t=>t.category)));
+  const allCategories = Array.from(new Set(tmpls.map(t=>t.category)));
   const allStatuses   = ["Approved","In Review","Draft","Needs Update","Expired"];
-  const allFrameworks = Array.from(new Set(TEMPLATES.map(t=>t.framework)));
+  const allFrameworks = Array.from(new Set(tmpls.map(t=>t.framework)));
 
   /* ─── Filtering ─── */
-  const filtered = TEMPLATES.filter(t=>{
+  const filtered = tmpls.filter(t=>{
     if(catFilter!=="all" && t.category!==catFilter) return false;
     if(statusFilter!=="all" && t.status!==statusFilter) return false;
     if(frameworkFilter!=="all" && t.framework!==frameworkFilter) return false;
@@ -4445,14 +4575,14 @@ function PageTemplates({role,showToast}) {
     return true;
   });
 
-  const sel = TEMPLATES.find(t=>t.id===selectedId) || TEMPLATES[0];
+  const sel = tmpls.find(t=>t.id===selectedId) || tmpls[0];
 
   /* ─── Stats ─── */
   const stats = {
-    total:    TEMPLATES.length,
-    approved: TEMPLATES.filter(t=>t.status==="Approved").length,
-    inReview: TEMPLATES.filter(t=>t.status==="In Review").length,
-    needsUpdate: TEMPLATES.filter(t=>t.status==="Needs Update" || t.status==="Expired").length,
+    total:    tmpls.length,
+    approved: tmpls.filter(t=>t.status==="Approved").length,
+    inReview: tmpls.filter(t=>t.status==="In Review").length,
+    needsUpdate: tmpls.filter(t=>t.status==="Needs Update" || t.status==="Expired").length,
   };
 
   /* ════════ LIBRARY VIEW ════════ */
@@ -4468,6 +4598,7 @@ function PageTemplates({role,showToast}) {
           <div>
             <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
               <span>▸</span><span>Policies & Evidence · Template Library</span>
+              <DataSourcePill dataSource={dataSource} mono={fMono}/>
             </div>
             <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,3.8vw,46px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
               Every document, <span style={{fontStyle:"italic"}}>audit-ready.</span>
@@ -5526,14 +5657,36 @@ function PageMaturityRadar() {
 ───────────────────────────────────────────── */
 function PageUseCases() {
   const [view,setView]=useState("inventory");        /* "inventory" | "intake" | "detail" */
-  const [selectedId,setSelectedId]=useState(USE_CASES[0].id);
   const [filter,setFilter]=useState("all");          /* pipeline-stage filter */
   const [tierFilter,setTierFilter]=useState("all");
   const [intake,setIntake]=useState({
     name:"", dept:"", system:"GPT-4 Enterprise", dataClass:"Internal",
     decisionImpact:"Advisory", affectedUsers:"", desc:"", submittedBy:"",
   });
-  const [cases,setCases]=useState(USE_CASES);
+
+  /* ─── Live data from Supabase ─── joins use_cases + use_case_decisions */
+  const [cases, setCases] = useState(USE_CASES);
+  const [dataSource, setDataSource] = useState(supabase ? "loading" : "constant");
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: ucs, error: e1 }, { data: dcs, error: e2 }] = await Promise.all([
+        supabase.from("use_cases").select("*").order("id", { ascending: true }),
+        supabase.from("use_case_decisions").select("*"),
+      ]);
+      if (cancelled) return;
+      if (e1 || e2 || !ucs || ucs.length === 0) {
+        setDataSource((e1 || e2) ? "fallback-error" : "fallback-empty");
+        return;
+      }
+      setCases(ucs.map(uc => dbToUseCase(uc, dcs || [])));
+      setDataSource("live");
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const [selectedId,setSelectedId]=useState(USE_CASES[0]?.id);
 
   /* ─── Quiet luxury palette — graphite + champagne + cream ─────
      Deep warm graphite heroes, cream surfaces, champagne accent.
@@ -5644,6 +5797,7 @@ function PageUseCases() {
           <div>
             <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
               <span>▸</span><span>AI Governance · Use Case Pipeline</span>
+              <DataSourcePill dataSource={dataSource} mono={fMono}/>
             </div>
             <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,3.8vw,46px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
               Every AI use case, <span style={{fontStyle:"italic"}}>under control.</span>
