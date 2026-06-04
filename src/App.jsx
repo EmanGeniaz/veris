@@ -137,8 +137,9 @@ function dbToUseCase(row, allDecisions = []) {
 }
 
 /* Reusable hook — fetch a table on mount, fall back to a constant
-   if Supabase is unavailable / empty / errors. Returns [data, status]
-   where status ∈ 'live' | 'loading' | 'fallback-empty' | 'fallback-error' | 'constant'. */
+   if Supabase is unavailable / empty / errors. Returns [data, status, setData]
+   where status ∈ 'live' | 'loading' | 'fallback-empty' | 'fallback-error' | 'constant'.
+   setData is exposed so consumers can do optimistic updates after writes. */
 function useSupabaseTable(tableName, transformer, fallback, orderBy = "id") {
   const [data, setData] = useState(fallback);
   const [status, setStatus] = useState(supabase ? "loading" : "constant");
@@ -160,7 +161,7 @@ function useSupabaseTable(tableName, transformer, fallback, orderBy = "id") {
     })();
     return () => { cancelled = true; };
   }, [tableName]);
-  return [data, status];
+  return [data, status, setData];
 }
 
 /* Renders a small LIVE / SEEDED / LOADING pill — pass dataSource. */
@@ -2420,7 +2421,27 @@ function PageAnnexA({setTab,showToast}) {
   const [selectedId,setSelectedId]=useState(null);
 
   /* ─── Live data from Supabase, fallback to constant ─── */
-  const [controls, dataSource] = useSupabaseTable("annex_a_controls", dbToControl, ANNEX_A_CONTROLS);
+  const [controls, dataSource, setControls] = useSupabaseTable("annex_a_controls", dbToControl, ANNEX_A_CONTROLS);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const canEdit = dataSource === "live";
+
+  /* Save new status for a single control */
+  const updateControlStatus = async (controlId, newStatus) => {
+    if(!supabase) return;
+    setUpdatingStatus(true);
+    const today = new Date().toISOString().slice(0,10);
+    const { error } = await supabase
+      .from("annex_a_controls")
+      .update({ status: newStatus, last_reviewed: today })
+      .eq("id", controlId);
+    setUpdatingStatus(false);
+    if(error){
+      showToast(`Update failed: ${error.message}`, "error");
+      return;
+    }
+    setControls(cs => cs.map(c => c.id === controlId ? {...c, status: newStatus, lastReviewed: today} : c));
+    showToast(`${controlId} → ${newStatus}`, "success");
+  };
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -2610,10 +2631,29 @@ function PageAnnexA({setTab,showToast}) {
             <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
               <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
               <span style={{background:K_.s1,color:K_.ink2,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:500,fontFamily:fSans}}>{sel.theme}</span>
-              <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.status)+"15",color:statusColor(sel.status),border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:11,fontWeight:600}}>
-                <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>
-                {sel.status}
-              </span>
+              {canEdit ? (
+                <div style={{position:"relative",display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.status)+"15",border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"3px 9px 3px 9px"}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>
+                  <select
+                    value={sel.status}
+                    disabled={updatingStatus}
+                    onChange={e=>updateControlStatus(sel.id, e.target.value)}
+                    style={{
+                      background:"transparent",border:"none",outline:"none",
+                      color:statusColor(sel.status),fontSize:11,fontWeight:600,
+                      fontFamily:fSans,cursor:updatingStatus?"wait":"pointer",
+                      paddingRight:14,appearance:"none",WebkitAppearance:"none",MozAppearance:"none",
+                    }}>
+                    {["Implemented","In Progress","Planned","Not Implemented","Compensating Control"].map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <span style={{position:"absolute",right:8,pointerEvents:"none",fontSize:7,color:statusColor(sel.status),opacity:0.7}}>▾</span>
+                </div>
+              ) : (
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.status)+"15",color:statusColor(sel.status),border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:11,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>
+                  {sel.status}
+                </span>
+              )}
             </div>
             <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.3}}>{sel.name}</h2>
           </div>
@@ -3094,7 +3134,13 @@ function PageRiskRegister({setTab,showToast}) {
   const [selectedId,setSelectedId]=useState(null);
 
   /* ─── Live data from Supabase, with constant fallback ─── */
-  const [risks, dataSource] = useSupabaseTable("risks", dbToRisk, RISK_REGISTER);
+  const [risks, dataSource, setRisks] = useSupabaseTable("risks", dbToRisk, RISK_REGISTER);
+
+  /* ─── Edit-mode state ─── */
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState(null);    /* draft copy of the selected risk */
+  const [saving, setSaving] = useState(false);
+  const canEdit = dataSource === "live";
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -3423,7 +3469,16 @@ function PageRiskRegister({setTab,showToast}) {
             <span>Next review: <strong style={{color:K_.ink2}}>{sel.nextReview}</strong></span>
           </div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>showToast("Edit risk — backend required","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"8px 16px",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+            <button
+              onClick={()=>{
+                if(!canEdit){ showToast("Connect Supabase to enable edits","info"); return; }
+                setEditForm({...sel});
+                setEditMode(true);
+              }}
+              disabled={saving}
+              style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"8px 16px",fontSize:11.5,fontWeight:700,cursor:canEdit?"pointer":"not-allowed",opacity:canEdit?1:0.55,fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}
+              title={canEdit?"Edit this risk":"Edit requires live DB connection"}
+            >
               <span>✦</span> Edit risk
             </button>
             <button onClick={()=>showToast("Risk treatment plan — opens next module","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"8px 16px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
@@ -3431,6 +3486,121 @@ function PageRiskRegister({setTab,showToast}) {
             </button>
           </div>
         </div>
+
+        {/* ─── INLINE EDIT FORM — appears below detail panel when editMode is true ─── */}
+        {editMode && editForm && (
+          <div style={{marginTop:20,paddingTop:20,borderTop:`2px solid ${K_.gold}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
+              <span style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700}}>Editing</span>
+              <span style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18,marginBottom:18}}>
+              {/* Title */}
+              <div style={{gridColumn:"1 / -1"}}>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Title</label>
+                <input value={editForm.title} onChange={e=>setEditForm({...editForm,title:e.target.value})}
+                  style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+              </div>
+
+              {/* Status */}
+              <div>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Status</label>
+                <select value={editForm.status} onChange={e=>setEditForm({...editForm,status:e.target.value})}
+                  style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                  {["Identified","In Treatment","Treated","Accepted","Closed"].map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Owner */}
+              <div>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner</label>
+                <input value={editForm.owner||""} onChange={e=>setEditForm({...editForm,owner:e.target.value})}
+                  style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+              </div>
+
+              {/* Treatment option */}
+              <div>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Treatment</label>
+                <select value={editForm.treatmentOption||""} onChange={e=>setEditForm({...editForm,treatmentOption:e.target.value})}
+                  style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                  {["Mitigate","Transfer","Accept","Avoid"].map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Residual L + I */}
+              <div>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Residual L × I</label>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <select value={editForm.residualL||1} onChange={e=>setEditForm({...editForm,residualL:Number(e.target.value)})}
+                    style={{padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer",flex:1}}>
+                    {[1,2,3,4,5].map(n=><option key={n} value={n}>L = {n}</option>)}
+                  </select>
+                  <span style={{fontSize:13,color:K_.ink3}}>×</span>
+                  <select value={editForm.residualI||1} onChange={e=>setEditForm({...editForm,residualI:Number(e.target.value)})}
+                    style={{padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer",flex:1}}>
+                    {[1,2,3,4,5].map(n=><option key={n} value={n}>I = {n}</option>)}
+                  </select>
+                  <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:20,color:K_.ink2,letterSpacing:"-0.02em",minWidth:36,textAlign:"right"}}>= {(editForm.residualL||0)*(editForm.residualI||0)}</span>
+                </div>
+              </div>
+
+              {/* Next review date */}
+              <div>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Next review</label>
+                <input type="date" value={editForm.nextReview||""} onChange={e=>setEditForm({...editForm,nextReview:e.target.value})}
+                  style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+              </div>
+
+              {/* Treatment actions — full width */}
+              <div style={{gridColumn:"1 / -1"}}>
+                <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Treatment actions</label>
+                <textarea value={editForm.treatmentActions||""} onChange={e=>setEditForm({...editForm,treatmentActions:e.target.value})} rows={4}
+                  style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+              </div>
+            </div>
+
+            {/* Save + Cancel */}
+            <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+              <button onClick={()=>{setEditMode(false);setEditForm(null);}} disabled={saving}
+                style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:saving?"not-allowed":"pointer",fontFamily:fSans,opacity:saving?0.5:1}}>
+                Cancel
+              </button>
+              <button
+                onClick={async ()=>{
+                  if(!supabase) return;
+                  setSaving(true);
+                  /* Map camelCase → snake_case for DB column names */
+                  const dbPatch = {
+                    title:             editForm.title,
+                    status:            editForm.status,
+                    owner:             editForm.owner,
+                    treatment_option:  editForm.treatmentOption,
+                    treatment_actions: editForm.treatmentActions,
+                    residual_l:        editForm.residualL,
+                    residual_i:        editForm.residualI,
+                    next_review:       editForm.nextReview || null,
+                    last_reviewed:     new Date().toISOString().slice(0,10),
+                  };
+                  const { error } = await supabase.from("risks").update(dbPatch).eq("id", sel.id);
+                  setSaving(false);
+                  if(error){
+                    showToast(`Save failed: ${error.message}`, "error");
+                    return;
+                  }
+                  /* Optimistic local update — patch the matching risk in our array */
+                  setRisks(rs => rs.map(r => r.id === sel.id ? {...r, ...editForm, lastReviewed: dbPatch.last_reviewed} : r));
+                  setEditMode(false);
+                  setEditForm(null);
+                  showToast(`${sel.id} updated`, "success");
+                }}
+                disabled={saving}
+                style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 22px",fontSize:12,fontWeight:700,cursor:saving?"not-allowed":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,opacity:saving?0.7:1}}>
+                <span>{saving?"⋯":"✓"}</span> {saving?"Saving…":"Save changes"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>;
     })()}
   </div>;
