@@ -2492,6 +2492,14 @@ function PageAnnexA({setTab,showToast}) {
 
   const sel = selectedId ? controls.find(c=>c.id===selectedId) : null;
 
+  /* Esc closes the modal */
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (e) => { if (e.key === "Escape") setSelectedId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId]);
+
   return <div style={{
     animation:"up .35s cubic-bezier(.16,1,.3,1)",
     background:"transparent",fontFamily:fSans,color:K_.ink,
@@ -2623,9 +2631,15 @@ function PageAnnexA({setTab,showToast}) {
       </table>
     </div>
 
-    {/* ── SELECTED CONTROL DETAIL ── */}
+    {/* ── SELECTED CONTROL DETAIL — modal overlay ── */}
     {sel && (
-      <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14,animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+      <div onClick={()=>setSelectedId(null)} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.55)",
+        zIndex:1000,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
+      }}>
+      <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",maxWidth:960,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.35)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,gap:14,flexWrap:"wrap"}}>
           <div>
             <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
@@ -2695,6 +2709,7 @@ function PageAnnexA({setTab,showToast}) {
             Linked templates →
           </button>
         </div>
+      </div>
       </div>
     )}
   </div>;
@@ -3204,6 +3219,14 @@ function PageRiskRegister({setTab,showToast}) {
 
   const sel = selectedId ? enriched.find(r=>r.id===selectedId) : null;
 
+  /* Esc key closes the detail modal (unless in the middle of editing) */
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (e) => { if (e.key === "Escape" && !editMode) setSelectedId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId, editMode]);
+
   /* Visualise L×I as a tiny 5×5 dot grid */
   const ScoreMatrix = ({L, I, color, size=4}) => (
     <div style={{display:"inline-grid",gridTemplateColumns:`repeat(5,${size+1}px)`,gridTemplateRows:`repeat(5,${size+1}px)`,gap:1}}>
@@ -3298,6 +3321,14 @@ function PageRiskRegister({setTab,showToast}) {
     </div>
 
     {/* RISK TABLE */}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px",marginBottom:10}}>
+      <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>
+        Showing {filtered.length} risk{filtered.length===1?"":"s"} · sorted by residual score
+      </div>
+      <div style={{fontSize:11,color:K_.ink3,fontStyle:"italic"}}>
+        {sel ? <>Selected: <strong style={{color:K_.gold,fontStyle:"normal",fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.id}</strong> — scroll down for details ↓</> : "Click any row to view details ↓"}
+      </div>
+    </div>
     <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:1000}}>
         <thead>
@@ -3312,8 +3343,9 @@ function PageRiskRegister({setTab,showToast}) {
             const iSev = severityFor(r.inherentScore);
             const rSev = severityFor(r.residualScore);
             return <tr key={r.id} onClick={()=>setSelectedId(r.id===selectedId?null:r.id)} style={{
-              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
-              background:selectedId===r.id?K_.s1:"transparent",
+              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s, box-shadow .12s",
+              background:selectedId===r.id?K_.gold+"18":"transparent",
+              boxShadow:selectedId===r.id?`inset 4px 0 0 ${K_.gold}`:"none",
             }}
             onMouseEnter={e=>{if(selectedId!==r.id)e.currentTarget.style.background=K_.bg;}}
             onMouseLeave={e=>{if(selectedId!==r.id)e.currentTarget.style.background="transparent";}}>
@@ -3352,11 +3384,17 @@ function PageRiskRegister({setTab,showToast}) {
       </table>
     </div>
 
-    {/* SELECTED RISK DETAIL */}
+    {/* SELECTED RISK DETAIL — modal overlay */}
     {sel && (() => {
       const iSev = severityFor(sel.inherentScore);
       const rSev = severityFor(sel.residualScore);
-      return <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",marginBottom:14,animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+      return <div onClick={()=>{if(!editMode)setSelectedId(null);}} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.55)",
+        zIndex:1000,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
+      }}>
+      <div id="risk-detail-panel" onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",maxWidth:980,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.35)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22,gap:14,flexWrap:"wrap"}}>
           <div style={{flex:"1 1 400px"}}>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
@@ -3601,6 +3639,7 @@ function PageRiskRegister({setTab,showToast}) {
             </div>
           </div>
         )}
+      </div>
       </div>;
     })()}
   </div>;
