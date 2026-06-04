@@ -1,4 +1,46 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+/* ─────────────────────────────────────────────
+   SUPABASE CLIENT
+   Reads VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY from env.
+   Returns null if either is missing so the app degrades to the
+   seeded constants without crashing. When the env vars are set
+   in Vercel, every page that fetches will switch to live DB data.
+───────────────────────────────────────────── */
+const _SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const _SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabase = (_SUPABASE_URL && _SUPABASE_ANON_KEY)
+  ? createClient(_SUPABASE_URL, _SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+  : null;
+
+/* Transform a DB risk row (snake_case) to the camelCase shape
+   the Risk Register component already expects. Single boundary
+   conversion — page code below is unchanged. */
+function dbToRisk(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    owner: row.owner,
+    asset: row.asset,
+    threat: row.threat,
+    vulnerability: row.vulnerability,
+    inherentL: row.inherent_l,
+    inherentI: row.inherent_i,
+    treatmentOption: row.treatment_option,
+    treatmentActions: row.treatment_actions,
+    residualL: row.residual_l,
+    residualI: row.residual_i,
+    status: row.status,
+    linkedControls: row.linked_controls || [],
+    linkedUseCases: row.linked_use_cases || [],
+    frameworks: row.frameworks || [],
+    dateIdentified: row.date_identified,
+    lastReviewed: row.last_reviewed,
+    nextReview: row.next_review,
+  };
+}
 
 /* ─────────────────────────────────────────────
    DESIGN SYSTEM — Bloomberg × Palantir × OpenAI
@@ -2915,6 +2957,31 @@ function PageRiskRegister({setTab,showToast}) {
   const [search,setSearch]=useState("");
   const [selectedId,setSelectedId]=useState(null);
 
+  /* ─── Live data from Supabase, with constant fallback ───
+     - If supabase client is null (env vars missing) → use RISK_REGISTER constant.
+     - If fetch fails or returns empty → keep constant (safe demo).
+     - If fetch succeeds → use DB rows. */
+  const [risks, setRisks] = useState(RISK_REGISTER);
+  const [dataSource, setDataSource] = useState(supabase ? "loading" : "constant");
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("risks")
+        .select("*")
+        .order("id", { ascending: true });
+      if (cancelled) return;
+      if (error || !data || data.length === 0) {
+        setDataSource(error ? "fallback-error" : "fallback-empty");
+        return; // keep RISK_REGISTER fallback
+      }
+      setRisks(data.map(dbToRisk));
+      setDataSource("live");
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
@@ -2948,8 +3015,8 @@ function PageRiskRegister({setTab,showToast}) {
   })[c] || K_.ink3;
 
   /* Aggregate stats */
-  const total = RISK_REGISTER.length;
-  const enriched = RISK_REGISTER.map(r=>({
+  const total = risks.length;
+  const enriched = risks.map(r=>({
     ...r, inherentScore:r.inherentL*r.inherentI, residualScore:r.residualL*r.residualI,
   }));
   const critical = enriched.filter(r=>r.residualScore>=20).length;
@@ -2958,7 +3025,7 @@ function PageRiskRegister({setTab,showToast}) {
   const treated  = enriched.filter(r=>r.status==="Treated").length;
 
   /* Distinct categories for filter pills */
-  const allCategories = Array.from(new Set(RISK_REGISTER.map(r=>r.category)));
+  const allCategories = Array.from(new Set(risks.map(r=>r.category)));
   const allStatuses   = ["Identified","In Treatment","Treated","Accepted","Closed"];
 
   /* Filtered + enriched */
@@ -3005,6 +3072,9 @@ function PageRiskRegister({setTab,showToast}) {
         <div>
           <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
             <span>▸</span><span>ISO 27001 § 6.1.2 / § 8.2 · Risk Register</span>
+            {dataSource==="live" && <span style={{marginLeft:8,background:K_.sage+"20",color:"#7DAA80",borderRadius:100,padding:"2px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.10em",fontFamily:fMono,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#7DAA80",boxShadow:"0 0 0 2px rgba(125,170,128,0.25)"}}/>LIVE</span>}
+            {dataSource==="loading" && <span style={{marginLeft:8,color:K_.navyT3,fontSize:9,fontFamily:fMono,letterSpacing:"0.10em"}}>LOADING…</span>}
+            {(dataSource==="fallback-empty" || dataSource==="fallback-error" || dataSource==="constant") && <span style={{marginLeft:8,background:"rgba(184,149,106,0.18)",color:"#D9B98C",borderRadius:100,padding:"2px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.10em",fontFamily:fMono,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:5,height:5,borderRadius:"50%",background:"#D9B98C"}}/>SEEDED</span>}
           </div>
           <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
             Every risk, <span style={{fontStyle:"italic"}}>scored & treated.</span>
