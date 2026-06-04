@@ -5978,7 +5978,32 @@ function PageUseCases() {
 
 export default function VERIS() {
   const [role,setRole]=useState("caio");
-  const [tab,setTab]=useState("home");
+  /* ─── Hash-based routing ────────────────────────────────
+     URL pattern: /#/<tab>  e.g.  /#/risks, /#/annexa, /#/iso27
+     - On mount: read hash and initialise tab (so a refresh on
+       /#/risks stays on the Risk Register, not the dashboard).
+     - On hashchange (back/forward button, manual edit, link
+       click): re-read the hash and update state.
+     - On setTab call: push the new hash to history — the
+       hashchange listener then updates state. */
+  const _readHash = () => {
+    const h = typeof window !== "undefined" ? window.location.hash : "";
+    const m = h.replace(/^#\/?/, "").split(/[?&]/)[0];
+    return m || "home";
+  };
+  const [tab,_setTabState]=useState(_readHash);
+  useEffect(()=>{
+    const onHash=()=>_setTabState(_readHash());
+    window.addEventListener("hashchange",onHash);
+    return ()=>window.removeEventListener("hashchange",onHash);
+  },[]);
+  const setTab = useCallback((next)=>{
+    if(!next) return;
+    if(next === _readHash()) return;            // no-op if already there
+    window.location.hash = "/" + next;          // triggers hashchange
+  },[]);
+  /* End hash routing ─────────────────────────────────────── */
+
   const [toast,setToast]=useState({msg:"",vis:false,type:"success"});
   const [hitlCount,setHitlCount]=useState(()=>HITL["caio"].length);
   const [sidebarOpen,setSidebarOpen]=useState(false);
@@ -6038,7 +6063,10 @@ export default function VERIS() {
       {/* Top bar */}
       <div style={{background:T.s1,borderBottom:`1px solid ${T.border}`,height:56,display:"flex",alignItems:"center",padding:"0 18px",position:"sticky",top:0,zIndex:100,gap:14}}>
         <button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",color:T.ink2,fontSize:22,padding:"6px 8px",flexShrink:0,cursor:"pointer",lineHeight:1}}>☰</button>
-        <div style={{display:"flex",alignItems:"center",gap:8,flex:"0 0 auto"}}>
+        <button onClick={()=>setTab("home")} title="Home" style={{display:"flex",alignItems:"center",gap:8,flex:"0 0 auto",background:"none",border:"none",padding:"4px 6px",borderRadius:8,cursor:"pointer",transition:"background .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background=T.bg}
+          onMouseLeave={e=>e.currentTarget.style.background="none"}
+        >
           <svg width="18" height="20" viewBox="0 0 80 86" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="vt-left" x1="0" y1="0" x2="40" y2="86" gradientUnits="userSpaceOnUse">
@@ -6060,7 +6088,7 @@ export default function VERIS() {
             <polygon points="28,12 32,4 36,12 32,16" fill="url(#vt-gem)" opacity="0.95"/>
           </svg>
           <span style={{fontFamily:"'Plus Jakarta Sans', sans-serif",fontSize:13,fontWeight:800,color:T.ink,letterSpacing:"0.12em",textTransform:"uppercase"}}>VerisZone</span>
-        </div>
+        </button>
         {!isMobile&&<div style={{display:"flex",gap:3,background:T.bg,borderRadius:8,padding:3,border:`1px solid ${T.border}`}}>
           {Object.values(ROLES).map(r2=><button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:role===r2.id?RC(r2.id)+"20":"transparent",border:role===r2.id?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:6,padding:"4px 13px",color:role===r2.id?RC(r2.id):T.ink4,fontSize:11,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>)}
         </div>}
