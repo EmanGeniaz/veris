@@ -101,6 +101,8 @@ const NAV_GROUPS = [
   ]},
   {id:"frameworks", label:"Frameworks", items:[
     {id:"iso27",     icon:"🛡", label:"ISO 27001 Workspace"},
+    {id:"annexa",    icon:"☑", label:"Annex A Tracker"},
+    {id:"gap",       icon:"📐", label:"Gap Analysis"},
     {id:"compliance",icon:"◉", label:"Compliance"},
     {id:"checklists",icon:"☑", label:"ISO Checklists"},
     {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
@@ -1940,7 +1942,7 @@ const ISO27001_MODULES = [
   {id:"iso27_treatment",  name:"Risk Treatment Plan",             category:"Risk",        clause:"§ 6.1.3 / 8.3", icon:"◆", status:"In Progress", complete:55, owner:"S. Ali (CAIO)",                  link:{tab:"templates"}},
   /* CONTROLS */
   {id:"iso27_soa",        name:"Statement of Applicability",      category:"Controls",    clause:"§ 6.1.3",   icon:"📋", status:"In Review",    complete:90,  owner:"M. Khan (CISO)",                     link:{tab:"templates"}},
-  {id:"iso27_annexa",     name:"Annex A Control Tracker",         category:"Controls",    clause:"Annex A (93)", icon:"☑", status:"In Progress", complete:72, owner:"M. Khan (CISO)",                  link:null},
+  {id:"iso27_annexa",     name:"Annex A Control Tracker",         category:"Controls",    clause:"Annex A (93)", icon:"☑", status:"In Progress", complete:72, owner:"M. Khan (CISO)",                  link:{tab:"annexa"}},
   /* DOCUMENTATION */
   {id:"iso27_policies",   name:"Policy Library",                  category:"Documentation", clause:"§ A.5.1 / A.5.36", icon:"📜", status:"In Progress", complete:80, owner:"M. Khan (CISO)",          link:{tab:"templates"}},
   {id:"iso27_procedures", name:"Procedure Library",               category:"Documentation", clause:"§ 7.5",    icon:"📑", status:"Not Started", complete:0,   owner:"M. Khan (CISO)",                     link:null},
@@ -2126,6 +2128,541 @@ function PageISO27001({setTab,showToast}) {
       <div style={{textAlign:"right"}}>
         <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Certification body</div>
         <div style={{fontSize:13.5,color:K_.ink,fontWeight:600}}>BSI Group</div>
+      </div>
+    </div>
+  </div>;
+}
+/* ─────────────────────────────────────────────
+   ISO 27001:2022 ANNEX A — 93 CONTROLS
+   Four themes: Organisational (37), People (8), Physical (14),
+   Technological (34). Realistic implementation status seeded.
+───────────────────────────────────────────── */
+const ANNEX_A_CONTROLS = [
+  /* A.5 Organisational (37) */
+  {id:"A.5.1", theme:"Organisational", name:"Policies for information security", applicable:true, status:"Implemented", eff:5, ev:6, owner:"M. Khan (CISO)", lastReviewed:"2026-03-15"},
+  {id:"A.5.2", theme:"Organisational", name:"Information security roles and responsibilities", applicable:true, status:"Implemented", eff:5, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-03-10"},
+  {id:"A.5.3", theme:"Organisational", name:"Segregation of duties", applicable:true, status:"Implemented", eff:4, ev:3, owner:"M. Khan (CISO)", lastReviewed:"2026-02-22"},
+  {id:"A.5.4", theme:"Organisational", name:"Management responsibilities", applicable:true, status:"Implemented", eff:5, ev:5, owner:"H. Williams (CGO)", lastReviewed:"2026-03-01"},
+  {id:"A.5.5", theme:"Organisational", name:"Contact with authorities", applicable:true, status:"Implemented", eff:4, ev:2, owner:"H. Williams (CGO)", lastReviewed:"2026-01-18"},
+  {id:"A.5.6", theme:"Organisational", name:"Contact with special interest groups", applicable:true, status:"Implemented", eff:3, ev:1, owner:"M. Khan (CISO)", lastReviewed:"2025-12-05"},
+  {id:"A.5.7", theme:"Organisational", name:"Threat intelligence", applicable:true, status:"In Progress", eff:3, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2026-04-02"},
+  {id:"A.5.8", theme:"Organisational", name:"Information security in project management", applicable:true, status:"Implemented", eff:4, ev:5, owner:"K. Nakamura (CTO)", lastReviewed:"2026-02-14"},
+  {id:"A.5.9", theme:"Organisational", name:"Inventory of information and other associated assets", applicable:true, status:"In Progress", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-04-03"},
+  {id:"A.5.10", theme:"Organisational", name:"Acceptable use of information and other associated assets", applicable:true, status:"Implemented", eff:5, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-03-10"},
+  {id:"A.5.11", theme:"Organisational", name:"Return of assets", applicable:true, status:"Implemented", eff:4, ev:3, owner:"J. Brooks (HR)", lastReviewed:"2026-02-14"},
+  {id:"A.5.12", theme:"Organisational", name:"Classification of information", applicable:true, status:"Implemented", eff:5, ev:4, owner:"R. Patel (CDPO)", lastReviewed:"2026-04-01"},
+  {id:"A.5.13", theme:"Organisational", name:"Labelling of information", applicable:true, status:"In Progress", eff:3, ev:2, owner:"R. Patel (CDPO)", lastReviewed:"2026-03-22"},
+  {id:"A.5.14", theme:"Organisational", name:"Information transfer", applicable:true, status:"Implemented", eff:4, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-02-28"},
+  {id:"A.5.15", theme:"Organisational", name:"Access control", applicable:true, status:"Implemented", eff:5, ev:7, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.5.16", theme:"Organisational", name:"Identity management", applicable:true, status:"Implemented", eff:5, ev:5, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.5.17", theme:"Organisational", name:"Authentication information", applicable:true, status:"Implemented", eff:5, ev:6, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.5.18", theme:"Organisational", name:"Access rights", applicable:true, status:"Implemented", eff:4, ev:5, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.5.19", theme:"Organisational", name:"Information security in supplier relationships", applicable:true, status:"In Progress", eff:3, ev:3, owner:"M. Khan (CISO)", lastReviewed:"2025-11-08"},
+  {id:"A.5.20", theme:"Organisational", name:"Addressing information security within supplier agreements", applicable:true, status:"In Progress", eff:3, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2025-11-08"},
+  {id:"A.5.21", theme:"Organisational", name:"Managing information security in the ICT supply chain", applicable:true, status:"Planned", eff:0, ev:0, owner:"M. Khan (CISO)", lastReviewed:""},
+  {id:"A.5.22", theme:"Organisational", name:"Monitoring, review and change management of supplier services", applicable:true, status:"In Progress", eff:3, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2025-11-08"},
+  {id:"A.5.23", theme:"Organisational", name:"Information security for use of cloud services", applicable:true, status:"Implemented", eff:5, ev:7, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-28"},
+  {id:"A.5.24", theme:"Organisational", name:"Information security incident management planning and preparation", applicable:true, status:"Implemented", eff:5, ev:8, owner:"M. Khan (CISO)", lastReviewed:"2026-04-05"},
+  {id:"A.5.25", theme:"Organisational", name:"Assessment and decision on information security events", applicable:true, status:"Implemented", eff:4, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-04-05"},
+  {id:"A.5.26", theme:"Organisational", name:"Response to information security incidents", applicable:true, status:"Implemented", eff:5, ev:6, owner:"M. Khan (CISO)", lastReviewed:"2026-04-05"},
+  {id:"A.5.27", theme:"Organisational", name:"Learning from information security incidents", applicable:true, status:"Implemented", eff:4, ev:3, owner:"M. Khan (CISO)", lastReviewed:"2026-04-05"},
+  {id:"A.5.28", theme:"Organisational", name:"Collection of evidence", applicable:true, status:"Implemented", eff:4, ev:3, owner:"Internal Audit", lastReviewed:"2026-04-05"},
+  {id:"A.5.29", theme:"Organisational", name:"Information security during disruption", applicable:true, status:"Implemented", eff:4, ev:5, owner:"H. Williams (CGO)", lastReviewed:"2026-01-12"},
+  {id:"A.5.30", theme:"Organisational", name:"ICT readiness for business continuity", applicable:true, status:"Implemented", eff:4, ev:6, owner:"D. Lee (Head of IT)", lastReviewed:"2026-01-12"},
+  {id:"A.5.31", theme:"Organisational", name:"Legal, statutory, regulatory and contractual requirements", applicable:true, status:"Implemented", eff:5, ev:4, owner:"H. Williams (CGO)", lastReviewed:"2026-03-01"},
+  {id:"A.5.32", theme:"Organisational", name:"Intellectual property rights", applicable:true, status:"Implemented", eff:4, ev:2, owner:"Legal", lastReviewed:"2026-01-20"},
+  {id:"A.5.33", theme:"Organisational", name:"Protection of records", applicable:true, status:"Implemented", eff:4, ev:3, owner:"R. Patel (CDPO)", lastReviewed:"2026-02-28"},
+  {id:"A.5.34", theme:"Organisational", name:"Privacy and protection of PII", applicable:true, status:"Implemented", eff:5, ev:9, owner:"R. Patel (CDPO)", lastReviewed:"2026-02-28"},
+  {id:"A.5.35", theme:"Organisational", name:"Independent review of information security", applicable:true, status:"In Progress", eff:3, ev:1, owner:"Internal Audit", lastReviewed:"2026-02-20"},
+  {id:"A.5.36", theme:"Organisational", name:"Compliance with policies, rules and standards for information security", applicable:true, status:"Implemented", eff:4, ev:5, owner:"H. Williams (CGO)", lastReviewed:"2026-03-15"},
+  {id:"A.5.37", theme:"Organisational", name:"Documented operating procedures", applicable:true, status:"In Progress", eff:3, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2026-03-22"},
+  /* A.6 People (8) */
+  {id:"A.6.1", theme:"People", name:"Screening", applicable:true, status:"Implemented", eff:4, ev:3, owner:"J. Brooks (HR)", lastReviewed:"2026-02-14"},
+  {id:"A.6.2", theme:"People", name:"Terms and conditions of employment", applicable:true, status:"Implemented", eff:5, ev:2, owner:"J. Brooks (HR)", lastReviewed:"2026-02-14"},
+  {id:"A.6.3", theme:"People", name:"Information security awareness, education and training", applicable:true, status:"Implemented", eff:4, ev:6, owner:"J. Brooks (HR)", lastReviewed:"2026-01-18"},
+  {id:"A.6.4", theme:"People", name:"Disciplinary process", applicable:true, status:"Implemented", eff:4, ev:1, owner:"J. Brooks (HR)", lastReviewed:"2026-02-14"},
+  {id:"A.6.5", theme:"People", name:"Responsibilities after termination or change of employment", applicable:true, status:"Implemented", eff:4, ev:2, owner:"J. Brooks (HR)", lastReviewed:"2026-02-14"},
+  {id:"A.6.6", theme:"People", name:"Confidentiality or non-disclosure agreements", applicable:true, status:"Implemented", eff:5, ev:3, owner:"Legal", lastReviewed:"2026-01-20"},
+  {id:"A.6.7", theme:"People", name:"Remote working", applicable:true, status:"Implemented", eff:4, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-03-10"},
+  {id:"A.6.8", theme:"People", name:"Information security event reporting", applicable:true, status:"Implemented", eff:4, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2026-04-05"},
+  /* A.7 Physical (14) */
+  {id:"A.7.1", theme:"Physical", name:"Physical security perimeters", applicable:true, status:"Implemented", eff:4, ev:3, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.2", theme:"Physical", name:"Physical entry", applicable:true, status:"Implemented", eff:4, ev:3, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.3", theme:"Physical", name:"Securing offices, rooms and facilities", applicable:true, status:"Implemented", eff:4, ev:2, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.4", theme:"Physical", name:"Physical security monitoring", applicable:true, status:"Implemented", eff:4, ev:4, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.5", theme:"Physical", name:"Protecting against physical and environmental threats", applicable:true, status:"Implemented", eff:3, ev:2, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.6", theme:"Physical", name:"Working in secure areas", applicable:true, status:"Implemented", eff:3, ev:1, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.7", theme:"Physical", name:"Clear desk and clear screen", applicable:true, status:"Implemented", eff:3, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2026-02-22"},
+  {id:"A.7.8", theme:"Physical", name:"Equipment siting and protection", applicable:true, status:"Implemented", eff:4, ev:2, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.9", theme:"Physical", name:"Security of assets off-premises", applicable:true, status:"In Progress", eff:3, ev:2, owner:"D. Lee (Head of IT)", lastReviewed:"2026-03-10"},
+  {id:"A.7.10", theme:"Physical", name:"Storage media", applicable:true, status:"Implemented", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-01-20"},
+  {id:"A.7.11", theme:"Physical", name:"Supporting utilities", applicable:true, status:"Implemented", eff:4, ev:2, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.12", theme:"Physical", name:"Cabling security", applicable:true, status:"Implemented", eff:3, ev:1, owner:"Facilities", lastReviewed:"2026-01-25"},
+  {id:"A.7.13", theme:"Physical", name:"Equipment maintenance", applicable:true, status:"Implemented", eff:4, ev:2, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-08"},
+  {id:"A.7.14", theme:"Physical", name:"Secure disposal or re-use of equipment", applicable:true, status:"Implemented", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-08"},
+  /* A.8 Technological (34) */
+  {id:"A.8.1", theme:"Technological", name:"User end point devices", applicable:true, status:"Implemented", eff:4, ev:5, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-28"},
+  {id:"A.8.2", theme:"Technological", name:"Privileged access rights", applicable:true, status:"Implemented", eff:5, ev:6, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.8.3", theme:"Technological", name:"Information access restriction", applicable:true, status:"Implemented", eff:5, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.8.4", theme:"Technological", name:"Access to source code", applicable:true, status:"Implemented", eff:4, ev:3, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.5", theme:"Technological", name:"Secure authentication", applicable:true, status:"Implemented", eff:5, ev:5, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.8.6", theme:"Technological", name:"Capacity management", applicable:true, status:"Implemented", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-08"},
+  {id:"A.8.7", theme:"Technological", name:"Protection against malware", applicable:true, status:"Implemented", eff:5, ev:5, owner:"M. Khan (CISO)", lastReviewed:"2026-02-28"},
+  {id:"A.8.8", theme:"Technological", name:"Management of technical vulnerabilities", applicable:true, status:"In Progress", eff:3, ev:3, owner:"M. Khan (CISO)", lastReviewed:"2026-04-02"},
+  {id:"A.8.9", theme:"Technological", name:"Configuration management", applicable:true, status:"In Progress", eff:3, ev:2, owner:"D. Lee (Head of IT)", lastReviewed:"2026-01-25"},
+  {id:"A.8.10", theme:"Technological", name:"Information deletion", applicable:true, status:"In Progress", eff:3, ev:1, owner:"R. Patel (CDPO)", lastReviewed:"2025-12-15"},
+  {id:"A.8.11", theme:"Technological", name:"Data masking", applicable:true, status:"Planned", eff:0, ev:0, owner:"R. Patel (CDPO)", lastReviewed:""},
+  {id:"A.8.12", theme:"Technological", name:"Data leakage prevention", applicable:true, status:"In Progress", eff:3, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2026-03-10"},
+  {id:"A.8.13", theme:"Technological", name:"Information backup", applicable:true, status:"Implemented", eff:5, ev:6, owner:"D. Lee (Head of IT)", lastReviewed:"2026-03-18"},
+  {id:"A.8.14", theme:"Technological", name:"Redundancy of information processing facilities", applicable:true, status:"Implemented", eff:4, ev:4, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-22"},
+  {id:"A.8.15", theme:"Technological", name:"Logging", applicable:true, status:"Implemented", eff:4, ev:5, owner:"M. Khan (CISO)", lastReviewed:"2026-02-15"},
+  {id:"A.8.16", theme:"Technological", name:"Monitoring activities", applicable:true, status:"Implemented", eff:4, ev:4, owner:"M. Khan (CISO)", lastReviewed:"2026-02-15"},
+  {id:"A.8.17", theme:"Technological", name:"Clock synchronization", applicable:true, status:"Implemented", eff:5, ev:1, owner:"D. Lee (Head of IT)", lastReviewed:"2026-01-25"},
+  {id:"A.8.18", theme:"Technological", name:"Use of privileged utility programs", applicable:true, status:"Implemented", eff:4, ev:2, owner:"M. Khan (CISO)", lastReviewed:"2026-02-10"},
+  {id:"A.8.19", theme:"Technological", name:"Installation of software on operational systems", applicable:true, status:"Implemented", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-01-25"},
+  {id:"A.8.20", theme:"Technological", name:"Networks security", applicable:true, status:"Implemented", eff:5, ev:5, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-28"},
+  {id:"A.8.21", theme:"Technological", name:"Security of network services", applicable:true, status:"Implemented", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-28"},
+  {id:"A.8.22", theme:"Technological", name:"Segregation of networks", applicable:true, status:"Implemented", eff:4, ev:3, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-28"},
+  {id:"A.8.23", theme:"Technological", name:"Web filtering", applicable:true, status:"Implemented", eff:4, ev:2, owner:"D. Lee (Head of IT)", lastReviewed:"2026-02-28"},
+  {id:"A.8.24", theme:"Technological", name:"Use of cryptography", applicable:true, status:"Implemented", eff:5, ev:7, owner:"M. Khan (CISO)", lastReviewed:"2026-02-05"},
+  {id:"A.8.25", theme:"Technological", name:"Secure development life cycle", applicable:true, status:"In Progress", eff:3, ev:4, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.26", theme:"Technological", name:"Application security requirements", applicable:true, status:"In Progress", eff:3, ev:3, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.27", theme:"Technological", name:"Secure system architecture and engineering principles", applicable:true, status:"In Progress", eff:3, ev:2, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.28", theme:"Technological", name:"Secure coding", applicable:true, status:"In Progress", eff:3, ev:3, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.29", theme:"Technological", name:"Security testing in development and acceptance", applicable:true, status:"In Progress", eff:3, ev:4, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.30", theme:"Technological", name:"Outsourced development", applicable:true, status:"Planned", eff:0, ev:0, owner:"K. Nakamura (CTO)", lastReviewed:""},
+  {id:"A.8.31", theme:"Technological", name:"Separation of development, test and production environments", applicable:true, status:"Implemented", eff:5, ev:3, owner:"K. Nakamura (CTO)", lastReviewed:"2026-01-25"},
+  {id:"A.8.32", theme:"Technological", name:"Change management", applicable:true, status:"Implemented", eff:4, ev:4, owner:"D. Lee (Head of IT)", lastReviewed:"2026-01-25"},
+  {id:"A.8.33", theme:"Technological", name:"Test information", applicable:true, status:"In Progress", eff:3, ev:1, owner:"K. Nakamura (CTO)", lastReviewed:"2025-10-15"},
+  {id:"A.8.34", theme:"Technological", name:"Protection of information systems during audit testing", applicable:true, status:"Implemented", eff:4, ev:2, owner:"Internal Audit", lastReviewed:"2026-02-20"},
+];
+
+/* ─────────────────────────────────────────────
+   PAGE: ANNEX A CONTROL TRACKER
+───────────────────────────────────────────── */
+function PageAnnexA({setTab,showToast}) {
+  const [themeFilter,setThemeFilter]=useState("all");
+  const [statusFilter,setStatusFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [selectedId,setSelectedId]=useState(null);
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  const statusColor = s => ({
+    "Implemented":K_.sage, "In Progress":K_.gold, "Planned":K_.amber,
+    "Not Implemented":K_.crit, "Compensating Control":K_.amber, "Not Applicable":K_.ink3,
+  })[s] || K_.ink3;
+
+  /* Aggregate stats */
+  const total = ANNEX_A_CONTROLS.length;
+  const implemented = ANNEX_A_CONTROLS.filter(c=>c.status==="Implemented").length;
+  const inProgress  = ANNEX_A_CONTROLS.filter(c=>c.status==="In Progress").length;
+  const gaps        = ANNEX_A_CONTROLS.filter(c=>c.status==="Planned" || c.status==="Not Implemented").length;
+  const readiness   = Math.round(implemented / total * 100);
+
+  /* Theme tabs */
+  const THEMES = [
+    {id:"all", label:"All themes", count:total},
+    {id:"Organisational", label:"A.5 Organisational", count:37},
+    {id:"People",         label:"A.6 People",         count:8},
+    {id:"Physical",       label:"A.7 Physical",       count:14},
+    {id:"Technological",  label:"A.8 Technological",  count:34},
+  ];
+
+  /* Filtered list */
+  const filtered = ANNEX_A_CONTROLS.filter(c=>{
+    if(themeFilter!=="all" && c.theme!==themeFilter) return false;
+    if(statusFilter!=="all" && c.status!==statusFilter) return false;
+    if(search){
+      const q=search.toLowerCase();
+      if(!(c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.owner.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const sel = selectedId ? ANNEX_A_CONTROLS.find(c=>c.id===selectedId) : null;
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* ── HERO ── */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+      <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:48,alignItems:"end"}}>
+        <div>
+          <button onClick={()=>setTab("iso27")} style={{background:"none",border:"none",color:K_.navyT2,fontSize:11,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",cursor:"pointer",padding:0,marginBottom:18,fontWeight:500}}>← ISO 27001 Workspace</button>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <span>▸</span><span>ISO 27001 · Annex A Control Tracker</span>
+          </div>
+          <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+            Ninety-three <span style={{fontStyle:"italic"}}>controls.</span>
+          </h1>
+          <p style={{fontSize:14.5,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:560}}>
+            Every Annex A control with current implementation status, effectiveness score, evidence count, and owner. Filter by theme or status to drill into specific control families.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Implementation</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:96,lineHeight:0.9,letterSpacing:"-0.045em",color:K_.gold}}>{readiness}<span style={{fontSize:48,color:K_.navyT2,fontStyle:"normal"}}>%</span></div>
+          <div style={{fontSize:12,color:K_.navyT2,marginTop:10}}>{implemented} of {total} fully implemented</div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── STATS STRIP ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+      {[
+        {label:"Implemented", val:String(implemented), c:K_.sage},
+        {label:"In progress", val:String(inProgress), c:K_.gold},
+        {label:"Open gaps",   val:String(gaps), c:K_.crit},
+        {label:"Total in scope", val:String(total), c:K_.ink},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:18,padding:"22px 24px",border:`1px solid ${K_.line}`}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* ── THEME TABS + FILTERS + SEARCH ── */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"18px 22px",marginBottom:14}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
+        {THEMES.map(t=>(
+          <button key={t.id} onClick={()=>setThemeFilter(t.id)} style={{
+            background:themeFilter===t.id?K_.navy:"transparent",
+            color:themeFilter===t.id?K_.navyT:K_.ink2,
+            border:`1px solid ${themeFilter===t.id?K_.navy:K_.line}`,
+            borderRadius:100,padding:"7px 14px",
+            fontSize:12,fontWeight:themeFilter===t.id?600:500,
+            fontFamily:fSans,cursor:"pointer",transition:"all .15s",
+            display:"inline-flex",alignItems:"center",gap:7,
+          }}>
+            <span>{t.label}</span>
+            <span style={{fontSize:10,opacity:0.7,fontFamily:fMono}}>{t.count}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:14,alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by control ID, name, or owner…" style={{
+          flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+          fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
+        }}/>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600}}>Status</span>
+          {[["all","All"],["Implemented","Implemented"],["In Progress","In Progress"],["Planned","Planned"],["Not Implemented","Not Implemented"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setStatusFilter(k)} style={{
+              background:statusFilter===k?(k==="all"?K_.navy:statusColor(k)):"transparent",
+              color:statusFilter===k?"#fff":K_.ink2,
+              border:`1px solid ${statusFilter===k?(k==="all"?K_.navy:statusColor(k)):K_.line}`,
+              borderRadius:100,padding:"5px 12px",fontSize:11,fontWeight:statusFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+            }}>{l}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* ── CONTROL TABLE ── */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+        <thead>
+          <tr style={{borderBottom:`1px solid ${K_.line}`}}>
+            {["Ref","Theme","Control","Status","Effectiveness","Evidence","Owner","Last reviewed"].map(h=>(
+              <th key={h} style={{textAlign:"left",padding:"14px 16px",fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(c=>(
+            <tr key={c.id} onClick={()=>setSelectedId(c.id===selectedId?null:c.id)} style={{
+              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
+              background:selectedId===c.id?K_.s1:"transparent",
+            }}
+            onMouseEnter={e=>{if(selectedId!==c.id)e.currentTarget.style.background=K_.bg;}}
+            onMouseLeave={e=>{if(selectedId!==c.id)e.currentTarget.style.background="transparent";}}>
+              <td style={{padding:"13px 16px",fontFamily:fMono,fontSize:11.5,color:K_.gold,fontWeight:700,letterSpacing:"0.04em"}}>{c.id}</td>
+              <td style={{padding:"13px 16px",color:K_.ink2,fontSize:11.5}}>{c.theme}</td>
+              <td style={{padding:"13px 16px",color:K_.ink,fontWeight:500,maxWidth:380}}>{c.name}</td>
+              <td style={{padding:"13px 16px"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(c.status)+"15",color:statusColor(c.status),border:`1px solid ${statusColor(c.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(c.status)}}/>
+                  {c.status}
+                </span>
+              </td>
+              <td style={{padding:"13px 16px"}}>
+                {c.eff>0?<span style={{display:"inline-flex",gap:2}}>
+                  {[1,2,3,4,5].map(n=><span key={n} style={{width:6,height:8,borderRadius:1,background:n<=c.eff?K_.gold:K_.ink4}}/>)}
+                </span>:<span style={{color:K_.ink3,fontSize:11}}>—</span>}
+              </td>
+              <td style={{padding:"13px 16px",fontFamily:fMono,fontSize:11.5,color:c.ev>0?K_.ink:K_.ink3}}>{c.ev>0?c.ev:"—"}</td>
+              <td style={{padding:"13px 16px",color:K_.ink2,fontSize:12}}>{c.owner}</td>
+              <td style={{padding:"13px 16px",fontFamily:fMono,fontSize:10.5,color:K_.ink3,letterSpacing:"0.04em"}}>{c.lastReviewed||"—"}</td>
+            </tr>
+          ))}
+          {filtered.length===0 && (
+            <tr><td colSpan={8} style={{padding:"40px 16px",textAlign:"center",color:K_.ink3,fontStyle:"italic"}}>No controls match the current filters.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {/* ── SELECTED CONTROL DETAIL ── */}
+    {sel && (
+      <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14,animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,gap:14,flexWrap:"wrap"}}>
+          <div>
+            <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+              <span style={{background:K_.s1,color:K_.ink2,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:500,fontFamily:fSans}}>{sel.theme}</span>
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.status)+"15",color:statusColor(sel.status),border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:11,fontWeight:600}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>
+                {sel.status}
+              </span>
+            </div>
+            <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.3}}>{sel.name}</h2>
+          </div>
+          <button onClick={()=>setSelectedId(null)} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:"pointer",fontWeight:600}}>Close</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:24,rowGap:22,marginBottom:18}}>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Effectiveness</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {sel.eff>0?<>
+                <span style={{display:"inline-flex",gap:3}}>
+                  {[1,2,3,4,5].map(n=><span key={n} style={{width:8,height:14,borderRadius:2,background:n<=sel.eff?K_.gold:K_.ink4}}/>)}
+                </span>
+                <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:24,color:K_.ink,letterSpacing:"-0.02em"}}>{sel.eff}<span style={{fontSize:14,color:K_.ink3}}>/5</span></span>
+              </>:<span style={{fontSize:13,color:K_.ink3,fontStyle:"italic"}}>Not yet measured</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Evidence linked</div>
+            <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:24,color:K_.ink,letterSpacing:"-0.02em"}}>{sel.ev}<span style={{fontSize:14,color:K_.ink3}}> artefacts</span></div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner</div>
+            <div style={{fontSize:14,color:K_.ink,fontWeight:600}}>{sel.owner}</div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Last reviewed</div>
+            <div style={{fontSize:14,color:K_.ink,fontWeight:600,fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.lastReviewed||"Not yet reviewed"}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <button onClick={()=>showToast("Evidence library — coming in next module","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+            <span>✦</span> Open evidence
+          </button>
+          <button onClick={()=>showToast("Control testing scheduler — backend required","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+            Schedule test
+          </button>
+          <button onClick={()=>setTab("templates")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+            Linked templates →
+          </button>
+        </div>
+      </div>
+    )}
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: GAP ANALYSIS DASHBOARD
+   Derives all gap data from ANNEX_A_CONTROLS in real time.
+───────────────────────────────────────────── */
+function PageGapAnalysis({setTab,showToast}) {
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", navy:"#1C1B1F", navy2:"#2A2826",
+    navyT:"#F5F2EA", navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", amber:"#B8956A", crit:"#9B3636",
+  };
+  const fSerif="'Newsreader','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* Derive gaps from Annex A */
+  const gaps = ANNEX_A_CONTROLS.filter(c=>c.status==="Planned" || c.status==="Not Implemented");
+  const weak = ANNEX_A_CONTROLS.filter(c=>c.status==="In Progress" && c.eff<=3);
+  const allOpen = [...gaps, ...weak];
+  const total = ANNEX_A_CONTROLS.length;
+  const implemented = ANNEX_A_CONTROLS.filter(c=>c.status==="Implemented").length;
+  const gapScore = Math.round(100 - (implemented / total * 100));
+  const auditReadiness = Math.round(implemented / total * 100);
+
+  /* Theme breakdown */
+  const themes = ["Organisational","People","Physical","Technological"];
+  const themeStats = themes.map(t=>{
+    const inTheme = ANNEX_A_CONTROLS.filter(c=>c.theme===t);
+    const imp = inTheme.filter(c=>c.status==="Implemented").length;
+    const gp = inTheme.filter(c=>c.status==="Planned" || c.status==="Not Implemented").length;
+    return {theme:t, total:inTheme.length, implemented:imp, gaps:gp, pct:Math.round(imp/inTheme.length*100)};
+  });
+
+  /* Priority remediation list — sort gaps by theme criticality */
+  const PRIORITY = {Organisational:3, Technological:3, People:2, Physical:1};
+  const remediation = allOpen
+    .map(c=>({...c, priority:PRIORITY[c.theme]||1 + (c.status==="Not Implemented"?2:0)}))
+    .sort((a,b)=>b.priority-a.priority)
+    .slice(0,12);
+
+  const sevColor = (theme,status) => {
+    if(status==="Not Implemented") return K_.crit;
+    if(theme==="Organisational" || theme==="Technological") return K_.amber;
+    return K_.gold;
+  };
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* HERO */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.4,backgroundImage:`radial-gradient(${K_.navyT3} 1px, transparent 1px)`,backgroundSize:"24px 24px",pointerEvents:"none"}}/>
+      <div style={{position:"relative",display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:48,alignItems:"end"}}>
+        <div>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <span>▸</span><span>Frameworks · Gap Analysis</span>
+          </div>
+          <h1 style={{fontFamily:fSerif,fontWeight:400,fontSize:"clamp(32px,4vw,48px)",lineHeight:1.05,letterSpacing:"-0.025em",color:K_.navyT,margin:0}}>
+            What's missing, <span style={{fontStyle:"italic"}}>ranked.</span>
+          </h1>
+          <p style={{fontSize:14.5,lineHeight:1.55,color:K_.navyT2,margin:"14px 0 0",maxWidth:560}}>
+            Live gap analysis derived from your Annex A control posture. {gaps.length} unfilled controls and {weak.length} weak controls require attention before the next audit.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.navyT2,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>Audit readiness</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:96,lineHeight:0.9,letterSpacing:"-0.045em",color:K_.gold}}>{auditReadiness}<span style={{fontSize:48,color:K_.navyT2,fontStyle:"normal"}}>%</span></div>
+          <div style={{fontSize:12,color:K_.navyT2,marginTop:10}}>{gapScore}% gap score</div>
+        </div>
+      </div>
+    </div>
+
+    {/* TOP STATS */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginBottom:18}}>
+      {[
+        {label:"Unfilled controls", val:String(gaps.length), c:K_.crit, sub:"Planned + Not Implemented"},
+        {label:"Weak controls",     val:String(weak.length), c:K_.amber, sub:"Effectiveness ≤ 3"},
+        {label:"Implemented",       val:String(implemented), c:K_.sage, sub:`${Math.round(implemented/total*100)}% of total`},
+        {label:"High-priority",     val:String(remediation.filter(r=>r.status==="Not Implemented").length), c:K_.crit, sub:"Org + Tech, Not Implemented"},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:18,padding:"22px 24px",border:`1px solid ${K_.line}`}}>
+          <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:14}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:48,lineHeight:0.9,letterSpacing:"-0.04em",color:s.c}}>{s.val}</div>
+          <div style={{fontSize:11,color:K_.ink3,marginTop:8}}>{s.sub}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* THEME HEATMAP */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:18}}>
+        <div>
+          <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Coverage by theme</div>
+          <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:22,letterSpacing:"-0.015em",color:K_.ink,margin:0}}>Where the work lives.</h2>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:18}}>
+        {themeStats.map(t=>{
+          const c = t.pct>=85?K_.sage : t.pct>=70?K_.gold : K_.crit;
+          return <div key={t.theme} style={{background:K_.s1,borderRadius:14,padding:"18px 20px"}}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>{t.theme}</div>
+            <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:14}}>
+              <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:34,color:c,letterSpacing:"-0.035em",lineHeight:1}}>{t.pct}</span>
+              <span style={{fontSize:14,color:K_.ink3,fontFamily:fMono}}>%</span>
+            </div>
+            <div style={{height:4,background:K_.s2,borderRadius:2,overflow:"hidden",marginBottom:10}}>
+              <div style={{width:`${t.pct}%`,height:"100%",background:c,transition:"width 1.2s cubic-bezier(.16,1,.3,1)"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>
+              <span>{t.implemented} of {t.total}</span>
+              <span style={{color:t.gaps>0?K_.crit:K_.ink3}}>{t.gaps} gap{t.gaps===1?"":"s"}</span>
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>
+
+    {/* PRIORITY REMEDIATION LIST */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:20,flexWrap:"wrap",gap:12}}>
+        <div>
+          <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Priority remediation</div>
+          <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:22,letterSpacing:"-0.015em",color:K_.ink,margin:0}}>Top {remediation.length} controls to fix before audit.</h2>
+        </div>
+        <button onClick={()=>setTab("annexa")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+          <span>✦</span> Open full tracker
+        </button>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {remediation.map((r,i)=>{
+          const sev = sevColor(r.theme,r.status);
+          return <div key={r.id} onClick={()=>setTab("annexa")} style={{
+            background:K_.s1,borderRadius:12,padding:"14px 16px",
+            borderLeft:`4px solid ${sev}`,
+            display:"grid",gridTemplateColumns:"auto auto 1fr auto auto auto",gap:14,alignItems:"center",
+            cursor:"pointer",transition:"background .12s",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.background=K_.s2}
+          onMouseLeave={e=>e.currentTarget.style.background=K_.s1}>
+            <span style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,fontWeight:700,letterSpacing:"0.06em",minWidth:24}}>#{String(i+1).padStart(2,"0")}</span>
+            <span style={{fontFamily:fMono,fontSize:11.5,color:K_.gold,fontWeight:700,letterSpacing:"0.04em",minWidth:54}}>{r.id}</span>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:13,color:K_.ink,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+              <div style={{fontSize:11,color:K_.ink3,marginTop:3}}>{r.theme} · {r.owner}</div>
+            </div>
+            <span style={{fontSize:10.5,color:sev,fontFamily:fMono,letterSpacing:"0.04em",fontWeight:700}}>{r.status}</span>
+            <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>EFF {r.eff||"—"}/5</span>
+            <span style={{color:K_.ink3,fontSize:14}}>→</span>
+          </div>;
+        })}
+      </div>
+    </div>
+
+    {/* RECOMMENDED ACTIONS */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"26px 30px",marginBottom:14}}>
+      <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Recommended next actions</div>
+      <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:22,letterSpacing:"-0.015em",color:K_.ink,margin:"0 0 20px"}}>Three plays to close the largest gaps.</h2>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14}}>
+        {[
+          {n:"01", action:"Close A.8.11 Data Masking and A.5.21 Supply-chain controls", impact:"−15% gap score", tab:"annexa"},
+          {n:"02", action:"Raise effectiveness on A.5.19–A.5.22 supplier controls from 3 → 4", impact:"−8% gap score", tab:"annexa"},
+          {n:"03", action:"Generate evidence for A.8.25–A.8.29 secure-development controls", impact:"−6% gap score", tab:"templates"},
+        ].map(a=>(
+          <div key={a.n} onClick={()=>setTab(a.tab)} style={{background:K_.s1,borderRadius:14,padding:"18px 20px",cursor:"pointer",transition:"background .12s"}}
+          onMouseEnter={e=>e.currentTarget.style.background=K_.s2}
+          onMouseLeave={e=>e.currentTarget.style.background=K_.s1}>
+            <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:32,color:K_.gold,letterSpacing:"-0.04em",lineHeight:1,marginBottom:14}}>{a.n}</div>
+            <div style={{fontSize:13,color:K_.ink,fontWeight:500,lineHeight:1.45,marginBottom:10}}>{a.action}</div>
+            <div style={{fontSize:10.5,color:K_.sage,fontFamily:fMono,letterSpacing:"0.06em",fontWeight:700}}>{a.impact}</div>
+          </div>
+        ))}
       </div>
     </div>
   </div>;
@@ -4233,6 +4770,8 @@ export default function VERIS() {
         {tab==="strategy"   &&<PageStrategy   role={role}/>}
         {tab==="playbook"   &&<PagePlaybook   role={role}/>}
         {tab==="iso27" &&<PageISO27001 setTab={setTab} showToast={showToast}/>}
+        {tab==="annexa" &&<PageAnnexA setTab={setTab} showToast={showToast}/>}
+        {tab==="gap" &&<PageGapAnalysis setTab={setTab} showToast={showToast}/>}
         {tab==="compliance" &&<PageCompliance role={role}/>}
         {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
         {tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
