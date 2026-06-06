@@ -2425,23 +2425,37 @@ function PageAnnexA({setTab,showToast}) {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const canEdit = dataSource === "live";
 
-  /* Save new status for a single control */
-  const updateControlStatus = async (controlId, newStatus) => {
+  /* Generic single-column update for a control row. */
+  const updateControl = async (controlId, patch) => {
     if(!supabase) return;
     setUpdatingStatus(true);
     const today = new Date().toISOString().slice(0,10);
+    const dbPatch = { ...patch, last_reviewed: today };
     const { error } = await supabase
       .from("annex_a_controls")
-      .update({ status: newStatus, last_reviewed: today })
+      .update(dbPatch)
       .eq("id", controlId);
     setUpdatingStatus(false);
     if(error){
       showToast(`Update failed: ${error.message}`, "error");
       return;
     }
-    setControls(cs => cs.map(c => c.id === controlId ? {...c, status: newStatus, lastReviewed: today} : c));
-    showToast(`${controlId} → ${newStatus}`, "success");
+    /* Map snake → camel for local state */
+    const camelPatch = {};
+    if("status" in patch) camelPatch.status = patch.status;
+    if("eff" in patch) camelPatch.eff = patch.eff;
+    if("owner" in patch) camelPatch.owner = patch.owner;
+    camelPatch.lastReviewed = today;
+    setControls(cs => cs.map(c => c.id === controlId ? {...c, ...camelPatch} : c));
+    showToast(`${controlId} updated`, "success");
   };
+
+  /* Save new status for a single control (legacy name kept for the dropdown) */
+  const updateControlStatus = (controlId, newStatus) => updateControl(controlId, { status: newStatus });
+
+  /* Owner-editing inline state */
+  const [editingOwner, setEditingOwner] = useState(false);
+  const [ownerDraft, setOwnerDraft] = useState("");
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -2675,9 +2689,21 @@ function PageAnnexA({setTab,showToast}) {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:24,rowGap:22,marginBottom:18}}>
           <div>
-            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Effectiveness</div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Effectiveness {canEdit && <span style={{color:K_.gold,fontStyle:"italic",textTransform:"none",letterSpacing:0,fontWeight:500}}> — click to set</span>}</div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {sel.eff>0?<>
+              {canEdit ? <>
+                <span style={{display:"inline-flex",gap:3}}>
+                  {[1,2,3,4,5].map(n=>(
+                    <button key={n} onClick={()=>updateControl(sel.id, {eff: n === sel.eff ? 0 : n})} disabled={updatingStatus}
+                      title={`Set effectiveness to ${n}/5${n===sel.eff?" (click again to clear)":""}`}
+                      style={{width:14,height:18,borderRadius:3,background:n<=sel.eff?K_.gold:K_.s2,border:"none",padding:0,cursor:updatingStatus?"wait":"pointer",transition:"background .12s, transform .08s"}}
+                      onMouseEnter={e=>{if(!updatingStatus)e.currentTarget.style.transform="scaleY(1.1)";}}
+                      onMouseLeave={e=>e.currentTarget.style.transform="scaleY(1)"}
+                    />
+                  ))}
+                </span>
+                <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:24,color:sel.eff>0?K_.ink:K_.ink3,letterSpacing:"-0.02em"}}>{sel.eff>0?sel.eff:"–"}<span style={{fontSize:14,color:K_.ink3}}>/5</span></span>
+              </> : sel.eff>0?<>
                 <span style={{display:"inline-flex",gap:3}}>
                   {[1,2,3,4,5].map(n=><span key={n} style={{width:8,height:14,borderRadius:2,background:n<=sel.eff?K_.gold:K_.ink4}}/>)}
                 </span>
@@ -2690,8 +2716,20 @@ function PageAnnexA({setTab,showToast}) {
             <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:24,color:K_.ink,letterSpacing:"-0.02em"}}>{sel.ev}<span style={{fontSize:14,color:K_.ink3}}> artefacts</span></div>
           </div>
           <div>
-            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner</div>
-            <div style={{fontSize:14,color:K_.ink,fontWeight:600}}>{sel.owner}</div>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner {canEdit && !editingOwner && <span onClick={()=>{setOwnerDraft(sel.owner||"");setEditingOwner(true);}} style={{color:K_.gold,fontStyle:"italic",textTransform:"none",letterSpacing:0,fontWeight:500,cursor:"pointer"}}> — edit</span>}</div>
+            {editingOwner ? (
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input value={ownerDraft} onChange={e=>setOwnerDraft(e.target.value)} autoFocus
+                  onKeyDown={e=>{ if(e.key==="Enter"){updateControl(sel.id,{owner:ownerDraft.trim()});setEditingOwner(false);} if(e.key==="Escape")setEditingOwner(false); }}
+                  style={{padding:"6px 10px",border:`1px solid ${K_.lineH}`,borderRadius:8,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",flex:1,minWidth:140}}/>
+                <button onClick={()=>{updateControl(sel.id,{owner:ownerDraft.trim()});setEditingOwner(false);}} disabled={updatingStatus}
+                  style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:8,padding:"6px 10px",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:fSans}}>✓</button>
+                <button onClick={()=>setEditingOwner(false)}
+                  style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 10px",fontSize:11.5,cursor:"pointer",fontFamily:fSans}}>✗</button>
+              </div>
+            ) : (
+              <div style={{fontSize:14,color:K_.ink,fontWeight:600}}>{sel.owner||<span style={{color:K_.ink3,fontStyle:"italic",fontWeight:400}}>Unassigned</span>}</div>
+            )}
           </div>
           <div>
             <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Last reviewed</div>
@@ -4233,7 +4271,34 @@ function PageEvidence({setTab,showToast}) {
   const [selectedId,setSelectedId]=useState(null);
 
   /* ─── Live data from Supabase, fallback to constant ─── */
-  const [items, dataSource] = useSupabaseTable("evidence", dbToEvidence, EVIDENCE_LIBRARY);
+  const [items, dataSource, setItems] = useSupabaseTable("evidence", dbToEvidence, EVIDENCE_LIBRARY);
+
+  /* ─── Add-evidence modal state ─── */
+  const [addMode, setAddMode] = useState(false);
+  const [newItem, setNewItem] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const canEdit = dataSource === "live";
+  const nextEvidenceId = () => {
+    const nums = items.map(e => parseInt((e.id||"").replace(/^EV-?/i,""),10)).filter(n => !isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return "EV-" + String(next).padStart(3,"0");
+  };
+  const openAddEvidence = () => {
+    if(!canEdit){ showToast("Connect Supabase to upload evidence","info"); return; }
+    const today = new Date().toISOString().slice(0,10);
+    /* default expiry +1 year */
+    const oneYearOut = new Date();
+    oneYearOut.setFullYear(oneYearOut.getFullYear()+1);
+    setNewItem({
+      name:"", type:"Document", description:"",
+      source:"", method:"Manual upload", format:"PDF", size:"",
+      uploadedBy:"", collected: today,
+      expires: oneYearOut.toISOString().slice(0,10),
+      linkedControls:[], linkedRisks:[], frameworks:["ISO 27001"],
+      status:"Current", owner:"",
+    });
+    setAddMode(true);
+  };
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -4361,9 +4426,11 @@ function PageEvidence({setTab,showToast}) {
           flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
           fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
         }}/>
-        <button onClick={()=>showToast("Upload evidence — backend storage required","info")} style={{
+        <button onClick={openAddEvidence} disabled={!canEdit}
+          title={canEdit?"Upload a new evidence artefact":"Upload requires live DB connection"}
+          style={{
           background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",
-          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
+          fontSize:12,fontWeight:700,cursor:canEdit?"pointer":"not-allowed",opacity:canEdit?1:0.55,fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
         }}>
           <span>+</span> Upload evidence
         </button>
@@ -4520,6 +4587,153 @@ function PageEvidence({setTab,showToast}) {
         </div>
       </div>;
     })()}
+
+    {/* ─── UPLOAD EVIDENCE MODAL ─── */}
+    {addMode && newItem && (
+      <div onClick={()=>{if(!adding){setAddMode(false);setNewItem(null);}}} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.55)",
+        zIndex:1000,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",maxWidth:880,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.35)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          {/* Header */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,gap:14}}>
+            <div>
+              <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:8}}>New artefact · {nextEvidenceId()}</div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:28,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.2}}>Upload evidence</h2>
+              <p style={{fontSize:12,color:K_.ink3,margin:"6px 0 0 0",lineHeight:1.5,maxWidth:580}}>Log metadata for an evidence artefact. File storage (actual upload) is wired in next.</p>
+            </div>
+            <button onClick={()=>{setAddMode(false);setNewItem(null);}} disabled={adding} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:adding?"not-allowed":"pointer",fontWeight:600}}>Close</button>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+            {/* Name — full width */}
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Artefact name <span style={{color:K_.crit}}>*</span></label>
+              <input value={newItem.name} onChange={e=>setNewItem({...newItem,name:e.target.value})} placeholder="e.g. Q2 2026 Access Review — Production Environment"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            {/* Type + Format */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Type</label>
+              <select value={newItem.type} onChange={e=>setNewItem({...newItem,type:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Document","Log Export","Screenshot","Report","Attestation","Configuration","Test Result","Recording"].map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Format</label>
+              <select value={newItem.format} onChange={e=>setNewItem({...newItem,format:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["PDF","XLSX","DOCX","JSON","CSV","PNG","ZIP","Other"].map(f=><option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+
+            {/* Description — full width */}
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Description</label>
+              <textarea value={newItem.description} onChange={e=>setNewItem({...newItem,description:e.target.value})} rows={2} placeholder="What does this artefact demonstrate?"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+            </div>
+
+            {/* Source + Method */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Source</label>
+              <input value={newItem.source} onChange={e=>setNewItem({...newItem,source:e.target.value})} placeholder="e.g. AWS CloudTrail, IT operations team"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Collection method</label>
+              <select value={newItem.method} onChange={e=>setNewItem({...newItem,method:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Manual upload","Automated export","API pull","Email attestation","System screenshot","Audit observation"].map(m=><option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+
+            {/* Uploaded by + Owner */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Uploaded by <span style={{color:K_.crit}}>*</span></label>
+              <input value={newItem.uploadedBy} onChange={e=>setNewItem({...newItem,uploadedBy:e.target.value})} placeholder="Your name and title"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner</label>
+              <input value={newItem.owner} onChange={e=>setNewItem({...newItem,owner:e.target.value})} placeholder="Responsible role/person for upkeep"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            {/* Collected date + Expiry date */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Collected on</label>
+              <input type="date" value={newItem.collected} onChange={e=>setNewItem({...newItem,collected:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Expires on</label>
+              <input type="date" value={newItem.expires} onChange={e=>setNewItem({...newItem,expires:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            {/* Size label */}
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Size label (display only)</label>
+              <input value={newItem.size} onChange={e=>setNewItem({...newItem,size:e.target.value})} placeholder="e.g. 2.4 MB, 18 pages, 320 lines"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+          </div>
+
+          {/* Save + Cancel */}
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>{setAddMode(false);setNewItem(null);}} disabled={adding}
+              style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:adding?"not-allowed":"pointer",fontFamily:fSans,opacity:adding?0.5:1}}>
+              Cancel
+            </button>
+            <button
+              onClick={async ()=>{
+                if(!supabase) return;
+                if(!newItem.name.trim()){ showToast("Name is required","error"); return; }
+                if(!newItem.uploadedBy.trim()){ showToast("Uploaded by is required","error"); return; }
+                setAdding(true);
+                const id = nextEvidenceId();
+                const dbRow = {
+                  id,
+                  name: newItem.name.trim(),
+                  type: newItem.type,
+                  description: newItem.description || null,
+                  source: newItem.source || null,
+                  method: newItem.method,
+                  format: newItem.format,
+                  size_label: newItem.size || null,
+                  uploaded_by: newItem.uploadedBy.trim(),
+                  collected_date: newItem.collected || null,
+                  expires_date: newItem.expires || null,
+                  linked_controls: [],
+                  linked_risks: [],
+                  frameworks: newItem.frameworks || [],
+                  status: "Current",
+                  owner: newItem.owner.trim() || newItem.uploadedBy.trim(),
+                };
+                const { error } = await supabase.from("evidence").insert(dbRow);
+                setAdding(false);
+                if(error){
+                  showToast(`Upload failed: ${error.message}`, "error");
+                  return;
+                }
+                setItems(its => [dbToEvidence(dbRow), ...its]);
+                setAddMode(false);
+                setNewItem(null);
+                showToast(`${id} uploaded`, "success");
+              }}
+              disabled={adding}
+              style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 22px",fontSize:12,fontWeight:700,cursor:adding?"not-allowed":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,opacity:adding?0.7:1}}>
+              <span>{adding?"⋯":"+"}</span> {adding?"Uploading…":"Upload artefact"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>;
 }
 /* ─────────────────────────────────────────────
