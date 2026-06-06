@@ -3157,6 +3157,34 @@ function PageRiskRegister({setTab,showToast}) {
   const [saving, setSaving] = useState(false);
   const canEdit = dataSource === "live";
 
+  /* ─── Add-new-risk state ─── */
+  const [addMode, setAddMode] = useState(false);
+  const [newRisk, setNewRisk] = useState(null);
+  const [adding, setAdding] = useState(false);
+  /* Generate next available R-XXX id */
+  const nextRiskId = () => {
+    const nums = risks
+      .map(r => parseInt((r.id||"").replace(/^R-?/i,""),10))
+      .filter(n => !isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return "R-" + String(next).padStart(3,"0");
+  };
+  const openAddRisk = () => {
+    if(!supabase){ showToast("Connect Supabase to add risks","info"); return; }
+    setNewRisk({
+      title:"", category:"Information Security", owner:"",
+      asset:"", threat:"", vulnerability:"",
+      inherentL:3, inherentI:3,
+      treatmentOption:"Mitigate", treatmentActions:"",
+      residualL:2, residualI:2,
+      status:"Identified",
+      linkedControls:[], linkedUseCases:[], frameworks:[],
+      dateIdentified: new Date().toISOString().slice(0,10),
+      nextReview:"",
+    });
+    setAddMode(true);
+  };
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
@@ -3321,12 +3349,19 @@ function PageRiskRegister({setTab,showToast}) {
     </div>
 
     {/* RISK TABLE */}
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px",marginBottom:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px",marginBottom:10,gap:14,flexWrap:"wrap"}}>
       <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>
         Showing {filtered.length} risk{filtered.length===1?"":"s"} · sorted by residual score
       </div>
-      <div style={{fontSize:11,color:K_.ink3,fontStyle:"italic"}}>
-        {sel ? <>Selected: <strong style={{color:K_.gold,fontStyle:"normal",fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.id}</strong> — scroll down for details ↓</> : "Click any row to view details ↓"}
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{fontSize:11,color:K_.ink3,fontStyle:"italic"}}>
+          {sel ? <>Selected: <strong style={{color:K_.gold,fontStyle:"normal",fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.id}</strong></> : "Click any row to view details"}
+        </div>
+        <button onClick={openAddRisk} disabled={!canEdit}
+          title={canEdit?"Log a new risk":"Add requires live DB connection"}
+          style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"7px 14px",fontSize:11.5,fontWeight:700,cursor:canEdit?"pointer":"not-allowed",opacity:canEdit?1:0.55,fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:5}}>
+          <span style={{fontSize:14,lineHeight:1}}>+</span> New risk
+        </button>
       </div>
     </div>
     <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
@@ -3642,6 +3677,175 @@ function PageRiskRegister({setTab,showToast}) {
       </div>
       </div>;
     })()}
+
+    {/* ─── ADD NEW RISK MODAL ─── */}
+    {addMode && newRisk && (
+      <div onClick={()=>{if(!adding){setAddMode(false);setNewRisk(null);}}} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.55)",
+        zIndex:1000,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",maxWidth:920,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.35)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          {/* Header */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,gap:14}}>
+            <div>
+              <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:8}}>New risk · {nextRiskId()}</div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:28,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.2}}>Log a new risk</h2>
+            </div>
+            <button onClick={()=>{setAddMode(false);setNewRisk(null);}} disabled={adding} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:adding?"not-allowed":"pointer",fontWeight:600}}>Close</button>
+          </div>
+
+          {/* Form fields */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+            {/* Title — full width */}
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Risk title <span style={{color:K_.crit}}>*</span></label>
+              <input value={newRisk.title} onChange={e=>setNewRisk({...newRisk,title:e.target.value})} placeholder="e.g. Unauthorised access to customer PII via stolen credentials"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            {/* Category + Owner */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Category</label>
+              <select value={newRisk.category} onChange={e=>setNewRisk({...newRisk,category:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Information Security","AI Governance","Privacy","Operational","Supply Chain","Compliance","Physical"].map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner <span style={{color:K_.crit}}>*</span></label>
+              <input value={newRisk.owner} onChange={e=>setNewRisk({...newRisk,owner:e.target.value})} placeholder="e.g. Sarah Chen (CISO)"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            {/* Asset + Threat + Vulnerability */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Asset</label>
+              <input value={newRisk.asset} onChange={e=>setNewRisk({...newRisk,asset:e.target.value})} placeholder="e.g. Customer database"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Threat</label>
+              <input value={newRisk.threat} onChange={e=>setNewRisk({...newRisk,threat:e.target.value})} placeholder="e.g. External attacker"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Vulnerability</label>
+              <input value={newRisk.vulnerability} onChange={e=>setNewRisk({...newRisk,vulnerability:e.target.value})} placeholder="e.g. Weak password policy, no MFA on admin accounts"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            {/* Inherent L × I */}
+            <div style={{gridColumn:"1 / -1",paddingTop:8}}>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Inherent likelihood × impact (before any treatment)</div>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <select value={newRisk.inherentL} onChange={e=>setNewRisk({...newRisk,inherentL:Number(e.target.value)})}
+                  style={{padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer",flex:1}}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>L = {n}</option>)}
+                </select>
+                <span style={{fontSize:13,color:K_.ink3}}>×</span>
+                <select value={newRisk.inherentI} onChange={e=>setNewRisk({...newRisk,inherentI:Number(e.target.value)})}
+                  style={{padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer",flex:1}}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>I = {n}</option>)}
+                </select>
+                <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:22,color:K_.ink2,letterSpacing:"-0.02em",minWidth:64,textAlign:"right"}}>= {newRisk.inherentL*newRisk.inherentI}</span>
+              </div>
+            </div>
+
+            {/* Treatment + Actions */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Treatment option</label>
+              <select value={newRisk.treatmentOption} onChange={e=>setNewRisk({...newRisk,treatmentOption:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Mitigate","Transfer","Accept","Avoid"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Next review</label>
+              <input type="date" value={newRisk.nextReview} onChange={e=>setNewRisk({...newRisk,nextReview:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Treatment actions</label>
+              <textarea value={newRisk.treatmentActions} onChange={e=>setNewRisk({...newRisk,treatmentActions:e.target.value})} rows={3} placeholder="e.g. Enforce MFA across all admin accounts. Deploy SIEM correlation rule. Quarterly access review."
+                style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+            </div>
+
+            {/* Residual L × I */}
+            <div style={{gridColumn:"1 / -1"}}>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Residual likelihood × impact (after treatment is in place)</div>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <select value={newRisk.residualL} onChange={e=>setNewRisk({...newRisk,residualL:Number(e.target.value)})}
+                  style={{padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer",flex:1}}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>L = {n}</option>)}
+                </select>
+                <span style={{fontSize:13,color:K_.ink3}}>×</span>
+                <select value={newRisk.residualI} onChange={e=>setNewRisk({...newRisk,residualI:Number(e.target.value)})}
+                  style={{padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer",flex:1}}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>I = {n}</option>)}
+                </select>
+                <span style={{fontFamily:fSerif,fontStyle:"italic",fontSize:22,color:K_.ink2,letterSpacing:"-0.02em",minWidth:64,textAlign:"right"}}>= {newRisk.residualL*newRisk.residualI}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Save + Cancel */}
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>{setAddMode(false);setNewRisk(null);}} disabled={adding}
+              style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:adding?"not-allowed":"pointer",fontFamily:fSans,opacity:adding?0.5:1}}>
+              Cancel
+            </button>
+            <button
+              onClick={async ()=>{
+                if(!supabase) return;
+                if(!newRisk.title.trim()){ showToast("Title is required","error"); return; }
+                if(!newRisk.owner.trim()){ showToast("Owner is required","error"); return; }
+                setAdding(true);
+                const id = nextRiskId();
+                const today = new Date().toISOString().slice(0,10);
+                const dbRow = {
+                  id,
+                  title:             newRisk.title.trim(),
+                  category:          newRisk.category,
+                  owner:             newRisk.owner.trim(),
+                  asset:             newRisk.asset || null,
+                  threat:            newRisk.threat || null,
+                  vulnerability:     newRisk.vulnerability || null,
+                  inherent_l:        newRisk.inherentL,
+                  inherent_i:        newRisk.inherentI,
+                  treatment_option:  newRisk.treatmentOption,
+                  treatment_actions: newRisk.treatmentActions || null,
+                  residual_l:        newRisk.residualL,
+                  residual_i:        newRisk.residualI,
+                  status:            "Identified",
+                  linked_controls:   [],
+                  linked_use_cases:  [],
+                  frameworks:        [],
+                  date_identified:   today,
+                  last_reviewed:     today,
+                  next_review:       newRisk.nextReview || null,
+                };
+                const { error } = await supabase.from("risks").insert(dbRow);
+                setAdding(false);
+                if(error){
+                  showToast(`Add failed: ${error.message}`, "error");
+                  return;
+                }
+                /* Optimistic local update — prepend the new risk */
+                setRisks(rs => [...rs, dbToRisk(dbRow)]);
+                setAddMode(false);
+                setNewRisk(null);
+                showToast(`${id} logged`, "success");
+              }}
+              disabled={adding}
+              style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 22px",fontSize:12,fontWeight:700,cursor:adding?"not-allowed":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,opacity:adding?0.7:1}}>
+              <span>{adding?"⋯":"+"}</span> {adding?"Logging…":"Log risk"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>;
 }
 /* ─────────────────────────────────────────────
@@ -5962,20 +6166,65 @@ function PageUseCases() {
 
   const sel = cases.find(c => c.id===selectedId) || cases[0];
 
-  /* Submit intake form */
-  const submitIntake = () => {
-    if(!intake.name || !intake.dept) return;
+  /* Submit intake form — writes to Supabase + creates 3 pending decisions */
+  const [submittingIntake, setSubmittingIntake] = useState(false);
+  const submitIntake = async () => {
+    if(!intake.name.trim() || !intake.dept.trim()){
+      // Brief visual feedback if user didn't fill required fields
+      return;
+    }
     const tier = classifyTier(intake);
+    const nums = cases.map(c => parseInt((c.id||"").replace(/^uc/i,""),10)).filter(n => !isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    const id = "uc" + next;
+    const today = new Date().toISOString();
+
+    if(supabase && dataSource === "live"){
+      setSubmittingIntake(true);
+      /* Insert into use_cases */
+      const ucRow = {
+        id,
+        name: intake.name.trim(),
+        dept: intake.dept.trim(),
+        system: intake.system,
+        data_class: intake.dataClass,
+        decision_impact: intake.decisionImpact,
+        affected_users: Number(intake.affectedUsers) || 0,
+        tier,
+        iso42001_controls: ["6.1.2","8.2"],
+        submitted_at: today,
+        submitted_by: intake.submittedBy.trim() || "Unknown",
+        pipeline_stage: "Submitted",
+        description: intake.desc.trim() || null,
+      };
+      const { error: ucErr } = await supabase.from("use_cases").insert(ucRow);
+      if(ucErr){
+        setSubmittingIntake(false);
+        return;
+      }
+      /* Insert the 3 pending decisions (CAIO, CISO, CDPO) */
+      const decisionRows = ["caio","ciso","cdpo"].map(role => ({
+        use_case_id: id,
+        role,
+        decision: "pending",
+        reasoning: null,
+        signer: null,
+        signed_at: null,
+      }));
+      await supabase.from("use_case_decisions").insert(decisionRows);
+      setSubmittingIntake(false);
+    }
+
+    /* Optimistic local update — works in both live and constant-fallback modes */
     const newCase = {
-      id:"uc"+(cases.length+1),
-      name:intake.name, dept:intake.dept, system:intake.system,
+      id, name:intake.name, dept:intake.dept, system:intake.system,
       dataClass:intake.dataClass, decisionImpact:intake.decisionImpact,
       affectedUsers:Number(intake.affectedUsers)||0,
-      stage:"POC", impact:5, feasibility:5, risk:5, score:50,
-      owner:intake.submittedBy, eta:"TBD", status:"Active",
-      pipelineStage:"Submitted", tier, iso42001Controls:["6.1.2","8.2"],
-      submittedAt:new Date().toISOString().slice(0,10),
-      submittedBy:intake.submittedBy, desc:intake.desc,
+      tier, iso42001Controls:["6.1.2","8.2"],
+      submittedAt: today.slice(0,10),
+      submittedBy: intake.submittedBy.trim() || "Unknown",
+      pipelineStage:"Submitted",
+      description: intake.desc,
       decisions:[
         {role:"caio",decision:"pending",reasoning:"",signer:"",timestamp:""},
         {role:"ciso",decision:"pending",reasoning:"",signer:"",timestamp:""},
@@ -6185,19 +6434,20 @@ function PageUseCases() {
               <textarea value={intake.desc} onChange={e=>setIntake({...intake,desc:e.target.value})} rows={4} placeholder="What does this AI system do? What problem does it solve?" style={{...inputStyle,resize:"vertical",fontFamily:fSans}}/>)}
 
             <div style={{display:"flex",gap:10,marginTop:24}}>
-              <button onClick={submitIntake} disabled={!intake.name||!intake.dept} style={{
+              <button onClick={submitIntake} disabled={!intake.name||!intake.dept||submittingIntake} style={{
                 background:K_.gold,color:K_.goldText,
                 border:"none",borderRadius:100,padding:"12px 24px",
-                fontSize:13,fontWeight:700,cursor:intake.name&&intake.dept?"pointer":"not-allowed",
-                opacity:intake.name&&intake.dept?1:0.4,
+                fontSize:13,fontWeight:700,cursor:(intake.name&&intake.dept&&!submittingIntake)?"pointer":"not-allowed",
+                opacity:(intake.name&&intake.dept&&!submittingIntake)?1:0.5,
                 fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:8,
               }}>
-                <span>✦</span> Submit for review
+                <span>{submittingIntake?"⋯":"✦"}</span> {submittingIntake?"Submitting…":"Submit for review"}
               </button>
-              <button onClick={()=>setView("inventory")} style={{
+              <button onClick={()=>setView("inventory")} disabled={submittingIntake} style={{
                 background:"transparent",color:K_.ink2,
                 border:`1px solid ${K_.line}`,borderRadius:100,
-                padding:"12px 24px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:fSans,
+                padding:"12px 24px",fontSize:13,fontWeight:600,cursor:submittingIntake?"not-allowed":"pointer",fontFamily:fSans,
+                opacity:submittingIntake?0.5:1,
               }}>Cancel</button>
             </div>
           </div>
