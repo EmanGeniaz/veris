@@ -6168,6 +6168,73 @@ function PageUseCases() {
 
   /* Submit intake form — writes to Supabase + creates 3 pending decisions */
   const [submittingIntake, setSubmittingIntake] = useState(false);
+
+  /* ─── HITL decision actions ─── */
+  const ROLE_SIGNERS = {
+    caio: "Marcus Chen (CAIO)",
+    ciso: "Sarah Chen (CISO)",
+    cdpo: "Jennifer Lim (CDPO)",
+    cio:  "David Park (CIO)",
+    cgo:  "Patricia Watts (CGO)",
+  };
+  const [decidingRow, setDecidingRow] = useState(null);   /* `${ucId}-${role}` */
+  const [decisionDraft, setDecisionDraft] = useState({}); /* { reasoning: "" } */
+
+  /* Compute the rolled-up pipeline_stage from current decisions */
+  const computeStage = (decisions) => {
+    if (decisions.some(d => d.decision === "reject")) return "Rejected";
+    const pending = decisions.filter(d => d.decision === "pending").length;
+    if (pending === decisions.length) return "Submitted";
+    if (pending > 0) return "Under Review";
+    if (decisions.some(d => d.decision === "approve_with_conditions")) return "Conditions";
+    return "Approved";
+  };
+
+  const decideDecision = async (useCase, role, action) => {
+    if(!supabase || dataSource !== "live"){
+      // local fallback only
+      const updatedDecisions = useCase.decisions.map(d =>
+        d.role === role
+          ? { ...d, decision: action, reasoning: decisionDraft.reasoning || "", signer: ROLE_SIGNERS[role] || role, timestamp: new Date().toISOString().slice(0,10) }
+          : d
+      );
+      const newStage = computeStage(updatedDecisions);
+      setCases(cs => cs.map(c => c.id === useCase.id ? { ...c, decisions: updatedDecisions, pipelineStage: newStage } : c));
+      setDecidingRow(null); setDecisionDraft({});
+      return;
+    }
+    const today = new Date().toISOString();
+    const signer = ROLE_SIGNERS[role] || role.toUpperCase();
+    /* 1. UPDATE the matching decision row */
+    const { error: decErr } = await supabase
+      .from("use_case_decisions")
+      .update({
+        decision: action,
+        reasoning: decisionDraft.reasoning || null,
+        signer,
+        signed_at: today,
+      })
+      .eq("use_case_id", useCase.id)
+      .eq("role", role);
+    if(decErr){
+      setDecidingRow(null);
+      return;
+    }
+    /* 2. Compute and update pipeline_stage if it changed */
+    const updatedDecisions = useCase.decisions.map(d =>
+      d.role === role
+        ? { ...d, decision: action, reasoning: decisionDraft.reasoning || "", signer, timestamp: today.slice(0,10) }
+        : d
+    );
+    const newStage = computeStage(updatedDecisions);
+    if (newStage !== useCase.pipelineStage) {
+      await supabase.from("use_cases").update({ pipeline_stage: newStage }).eq("id", useCase.id);
+    }
+    /* 3. Optimistic local update */
+    setCases(cs => cs.map(c => c.id === useCase.id ? { ...c, decisions: updatedDecisions, pipelineStage: newStage } : c));
+    setDecidingRow(null); setDecisionDraft({});
+  };
+
   const submitIntake = async () => {
     if(!intake.name.trim() || !intake.dept.trim()){
       // Brief visual feedback if user didn't fill required fields
@@ -6552,7 +6619,11 @@ function PageUseCases() {
             <span style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.06em"}}>immutable · audit-ready</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {sel.decisions.map((d,i)=>(
+            {sel.decisions.map((d,i)=>{
+              const isPending = d.decision === "pending";
+              const rowKey = `${sel.id}-${d.role}`;
+              const isDeciding = decidingRow === rowKey;
+              return (
               <div key={d.role+i} style={{
                 background:K_.bg, borderRadius:14,
                 border:`1px solid ${decisionColor(d.decision)}30`,
@@ -6572,8 +6643,51 @@ function PageUseCases() {
                   <p style={{fontSize:12.5,color:K_.ink3,fontStyle:"italic",margin:"0 0 8px"}}>Awaiting review.</p>
                 )}
                 {d.signer && <div style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>signed: {d.signer}</div>}
+
+                {/* ─── Pending decision actions ─── */}
+                {isPending && !isDeciding && (
+                  <div style={{marginTop:12,paddingTop:12,borderTop:`1px dashed ${K_.line}`,display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={()=>{setDecidingRow(rowKey);setDecisionDraft({reasoning:""});}}
+                      style={{background:K_.sage,color:"#fff",border:"none",borderRadius:100,padding:"6px 14px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                      ✓ Approve
+                    </button>
+                    <button onClick={()=>{setDecidingRow(rowKey);setDecisionDraft({reasoning:"",action:"approve_with_conditions"});}}
+                      style={{background:K_.amber,color:"#fff",border:"none",borderRadius:100,padding:"6px 14px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                      ⚠ Approve with conditions
+                    </button>
+                    <button onClick={()=>{setDecidingRow(rowKey);setDecisionDraft({reasoning:"",action:"reject"});}}
+                      style={{background:"transparent",color:K_.crit,border:`1px solid ${K_.crit}40`,borderRadius:100,padding:"6px 14px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                      ✗ Reject
+                    </button>
+                    <span style={{fontSize:10.5,color:K_.ink3,fontStyle:"italic",alignSelf:"center",marginLeft:6}}>signing as {ROLE_SIGNERS[d.role]}</span>
+                  </div>
+                )}
+
+                {/* ─── Decision draft form ─── */}
+                {isPending && isDeciding && (
+                  <div style={{marginTop:12,paddingTop:12,borderTop:`1px dashed ${K_.line}`}}>
+                    <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Reasoning (optional)</label>
+                    <textarea value={decisionDraft.reasoning||""} onChange={e=>setDecisionDraft({...decisionDraft,reasoning:e.target.value})} rows={3}
+                      placeholder={decisionDraft.action==="reject" ? "Why is this being rejected?" : decisionDraft.action==="approve_with_conditions" ? "List the conditions / mitigations required..." : "Note any context for the audit trail..."}
+                      style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.surface,outline:"none",resize:"vertical",lineHeight:1.5,marginBottom:10}}/>
+                    <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                      <button onClick={()=>{setDecidingRow(null);setDecisionDraft({});}}
+                        style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"7px 14px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                        Cancel
+                      </button>
+                      <button onClick={()=>decideDecision(sel, d.role, decisionDraft.action || "approve")}
+                        style={{
+                          background: decisionDraft.action==="reject" ? K_.crit : decisionDraft.action==="approve_with_conditions" ? K_.amber : K_.sage,
+                          color:"#fff",border:"none",borderRadius:100,padding:"7px 16px",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:5
+                        }}>
+                        {decisionDraft.action==="reject" ? "✗ Confirm reject" : decisionDraft.action==="approve_with_conditions" ? "⚠ Confirm approval w/ conditions" : "✓ Confirm approve"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </>
