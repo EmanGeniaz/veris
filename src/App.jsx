@@ -136,6 +136,44 @@ function dbToUseCase(row, allDecisions = []) {
   };
 }
 
+/* DB row → Audit component shape. */
+function dbToAudit(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    scope: row.scope,
+    scopeThemes: row.scope_themes || [],
+    scopeControls: row.scope_controls || [],
+    leadAuditor: row.lead_auditor,
+    auditors: row.auditors || [],
+    startDate: row.start_date,
+    endDate: row.end_date,
+    status: row.status,
+    methodology: row.methodology,
+    summary: row.summary,
+    frameworks: row.frameworks || [],
+  };
+}
+
+/* DB row → Audit Finding component shape. */
+function dbToFinding(row) {
+  return {
+    id: row.id,
+    auditId: row.audit_id,
+    controlId: row.control_id,
+    severity: row.severity,
+    title: row.title,
+    finding: row.finding,
+    recommendation: row.recommendation,
+    status: row.status,
+    loggedBy: row.logged_by,
+    loggedAt: row.logged_at,
+    targetClose: row.target_close,
+    linkedRiskId: row.linked_risk_id,
+    capaId: row.capa_id,
+  };
+}
+
 /* Reusable hook — fetch a table on mount, fall back to a constant
    if Supabase is unavailable / empty / errors. Returns [data, status, setData]
    where status ∈ 'live' | 'loading' | 'fallback-empty' | 'fallback-error' | 'constant'.
@@ -276,6 +314,7 @@ const NAV_GROUPS = [
     {id:"risks",     icon:"⬟", label:"Risk Register"},
     {id:"soa",       icon:"📋", label:"Statement of Applicability"},
     {id:"gap",       icon:"📐", label:"Gap Analysis"},
+    {id:"audit",     icon:"⌖", label:"Internal Audit"},
     {id:"compliance",icon:"◉", label:"Compliance"},
     {id:"checklists",icon:"☑", label:"ISO Checklists"},
     {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
@@ -4736,6 +4775,599 @@ function PageEvidence({setTab,showToast}) {
     )}
   </div>;
 }
+
+/* ─────────────────────────────────────────────
+   INTERNAL AUDIT — seeded data
+   ISO 27001 § 9.2 Internal Audit. Auditors plan engagements
+   scoped to specific Annex A themes/controls, log findings
+   against tested controls, then findings feed into the Risk
+   Register and Corrective Actions Plan (CAPA).
+───────────────────────────────────────────── */
+const INTERNAL_AUDITS = [
+  {
+    id:"AUD-2026-Q1-001",
+    name:"Q1 2026 — Access Control Effectiveness Review",
+    scope:"Joiner-mover-leaver, privilege creep, MFA coverage, audit log integrity across production environments.",
+    scopeThemes:["Organisational","Technological"],
+    scopeControls:["A.5.15","A.5.16","A.5.17","A.5.18","A.8.2","A.8.3","A.8.5","A.8.15"],
+    leadAuditor:"Mei Lin (Internal Audit Lead)",
+    auditors:["Mei Lin","Andre Okafor","David Park"],
+    startDate:"2026-01-15",
+    endDate:"2026-02-12",
+    status:"Completed",
+    methodology:"Walkthrough + sample-based testing. 60-account sample over Q4 2025. Privileged access log review n=240 events. MFA enrolment census via Okta API.",
+    summary:"Annual access control audit. Three findings logged — one major (deprovisioning gap), one minor (privileged accounts without quarterly review), one observation (audit log retention shorter than policy mandate).",
+    frameworks:["ISO 27001","SOC 2 CC6.1, CC6.2"],
+  },
+  {
+    id:"AUD-2026-Q2-002",
+    name:"Q2 2026 — Supplier Security Programme",
+    scope:"Third-party risk management lifecycle, contract security clauses, ongoing monitoring, off-boarding.",
+    scopeThemes:["Organisational"],
+    scopeControls:["A.5.19","A.5.20","A.5.21","A.5.22","A.5.23","A.5.24"],
+    leadAuditor:"Andre Okafor (Senior Auditor)",
+    auditors:["Andre Okafor","Jennifer Lim"],
+    startDate:"2026-04-08",
+    endDate:"2026-05-22",
+    status:"In Progress",
+    methodology:"Risk-based sample: 12 critical suppliers + 25 standard. Contract review, attestation review (SOC 2 Type II / ISO 27001 cert), data flow walkthroughs.",
+    summary:"Mid-audit. Walkthrough phase complete. Sample testing underway. Preliminary observations indicate inconsistent security questionnaire response cycle.",
+    frameworks:["ISO 27001"],
+  },
+  {
+    id:"AUD-2026-Q2-003",
+    name:"Q2 2026 — AI Governance & Use Case Pipeline",
+    scope:"ISO 42001 alignment — AI use case intake, tier classification accuracy, HITL decision quality, training data governance.",
+    scopeThemes:["Organisational","Technological"],
+    scopeControls:["A.5.1","A.5.2","A.5.34","A.8.10","A.8.11"],
+    leadAuditor:"Marcus Chen (CAIO) — independent reviewer",
+    auditors:["Marcus Chen","external: KPMG AI Assurance"],
+    startDate:"2026-05-01",
+    endDate:"2026-06-30",
+    status:"In Progress",
+    methodology:"All 6 active use cases reviewed. HITL decision audit trail integrity. AIIA completeness sample. Model card review for shadow AI.",
+    summary:"First-ever AI governance audit. External co-assurance with KPMG. High visibility — feeds Q3 board pack.",
+    frameworks:["ISO 42001","NIST AI RMF","EU AI Act"],
+  },
+  {
+    id:"AUD-2026-Q3-004",
+    name:"Q3 2026 — Cryptography & Key Management",
+    scope:"Cryptographic algorithm inventory, key lifecycle, secret rotation cadence, HSM utilisation.",
+    scopeThemes:["Technological"],
+    scopeControls:["A.8.24","A.8.5"],
+    leadAuditor:"David Park (CIO)",
+    auditors:["David Park","Sarah Chen"],
+    startDate:"2026-07-15",
+    endDate:"2026-08-22",
+    status:"Planned",
+    methodology:"Inventory walkthrough. Sample 30 secrets across AWS Secrets Manager + HashiCorp Vault. Rotation log audit. Quantum-readiness assessment.",
+    summary:"Scheduled. Resourcing confirmed. Pre-engagement letter sent.",
+    frameworks:["ISO 27001","FIPS 140-3"],
+  },
+  {
+    id:"AUD-2026-Q3-005",
+    name:"Q3 2026 — Business Continuity & Disaster Recovery",
+    scope:"BCP plan currency, DR test cadence, RTO/RPO compliance, supplier failover readiness.",
+    scopeThemes:["Organisational","Technological"],
+    scopeControls:["A.5.29","A.5.30","A.8.13","A.8.14"],
+    leadAuditor:"Patricia Watts (CGO)",
+    auditors:["Patricia Watts","Andre Okafor"],
+    startDate:"2026-08-05",
+    endDate:"2026-09-20",
+    status:"Planned",
+    methodology:"Tabletop exercise + live failover test for tier-1 systems. Last-test-date review for all 23 BCP scenarios.",
+    summary:"Annual BCP/DR audit per ISO 27001 § 5.30. Live failover test pre-scheduled for Aug 28.",
+    frameworks:["ISO 27001","ISO 22301"],
+  },
+  {
+    id:"AUD-2025-Q4-016",
+    name:"Q4 2025 — Annual ISMS Effectiveness Review",
+    scope:"Full ISMS posture across all 93 Annex A controls. Statement of Applicability re-verification. Risk register reconciliation.",
+    scopeThemes:["Organisational","People","Physical","Technological"],
+    scopeControls:["(all 93 controls)"],
+    leadAuditor:"External: Bureau Veritas (Stage 2 surveillance)",
+    auditors:["BV lead auditor: Helena Kruger","BV team: 3 auditors"],
+    startDate:"2025-11-10",
+    endDate:"2025-12-04",
+    status:"Completed",
+    methodology:"External surveillance audit. Stage 2 verification. Document review + control testing + management interviews.",
+    summary:"Surveillance audit passed. Certification maintained. 4 minor non-conformances, 2 opportunities for improvement. All findings closed in CAPA plan by Mar 2026.",
+    frameworks:["ISO 27001:2022"],
+  },
+];
+
+/* Audit findings — typically link to a specific control + audit */
+const AUDIT_FINDINGS = [
+  /* Findings from AUD-2026-Q1-001 (Access Control) */
+  {
+    id:"F-2026-001",
+    auditId:"AUD-2026-Q1-001",
+    controlId:"A.5.18",
+    severity:"Major",
+    title:"Joiner-mover-leaver gap — 14 dormant accounts retained beyond 90 days",
+    finding:"Sample of 60 departed staff over Q4 2025 showed 14 accounts (23%) not deprovisioned within the 90-day window mandated by Access Control Policy § 4.2. Average age of dormant accounts: 142 days. Two contained production database read access. Root cause: HR offboarding events not consistently triggering IAM workflow when contractor end-dates are extended via email rather than the HRIS.",
+    recommendation:"Automate deprovisioning via HR-to-IAM webhook integration (HRIS event → Okta deactivation). Implement quarterly orphan account scan with mandatory CISO sign-off. Re-test sample in Q3 2026 audit.",
+    status:"In Remediation",
+    loggedBy:"Mei Lin (Internal Audit Lead)",
+    loggedAt:"2026-02-08",
+    targetClose:"2026-08-15",
+    linkedRiskId:"R-002",
+    capaId:"CAPA-2026-001",
+  },
+  {
+    id:"F-2026-002",
+    auditId:"AUD-2026-Q1-001",
+    controlId:"A.5.15",
+    severity:"Minor",
+    title:"Privileged accounts lack quarterly entitlement review evidence",
+    finding:"Access Control Policy mandates quarterly review of privileged access lists. Sample showed reviews completed for 7 of 11 privileged groups in Q4 2025. Production database admin group last reviewed 11 months ago. Reviews that did occur lacked formal sign-off documentation.",
+    recommendation:"Centralise privileged access reviews in a single dashboard. Calendar-driven reminders 30/14/7 days before due date. Sign-off captured in evidence library with reviewer + date.",
+    status:"Open",
+    loggedBy:"Andre Okafor",
+    loggedAt:"2026-02-10",
+    targetClose:"2026-07-31",
+    linkedRiskId:null,
+    capaId:"CAPA-2026-002",
+  },
+  {
+    id:"F-2026-003",
+    auditId:"AUD-2026-Q1-001",
+    controlId:"A.8.15",
+    severity:"Observation",
+    title:"Audit log retention 12 months vs policy 24 months",
+    finding:"CloudTrail log retention currently configured for 12 months in S3 lifecycle policy. Information Security Policy § 7.4 mandates 24-month retention for authentication and privileged operation logs. Not a current non-conformance with the standard but contradicts internal policy.",
+    recommendation:"Either extend S3 lifecycle to 24 months (cost impact ~$340/mo) or update policy to reflect actual practice (preferred if 12 months satisfies legal hold + investigation needs).",
+    status:"Closed",
+    loggedBy:"David Park",
+    loggedAt:"2026-02-12",
+    targetClose:"2026-03-15",
+    linkedRiskId:null,
+    capaId:null,
+  },
+  /* Findings from AUD-2025-Q4-016 (Annual ISMS — external) */
+  {
+    id:"F-2025-014",
+    auditId:"AUD-2025-Q4-016",
+    controlId:"A.5.7",
+    severity:"Minor",
+    title:"Threat intelligence procedure documented but evidence of operationalisation thin",
+    finding:"Threat Intelligence Procedure exists and references three feeds (CISA, MITRE ATT&CK, sector ISAC). Sample of monthly intelligence reports for Q3 2025 showed only one report on file. No evidence intelligence is being acted upon (e.g. tickets, control adjustments, training updates).",
+    recommendation:"Operationalise the procedure: monthly report mandatory, with at least one actionable item per quarter tracked to closure.",
+    status:"Closed",
+    loggedBy:"Helena Kruger (Bureau Veritas)",
+    loggedAt:"2025-11-22",
+    targetClose:"2026-02-28",
+    linkedRiskId:null,
+    capaId:"CAPA-2025-014",
+  },
+  {
+    id:"F-2025-015",
+    auditId:"AUD-2025-Q4-016",
+    controlId:"A.6.3",
+    severity:"Minor",
+    title:"Security awareness training completion 87% vs target 95%",
+    finding:"Annual training cycle ended Oct 2025 with 87% completion across all staff (target 95%). 38 individuals overdue, primarily in two recently-acquired subsidiary teams.",
+    recommendation:"Targeted catch-up campaign for the 38. M&A integration playbook to include day-1 training enrolment.",
+    status:"Closed",
+    loggedBy:"Helena Kruger (Bureau Veritas)",
+    loggedAt:"2025-11-24",
+    targetClose:"2026-01-31",
+    linkedRiskId:null,
+    capaId:"CAPA-2025-015",
+  },
+  {
+    id:"F-2025-016",
+    auditId:"AUD-2025-Q4-016",
+    controlId:"A.8.32",
+    severity:"Minor",
+    title:"Change management — emergency change post-review SLA missed in 4 of 12 sampled cases",
+    finding:"Change Management Policy mandates emergency-change post-implementation review within 48 hours. Sample of 12 emergency changes over Q3 2025 showed 4 reviewed outside SLA (range: 4-11 days). All eventually documented but timeliness lapsed.",
+    recommendation:"Automated reminder at +24h. Block ticket closure until post-review complete.",
+    status:"In Remediation",
+    loggedBy:"Helena Kruger (Bureau Veritas)",
+    loggedAt:"2025-11-28",
+    targetClose:"2026-06-30",
+    linkedRiskId:null,
+    capaId:"CAPA-2025-016",
+  },
+  {
+    id:"F-2025-017",
+    auditId:"AUD-2025-Q4-016",
+    controlId:"A.5.30",
+    severity:"Minor",
+    title:"Business continuity plan not exercised in last 12 months",
+    finding:"Last full BCP tabletop exercise was Dec 2024. Policy mandates annual exercise. Several supporting playbooks (e.g. ransomware response) untested.",
+    recommendation:"Schedule full tabletop Q3 2026 (already in audit plan). Quarterly micro-exercises against specific scenarios.",
+    status:"In Remediation",
+    loggedBy:"Helena Kruger (Bureau Veritas)",
+    loggedAt:"2025-12-01",
+    targetClose:"2026-09-30",
+    linkedRiskId:null,
+    capaId:"CAPA-2025-017",
+  },
+  /* Mid-audit observation from AUD-2026-Q2-002 (Suppliers) */
+  {
+    id:"F-2026-007",
+    auditId:"AUD-2026-Q2-002",
+    controlId:"A.5.22",
+    severity:"Major",
+    title:"Critical supplier monitoring cadence inconsistent",
+    finding:"Of 12 critical suppliers in scope, 4 have not had their security posture reviewed in over 18 months (policy: annual). One holds direct production access. Annual security questionnaires sent but not chased, completion tracking absent.",
+    recommendation:"Centralise supplier review calendar in VerisZone. Automated 90-day pre-due reminders. Escalation to Supplier Owner + CISO at 30 days overdue.",
+    status:"Open",
+    loggedBy:"Andre Okafor",
+    loggedAt:"2026-05-08",
+    targetClose:"2026-11-30",
+    linkedRiskId:"R-014",
+    capaId:null,
+  },
+  /* Mid-audit observation from AUD-2026-Q2-003 (AI Governance) */
+  {
+    id:"F-2026-009",
+    auditId:"AUD-2026-Q2-003",
+    controlId:"A.5.34",
+    severity:"Observation",
+    title:"AI use case intake tier classification — heuristic vs human judgement divergence in 1 of 6 cases",
+    finding:"Compared the platform's heuristic-based tier classification against independent human assessment for all 6 active use cases. Five agreed. One case (HR Onboarding Automation) classified as 'High-Risk' by both heuristic AND independent review — agreement, but for different reasons (heuristic: Automated decisions; human: also concerned about discrimination proxy variables in training set). Indicates heuristic may underweight certain dimensions.",
+    recommendation:"Enhance classification logic to include training data provenance and protected-attribute proxy detection. Document the rationale in tier decision audit trail. Consider AI-assisted classification (LLM-based) as next iteration.",
+    status:"Open",
+    loggedBy:"KPMG AI Assurance",
+    loggedAt:"2026-05-22",
+    targetClose:"2026-09-30",
+    linkedRiskId:null,
+    capaId:null,
+  },
+];
+
+/* ─────────────────────────────────────────────
+   PAGE: INTERNAL AUDIT PLANNER (ISO 27001 § 9.2)
+   List of audits, status pipeline, finding ledger.
+───────────────────────────────────────────── */
+function PageInternalAudit({setTab,showToast}) {
+  const [statusFilter,setStatusFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [selectedId,setSelectedId]=useState(null);
+
+  /* ─── Live data, fallback to constants ─── */
+  const [audits, dataSource] = useSupabaseTable("audits", dbToAudit, INTERNAL_AUDITS, "id");
+  const [findings] = useSupabaseTable("audit_findings", dbToFinding, AUDIT_FINDINGS, "id");
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','PP Editorial Old','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  const statusColor = s => ({
+    "Planned":K_.ink3, "In Progress":K_.amber, "Completed":K_.sage,
+  })[s] || K_.ink3;
+  const sevColor = s => ({
+    "Critical":K_.crit, "Major":K_.crit, "Minor":K_.amber, "Observation":K_.ink3,
+  })[s] || K_.ink3;
+  const findingStatusColor = s => ({
+    "Open":K_.crit, "In Remediation":K_.amber, "Closed":K_.sage,
+  })[s] || K_.ink3;
+
+  /* Esc closes detail modal */
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (e) => { if (e.key === "Escape") setSelectedId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId]);
+
+  /* Stats */
+  const planned   = audits.filter(a=>a.status==="Planned").length;
+  const inProg    = audits.filter(a=>a.status==="In Progress").length;
+  const completed = audits.filter(a=>a.status==="Completed").length;
+  const openFindings = findings.filter(f=>f.status==="Open").length;
+  const inRemediation = findings.filter(f=>f.status==="In Remediation").length;
+  const closed = findings.filter(f=>f.status==="Closed").length;
+
+  /* Audit-readiness: % of controls tested in last 12 months.
+     Approximation: count distinct controls in scope across audits dated within 12mo. */
+  const oneYearAgo = new Date(); oneYearAgo.setMonth(oneYearAgo.getMonth()-12);
+  const recentControls = new Set();
+  audits.forEach(a => {
+    if (new Date(a.endDate) >= oneYearAgo) {
+      a.scopeControls.forEach(c => recentControls.add(c));
+    }
+  });
+  // The annual ISMS audit covers all 93; cap at 93
+  const testedCount = recentControls.has("(all 93 controls)") ? 93 : recentControls.size;
+  const auditReadiness = Math.round((testedCount / 93) * 100);
+
+  /* Filter */
+  const filtered = audits.filter(a => {
+    if(statusFilter!=="all" && a.status!==statusFilter) return false;
+    if(search){
+      const q=search.toLowerCase();
+      if(!(a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.leadAuditor.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const sel = selectedId ? audits.find(a=>a.id===selectedId) : null;
+  const selFindings = sel ? findings.filter(f=>f.auditId===sel.id) : [];
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* ── HERO ── */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.07,backgroundImage:`radial-gradient(circle at 20% 20%, ${K_.gold} 1px, transparent 1px)`,backgroundSize:"24px 24px"}}/>
+      <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:24}}>
+        <div style={{maxWidth:680}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:14}}>
+            <span>▸</span><span>ISO 27001 § 9.2 · Internal Audit</span>
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
+          </div>
+          <h1 style={{
+            fontFamily:fSerif,fontStyle:"italic",fontWeight:400,
+            fontSize:"clamp(34px, 4.5vw, 52px)",
+            letterSpacing:"-0.02em",lineHeight:1.05,color:K_.navyT,margin:"0 0 14px 0",
+          }}>Plan, test, prove.</h1>
+          <p style={{fontSize:14.5,color:K_.navyT2,lineHeight:1.6,margin:0,maxWidth:560}}>
+            {audits.length} audits across the year. Scope mapped to Annex A controls. Findings feed Risk Register and CAPA.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>Audit readiness</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:"clamp(64px, 9vw, 96px)",letterSpacing:"-0.04em",lineHeight:0.9,color:auditReadiness>=80?K_.gold:auditReadiness>=50?"#D9B98C":"#D9A285"}}>{auditReadiness}<span style={{fontSize:"40%"}}>%</span></div>
+          <div style={{fontSize:11,color:K_.navyT3,marginTop:6,letterSpacing:"0.04em"}}>controls tested in last 12 months</div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── STAT CARDS ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8,marginBottom:14}}>
+      {[
+        {label:"Planned",         value:planned,         tone:K_.ink3,  sub:"on the calendar"},
+        {label:"In progress",     value:inProg,          tone:K_.amber, sub:"underway"},
+        {label:"Completed (12mo)",value:completed,       tone:K_.sage,  sub:"audits closed"},
+        {label:"Open findings",   value:openFindings,    tone:K_.crit,  sub:"action required"},
+        {label:"In remediation",  value:inRemediation,   tone:K_.amber, sub:"CAPA active"},
+        {label:"Closed findings", value:closed,          tone:K_.sage,  sub:"complete"},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:14,border:`1px solid ${K_.line}`,padding:"18px 20px"}}>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:38,letterSpacing:"-0.02em",lineHeight:1,color:s.tone}}>{s.value}</div>
+          <div style={{fontSize:11,color:K_.ink3,marginTop:6}}>{s.sub}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* ── SEARCH + STATUS FILTERS ── */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"18px 22px",marginBottom:14}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:14,alignItems:"center",marginBottom:12}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search audits by ID, name, lead auditor…" style={{
+          flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+          fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
+        }}/>
+        <button onClick={()=>showToast("New audit planning — write path next session","info")} style={{
+          background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",
+          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
+        }}>
+          <span>+</span> Schedule audit
+        </button>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4}}>Status</span>
+        {[["all","All"],["Planned","Planned"],["In Progress","In Progress"],["Completed","Completed"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setStatusFilter(k)} style={{
+            background:statusFilter===k?(k==="all"?K_.navy:statusColor(k)):"transparent",
+            color:statusFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${statusFilter===k?(k==="all"?K_.navy:statusColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:statusFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+    </div>
+
+    {/* ── AUDIT LIST ── */}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px",marginBottom:10}}>
+      <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>
+        Showing {filtered.length} audit{filtered.length===1?"":"s"}
+      </div>
+      <div style={{fontSize:11,color:K_.ink3,fontStyle:"italic"}}>Click any audit to view findings</div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(420px,1fr))",gap:12,marginBottom:14}}>
+      {filtered.map(a => {
+        const fcount = findings.filter(f=>f.auditId===a.id).length;
+        const openCount = findings.filter(f=>f.auditId===a.id && f.status==="Open").length;
+        return (
+          <div key={a.id} onClick={()=>setSelectedId(a.id)} style={{
+            background:K_.surface,borderRadius:14,border:`1px solid ${K_.line}`,
+            padding:"20px 22px",cursor:"pointer",transition:"background .15s, transform .12s, box-shadow .12s",
+            position:"relative",
+          }}
+          onMouseEnter={e=>{e.currentTarget.style.background=K_.bg;e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 6px 20px -10px rgba(28,27,31,0.18)";}}
+          onMouseLeave={e=>{e.currentTarget.style.background=K_.surface;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,marginBottom:10}}>
+              <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"3px 10px",fontSize:10.5,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{a.id}</span>
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(a.status)+"15",color:statusColor(a.status),border:`1px solid ${statusColor(a.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(a.status)}}/>
+                {a.status}
+              </span>
+            </div>
+            <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:18,letterSpacing:"-0.012em",lineHeight:1.25,color:K_.ink,margin:"0 0 10px 0"}}>{a.name}</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+              {a.scopeThemes.map(t=>(<span key={t} style={{background:K_.s1,color:K_.ink2,borderRadius:6,padding:"2px 8px",fontSize:10.5,fontFamily:fSans,fontWeight:500}}>{t}</span>))}
+            </div>
+            <p style={{fontSize:12,color:K_.ink2,lineHeight:1.55,margin:"0 0 12px 0"}}>{a.scope}</p>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,borderTop:`1px solid ${K_.line}`,fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em",flexWrap:"wrap",gap:8}}>
+              <span>{a.startDate} → {a.endDate}</span>
+              <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                {fcount > 0 && <strong style={{color:openCount>0?K_.crit:K_.sage,fontFamily:fSans,letterSpacing:0}}>{fcount} finding{fcount===1?"":"s"}{openCount>0?` · ${openCount} open`:""}</strong>}
+                {fcount === 0 && a.status==="Completed" && <span style={{color:K_.sage}}>no findings</span>}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* ── SELECTED AUDIT DETAIL — modal ── */}
+    {sel && (
+      <div onClick={()=>setSelectedId(null)} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.55)",
+        zIndex:1000,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 34px",maxWidth:1000,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.35)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,gap:14,flexWrap:"wrap"}}>
+            <div style={{flex:"1 1 480px"}}>
+              <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.status)+"15",color:statusColor(sel.status),border:`1px solid ${statusColor(sel.status)}30`,borderRadius:100,padding:"3px 9px",fontSize:11,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.status)}}/>
+                  {sel.status}
+                </span>
+                {sel.scopeThemes.map(t=>(<span key={t} style={{background:K_.s1,color:K_.ink2,borderRadius:100,padding:"3px 10px",fontSize:11,fontFamily:fSans,fontWeight:500}}>{t}</span>))}
+              </div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.25}}>{sel.name}</h2>
+            </div>
+            <button onClick={()=>setSelectedId(null)} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:"pointer",fontWeight:600}}>Close</button>
+          </div>
+
+          {/* Scope */}
+          <div style={{marginBottom:18}}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Scope</div>
+            <p style={{fontSize:13.5,color:K_.ink,lineHeight:1.55,margin:0}}>{sel.scope}</p>
+          </div>
+
+          {/* Methodology + Summary */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18,marginBottom:18}}>
+            <div>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Methodology</div>
+              <p style={{fontSize:12.5,color:K_.ink2,lineHeight:1.55,margin:0}}>{sel.methodology}</p>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Summary</div>
+              <p style={{fontSize:12.5,color:K_.ink2,lineHeight:1.55,margin:0}}>{sel.summary}</p>
+            </div>
+          </div>
+
+          {/* Meta grid */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:20,padding:"16px 18px",background:K_.bg,borderRadius:12,border:`1px solid ${K_.line}`}}>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Lead auditor</div>
+              <div style={{fontSize:13,color:K_.ink,fontWeight:600}}>{sel.leadAuditor}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Team</div>
+              <div style={{fontSize:12.5,color:K_.ink,fontWeight:500}}>{sel.auditors.join(", ")}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Start → End</div>
+              <div style={{fontSize:13,color:K_.ink,fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.startDate} → {sel.endDate}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Frameworks</div>
+              <div style={{fontSize:12,color:K_.ink,fontWeight:500}}>{sel.frameworks.join(" · ")}</div>
+            </div>
+          </div>
+
+          {/* Controls in scope */}
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Annex A controls in scope ({sel.scopeControls.length === 1 && sel.scopeControls[0].includes("all") ? 93 : sel.scopeControls.length})</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {sel.scopeControls.map(c=>(
+                <button key={c} onClick={()=>{if(!c.includes("all")){setSelectedId(null);setTab("annexa");}}} style={{background:K_.bg,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:8,padding:"5px 10px",fontSize:11.5,fontFamily:fMono,letterSpacing:"0.02em",cursor:c.includes("all")?"default":"pointer"}}>{c}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* FINDINGS LEDGER */}
+          <div style={{marginBottom:18}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14}}>
+              <div>
+                <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Findings ledger</div>
+                <h3 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:20,letterSpacing:"-0.015em",color:K_.ink,margin:0}}>What this audit found.</h3>
+              </div>
+              <button onClick={()=>showToast("Log finding — write path next session","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"7px 14px",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:fSans}}>
+                + Log finding
+              </button>
+            </div>
+            {selFindings.length === 0 ? (
+              <div style={{padding:"24px 22px",background:K_.bg,borderRadius:12,border:`1px dashed ${K_.line}`,textAlign:"center"}}>
+                <p style={{fontSize:13,color:K_.ink3,fontStyle:"italic",margin:0}}>No findings logged for this audit yet.</p>
+              </div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {selFindings.map((f,i)=>(
+                  <div key={f.id} style={{
+                    background:K_.bg, borderRadius:12,
+                    border:`1px solid ${sevColor(f.severity)}30`,
+                    borderLeft:`4px solid ${sevColor(f.severity)}`,
+                    padding:"16px 18px",
+                  }}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,gap:10,flexWrap:"wrap"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                        <span style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.06em",fontWeight:600}}>{f.id}</span>
+                        <span style={{background:sevColor(f.severity)+"15",color:sevColor(f.severity),borderRadius:100,padding:"2px 9px",fontSize:10.5,fontWeight:700,letterSpacing:"0.04em"}}>{f.severity.toUpperCase()}</span>
+                        <button onClick={()=>{setSelectedId(null);setTab("annexa");}} style={{background:"transparent",color:K_.gold,border:`1px solid ${K_.gold}40`,borderRadius:6,padding:"1px 8px",fontSize:11,fontFamily:fMono,cursor:"pointer"}}>{f.controlId}</button>
+                        <span style={{display:"inline-flex",alignItems:"center",gap:5,color:findingStatusColor(f.status),fontSize:11,fontWeight:600,fontFamily:fSans}}>
+                          <span style={{width:5,height:5,borderRadius:"50%",background:findingStatusColor(f.status)}}/>
+                          {f.status}
+                        </span>
+                      </div>
+                      <span style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono}}>{f.loggedAt}</span>
+                    </div>
+                    <div style={{fontSize:13.5,fontWeight:600,color:K_.ink,marginBottom:6,lineHeight:1.4}}>{f.title}</div>
+                    <p style={{fontSize:12.5,color:K_.ink2,lineHeight:1.6,margin:"0 0 10px 0"}}>{f.finding}</p>
+                    <div style={{paddingTop:10,borderTop:`1px dashed ${K_.line}`,fontSize:12,color:K_.ink2,lineHeight:1.55}}>
+                      <strong style={{color:K_.ink,fontWeight:600}}>Recommendation:</strong> {f.recommendation}
+                    </div>
+                    <div style={{display:"flex",gap:14,marginTop:10,fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em",flexWrap:"wrap"}}>
+                      <span>logged by: <strong style={{color:K_.ink2,fontFamily:fSans,letterSpacing:0}}>{f.loggedBy}</strong></span>
+                      <span>target close: <strong style={{color:K_.ink2,fontFamily:fSans,letterSpacing:0}}>{f.targetClose}</strong></span>
+                      {f.linkedRiskId && <button onClick={()=>{setSelectedId(null);setTab("risks");}} style={{background:"transparent",color:K_.gold,border:`1px solid ${K_.gold}40`,borderRadius:6,padding:"1px 8px",fontSize:10.5,fontFamily:fMono,cursor:"pointer",letterSpacing:"0.02em"}}>→ {f.linkedRiskId}</button>}
+                      {f.capaId && <span style={{color:K_.ink3,fontSize:10.5}}>CAPA: {f.capaId}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>showToast("Export audit report — backend required","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+              <span>↓</span> Export report (PDF)
+            </button>
+            {sel.status === "In Progress" && (
+              <button onClick={()=>showToast("Mark audit complete — write path next session","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                ✓ Mark complete
+              </button>
+            )}
+            <button onClick={()=>{setSelectedId(null);setTab("annexa");}} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+              View scoped controls →
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>;
+}
+
 /* ─────────────────────────────────────────────
    PAGE: ISO CHECKLISTS
 ───────────────────────────────────────────── */
@@ -7058,6 +7690,7 @@ export default function VERIS() {
         {tab==="risks" &&<PageRiskRegister setTab={setTab} showToast={showToast}/>}
         {tab==="soa" &&<PageSOA setTab={setTab} showToast={showToast}/>}
         {tab==="gap" &&<PageGapAnalysis setTab={setTab} showToast={showToast}/>}
+        {tab==="audit" &&<PageInternalAudit setTab={setTab} showToast={showToast}/>}
         {tab==="compliance" &&<PageCompliance role={role}/>}
         {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
         {tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
