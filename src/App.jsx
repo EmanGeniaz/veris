@@ -5803,7 +5803,94 @@ function PageCAPA({setTab,showToast}) {
   const [selectedId,setSelectedId]=useState(null);
 
   /* ─── Live data, fallback to constants ─── */
-  const [items, dataSource] = useSupabaseTable("capa", dbToCAPA, CAPA_REGISTER, "id");
+  const [items, dataSource, setItems] = useSupabaseTable("capa", dbToCAPA, CAPA_REGISTER, "id");
+  const canEdit = dataSource === "live";
+
+  /* ─── Write-path state ─── */
+  const [advancingId, setAdvancingId] = useState(null);          /* CAPA id whose status is being changed */
+  const [verifyMode, setVerifyMode] = useState(false);
+  const [verifyDraft, setVerifyDraft] = useState(null);          /* { verifier, date, notes } */
+  const [addMode, setAddMode] = useState(false);
+  const [newCAPA, setNewCAPA] = useState(null);
+  const [adding, setAdding] = useState(false);
+
+  const nextCAPAId = () => {
+    const year = new Date().getFullYear();
+    const yearPrefix = "CAPA-" + year + "-";
+    const nums = items
+      .filter(c => (c.id||"").startsWith(yearPrefix))
+      .map(c => parseInt(c.id.replace(yearPrefix,""),10))
+      .filter(n => !isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return yearPrefix + String(next).padStart(3,"0");
+  };
+
+  /* Single-CAPA status advance: Open/In Progress → Pending Verification */
+  const advanceToPendingVerification = async (id) => {
+    if(!supabase){ showToast("Connect Supabase to advance status","info"); return; }
+    setAdvancingId(id);
+    const { error } = await supabase
+      .from("capa")
+      .update({ status: "Pending Verification" })
+      .eq("id", id);
+    setAdvancingId(null);
+    if(error){ showToast(`Update failed: ${error.message}`, "error"); return; }
+    setItems(cs => cs.map(c => c.id === id ? {...c, status: "Pending Verification"} : c));
+    showToast(`${id} → Pending Verification`, "success");
+  };
+
+  /* Open the Verify+Close modal — prefilled with today's date */
+  const openVerifyModal = (id) => {
+    if(!supabase){ showToast("Connect Supabase to verify","info"); return; }
+    const today = new Date().toISOString().slice(0,10);
+    setVerifyDraft({ capaId: id, verifier: "", date: today, notes: "" });
+    setVerifyMode(true);
+  };
+
+  /* Confirm verification — writes verification fields + flips to Closed */
+  const confirmVerification = async () => {
+    if(!supabase || !verifyDraft) return;
+    if(!verifyDraft.verifier.trim()){ showToast("Verifier name is required","error"); return; }
+    setAdvancingId(verifyDraft.capaId);
+    const { error } = await supabase
+      .from("capa")
+      .update({
+        status: "Closed",
+        closed_at: verifyDraft.date || new Date().toISOString().slice(0,10),
+        verification_date: verifyDraft.date,
+        verifier: verifyDraft.verifier.trim(),
+        verification_notes: verifyDraft.notes.trim() || null,
+      })
+      .eq("id", verifyDraft.capaId);
+    setAdvancingId(null);
+    if(error){ showToast(`Verification failed: ${error.message}`, "error"); return; }
+    setItems(cs => cs.map(c => c.id === verifyDraft.capaId ? {
+      ...c, status: "Closed",
+      closedAt: verifyDraft.date || new Date().toISOString().slice(0,10),
+      verificationDate: verifyDraft.date,
+      verifier: verifyDraft.verifier.trim(),
+      verificationNotes: verifyDraft.notes.trim() || null,
+    } : c));
+    setVerifyMode(false);
+    setVerifyDraft(null);
+    showToast(`${verifyDraft.capaId} verified + closed`, "success");
+  };
+
+  /* Open the + New CAPA modal */
+  const openAddCAPA = () => {
+    if(!canEdit){ showToast("Connect Supabase to create CAPAs","info"); return; }
+    const today = new Date().toISOString().slice(0,10);
+    const target = new Date(); target.setDate(target.getDate()+90);
+    setNewCAPA({
+      title:"", source:"Audit Finding", sourceId:"",
+      owner:"", raisedBy:"", raisedAt: today,
+      targetDate: target.toISOString().slice(0,10),
+      status:"Open", priority:"Medium",
+      rootCause:"", verificationMethod:"",
+      linkedControls:"", linkedRisks:"",
+    });
+    setAddMode(true);
+  };
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -5942,9 +6029,11 @@ function PageCAPA({setTab,showToast}) {
           flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
           fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
         }}/>
-        <button onClick={()=>showToast("Create CAPA — write path next session","info")} style={{
+        <button onClick={openAddCAPA} disabled={!canEdit}
+          title={canEdit?"Open a new corrective action":"New CAPA requires live DB connection"}
+          style={{
           background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",
-          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
+          fontSize:12,fontWeight:700,cursor:canEdit?"pointer":"not-allowed",opacity:canEdit?1:0.55,fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
         }}>
           <span>+</span> New CAPA
         </button>
@@ -6181,15 +6270,223 @@ function PageCAPA({setTab,showToast}) {
               <span>✦</span> Edit
             </button>
             {sel.effStatus !== "Closed" && sel.effStatus !== "Pending Verification" && (
-              <button onClick={()=>showToast("Mark pending verification — write path next session","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
-                Mark pending verification
+              <button onClick={()=>advanceToPendingVerification(sel.id)} disabled={advancingId===sel.id || !canEdit}
+                title={canEdit?"Advance status — work done, awaiting independent verification":"Requires live DB connection"}
+                style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:(advancingId===sel.id||!canEdit)?"not-allowed":"pointer",fontFamily:fSans,opacity:(advancingId===sel.id||!canEdit)?0.55:1}}>
+                {advancingId===sel.id?"⋯ Advancing…":"Mark pending verification"}
               </button>
             )}
             {sel.effStatus === "Pending Verification" && (
-              <button onClick={()=>showToast("Verify + close — write path next session","info")} style={{background:"transparent",color:K_.sage,border:`1px solid ${K_.sage}50`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
-                ✓ Verify + close
+              <button onClick={()=>openVerifyModal(sel.id)} disabled={advancingId===sel.id || !canEdit}
+                title={canEdit?"Log verification details and close":"Requires live DB connection"}
+                style={{background:"transparent",color:K_.sage,border:`1px solid ${K_.sage}50`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:(advancingId===sel.id||!canEdit)?"not-allowed":"pointer",fontFamily:fSans,opacity:(advancingId===sel.id||!canEdit)?0.55:1}}>
+                {advancingId===sel.id?"⋯ Closing…":"✓ Verify + close"}
               </button>
             )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ─── VERIFY + CLOSE MODAL ─── */}
+    {verifyMode && verifyDraft && (
+      <div onClick={()=>{if(advancingId!==verifyDraft.capaId){setVerifyMode(false);setVerifyDraft(null);}}} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.62)",
+        zIndex:1010,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.sage}40`,padding:"30px 32px",maxWidth:640,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.4)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          <div style={{marginBottom:22}}>
+            <div style={{fontSize:10.5,color:K_.sage,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:8}}>Verify + close · {verifyDraft.capaId}</div>
+            <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.2}}>Confirm verification</h2>
+            <p style={{fontSize:12.5,color:K_.ink3,margin:"8px 0 0 0",lineHeight:1.55}}>Independent verification that the corrective action achieves what it claims. Once closed, the audit trail is permanent.</p>
+          </div>
+
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Verifier <span style={{color:K_.crit}}>*</span></label>
+            <input value={verifyDraft.verifier} onChange={e=>setVerifyDraft({...verifyDraft,verifier:e.target.value})} autoFocus placeholder="Name and role of the independent verifier"
+              style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+          </div>
+
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Verified on</label>
+            <input type="date" value={verifyDraft.date} onChange={e=>setVerifyDraft({...verifyDraft,date:e.target.value})}
+              style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+          </div>
+
+          <div style={{marginBottom:22}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Verification notes</label>
+            <textarea value={verifyDraft.notes} onChange={e=>setVerifyDraft({...verifyDraft,notes:e.target.value})} rows={4} placeholder="What was checked, what was found, any caveats or follow-ups."
+              style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+          </div>
+
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>{setVerifyMode(false);setVerifyDraft(null);}} disabled={advancingId===verifyDraft.capaId}
+              style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:advancingId===verifyDraft.capaId?"not-allowed":"pointer",fontFamily:fSans,opacity:advancingId===verifyDraft.capaId?0.5:1}}>
+              Cancel
+            </button>
+            <button onClick={confirmVerification} disabled={advancingId===verifyDraft.capaId}
+              style={{background:K_.sage,color:"#fff",border:"none",borderRadius:100,padding:"9px 22px",fontSize:12,fontWeight:700,cursor:advancingId===verifyDraft.capaId?"not-allowed":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,opacity:advancingId===verifyDraft.capaId?0.7:1}}>
+              <span>{advancingId===verifyDraft.capaId?"⋯":"✓"}</span> {advancingId===verifyDraft.capaId?"Closing…":"Verify + close"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ─── NEW CAPA MODAL ─── */}
+    {addMode && newCAPA && (
+      <div onClick={()=>{if(!adding){setAddMode(false);setNewCAPA(null);}}} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.62)",
+        zIndex:1010,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",maxWidth:880,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.4)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,gap:14}}>
+            <div>
+              <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:8}}>New corrective action · {nextCAPAId()}</div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:28,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.2}}>Open a CAPA</h2>
+              <p style={{fontSize:12,color:K_.ink3,margin:"6px 0 0 0",lineHeight:1.5}}>Action steps can be added after creation (Edit, next session).</p>
+            </div>
+            <button onClick={()=>{setAddMode(false);setNewCAPA(null);}} disabled={adding} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:adding?"not-allowed":"pointer",fontWeight:600}}>Close</button>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
+            <div style={{gridColumn:"1 / -1"}}>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Title <span style={{color:K_.crit}}>*</span></label>
+              <input value={newCAPA.title} onChange={e=>setNewCAPA({...newCAPA,title:e.target.value})} placeholder="One-line action description"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Source</label>
+              <select value={newCAPA.source} onChange={e=>setNewCAPA({...newCAPA,source:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Audit Finding","Risk","Incident","Internal Review"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Source ID</label>
+              <input value={newCAPA.sourceId} onChange={e=>setNewCAPA({...newCAPA,sourceId:e.target.value})} placeholder={newCAPA.source==="Audit Finding"?"F-2026-010":newCAPA.source==="Risk"?"R-014":newCAPA.source==="Incident"?"INC-2026-031":"REV-2026-008"}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Priority</label>
+              <select value={newCAPA.priority} onChange={e=>setNewCAPA({...newCAPA,priority:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Critical","High","Medium","Low"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Initial status</label>
+              <select value={newCAPA.status} onChange={e=>setNewCAPA({...newCAPA,status:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Open","In Progress"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Owner <span style={{color:K_.crit}}>*</span></label>
+              <input value={newCAPA.owner} onChange={e=>setNewCAPA({...newCAPA,owner:e.target.value})} placeholder="Who's accountable for closure"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Raised by <span style={{color:K_.crit}}>*</span></label>
+              <input value={newCAPA.raisedBy} onChange={e=>setNewCAPA({...newCAPA,raisedBy:e.target.value})} placeholder="Who raised it"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Raised on</label>
+              <input type="date" value={newCAPA.raisedAt} onChange={e=>setNewCAPA({...newCAPA,raisedAt:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Target close</label>
+              <input type="date" value={newCAPA.targetDate} onChange={e=>setNewCAPA({...newCAPA,targetDate:e.target.value})}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+          </div>
+
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Root cause</label>
+            <textarea value={newCAPA.rootCause} onChange={e=>setNewCAPA({...newCAPA,rootCause:e.target.value})} rows={3} placeholder="Why did this happen?"
+              style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+          </div>
+
+          <div style={{marginBottom:18}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Verification method</label>
+            <textarea value={newCAPA.verificationMethod} onChange={e=>setNewCAPA({...newCAPA,verificationMethod:e.target.value})} rows={2} placeholder="How will closure be independently verified?"
+              style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Linked controls (comma-separated)</label>
+              <input value={newCAPA.linkedControls} onChange={e=>setNewCAPA({...newCAPA,linkedControls:e.target.value})} placeholder="A.5.15, A.5.16"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Linked risks (comma-separated)</label>
+              <input value={newCAPA.linkedRisks} onChange={e=>setNewCAPA({...newCAPA,linkedRisks:e.target.value})} placeholder="R-014"
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+          </div>
+
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>{setAddMode(false);setNewCAPA(null);}} disabled={adding}
+              style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:adding?"not-allowed":"pointer",fontFamily:fSans,opacity:adding?0.5:1}}>
+              Cancel
+            </button>
+            <button
+              onClick={async ()=>{
+                if(!supabase) return;
+                if(!newCAPA.title.trim()){ showToast("Title is required","error"); return; }
+                if(!newCAPA.owner.trim()){ showToast("Owner is required","error"); return; }
+                if(!newCAPA.raisedBy.trim()){ showToast("Raised by is required","error"); return; }
+                setAdding(true);
+                const id = nextCAPAId();
+                const linkedControls = newCAPA.linkedControls.split(",").map(s=>s.trim()).filter(Boolean);
+                const linkedRisks = newCAPA.linkedRisks.split(",").map(s=>s.trim()).filter(Boolean);
+                const dbRow = {
+                  id,
+                  title:               newCAPA.title.trim(),
+                  source:              newCAPA.source,
+                  source_id:           newCAPA.sourceId.trim() || null,
+                  owner:               newCAPA.owner.trim(),
+                  raised_by:           newCAPA.raisedBy.trim(),
+                  raised_at:           newCAPA.raisedAt || null,
+                  target_date:         newCAPA.targetDate || null,
+                  closed_at:           null,
+                  status:              newCAPA.status,
+                  priority:            newCAPA.priority,
+                  root_cause:          newCAPA.rootCause || null,
+                  action_steps:        [],
+                  verification_method: newCAPA.verificationMethod || null,
+                  verification_date:   null,
+                  verifier:            null,
+                  verification_notes:  null,
+                  linked_controls:     linkedControls,
+                  linked_risks:        linkedRisks,
+                };
+                const { error } = await supabase.from("capa").insert(dbRow);
+                setAdding(false);
+                if(error){
+                  showToast(`Create failed: ${error.message}`, "error");
+                  return;
+                }
+                setItems(cs => [dbToCAPA(dbRow), ...cs]);
+                setAddMode(false);
+                setNewCAPA(null);
+                showToast(`${id} opened`, "success");
+              }}
+              disabled={adding}
+              style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 22px",fontSize:12,fontWeight:700,cursor:adding?"not-allowed":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,opacity:adding?0.7:1}}>
+              <span>{adding?"⋯":"+"}</span> {adding?"Opening…":"Open CAPA"}
+            </button>
           </div>
         </div>
       </div>
