@@ -174,6 +174,31 @@ function dbToFinding(row) {
   };
 }
 
+/* DB row → CAPA (corrective action) shape. */
+function dbToCAPA(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    source: row.source,
+    sourceId: row.source_id,
+    owner: row.owner,
+    raisedBy: row.raised_by,
+    raisedAt: row.raised_at,
+    targetDate: row.target_date,
+    closedAt: row.closed_at,
+    status: row.status,
+    priority: row.priority,
+    rootCause: row.root_cause,
+    actionSteps: row.action_steps || [],
+    verificationMethod: row.verification_method,
+    verificationDate: row.verification_date,
+    verifier: row.verifier,
+    verificationNotes: row.verification_notes,
+    linkedControls: row.linked_controls || [],
+    linkedRisks: row.linked_risks || [],
+  };
+}
+
 /* Reusable hook — fetch a table on mount, fall back to a constant
    if Supabase is unavailable / empty / errors. Returns [data, status, setData]
    where status ∈ 'live' | 'loading' | 'fallback-empty' | 'fallback-error' | 'constant'.
@@ -315,6 +340,7 @@ const NAV_GROUPS = [
     {id:"soa",       icon:"📋", label:"Statement of Applicability"},
     {id:"gap",       icon:"📐", label:"Gap Analysis"},
     {id:"audit",     icon:"⌖", label:"Internal Audit"},
+    {id:"capa",      icon:"⊛", label:"Corrective Actions"},
     {id:"compliance",icon:"◉", label:"Compliance"},
     {id:"checklists",icon:"☑", label:"ISO Checklists"},
     {id:"aia",       icon:"◭", label:"AI Impact (AIA)"},
@@ -5029,8 +5055,59 @@ function PageInternalAudit({setTab,showToast}) {
   const [selectedId,setSelectedId]=useState(null);
 
   /* ─── Live data, fallback to constants ─── */
-  const [audits, dataSource] = useSupabaseTable("audits", dbToAudit, INTERNAL_AUDITS, "id");
-  const [findings] = useSupabaseTable("audit_findings", dbToFinding, AUDIT_FINDINGS, "id");
+  const [audits, dataSource, setAudits] = useSupabaseTable("audits", dbToAudit, INTERNAL_AUDITS, "id");
+  const [findings, , setFindings] = useSupabaseTable("audit_findings", dbToFinding, AUDIT_FINDINGS, "id");
+  const canEdit = dataSource === "live";
+
+  /* ─── Log-finding modal state ─── */
+  const [findingMode, setFindingMode] = useState(false);
+  const [newFinding, setNewFinding] = useState(null);
+  const [savingFinding, setSavingFinding] = useState(false);
+  const [completingAudit, setCompletingAudit] = useState(false);
+
+  const nextFindingId = () => {
+    const year = new Date().getFullYear();
+    const yearPrefix = "F-" + year + "-";
+    const nums = findings
+      .filter(f => (f.id||"").startsWith(yearPrefix))
+      .map(f => parseInt(f.id.replace(yearPrefix,""),10))
+      .filter(n => !isNaN(n));
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    return yearPrefix + String(next).padStart(3,"0");
+  };
+  const openLogFinding = (audit) => {
+    if(!canEdit){ showToast("Connect Supabase to log findings","info"); return; }
+    const today = new Date().toISOString().slice(0,10);
+    /* default target close: +90 days */
+    const tc = new Date(); tc.setDate(tc.getDate()+90);
+    setNewFinding({
+      auditId: audit.id,
+      controlId: audit.scopeControls[0] && !audit.scopeControls[0].includes("all") ? audit.scopeControls[0] : "",
+      severity: "Minor",
+      title: "",
+      finding: "",
+      recommendation: "",
+      status: "Open",
+      loggedBy: "",
+      loggedAt: today,
+      targetClose: tc.toISOString().slice(0,10),
+      linkedRiskId: "",
+      capaId: "",
+    });
+    setFindingMode(true);
+  };
+  const markAuditComplete = async (auditId) => {
+    if(!supabase) return;
+    setCompletingAudit(true);
+    const { error } = await supabase
+      .from("audits")
+      .update({ status: "Completed" })
+      .eq("id", auditId);
+    setCompletingAudit(false);
+    if(error){ showToast(`Update failed: ${error.message}`, "error"); return; }
+    setAudits(as => as.map(a => a.id === auditId ? {...a, status: "Completed"} : a));
+    showToast(`${auditId} marked complete`, "success");
+  };
 
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
@@ -5302,7 +5379,9 @@ function PageInternalAudit({setTab,showToast}) {
                 <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Findings ledger</div>
                 <h3 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:20,letterSpacing:"-0.015em",color:K_.ink,margin:0}}>What this audit found.</h3>
               </div>
-              <button onClick={()=>showToast("Log finding — write path next session","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"7px 14px",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:fSans}}>
+              <button onClick={()=>openLogFinding(sel)} disabled={!canEdit}
+                title={canEdit?"Log a new finding against this audit":"Log finding requires live DB connection"}
+                style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"7px 14px",fontSize:11.5,fontWeight:700,cursor:canEdit?"pointer":"not-allowed",opacity:canEdit?1:0.55,fontFamily:fSans}}>
                 + Log finding
               </button>
             </div>
@@ -5354,13 +5433,763 @@ function PageInternalAudit({setTab,showToast}) {
               <span>↓</span> Export report (PDF)
             </button>
             {sel.status === "In Progress" && (
-              <button onClick={()=>showToast("Mark audit complete — write path next session","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
-                ✓ Mark complete
+              <button onClick={()=>markAuditComplete(sel.id)} disabled={completingAudit || !canEdit}
+                title={canEdit?"Close this audit out":"Mark complete requires live DB connection"}
+                style={{background:"transparent",color:K_.sage,border:`1px solid ${K_.sage}50`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:(completingAudit||!canEdit)?"not-allowed":"pointer",fontFamily:fSans,opacity:(completingAudit||!canEdit)?0.55:1}}>
+                {completingAudit?"⋯ Closing…":"✓ Mark complete"}
               </button>
             )}
             <button onClick={()=>{setSelectedId(null);setTab("annexa");}} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
               View scoped controls →
             </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ─── LOG FINDING MODAL ─── */}
+    {findingMode && newFinding && (
+      <div onClick={()=>{if(!savingFinding){setFindingMode(false);setNewFinding(null);}}} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.62)",
+        zIndex:1010,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 32px",maxWidth:880,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.4)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          {/* Header */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,gap:14}}>
+            <div>
+              <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:8}}>New finding · {nextFindingId()}</div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:28,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.2}}>Log a finding</h2>
+              <p style={{fontSize:12,color:K_.ink3,margin:"6px 0 0 0",lineHeight:1.5}}>Against <strong style={{color:K_.ink2,fontFamily:fMono,fontWeight:600,letterSpacing:"0.04em"}}>{newFinding.auditId}</strong></p>
+            </div>
+            <button onClick={()=>{setFindingMode(false);setNewFinding(null);}} disabled={savingFinding} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:savingFinding?"not-allowed":"pointer",fontWeight:600}}>Close</button>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:18}}>
+            {/* Control + Severity + Status */}
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Control <span style={{color:K_.crit}}>*</span></label>
+              <input value={newFinding.controlId} onChange={e=>setNewFinding({...newFinding,controlId:e.target.value})} placeholder="A.5.18"
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Severity</label>
+              <select value={newFinding.severity} onChange={e=>setNewFinding({...newFinding,severity:e.target.value})}
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Critical","Major","Minor","Observation"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Initial status</label>
+              <select value={newFinding.status} onChange={e=>setNewFinding({...newFinding,status:e.target.value})}
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",cursor:"pointer"}}>
+                {["Open","In Remediation","Closed"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{marginBottom:18}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Finding title <span style={{color:K_.crit}}>*</span></label>
+            <input value={newFinding.title} onChange={e=>setNewFinding({...newFinding,title:e.target.value})} placeholder="One-line summary of what was found"
+              style={{width:"100%",padding:"10px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+          </div>
+
+          <div style={{marginBottom:18}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Detailed finding</label>
+            <textarea value={newFinding.finding} onChange={e=>setNewFinding({...newFinding,finding:e.target.value})} rows={4} placeholder="What was tested, what was found, sample sizes, root cause."
+              style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+          </div>
+
+          <div style={{marginBottom:18}}>
+            <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Recommendation</label>
+            <textarea value={newFinding.recommendation} onChange={e=>setNewFinding({...newFinding,recommendation:e.target.value})} rows={3} placeholder="What needs to be done to address this finding, and by when."
+              style={{width:"100%",padding:"12px 14px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",resize:"vertical",lineHeight:1.55}}/>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14,marginBottom:18}}>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Logged by <span style={{color:K_.crit}}>*</span></label>
+              <input value={newFinding.loggedBy} onChange={e=>setNewFinding({...newFinding,loggedBy:e.target.value})} placeholder="Auditor name"
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Logged on</label>
+              <input type="date" value={newFinding.loggedAt} onChange={e=>setNewFinding({...newFinding,loggedAt:e.target.value})}
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Target close</label>
+              <input type="date" value={newFinding.targetClose} onChange={e=>setNewFinding({...newFinding,targetClose:e.target.value})}
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Linked risk (opt)</label>
+              <input value={newFinding.linkedRiskId} onChange={e=>setNewFinding({...newFinding,linkedRiskId:e.target.value})} placeholder="R-014"
+                style={{width:"100%",padding:"10px 12px",border:`1px solid ${K_.lineH}`,borderRadius:10,fontSize:13,fontFamily:fMono,color:K_.ink,background:K_.bg,outline:"none"}}/>
+            </div>
+          </div>
+
+          {/* Save + Cancel */}
+          <div style={{display:"flex",justifyContent:"flex-end",gap:10,paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>{setFindingMode(false);setNewFinding(null);}} disabled={savingFinding}
+              style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:savingFinding?"not-allowed":"pointer",fontFamily:fSans,opacity:savingFinding?0.5:1}}>
+              Cancel
+            </button>
+            <button
+              onClick={async ()=>{
+                if(!supabase) return;
+                if(!newFinding.controlId.trim()){ showToast("Control reference is required","error"); return; }
+                if(!newFinding.title.trim()){ showToast("Title is required","error"); return; }
+                if(!newFinding.loggedBy.trim()){ showToast("Logged by is required","error"); return; }
+                setSavingFinding(true);
+                const id = nextFindingId();
+                const dbRow = {
+                  id,
+                  audit_id:        newFinding.auditId,
+                  control_id:      newFinding.controlId.trim(),
+                  severity:        newFinding.severity,
+                  title:           newFinding.title.trim(),
+                  finding:         newFinding.finding || null,
+                  recommendation:  newFinding.recommendation || null,
+                  status:          newFinding.status,
+                  logged_by:       newFinding.loggedBy.trim(),
+                  logged_at:       newFinding.loggedAt || null,
+                  target_close:    newFinding.targetClose || null,
+                  linked_risk_id:  newFinding.linkedRiskId.trim() || null,
+                  capa_id:         newFinding.capaId.trim() || null,
+                };
+                const { error } = await supabase.from("audit_findings").insert(dbRow);
+                setSavingFinding(false);
+                if(error){
+                  showToast(`Log failed: ${error.message}`, "error");
+                  return;
+                }
+                setFindings(fs => [...fs, dbToFinding(dbRow)]);
+                setFindingMode(false);
+                setNewFinding(null);
+                showToast(`${id} logged`, "success");
+              }}
+              disabled={savingFinding}
+              style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 22px",fontSize:12,fontWeight:700,cursor:savingFinding?"not-allowed":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,opacity:savingFinding?0.7:1}}>
+              <span>{savingFinding?"⋯":"+"}</span> {savingFinding?"Logging…":"Log finding"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>;
+}
+
+/* ─────────────────────────────────────────────
+   CAPA — Corrective Actions / seeded data
+   Closes the loop: audit findings + risks generate Corrective
+   Action items, tracked to verified closure. Same lifecycle
+   regardless of source — Open → In Progress → Pending Verification
+   → Closed.
+───────────────────────────────────────────── */
+const CAPA_REGISTER = [
+  /* Linked from Q1 2026 Access Control audit */
+  {
+    id:"CAPA-2026-001",
+    title:"Automate joiner-mover-leaver via HRIS-to-IAM webhook",
+    source:"Audit Finding", sourceId:"F-2026-001",
+    owner:"David Park (CIO)",
+    raisedBy:"Mei Lin (Internal Audit Lead)",
+    raisedAt:"2026-02-08", targetDate:"2026-08-15", closedAt:null,
+    status:"In Progress", priority:"High",
+    rootCause:"HR offboarding events did not consistently trigger IAM workflow because contractor end-date extensions were processed via email rather than through the HRIS. The integration assumed all offboarding events would originate in Workday.",
+    actionSteps:[
+      {step:"Document current end-to-end onboarding/offboarding flow including contractor variants", status:"complete", owner:"Andre Okafor", due:"2026-03-15"},
+      {step:"Build Workday-to-Okta webhook for terminations and end-date changes", status:"complete", owner:"Platform Team", due:"2026-05-30"},
+      {step:"Mandatory CISO sign-off on weekly orphan-account scan", status:"in progress", owner:"Sarah Chen (CISO)", due:"2026-07-15"},
+      {step:"Update Access Control Policy § 4.2 with new automated SLA (5 business days)", status:"in progress", owner:"Compliance Team", due:"2026-07-31"},
+      {step:"Re-test 60-account sample in Q3 2026 audit", status:"pending", owner:"Mei Lin", due:"2026-08-15"},
+    ],
+    verificationMethod:"Re-sample of 60 departed staff in Q3 2026 internal audit. Target: 0 accounts dormant beyond 5 business days.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.5.18","A.5.16"], linkedRisks:["R-002"],
+  },
+  {
+    id:"CAPA-2026-002",
+    title:"Centralise privileged access entitlement reviews",
+    source:"Audit Finding", sourceId:"F-2026-002",
+    owner:"Sarah Chen (CISO)",
+    raisedBy:"Andre Okafor",
+    raisedAt:"2026-02-10", targetDate:"2026-07-31", closedAt:null,
+    status:"Open", priority:"Medium",
+    rootCause:"No centralised system of record for privileged access reviews. Reviews were distributed across team leads, with no aggregated tracking or sign-off documentation requirement.",
+    actionSteps:[
+      {step:"Inventory all privileged groups (11 identified plus contractor groups)", status:"complete", owner:"Sarah Chen", due:"2026-03-15"},
+      {step:"Build privileged access review dashboard with calendar-driven reminders", status:"in progress", owner:"Platform Team", due:"2026-06-30"},
+      {step:"Pilot quarterly review with 3 groups using new dashboard", status:"pending", owner:"Sarah Chen", due:"2026-07-15"},
+      {step:"Roll out to all 11 groups with signed-off review evidence captured", status:"pending", owner:"Sarah Chen", due:"2026-07-31"},
+    ],
+    verificationMethod:"Sample-based verification — sample 4 of 11 groups, confirm dashboard sign-off evidence exists for most-recent review cycle.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.5.15","A.5.18"], linkedRisks:[],
+  },
+  /* Linked from Annual ISMS audit (Bureau Veritas) */
+  {
+    id:"CAPA-2025-014",
+    title:"Operationalise Threat Intelligence Procedure — monthly reports + actions",
+    source:"Audit Finding", sourceId:"F-2025-014",
+    owner:"Sarah Chen (CISO)",
+    raisedBy:"Helena Kruger (Bureau Veritas)",
+    raisedAt:"2025-11-22", targetDate:"2026-02-28", closedAt:"2026-02-25",
+    status:"Closed", priority:"Medium",
+    rootCause:"Procedure existed but lacked operational ownership. Three intelligence feeds were subscribed to but no defined cadence for report consolidation or actioning.",
+    actionSteps:[
+      {step:"Assign monthly threat intel ownership to Security Analyst", status:"complete", owner:"Sarah Chen", due:"2025-12-15"},
+      {step:"Define minimum content for monthly intelligence report (template)", status:"complete", owner:"Security Analyst", due:"2026-01-15"},
+      {step:"Establish quarterly action commitment (≥1 actionable item per quarter)", status:"complete", owner:"Security Analyst", due:"2026-02-15"},
+      {step:"Q1 2026 report + first quarterly action logged", status:"complete", owner:"Security Analyst", due:"2026-02-28"},
+    ],
+    verificationMethod:"Bureau Veritas Q1 follow-up review. Sample: most recent 3 monthly reports + evidence of at least one tracked action.",
+    verificationDate:"2026-03-12", verifier:"Helena Kruger (Bureau Veritas)",
+    verificationNotes:"Verified. Three reports on file (Dec 2025, Jan 2026, Feb 2026). Two actionable items logged for Q1 — Log4j compensating control coverage gap + MITRE T1078 detection tuning. Both tracked in ticketing system. Closed.",
+    linkedControls:["A.5.7"], linkedRisks:[],
+  },
+  {
+    id:"CAPA-2025-015",
+    title:"Catch-up security awareness training for 38 outstanding staff",
+    source:"Audit Finding", sourceId:"F-2025-015",
+    owner:"Patricia Watts (CGO)",
+    raisedBy:"Helena Kruger (Bureau Veritas)",
+    raisedAt:"2025-11-24", targetDate:"2026-01-31", closedAt:"2026-01-28",
+    status:"Closed", priority:"Medium",
+    rootCause:"Annual training cycle (Oct 2025) hit 87%. 38 individuals overdue — primarily concentrated in two subsidiaries acquired in Q3 2025. M&A integration runbook did not include day-1 training enrolment.",
+    actionSteps:[
+      {step:"Identify all 38 individuals and assign manager-level escalation", status:"complete", owner:"HR Operations", due:"2025-12-15"},
+      {step:"Targeted catch-up campaign with 30/14/7 day reminders", status:"complete", owner:"HR Operations", due:"2026-01-15"},
+      {step:"Update M&A integration runbook to include day-1 training enrolment", status:"complete", owner:"M&A Integration Lead", due:"2026-01-31"},
+    ],
+    verificationMethod:"Completion report from LMS showing 100% of 38 individuals trained. Runbook update visible in shared M&A space.",
+    verificationDate:"2026-02-04", verifier:"Helena Kruger (Bureau Veritas)",
+    verificationNotes:"Verified. All 38 completed by Jan 24. Final completion rate for FY2025 cycle: 99.2%. Runbook update reviewed.",
+    linkedControls:["A.6.3"], linkedRisks:[],
+  },
+  {
+    id:"CAPA-2025-016",
+    title:"Enforce 48-hour SLA on emergency change post-implementation review",
+    source:"Audit Finding", sourceId:"F-2025-016",
+    owner:"David Park (CIO)",
+    raisedBy:"Helena Kruger (Bureau Veritas)",
+    raisedAt:"2025-11-28", targetDate:"2026-06-30", closedAt:null,
+    status:"In Progress", priority:"Medium",
+    rootCause:"Change management ticketing tool allowed emergency tickets to be closed without post-implementation review attached. Manual process relied on change manager memory.",
+    actionSteps:[
+      {step:"Add automated 24-hour reminder on emergency change tickets", status:"complete", owner:"Platform Team", due:"2026-02-15"},
+      {step:"Block ticket closure until post-review section completed", status:"complete", owner:"Platform Team", due:"2026-04-15"},
+      {step:"Sample 20 emergency changes Q2 2026 — verify 0 SLA breaches", status:"in progress", owner:"David Park", due:"2026-06-30"},
+    ],
+    verificationMethod:"Audit re-test in Q3 2026. Sample of 20 emergency changes from Q2 2026, target: 0 reviews outside 48h SLA.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.8.32"], linkedRisks:[],
+  },
+  {
+    id:"CAPA-2025-017",
+    title:"Restore annual BCP tabletop cadence + introduce quarterly micro-exercises",
+    source:"Audit Finding", sourceId:"F-2025-017",
+    owner:"Patricia Watts (CGO)",
+    raisedBy:"Helena Kruger (Bureau Veritas)",
+    raisedAt:"2025-12-01", targetDate:"2026-09-30", closedAt:null,
+    status:"In Progress", priority:"High",
+    rootCause:"BCP testing fell off after key BCP coordinator transitioned in Q2 2025. Replacement not appointed until Q4 2025. 12-month gap in tabletop exercises.",
+    actionSteps:[
+      {step:"Appoint new BCP coordinator (Patricia Watts taking direct ownership)", status:"complete", owner:"Patricia Watts", due:"2025-12-31"},
+      {step:"Q1 2026 — ransomware-scenario tabletop", status:"complete", owner:"Patricia Watts", due:"2026-03-31"},
+      {step:"Q2 2026 — DR failover live test (tier-1 systems)", status:"in progress", owner:"David Park", due:"2026-06-30"},
+      {step:"Q3 2026 — Full BCP tabletop (annual cycle)", status:"pending", owner:"Patricia Watts", due:"2026-09-20"},
+    ],
+    verificationMethod:"Bureau Veritas Q4 2026 surveillance audit will sample tabletop reports + lessons-learned actions.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.5.30","A.5.29"], linkedRisks:[],
+  },
+  /* Standalone — raised from risk, not audit */
+  {
+    id:"CAPA-2026-003",
+    title:"Vendor due-diligence refresh for 4 critical suppliers overdue >18 months",
+    source:"Audit Finding", sourceId:"F-2026-007",
+    owner:"Jennifer Lim (CDPO)",
+    raisedBy:"Andre Okafor",
+    raisedAt:"2026-05-08", targetDate:"2026-11-30", closedAt:null,
+    status:"Open", priority:"High",
+    rootCause:"Supplier review calendar maintained in shared spreadsheet without automated reminders. Calendar ownership unclear after procurement reorg in Q1 2026.",
+    actionSteps:[
+      {step:"Re-issue security questionnaires to 4 overdue critical suppliers", status:"pending", owner:"Vendor Risk Team", due:"2026-07-15"},
+      {step:"Onboard supplier review cadence into VerisZone with 90-day pre-due reminders", status:"pending", owner:"Vendor Risk Team", due:"2026-08-31"},
+      {step:"Escalation procedure documented — Supplier Owner + CISO at 30 days overdue", status:"pending", owner:"Sarah Chen", due:"2026-09-30"},
+      {step:"All 12 critical suppliers current as of Q4 2026", status:"pending", owner:"Vendor Risk Team", due:"2026-11-30"},
+    ],
+    verificationMethod:"Q4 2026 sample — confirm all 12 critical suppliers have completed security review in current calendar year.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.5.19","A.5.22"], linkedRisks:["R-014"],
+  },
+  /* From a risk, not audit */
+  {
+    id:"CAPA-2026-004",
+    title:"Phishing-resistant MFA rollout for all privileged accounts (FIDO2)",
+    source:"Risk", sourceId:"R-001",
+    owner:"Sarah Chen (CISO)",
+    raisedBy:"Sarah Chen (CISO)",
+    raisedAt:"2026-03-12", targetDate:"2026-10-31", closedAt:null,
+    status:"In Progress", priority:"Critical",
+    rootCause:"Current TOTP-based MFA is vulnerable to AitM phishing attacks. Sector incident in Feb 2026 (peer org) demonstrated real-world exploitability against TOTP.",
+    actionSteps:[
+      {step:"FIDO2 security key bulk purchase (250 units for all privileged staff)", status:"complete", owner:"Procurement", due:"2026-04-15"},
+      {step:"Okta + Azure AD configuration to require FIDO2 for privileged role tiers", status:"complete", owner:"Platform Team", due:"2026-06-30"},
+      {step:"Pilot rollout with Platform Team (12 individuals)", status:"complete", owner:"Sarah Chen", due:"2026-07-31"},
+      {step:"Full rollout to all 250 privileged users + recovery key escrow procedure", status:"in progress", owner:"Sarah Chen", due:"2026-10-31"},
+    ],
+    verificationMethod:"Okta admin export confirming 100% of privileged roles have FIDO2 as primary factor + helpdesk record of zero phishing-related lockouts in 30-day post-rollout window.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.5.16","A.5.17","A.8.5"], linkedRisks:["R-001"],
+  },
+  /* From an incident */
+  {
+    id:"CAPA-2026-005",
+    title:"Tighten S3 bucket public-access defaults post-misconfiguration incident",
+    source:"Incident", sourceId:"INC-2026-031",
+    owner:"David Park (CIO)",
+    raisedBy:"Security Operations",
+    raisedAt:"2026-04-22", targetDate:"2026-05-31", closedAt:"2026-05-29",
+    status:"Closed", priority:"Critical",
+    rootCause:"Developer-created S3 bucket for staging environment was created without Block Public Access. Default account-level setting was permissive (legacy). Bucket briefly held de-identified test data for 6 hours before being detected by daily configuration scan. No personal data exposed.",
+    actionSteps:[
+      {step:"Block Public Access enabled at account level for all 4 AWS accounts", status:"complete", owner:"Platform Team", due:"2026-05-01"},
+      {step:"Service control policy (SCP) added to prevent BPA from being disabled below account level", status:"complete", owner:"Platform Team", due:"2026-05-15"},
+      {step:"Daily config scan extended to detect any new buckets within 1 hour (was 24h)", status:"complete", owner:"SecOps", due:"2026-05-22"},
+      {step:"Developer training session on S3 security defaults", status:"complete", owner:"Sarah Chen", due:"2026-05-29"},
+    ],
+    verificationMethod:"AWS Config rule + screenshot of SCP. Tested by attempting to create a public bucket — denied as expected.",
+    verificationDate:"2026-05-30", verifier:"Sarah Chen (CISO)",
+    verificationNotes:"Verified. All 4 accounts confirmed BPA on. SCP test passed. Incident closed with no customer impact. Lessons-learned doc filed.",
+    linkedControls:["A.8.9","A.8.32"], linkedRisks:[],
+  },
+  /* Pending verification — overdue */
+  {
+    id:"CAPA-2026-006",
+    title:"Data retention policy enforcement — purge >7yr customer records",
+    source:"Internal Review", sourceId:"REV-2026-008",
+    owner:"Jennifer Lim (CDPO)",
+    raisedBy:"Jennifer Lim (CDPO)",
+    raisedAt:"2026-01-14", targetDate:"2026-04-30", closedAt:null,
+    status:"Pending Verification", priority:"Medium",
+    rootCause:"Data retention policy mandates 7-year max retention for closed customer records. Internal review found ~84k records exceeding limit, primarily in legacy CRM imported during 2018 platform migration.",
+    actionSteps:[
+      {step:"Inventory and classify all records older than 7 years", status:"complete", owner:"Data Engineering", due:"2026-02-15"},
+      {step:"Legal review for any litigation hold exclusions (47 records held)", status:"complete", owner:"Legal", due:"2026-03-01"},
+      {step:"Purge ~84k records via approved purge process", status:"complete", owner:"Data Engineering", due:"2026-04-15"},
+      {step:"Database query confirming 0 records older than 7yr + audit log of purge", status:"complete", owner:"Data Engineering", due:"2026-04-30"},
+    ],
+    verificationMethod:"Independent verification by CISO team — re-run retention query and confirm 0 records exceed 7-year threshold. Audit log spot-check.",
+    verificationDate:null, verifier:null, verificationNotes:null,
+    linkedControls:["A.5.33","A.8.10"], linkedRisks:[],
+  },
+];
+
+/* ─────────────────────────────────────────────
+   PAGE: CORRECTIVE ACTIONS (CAPA)
+   Tracks remediation actions across audit findings, risks,
+   incidents, internal reviews. Each item flows through the
+   Open → In Progress → Pending Verification → Closed lifecycle.
+───────────────────────────────────────────── */
+function PageCAPA({setTab,showToast}) {
+  const [statusFilter,setStatusFilter]=useState("all");
+  const [priorityFilter,setPriorityFilter]=useState("all");
+  const [sourceFilter,setSourceFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [selectedId,setSelectedId]=useState(null);
+
+  /* ─── Live data, fallback to constants ─── */
+  const [items, dataSource] = useSupabaseTable("capa", dbToCAPA, CAPA_REGISTER, "id");
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','PP Editorial Old','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  const statusColor = s => ({
+    "Open":K_.crit, "In Progress":K_.amber, "Pending Verification":K_.gold, "Closed":K_.sage, "Overdue":K_.crit,
+  })[s] || K_.ink3;
+  const prioColor = p => ({
+    "Critical":K_.crit, "High":K_.crit, "Medium":K_.amber, "Low":K_.ink3,
+  })[p] || K_.ink3;
+  const sourceTone = s => ({
+    "Audit Finding":K_.gold, "Risk":K_.crit, "Incident":K_.amber, "Internal Review":K_.ink2,
+  })[s] || K_.ink3;
+
+  /* Esc closes detail modal */
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (e) => { if (e.key === "Escape") setSelectedId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId]);
+
+  /* Helpers — derive overdue + days to target */
+  const today = new Date().toISOString().slice(0,10);
+  const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date(today)) / 86400000) : null;
+  const effectiveStatus = (c) => {
+    if (c.status === "Closed") return "Closed";
+    if (c.targetDate && c.targetDate < today && c.status !== "Pending Verification") return "Overdue";
+    return c.status;
+  };
+
+  /* Stats */
+  const enriched = items.map(c => ({...c, effStatus: effectiveStatus(c)}));
+  const openCount      = enriched.filter(c => c.effStatus !== "Closed").length;
+  const overdueCount   = enriched.filter(c => c.effStatus === "Overdue").length;
+  const pendingVerify  = enriched.filter(c => c.effStatus === "Pending Verification").length;
+  const closedCount    = enriched.filter(c => c.effStatus === "Closed").length;
+  const criticalCount  = enriched.filter(c => c.priority === "Critical" && c.effStatus !== "Closed").length;
+  /* Average days to close — only completed items */
+  const closedItems = enriched.filter(c => c.effStatus === "Closed" && c.closedAt && c.raisedAt);
+  const avgDays = closedItems.length
+    ? Math.round(closedItems.reduce((s,c) => s + Math.ceil((new Date(c.closedAt) - new Date(c.raisedAt))/86400000), 0) / closedItems.length)
+    : null;
+
+  /* Filter */
+  const filtered = enriched.filter(c => {
+    if(statusFilter!=="all"   && c.effStatus !== statusFilter) return false;
+    if(priorityFilter!=="all" && c.priority !== priorityFilter) return false;
+    if(sourceFilter!=="all"   && c.source !== sourceFilter) return false;
+    if(search){
+      const q=search.toLowerCase();
+      if(!(c.id.toLowerCase().includes(q) || (c.title||"").toLowerCase().includes(q) || (c.owner||"").toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  /* Sort: overdue first, then closest target date, then by priority */
+  filtered.sort((a,b) => {
+    const so = ["Overdue","Open","In Progress","Pending Verification","Closed"];
+    const da = so.indexOf(a.effStatus), db = so.indexOf(b.effStatus);
+    if (da !== db) return da - db;
+    return (a.targetDate||"").localeCompare(b.targetDate||"");
+  });
+
+  const sel = selectedId ? enriched.find(c=>c.id===selectedId) : null;
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* ── HERO ── */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.07,backgroundImage:`radial-gradient(circle at 80% 20%, ${K_.gold} 1px, transparent 1px)`,backgroundSize:"24px 24px"}}/>
+      <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:24}}>
+        <div style={{maxWidth:680}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:14}}>
+            <span>▸</span><span>ISO 27001 § 10.1 · Corrective Actions</span>
+            <DataSourcePill dataSource={dataSource} mono={fMono}/>
+          </div>
+          <h1 style={{
+            fontFamily:fSerif,fontStyle:"italic",fontWeight:400,
+            fontSize:"clamp(34px, 4.5vw, 52px)",
+            letterSpacing:"-0.02em",lineHeight:1.05,color:K_.navyT,margin:"0 0 14px 0",
+          }}>What we found, what we fixed.</h1>
+          <p style={{fontSize:14.5,color:K_.navyT2,lineHeight:1.6,margin:0,maxWidth:560}}>
+            {items.length} corrective actions tracked. Sourced from audit findings, risks, incidents and internal reviews. Every item to verified closure.
+          </p>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>{overdueCount>0?"Overdue":"All on track"}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:"clamp(64px, 9vw, 96px)",letterSpacing:"-0.04em",lineHeight:0.9,color:overdueCount>0?"#D9A285":K_.gold}}>{overdueCount}</div>
+          <div style={{fontSize:11,color:K_.navyT3,marginTop:6,letterSpacing:"0.04em"}}>{overdueCount===0?"zero past target date":"actions past target date"}</div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── STAT CARDS ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8,marginBottom:14}}>
+      {[
+        {label:"Open",                value:openCount,      tone:K_.crit,  sub:"action required"},
+        {label:"Critical priority",   value:criticalCount,  tone:K_.crit,  sub:"open, critical only"},
+        {label:"Pending verification",value:pendingVerify,  tone:K_.gold,  sub:"work done, awaiting check"},
+        {label:"Closed",              value:closedCount,    tone:K_.sage,  sub:"verified complete"},
+        {label:"Avg days to close",   value:avgDays??"—",   tone:K_.ink,   sub:"completed items only"},
+        {label:"Total tracked",       value:items.length,   tone:K_.ink2,  sub:"all sources"},
+      ].map(s=>(
+        <div key={s.label} style={{background:K_.surface,borderRadius:14,border:`1px solid ${K_.line}`,padding:"18px 20px"}}>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:38,letterSpacing:"-0.02em",lineHeight:1,color:s.tone}}>{s.value}</div>
+          <div style={{fontSize:11,color:K_.ink3,marginTop:6}}>{s.sub}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* ── FILTERS ── */}
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"18px 22px",marginBottom:14}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:14,alignItems:"center",marginBottom:14}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by ID, title, owner…" style={{
+          flex:"1 1 280px",minWidth:240,padding:"10px 14px",border:`1px solid ${K_.line}`,borderRadius:10,
+          fontSize:13.5,fontFamily:fSans,color:K_.ink,background:K_.bg,outline:"none",
+        }}/>
+        <button onClick={()=>showToast("Create CAPA — write path next session","info")} style={{
+          background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",
+          fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6,
+        }}>
+          <span>+</span> New CAPA
+        </button>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:8}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4,minWidth:60}}>Status</span>
+        {[["all","All"],["Open","Open"],["In Progress","In Progress"],["Pending Verification","Pending Verification"],["Overdue","Overdue"],["Closed","Closed"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setStatusFilter(k)} style={{
+            background:statusFilter===k?(k==="all"?K_.navy:statusColor(k)):"transparent",
+            color:statusFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${statusFilter===k?(k==="all"?K_.navy:statusColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:statusFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:8}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4,minWidth:60}}>Priority</span>
+        {[["all","All"],["Critical","Critical"],["High","High"],["Medium","Medium"],["Low","Low"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setPriorityFilter(k)} style={{
+            background:priorityFilter===k?(k==="all"?K_.navy:prioColor(k)):"transparent",
+            color:priorityFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${priorityFilter===k?(k==="all"?K_.navy:prioColor(k)):K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:priorityFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginRight:4,minWidth:60}}>Source</span>
+        {[["all","All"],["Audit Finding","Audit Finding"],["Risk","Risk"],["Incident","Incident"],["Internal Review","Internal Review"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSourceFilter(k)} style={{
+            background:sourceFilter===k?K_.navy:"transparent",
+            color:sourceFilter===k?"#fff":K_.ink2,
+            border:`1px solid ${sourceFilter===k?K_.navy:K_.line}`,
+            borderRadius:100,padding:"5px 12px",fontSize:11.5,fontWeight:sourceFilter===k?600:500,fontFamily:fSans,cursor:"pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+    </div>
+
+    {/* ── CAPA LIST ── */}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px",marginBottom:10}}>
+      <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>
+        Showing {filtered.length} CAPA{filtered.length===1?"":"s"} · sorted by status + target date
+      </div>
+      <div style={{fontSize:11,color:K_.ink3,fontStyle:"italic"}}>Click any row to view detail</div>
+    </div>
+    <div style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"4px 0",marginBottom:14,overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,minWidth:1000}}>
+        <thead>
+          <tr style={{borderBottom:`1px solid ${K_.line}`}}>
+            {["ID","Title","Source","Priority","Status","Owner","Target","Linked"].map((h,i)=>(
+              <th key={h+i} style={{textAlign:"left",padding:"14px 14px",fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(c=>{
+            const du = daysUntil(c.targetDate);
+            return <tr key={c.id} onClick={()=>setSelectedId(c.id)} style={{
+              borderBottom:`1px solid ${K_.line}`,cursor:"pointer",transition:"background .12s",
+              background:selectedId===c.id?K_.gold+"18":"transparent",
+              boxShadow:selectedId===c.id?`inset 4px 0 0 ${K_.gold}`:"none",
+            }}
+            onMouseEnter={e=>{if(selectedId!==c.id)e.currentTarget.style.background=K_.bg;}}
+            onMouseLeave={e=>{if(selectedId!==c.id)e.currentTarget.style.background="transparent";}}>
+              <td style={{padding:"14px 14px",fontFamily:fMono,fontSize:11.5,fontWeight:600,color:K_.ink2,letterSpacing:"0.04em",whiteSpace:"nowrap"}}>{c.id}</td>
+              <td style={{padding:"14px 14px",maxWidth:380}}>
+                <div style={{fontSize:13,fontWeight:600,color:K_.ink,lineHeight:1.4}}>{c.title}</div>
+              </td>
+              <td style={{padding:"14px 14px",whiteSpace:"nowrap"}}>
+                <span style={{display:"inline-block",background:sourceTone(c.source)+"15",color:sourceTone(c.source),border:`1px solid ${sourceTone(c.source)}30`,borderRadius:100,padding:"2px 9px",fontSize:10.5,fontWeight:600}}>{c.source}</span>
+                {c.sourceId && <button onClick={(e)=>{e.stopPropagation(); if(c.source==="Audit Finding") setTab("audit"); else if(c.source==="Risk") setTab("risks");}} style={{display:"block",background:"transparent",color:K_.gold,border:"none",padding:0,marginTop:4,fontSize:10.5,fontFamily:fMono,letterSpacing:"0.02em",cursor:"pointer"}}>→ {c.sourceId}</button>}
+              </td>
+              <td style={{padding:"14px 14px",whiteSpace:"nowrap"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:prioColor(c.priority)+"15",color:prioColor(c.priority),borderRadius:100,padding:"2px 9px",fontSize:10.5,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:prioColor(c.priority)}}/>
+                  {c.priority}
+                </span>
+              </td>
+              <td style={{padding:"14px 14px",whiteSpace:"nowrap"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(c.effStatus)+"15",color:statusColor(c.effStatus),border:`1px solid ${statusColor(c.effStatus)}30`,borderRadius:100,padding:"3px 9px",fontSize:10.5,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(c.effStatus)}}/>
+                  {c.effStatus}
+                </span>
+              </td>
+              <td style={{padding:"14px 14px",fontSize:12,color:K_.ink2,whiteSpace:"nowrap"}}>{c.owner}</td>
+              <td style={{padding:"14px 14px",whiteSpace:"nowrap",fontFamily:fMono,fontSize:11.5}}>
+                <div style={{color:K_.ink2}}>{c.targetDate}</div>
+                {du !== null && c.effStatus !== "Closed" && <div style={{fontSize:10,color:du<0?K_.crit:du<14?K_.amber:K_.ink3,fontFamily:fSans,letterSpacing:0,fontWeight:du<14?600:400}}>{du<0?`${Math.abs(du)}d overdue`:du===0?"due today":`${du}d to go`}</div>}
+              </td>
+              <td style={{padding:"14px 14px",whiteSpace:"nowrap",fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em"}}>
+                {c.linkedControls.length>0 && <span>{c.linkedControls.length} control{c.linkedControls.length===1?"":"s"}</span>}
+                {c.linkedRisks.length>0 && <span style={{marginLeft:c.linkedControls.length>0?8:0}}>{c.linkedRisks.length} risk{c.linkedRisks.length===1?"":"s"}</span>}
+              </td>
+            </tr>;
+          })}
+        </tbody>
+      </table>
+      {filtered.length===0 && <div style={{padding:"40px 22px",textAlign:"center",color:K_.ink3,fontSize:13,fontStyle:"italic"}}>No CAPAs match the current filters.</div>}
+    </div>
+
+    {/* ── SELECTED CAPA DETAIL — modal ── */}
+    {sel && (
+      <div onClick={()=>setSelectedId(null)} style={{
+        position:"fixed",inset:0,background:"rgba(28,27,31,0.55)",
+        zIndex:1000,padding:"40px 20px",overflowY:"auto",
+        display:"flex",justifyContent:"center",alignItems:"flex-start",
+        backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)",
+      }}>
+        <div onClick={(e)=>e.stopPropagation()} style={{background:K_.surface,borderRadius:18,border:`1px solid ${K_.line}`,padding:"30px 34px",maxWidth:1000,width:"100%",boxShadow:"0 30px 80px -20px rgba(0,0,0,0.35)",animation:"up .25s cubic-bezier(.16,1,.3,1)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,gap:14,flexWrap:"wrap"}}>
+            <div style={{flex:"1 1 480px"}}>
+              <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{background:K_.gold,color:K_.goldText,borderRadius:100,padding:"4px 12px",fontSize:11,fontWeight:700,fontFamily:fMono,letterSpacing:"0.06em"}}>{sel.id}</span>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:statusColor(sel.effStatus)+"15",color:statusColor(sel.effStatus),border:`1px solid ${statusColor(sel.effStatus)}30`,borderRadius:100,padding:"3px 9px",fontSize:11,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:statusColor(sel.effStatus)}}/>
+                  {sel.effStatus}
+                </span>
+                <span style={{display:"inline-flex",alignItems:"center",gap:5,background:prioColor(sel.priority)+"15",color:prioColor(sel.priority),borderRadius:100,padding:"3px 9px",fontSize:11,fontWeight:600}}>
+                  <span style={{width:5,height:5,borderRadius:"50%",background:prioColor(sel.priority)}}/>
+                  {sel.priority}
+                </span>
+                <span style={{background:sourceTone(sel.source)+"15",color:sourceTone(sel.source),border:`1px solid ${sourceTone(sel.source)}30`,borderRadius:100,padding:"3px 10px",fontSize:11,fontWeight:600}}>{sel.source}</span>
+                {sel.sourceId && <button onClick={()=>{setSelectedId(null); if(sel.source==="Audit Finding") setTab("audit"); else if(sel.source==="Risk") setTab("risks");}} style={{background:"transparent",color:K_.gold,border:`1px solid ${K_.gold}40`,borderRadius:6,padding:"3px 10px",fontSize:11,fontFamily:fMono,cursor:"pointer",letterSpacing:"0.02em"}}>→ {sel.sourceId}</button>}
+              </div>
+              <h2 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:26,letterSpacing:"-0.015em",color:K_.ink,margin:0,lineHeight:1.25}}>{sel.title}</h2>
+            </div>
+            <button onClick={()=>setSelectedId(null)} style={{background:"none",border:`1px solid ${K_.line}`,color:K_.ink2,borderRadius:100,padding:"6px 14px",fontSize:11.5,cursor:"pointer",fontWeight:600}}>Close</button>
+          </div>
+
+          {/* Root cause */}
+          <div style={{marginBottom:18}}>
+            <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:6}}>Root cause</div>
+            <p style={{fontSize:13.5,color:K_.ink,lineHeight:1.6,margin:0}}>{sel.rootCause}</p>
+          </div>
+
+          {/* Meta grid */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:20,padding:"16px 18px",background:K_.bg,borderRadius:12,border:`1px solid ${K_.line}`}}>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Owner</div>
+              <div style={{fontSize:13,color:K_.ink,fontWeight:600}}>{sel.owner}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Raised by</div>
+              <div style={{fontSize:12.5,color:K_.ink,fontWeight:500}}>{sel.raisedBy}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Raised</div>
+              <div style={{fontSize:13,color:K_.ink,fontFamily:fMono,letterSpacing:"0.04em"}}>{sel.raisedAt}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Target</div>
+              <div style={{fontSize:13,color:sel.effStatus==="Overdue"?K_.crit:K_.ink,fontFamily:fMono,letterSpacing:"0.04em",fontWeight:sel.effStatus==="Overdue"?600:400}}>{sel.targetDate}</div>
+            </div>
+            {sel.closedAt && (
+              <div>
+                <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:4}}>Closed</div>
+                <div style={{fontSize:13,color:K_.sage,fontFamily:fMono,letterSpacing:"0.04em",fontWeight:600}}>{sel.closedAt}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Action steps */}
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Action steps ({sel.actionSteps.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {sel.actionSteps.map((s,i)=>{
+                const stCol = s.status==="complete" ? K_.sage : s.status==="in progress" ? K_.amber : K_.ink3;
+                const stLabel = s.status==="complete" ? "Done" : s.status==="in progress" ? "In Progress" : "Pending";
+                return (
+                  <div key={i} style={{background:K_.bg,borderRadius:10,border:`1px solid ${K_.line}`,borderLeft:`3px solid ${stCol}`,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}>
+                    <div style={{flex:"1 1 360px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                        <span style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,fontWeight:600}}>{String(i+1).padStart(2,"0")}</span>
+                        <span style={{fontSize:10.5,color:stCol,fontWeight:700,letterSpacing:"0.05em"}}>{stLabel.toUpperCase()}</span>
+                      </div>
+                      <div style={{fontSize:13,color:K_.ink,lineHeight:1.5}}>{s.step}</div>
+                    </div>
+                    <div style={{fontSize:11,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.04em",textAlign:"right",whiteSpace:"nowrap"}}>
+                      <div>{s.owner}</div>
+                      <div style={{marginTop:2}}>{s.due}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Verification */}
+          <div style={{marginBottom:20,padding:"18px 20px",background:sel.verificationDate?K_.sageL:K_.s1,borderRadius:12,border:`1px solid ${sel.verificationDate?K_.sage+"30":K_.line}`}}>
+            <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>Verification</div>
+            <div style={{fontSize:13,color:K_.ink,lineHeight:1.55,marginBottom:8}}>
+              <strong style={{color:K_.ink}}>Method:</strong> {sel.verificationMethod}
+            </div>
+            {sel.verificationDate ? (
+              <div style={{paddingTop:10,borderTop:`1px dashed ${K_.sage}40`,fontSize:12.5,color:K_.ink2,lineHeight:1.55}}>
+                <div style={{marginBottom:4}}><strong style={{color:K_.sage,fontFamily:fMono,letterSpacing:"0.04em"}}>VERIFIED {sel.verificationDate}</strong> by {sel.verifier}</div>
+                {sel.verificationNotes && <div style={{marginTop:6,color:K_.ink2}}>{sel.verificationNotes}</div>}
+              </div>
+            ) : (
+              <div style={{paddingTop:10,borderTop:`1px dashed ${K_.line}`,fontSize:12,color:K_.ink3,fontStyle:"italic"}}>Awaiting verification once action steps complete.</div>
+            )}
+          </div>
+
+          {/* Linked controls + risks */}
+          {(sel.linkedControls.length > 0 || sel.linkedRisks.length > 0) && (
+            <div style={{display:"grid",gridTemplateColumns:sel.linkedControls.length>0 && sel.linkedRisks.length>0?"1fr 1fr":"1fr",gap:18,marginBottom:18}}>
+              {sel.linkedControls.length > 0 && (
+                <div>
+                  <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>Linked controls</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {sel.linkedControls.map(cid => (
+                      <button key={cid} onClick={()=>{setSelectedId(null);setTab("annexa");}} style={{background:K_.bg,color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:8,padding:"5px 10px",fontSize:11.5,fontFamily:fMono,letterSpacing:"0.02em",cursor:"pointer"}}>{cid}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sel.linkedRisks.length > 0 && (
+                <div>
+                  <div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>Linked risks</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {sel.linkedRisks.map(rid => (
+                      <button key={rid} onClick={()=>{setSelectedId(null);setTab("risks");}} style={{background:K_.bg,color:K_.gold,border:`1px solid ${K_.gold}40`,borderRadius:8,padding:"5px 10px",fontSize:11.5,fontFamily:fMono,letterSpacing:"0.02em",cursor:"pointer"}}>{rid}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",paddingTop:18,borderTop:`1px solid ${K_.line}`}}>
+            <button onClick={()=>showToast("Edit CAPA — write path next session","info")} style={{background:K_.gold,color:K_.goldText,border:"none",borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:6}}>
+              <span>✦</span> Edit
+            </button>
+            {sel.effStatus !== "Closed" && sel.effStatus !== "Pending Verification" && (
+              <button onClick={()=>showToast("Mark pending verification — write path next session","info")} style={{background:"transparent",color:K_.ink2,border:`1px solid ${K_.line}`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                Mark pending verification
+              </button>
+            )}
+            {sel.effStatus === "Pending Verification" && (
+              <button onClick={()=>showToast("Verify + close — write path next session","info")} style={{background:"transparent",color:K_.sage,border:`1px solid ${K_.sage}50`,borderRadius:100,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:fSans}}>
+                ✓ Verify + close
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -7691,6 +8520,7 @@ export default function VERIS() {
         {tab==="soa" &&<PageSOA setTab={setTab} showToast={showToast}/>}
         {tab==="gap" &&<PageGapAnalysis setTab={setTab} showToast={showToast}/>}
         {tab==="audit" &&<PageInternalAudit setTab={setTab} showToast={showToast}/>}
+        {tab==="capa" &&<PageCAPA setTab={setTab} showToast={showToast}/>}
         {tab==="compliance" &&<PageCompliance role={role}/>}
         {tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
         {tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
