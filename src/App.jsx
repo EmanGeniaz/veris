@@ -362,6 +362,7 @@ const NAV_GROUPS = [
     {id:"evidence",  icon:"📁", label:"Evidence Library"},
   ]},
   {id:"outputs", label:"Outputs", items:[
+    {id:"board",     icon:"◆", label:"Board Pack"},
     {id:"reports",   icon:"▣", label:"Reports"},
   ]},
 ];
@@ -7278,6 +7279,355 @@ function PageTemplates({role,showToast}) {
 /* ─────────────────────────────────────────────
    PAGE: REPORTS
 ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   PAGE: BOARD PACK — executive roll-up
+   Aggregates live data from every wired module into a single
+   board-ready narrative. No new DB tables — pure read + derive.
+   Compliance posture · risk posture · audit programme ·
+   CAPA throughput · AI governance · auto-narrative.
+───────────────────────────────────────────── */
+function PageBoard({role,setTab}) {
+  /* ─── Live data from every wired module (fallback to constants) ─── */
+  const [risks,    riskSrc]  = useSupabaseTable("risks",            dbToRisk,    RISK_REGISTER,    "id");
+  const [controls, ctrlSrc]  = useSupabaseTable("annex_a_controls", dbToControl, ANNEX_A_CONTROLS, "id");
+  const [findings, findSrc]  = useSupabaseTable("audit_findings",   dbToFinding, AUDIT_FINDINGS,   "id");
+  const [audits,   auditSrc] = useSupabaseTable("audits",           dbToAudit,   INTERNAL_AUDITS,  "id");
+  const [capas,    capaSrc]  = useSupabaseTable("capa",             dbToCAPA,    CAPA_REGISTER,    "id");
+
+  /* Use cases need their decision ledger merged for HITL throughput,
+     so fetch the two tables together (mirrors PageUseCases). */
+  const [cases, setCases] = useState(USE_CASES);
+  const [ucSrc, setUcSrc] = useState(supabase ? "loading" : "constant");
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: ucs, error: e1 }, { data: dcs, error: e2 }] = await Promise.all([
+        supabase.from("use_cases").select("*").order("id", { ascending: true }),
+        supabase.from("use_case_decisions").select("*"),
+      ]);
+      if (cancelled) return;
+      if (e1 || e2 || !ucs || ucs.length === 0) {
+        setUcSrc((e1 || e2) ? "fallback-error" : "fallback-empty");
+        return;
+      }
+      setCases(ucs.map(uc => dbToUseCase(uc, dcs || [])));
+      setUcSrc("live");
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  /* Overall provenance pill — LIVE only when every source is live. */
+  const sources = [riskSrc, ctrlSrc, findSrc, auditSrc, capaSrc, ucSrc];
+  const overallSource = sources.every(s => s === "live") ? "live"
+    : sources.some(s => s === "loading") ? "loading" : "constant";
+
+  const K_ = {
+    bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
+    line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
+    navy:"#1C1B1F", navy2:"#2A2826", navyT:"#F5F2EA",
+    navyT2:"rgba(245,242,234,0.62)", navyT3:"rgba(245,242,234,0.32)",
+    ink:"#1A1916", ink2:"#5F5C56", ink3:"#9A9690", ink4:"#C5C2BA",
+    gold:"#C9A961", goldText:"#1A1916", goldL:"rgba(201,169,97,0.12)",
+    sage:"#5B7A5E", sageL:"rgba(91,122,94,0.10)",
+    amber:"#B8956A", amberL:"rgba(184,149,106,0.10)",
+    crit:"#9B3636", critL:"rgba(155,54,54,0.10)",
+  };
+  const fSerif="'Newsreader','PP Editorial Old','Tinos',Georgia,serif";
+  const fSans ="'Plus Jakarta Sans',system-ui,sans-serif";
+  const fMono ="'JetBrains Mono',ui-monospace,monospace";
+
+  /* ─── Quarter label (derived, not a dead selector) ─── */
+  const now = new Date();
+  const quarter = "Q" + (Math.floor(now.getMonth() / 3) + 1) + " " + now.getFullYear();
+  const today = now.toISOString().slice(0,10);
+  const thisYear = now.getFullYear();
+
+  /* ─── Compliance posture (Annex A by theme) ─── */
+  const THEMES = ["Organisational","People","Physical","Technological"];
+  const applicable = controls.filter(c => c.applicable !== false);
+  const implemented = applicable.filter(c => c.status === "Implemented");
+  const compliancePct = applicable.length ? Math.round(implemented.length / applicable.length * 100) : 0;
+  const themeRows = THEMES.map(t => {
+    const inTheme = applicable.filter(c => c.theme === t);
+    const impl = inTheme.filter(c => c.status === "Implemented").length;
+    const pct = inTheme.length ? Math.round(impl / inTheme.length * 100) : 0;
+    return { theme:t, total:inTheme.length, impl, pct };
+  }).filter(r => r.total > 0);
+
+  /* ─── Risk posture ─── */
+  const withScore = risks.map(r => ({...r, residual:(r.residualL||0)*(r.residualI||0)}));
+  const topRisks = [...withScore].sort((a,b) => b.residual - a.residual).slice(0,5);
+  const highResidual = withScore.filter(r => r.residual >= 13).length;
+  const riskByCat = Object.entries(
+    withScore.reduce((acc,r) => { const k=r.category||"Uncategorised"; acc[k]=(acc[k]||0)+1; return acc; }, {})
+  ).sort((a,b) => b[1]-a[1]);
+  const riskScoreColor = s => s >= 13 ? K_.crit : s >= 8 ? K_.amber : K_.sage;
+
+  /* ─── Audit programme ─── */
+  const auditsComplete = audits.filter(a => a.status === "Complete").length;
+  const auditsActive   = audits.filter(a => a.status === "In Progress" || a.status === "Fieldwork").length;
+  const auditsPlanned  = audits.filter(a => a.status === "Planned" || a.status === "Scheduled").length;
+  const SEVS = ["Critical","Major","Minor","Observation"];
+  const findOpen = findings.filter(f => f.status !== "Closed").length;
+  const findBySev = SEVS.map(sev => ({
+    sev,
+    total: findings.filter(f => f.severity === sev).length,
+    open:  findings.filter(f => f.severity === sev && f.status !== "Closed").length,
+  })).filter(r => r.total > 0);
+  const sevColor = s => s === "Critical" ? K_.crit : s === "Major" ? K_.crit : s === "Minor" ? K_.amber : K_.ink3;
+
+  /* ─── CAPA throughput ─── */
+  const capaEffStatus = c => {
+    if (c.status === "Closed") return "Closed";
+    if (c.targetDate && c.targetDate < today && c.status !== "Pending Verification") return "Overdue";
+    return c.status;
+  };
+  const capaEnriched = capas.map(c => ({...c, eff:capaEffStatus(c)}));
+  const capaOpen     = capaEnriched.filter(c => c.eff !== "Closed").length;
+  const capaOverdue  = capaEnriched.filter(c => c.eff === "Overdue").length;
+  const capaClosed   = capaEnriched.filter(c => c.eff === "Closed").length;
+  const capaClosedItems = capaEnriched.filter(c => c.eff === "Closed" && c.closedAt && c.raisedAt);
+  const capaAvgDays  = capaClosedItems.length
+    ? Math.round(capaClosedItems.reduce((s,c) => s + Math.ceil((new Date(c.closedAt) - new Date(c.raisedAt))/86400000), 0) / capaClosedItems.length)
+    : null;
+
+  /* ─── AI governance ─── */
+  const TIERS = ["High-Risk","Limited","Minimal"];
+  const ucByTier = TIERS.map(t => ({ tier:t, n: cases.filter(c => c.tier === t).length })).filter(r => r.n > 0);
+  const ucByStage = Object.entries(
+    cases.reduce((acc,c) => { const k=c.pipelineStage||"Unscoped"; acc[k]=(acc[k]||0)+1; return acc; }, {})
+  ).sort((a,b) => b[1]-a[1]);
+  const hitlPending = cases.reduce((n,c) => n + (c.decisions||[]).filter(d => d.decision === "pending").length, 0);
+  const tierColor = t => t === "High-Risk" ? K_.crit : t === "Limited" ? K_.amber : K_.sage;
+
+  /* ─── Auto-narrative bullets ─── */
+  const narrative = [
+    `${compliancePct}% of ${applicable.length} applicable Annex A controls are implemented across ${themeRows.length} control themes.`,
+    highResidual > 0
+      ? `${highResidual} risk${highResidual===1?"":"s"} sit above residual tolerance (score ≥ 13) and warrant board attention.`
+      : `No risks currently exceed residual tolerance (score ≥ 13).`,
+    `${findOpen} audit finding${findOpen===1?"":"s"} open; ${capaOverdue} corrective action${capaOverdue===1?"":"s"} past target date out of ${capaOpen} open.`,
+    `${cases.length} AI use case${cases.length===1?"":"s"} under governance; ${hitlPending} human-in-the-loop decision${hitlPending===1?"":"s"} pending sign-off.`,
+  ];
+
+  /* ─── Print / export ─── */
+  const exportPack = () => { window.print(); };
+
+  /* ─── Reusable bits ─── */
+  const SectionCard = ({title,clause,children,right}) => (
+    <div style={{background:K_.surface,borderRadius:16,border:`1px solid ${K_.line}`,marginBottom:12,overflow:"hidden"}}>
+      <div style={{padding:"16px 20px",borderBottom:`1px solid ${K_.line}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+        <div>
+          <h3 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:20,color:K_.ink,margin:0,letterSpacing:"-0.01em"}}>{title}</h3>
+          {clause&&<div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginTop:5}}>{clause}</div>}
+        </div>
+        {right}
+      </div>
+      <div style={{padding:"18px 20px"}}>{children}</div>
+    </div>
+  );
+  const MeterRow = ({label,sub,pct,tone}) => (
+    <div style={{display:"grid",gridTemplateColumns:"150px 1fr 56px",gap:14,alignItems:"center",marginBottom:12}}>
+      <div>
+        <div style={{fontSize:12.5,fontWeight:600,color:K_.ink,fontFamily:fSans}}>{label}</div>
+        {sub&&<div style={{fontSize:10,color:K_.ink3,fontFamily:fMono,marginTop:2}}>{sub}</div>}
+      </div>
+      <div style={{background:K_.s2,borderRadius:4,height:6,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${pct}%`,background:tone,borderRadius:4,transition:"width 1.1s cubic-bezier(.16,1,.3,1)"}}/>
+      </div>
+      <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:22,color:tone,textAlign:"right",lineHeight:1}}>{pct}%</div>
+    </div>
+  );
+
+  return <div style={{
+    animation:"up .35s cubic-bezier(.16,1,.3,1)",
+    background:"transparent",fontFamily:fSans,color:K_.ink,
+    margin:"-12px -12px",padding:"16px",
+    minHeight:"calc(100vh - 56px)",
+  }}>
+    {/* ── HERO ── */}
+    <div style={{
+      background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,
+      borderRadius:20,padding:"32px 36px",marginBottom:14,
+      position:"relative",overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",inset:0,opacity:0.07,backgroundImage:`radial-gradient(circle at 80% 20%, ${K_.gold} 1px, transparent 1px)`,backgroundSize:"24px 24px"}}/>
+      <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:24}}>
+        <div style={{maxWidth:680}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:14}}>
+            <span>▸</span><span>Board Reporting · {quarter} Pack</span>
+            <DataSourcePill dataSource={overallSource} mono={fMono}/>
+          </div>
+          <h1 style={{
+            fontFamily:fSerif,fontStyle:"italic",fontWeight:400,
+            fontSize:"clamp(34px, 4.5vw, 52px)",
+            letterSpacing:"-0.02em",lineHeight:1.05,color:K_.navyT,margin:"0 0 14px 0",
+          }}>The state of the programme.</h1>
+          <p style={{fontSize:14.5,color:K_.navyT2,lineHeight:1.6,margin:0,maxWidth:560}}>
+            Every module rolls up to leadership. Compliance posture, risk exposure, the audit programme, corrective-action throughput and AI governance — one page, board-ready.
+          </p>
+          <button onClick={exportPack} style={{
+            marginTop:20,display:"inline-flex",alignItems:"center",gap:8,
+            background:K_.gold,color:K_.goldText,border:"none",borderRadius:10,
+            padding:"10px 18px",fontSize:12.5,fontWeight:700,fontFamily:fSans,cursor:"pointer",
+            letterSpacing:"0.01em",
+          }}>◆ Generate board pack (PDF)</button>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:6}}>Compliance posture</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:"clamp(64px, 9vw, 96px)",letterSpacing:"-0.04em",lineHeight:0.9,color:compliancePct>=85?K_.gold:compliancePct>=60?"#D9C18C":"#D9A285"}}>{compliancePct}%</div>
+          <div style={{fontSize:11,color:K_.navyT3,marginTop:6,letterSpacing:"0.04em"}}>Annex A controls implemented</div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── HEADLINE STAT CARDS ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:8,marginBottom:14}}>
+      {[
+        {label:"Compliance",       value:`${compliancePct}%`, tone:K_.sage, sub:`${implemented.length}/${applicable.length} implemented`, go:"gap"},
+        {label:"High residual risk",value:highResidual,       tone:highResidual>0?K_.crit:K_.sage, sub:"score ≥ 13", go:"risks"},
+        {label:"Open findings",    value:findOpen,            tone:findOpen>0?K_.amber:K_.sage, sub:`${findings.length} logged total`, go:"audit"},
+        {label:"Overdue CAPAs",    value:capaOverdue,         tone:capaOverdue>0?K_.crit:K_.sage, sub:`${capaOpen} open total`, go:"capa"},
+        {label:"Avg days to close",value:capaAvgDays??"—",    tone:K_.ink, sub:"corrective actions", go:"capa"},
+        {label:"AI use cases",     value:cases.length,        tone:K_.ink2, sub:`${hitlPending} HITL pending`, go:null},
+      ].map(s=>(
+        <div key={s.label}
+          onClick={s.go?()=>setTab(s.go):undefined}
+          style={{background:K_.surface,borderRadius:14,border:`1px solid ${K_.line}`,padding:"18px 20px",cursor:s.go?"pointer":"default",transition:"border-color .15s"}}>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:8}}>{s.label}</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:38,letterSpacing:"-0.02em",lineHeight:1,color:s.tone}}>{s.value}</div>
+          <div style={{fontSize:11,color:K_.ink3,marginTop:6}}>{s.sub}</div>
+        </div>
+      ))}
+    </div>
+
+    {/* ── COMPLIANCE POSTURE ── */}
+    <SectionCard title="Compliance posture" clause="ISO 27001:2022 · Annex A by theme"
+      right={<button onClick={()=>setTab("soa")} style={{fontSize:11,fontWeight:600,color:K_.ink2,background:K_.s1,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 12px",fontFamily:fSans,cursor:"pointer"}}>View SoA →</button>}>
+      {themeRows.map(r=>(
+        <MeterRow key={r.theme} label={r.theme} sub={`${r.impl}/${r.total} controls`} pct={r.pct}
+          tone={r.pct>=85?K_.sage:r.pct>=60?K_.amber:K_.crit}/>
+      ))}
+    </SectionCard>
+
+    {/* ── RISK POSTURE ── */}
+    <SectionCard title="Risk posture" clause="ISO 27001:2022 § 6.1 · Residual exposure"
+      right={<button onClick={()=>setTab("risks")} style={{fontSize:11,fontWeight:600,color:K_.ink2,background:K_.s1,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 12px",fontFamily:fSans,cursor:"pointer"}}>Risk register →</button>}>
+      <div style={{display:"grid",gridTemplateColumns:"1.6fr 1fr",gap:24}}>
+        <div>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:12}}>Top 5 by residual score</div>
+          {topRisks.map(r=>(
+            <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,marginBottom:11}}>
+              <span style={{fontSize:10.5,fontFamily:fMono,color:K_.ink3,width:48,flexShrink:0}}>{r.id}</span>
+              <span style={{flex:1,fontSize:12,color:K_.ink,fontFamily:fSans,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</span>
+              <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:32,height:24,borderRadius:6,background:riskScoreColor(r.residual)+"1A",color:riskScoreColor(r.residual),fontSize:12,fontWeight:700,fontFamily:fMono,flexShrink:0}}>{r.residual}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:12}}>By category</div>
+          {riskByCat.map(([cat,n])=>(
+            <div key={cat} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+              <span style={{fontSize:11.5,color:K_.ink2,fontFamily:fSans,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:8}}>{cat}</span>
+              <span style={{fontSize:13,fontWeight:700,fontFamily:fMono,color:K_.ink}}>{n}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SectionCard>
+
+    {/* ── AUDIT PROGRAMME + CAPA THROUGHPUT (two-up) ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12,marginBottom:12}}>
+      <div style={{background:K_.surface,borderRadius:16,border:`1px solid ${K_.line}`,overflow:"hidden"}}>
+        <div style={{padding:"16px 20px",borderBottom:`1px solid ${K_.line}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:20,color:K_.ink,margin:0}}>Audit programme</h3>
+          <button onClick={()=>setTab("audit")} style={{fontSize:11,fontWeight:600,color:K_.ink2,background:K_.s1,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 12px",fontFamily:fSans,cursor:"pointer"}}>Audits →</button>
+        </div>
+        <div style={{padding:"18px 20px"}}>
+          <div style={{display:"flex",gap:20,marginBottom:18}}>
+            {[{l:"Complete",v:auditsComplete,c:K_.sage},{l:"Active",v:auditsActive,c:K_.amber},{l:"Planned",v:auditsPlanned,c:K_.ink3}].map(x=>(
+              <div key={x.l}>
+                <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:30,color:x.c,lineHeight:1}}>{x.v}</div>
+                <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",marginTop:5}}>{x.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Findings by severity</div>
+          {findBySev.map(f=>(
+            <div key={f.sev} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <span style={{display:"flex",alignItems:"center",gap:8,fontSize:11.5,color:K_.ink2,fontFamily:fSans}}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:sevColor(f.sev)}}/>{f.sev}
+              </span>
+              <span style={{fontSize:11,fontFamily:fMono,color:K_.ink3}}>{f.open} open <span style={{color:K_.ink4}}>/ {f.total}</span></span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{background:K_.surface,borderRadius:16,border:`1px solid ${K_.line}`,overflow:"hidden"}}>
+        <div style={{padding:"16px 20px",borderBottom:`1px solid ${K_.line}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{fontFamily:fSerif,fontStyle:"italic",fontWeight:400,fontSize:20,color:K_.ink,margin:0}}>CAPA throughput</h3>
+          <button onClick={()=>setTab("capa")} style={{fontSize:11,fontWeight:600,color:K_.ink2,background:K_.s1,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 12px",fontFamily:fSans,cursor:"pointer"}}>Actions →</button>
+        </div>
+        <div style={{padding:"18px 20px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            {[{l:"Open",v:capaOpen,c:K_.ink},{l:"Overdue",v:capaOverdue,c:capaOverdue>0?K_.crit:K_.sage},{l:"Closed",v:capaClosed,c:K_.sage},{l:"Avg days to close",v:capaAvgDays??"—",c:K_.ink2}].map(x=>(
+              <div key={x.l}>
+                <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:30,color:x.c,lineHeight:1}}>{x.v}</div>
+                <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.16em",textTransform:"uppercase",marginTop:5}}>{x.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── AI GOVERNANCE ── */}
+    <SectionCard title="AI governance" clause="ISO 42001 · Use-case lifecycle & HITL"
+      right={role==="caio"?<button onClick={()=>setTab("usecases")} style={{fontSize:11,fontWeight:600,color:K_.ink2,background:K_.s1,border:`1px solid ${K_.line}`,borderRadius:8,padding:"6px 12px",fontFamily:fSans,cursor:"pointer"}}>Pipeline →</button>:undefined}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:20}}>
+        <div>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:12}}>By risk tier</div>
+          {ucByTier.length?ucByTier.map(t=>(
+            <div key={t.tier} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+              <span style={{display:"flex",alignItems:"center",gap:8,fontSize:11.5,color:K_.ink2,fontFamily:fSans}}>
+                <span style={{width:7,height:7,borderRadius:"50%",background:tierColor(t.tier)}}/>{t.tier}
+              </span>
+              <span style={{fontSize:13,fontWeight:700,fontFamily:fMono,color:K_.ink}}>{t.n}</span>
+            </div>
+          )):<div style={{fontSize:11,color:K_.ink3}}>No use cases scoped.</div>}
+        </div>
+        <div>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:12}}>By pipeline stage</div>
+          {ucByStage.map(([stage,n])=>(
+            <div key={stage} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+              <span style={{fontSize:11.5,color:K_.ink2,fontFamily:fSans}}>{stage}</span>
+              <span style={{fontSize:13,fontWeight:700,fontFamily:fMono,color:K_.ink}}>{n}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{fontSize:9.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.18em",textTransform:"uppercase",fontWeight:600,marginBottom:12}}>HITL ledger</div>
+          <div style={{fontFamily:fSerif,fontStyle:"italic",fontSize:40,color:hitlPending>0?K_.amber:K_.sage,lineHeight:1}}>{hitlPending}</div>
+          <div style={{fontSize:11,color:K_.ink3,marginTop:6}}>decisions pending sign-off</div>
+        </div>
+      </div>
+    </SectionCard>
+
+    {/* ── BOARD NARRATIVE ── */}
+    <div style={{background:`linear-gradient(135deg, ${K_.navy} 0%, ${K_.navy2} 100%)`,borderRadius:16,padding:"24px 28px",position:"relative",overflow:"hidden"}}>
+      <div style={{fontSize:10.5,color:K_.gold,fontFamily:fMono,letterSpacing:"0.22em",textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Executive summary · {quarter}</div>
+      {narrative.map((n,i)=>(
+        <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:i<narrative.length-1?12:0}}>
+          <span style={{color:K_.gold,fontSize:13,lineHeight:1.5,flexShrink:0}}>◆</span>
+          <p style={{fontSize:14,color:K_.navyT2,lineHeight:1.55,margin:0}}>{n}</p>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
 function PageReports({role}) {
   const rc=RC(role), rcL=RCL(role), K=KPI[role];
   const standards=STANDARDS_MAP[role]||[];
@@ -8864,6 +9214,7 @@ export default function VERIS() {
         {tab==="roadmap"    &&<PageRoadmap    role={role}/>}
         {tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
         {tab==="evidence"   &&<PageEvidence setTab={setTab} showToast={showToast}/>}
+        {tab==="board"      &&<PageBoard      role={role} setTab={setTab}/>}
         {tab==="reports"    &&<PageReports    role={role}/>}
       </div>
     </div>
