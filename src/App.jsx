@@ -5892,6 +5892,27 @@ function PageCAPA({setTab,showToast}) {
     setAddMode(true);
   };
 
+  /* Cycle a single action step's status: pending → in progress → complete → pending */
+  const [togglingStep, setTogglingStep] = useState(null);    /* `${capaId}-${stepIndex}` */
+  const cycleStepStatus = async (capaId, stepIndex) => {
+    if(!supabase || !canEdit){ showToast("Connect Supabase to update steps","info"); return; }
+    const capa = items.find(c => c.id === capaId);
+    if(!capa) return;
+    const order = ["pending","in progress","complete"];
+    const cur = capa.actionSteps[stepIndex]?.status || "pending";
+    const nextStatus = order[(order.indexOf(cur) + 1) % order.length];
+    const updatedSteps = capa.actionSteps.map((s,i) => i === stepIndex ? {...s, status: nextStatus} : s);
+    const rowKey = `${capaId}-${stepIndex}`;
+    setTogglingStep(rowKey);
+    const { error } = await supabase
+      .from("capa")
+      .update({ action_steps: updatedSteps })
+      .eq("id", capaId);
+    setTogglingStep(null);
+    if(error){ showToast(`Step update failed: ${error.message}`, "error"); return; }
+    setItems(cs => cs.map(c => c.id === capaId ? {...c, actionSteps: updatedSteps} : c));
+  };
+
   const K_ = {
     bg:"#FAFAF6", surface:"#FFFFFF", s1:"#F4F2EC", s2:"#EDE9E0",
     line:"rgba(28,27,31,0.07)", lineH:"rgba(28,27,31,0.14)",
@@ -6198,17 +6219,28 @@ function PageCAPA({setTab,showToast}) {
 
           {/* Action steps */}
           <div style={{marginBottom:20}}>
-            <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Action steps ({sel.actionSteps.length})</div>
+            <div style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,letterSpacing:"0.20em",textTransform:"uppercase",fontWeight:600,marginBottom:10}}>Action steps ({sel.actionSteps.length}) {canEdit && <span style={{color:K_.gold,fontStyle:"italic",textTransform:"none",letterSpacing:0,fontWeight:500}}> — click a status to advance</span>}</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {sel.actionSteps.map((s,i)=>{
                 const stCol = s.status==="complete" ? K_.sage : s.status==="in progress" ? K_.amber : K_.ink3;
                 const stLabel = s.status==="complete" ? "Done" : s.status==="in progress" ? "In Progress" : "Pending";
+                const rowKey = `${sel.id}-${i}`;
+                const isToggling = togglingStep === rowKey;
                 return (
                   <div key={i} style={{background:K_.bg,borderRadius:10,border:`1px solid ${K_.line}`,borderLeft:`3px solid ${stCol}`,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}>
                     <div style={{flex:"1 1 360px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                         <span style={{fontSize:10.5,color:K_.ink3,fontFamily:fMono,fontWeight:600}}>{String(i+1).padStart(2,"0")}</span>
-                        <span style={{fontSize:10.5,color:stCol,fontWeight:700,letterSpacing:"0.05em"}}>{stLabel.toUpperCase()}</span>
+                        {canEdit ? (
+                          <button onClick={()=>cycleStepStatus(sel.id, i)} disabled={isToggling}
+                            title="Click to cycle: Pending → In Progress → Done → Pending"
+                            style={{background:stCol+"18",color:stCol,border:`1px solid ${stCol}40`,borderRadius:100,padding:"2px 9px",fontSize:10.5,fontWeight:700,letterSpacing:"0.05em",cursor:isToggling?"wait":"pointer",fontFamily:fSans,display:"inline-flex",alignItems:"center",gap:5}}>
+                            {isToggling ? "⋯" : <span style={{width:5,height:5,borderRadius:"50%",background:stCol}}/>}
+                            {isToggling ? "SAVING" : stLabel.toUpperCase()}
+                          </button>
+                        ) : (
+                          <span style={{fontSize:10.5,color:stCol,fontWeight:700,letterSpacing:"0.05em"}}>{stLabel.toUpperCase()}</span>
+                        )}
                       </div>
                       <div style={{fontSize:13,color:K_.ink,lineHeight:1.5}}>{s.step}</div>
                     </div>
