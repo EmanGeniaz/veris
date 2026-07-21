@@ -1,5 +1,6 @@
 import type {
   ACCxoAlignment,
+  ACFeedbackScores,
   ACEvidenceRecord,
   ACGuardrailGroup,
   ACInitiativeRecord,
@@ -464,4 +465,13 @@ export const gatewayStats = {
   costMtd: "$76.2K",
   blockedMtd: 563,
   avgRiskScore: 21,
+};
+
+/* Feedback engine seeds: multi-stakeholder scores per initiative that the
+   dashboard turns into a Scale / Continue / Improve / Retire recommendation. */
+export const acFeedback: Record<string, ACFeedbackScores> = {
+  "ai-001": { user: 78, business: 74, executive: 70, risk: 55, operational: 72, value: 76, adoption: 64 },
+  "ai-002": { user: 58, business: 62, executive: 66, risk: 38, operational: 54, value: 69, adoption: 42 },
+  "ai-003": { user: 86, business: 88, executive: 84, risk: 78, operational: 82, value: 88, adoption: 79 },
+  "ai-004": { user: 44, business: 48, executive: 50, risk: 35, operational: 41, value: 58, adoption: 31 },
 };

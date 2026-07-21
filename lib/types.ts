@@ -382,3 +382,15 @@ export type ACEvidenceRecord = {
   version: string;
   time: string;
 };
+
+export type ACFeedbackScores = {
+  user: number;
+  business: number;
+  executive: number;
+  risk: number;
+  operational: number;
+  value: number;
+  adoption: number;
+};
+
+export type ACFeedbackDecision = "Scale" | "Continue" | "Improve" | "Retire";

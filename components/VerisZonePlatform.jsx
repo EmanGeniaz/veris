@@ -2,7 +2,36 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AC_PHASES, AC_RBAC, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats } from "@/lib/platform-models";
+
+/* ── Feedback engine ─────────────────────────────────────────── */
+const FEEDBACK_DIMS = [
+  ["user","User feedback"],["business","Business owner"],["executive","Executive"],
+  ["risk","Risk"],["operational","Operational"],["value","Value"],["adoption","Adoption"],
+];
+const DEFAULT_FEEDBACK = {user:50,business:50,executive:50,risk:50,operational:50,value:50,adoption:50};
+const feedbackAvg = f => Math.round(FEEDBACK_DIMS.reduce((s,[k])=>s+(f?.[k]??50),0)/FEEDBACK_DIMS.length);
+/* Recommendation: a failing risk score caps the outcome regardless of average. */
+const feedbackDecision = f => {
+  const avg=feedbackAvg(f);
+  if((f?.risk??50)<40) return avg>=55?"Improve":"Retire";
+  return avg>=80?"Scale":avg>=64?"Continue":avg>=50?"Improve":"Retire";
+};
+const decisionColorOf = (d,T) => d==="Scale"?T.green:d==="Continue"?T.blue:d==="Improve"?T.amber:T.red;
+
+/* Evidence auto-captured from completed implementation phase artifacts. */
+const autoEvidenceFor = items => items.flatMap(i => AC_PHASES.map((p,idx)=>{
+  if(idx>i.phaseIndex) return null;
+  const complete = idx<i.phaseIndex;
+  const done = complete ? p.deliverables.length : i.phaseArtifactsDone;
+  if(done<=0) return null;
+  return {
+    item:`${p.name} artifact pack (${done}/${p.deliverables.length})`,
+    initiative:i.name, scope:"Project", control:`${p.name} phase gate`, risk:"Lifecycle gate",
+    owner:p.raci.responsible, status:complete?"Complete":"In Progress",
+    approval:"Auto-captured", version:"v1", time:`Phase ${p.order}`,
+  };
+}).filter(Boolean));
 import {
   Activity,
   AlertTriangle,
@@ -4817,9 +4846,31 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const [evScope,setEvScope]=useState("All");
   const [decisions,setDecisions]=useState({});
   const [retireDraft,setRetireDraft]=useState({reason:RETIREMENT_REASONS[0],rationale:""});
+  const [feedback,setFeedback]=useState(acFeedback);
+  const [hydrated,setHydrated]=useState(false);
   const selected=items.find(i=>i.id===selectedId)||items[0];
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
-  const evidenceRows=[...acEvidence,...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
+  const evidenceRows=[...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
+  /* Persistence: created initiatives, governed decisions and feedback survive reload. */
+  useEffect(()=>{
+    try{
+      const savedItems=JSON.parse(localStorage.getItem("vz-ac-custom")||"[]");
+      if(Array.isArray(savedItems)&&savedItems.length)setItems(prev=>[...savedItems.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);
+      const savedDec=JSON.parse(localStorage.getItem("vz-ac-decisions")||"null");
+      if(savedDec)setDecisions(savedDec);
+      const savedFb=JSON.parse(localStorage.getItem("vz-ac-feedback")||"null");
+      if(savedFb)setFeedback(prev=>({...prev,...savedFb}));
+    }catch{/* corrupt local data ignored */}
+    setHydrated(true);
+  },[]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    try{
+      localStorage.setItem("vz-ac-custom",JSON.stringify(items.filter(i=>!acInitiatives.some(s=>s.id===i.id))));
+      localStorage.setItem("vz-ac-decisions",JSON.stringify(decisions));
+      localStorage.setItem("vz-ac-feedback",JSON.stringify(feedback));
+    }catch{/* storage unavailable */}
+  },[items,decisions,feedback,hydrated]);
   const total=items.length;
   const active=items.filter(i=>!["Completed","Retired"].includes(i.lifecycle)).length;
   const high=items.filter(i=>i.risk==="High"||i.risk==="Critical").length;
@@ -4927,6 +4978,28 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         </div>})}
       </Card>
     </div>
+    <Card style={{padding:18,marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:0}}>Feedback engine outcomes</h3>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {["Scale","Continue","Improve","Retire"].map(d=>{
+            const n=items.filter(i=>feedbackDecision(feedback[i.id]||DEFAULT_FEEDBACK)===d).length;
+            const c=decisionColorOf(d,T);
+            return <span key={d} style={{display:"inline-flex",alignItems:"center",gap:5,background:c+"14",border:`1px solid ${c}35`,borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:800,fontFamily:F.b,color:c}}>{d} <span style={{fontFamily:F.m}}>{n}</span></span>;
+          })}
+        </div>
+      </div>
+      <div style={{display:"grid",gap:8}}>
+        {items.map(i=>{
+          const f=feedback[i.id]||DEFAULT_FEEDBACK;const avg=feedbackAvg(f);const rec=feedbackDecision(f);const c=decisionColorOf(rec,T);
+          return <button key={i.id} onClick={()=>openInitiative(i.id,"feedback")} style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 96px",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",textAlign:"left",cursor:"pointer"}}>
+            <div><div style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{i.name}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>{i.unit}</div></div>
+            <div><Bar value={avg} color={c}/><div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>Composite {avg}/100</div></div>
+            <div style={{justifySelf:"end"}}><Tag label={rec} color={c} bg={c+"16"}/></div>
+          </button>;
+        })}
+      </div>
+    </Card>
     {showValueSection&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
       <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business value tracking</h3>{items.map(i=><button key={i.id} onClick={()=>openInitiative(i.id)} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:0,marginBottom:14,cursor:"pointer"}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink2,marginBottom:6}}><span>{i.name}</span><span>{i.valueScore}%</span></div><Bar value={i.valueScore} color={i.valueScore>80?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>Expected {i.expected} - Actual {i.actual}</div></button>)}</Card>
       <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business unit comparison</h3>{items.map(i=><div key={i.id} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:9,padding:12,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink,marginBottom:8}}><span>{i.unit}</span><Tag label={"Resistance: "+i.resistance} color={i.resistance==="High"?T.red:i.resistance==="Medium"?T.amber:T.green}/></div><Bar value={parseInt(i.training)||0} color={(parseInt(i.training)||0)>75?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:7}}>Training {i.training} - Adoption {i.adoption}%</div></div>)}</Card>
@@ -5174,8 +5247,47 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     </div>;
   };
 
+  const FeedbackPanel=()=>{
+    const f=feedback[selected.id]||DEFAULT_FEEDBACK;
+    const avg=feedbackAvg(f);
+    const rec=feedbackDecision(f);
+    const recColor=decisionColorOf(rec,T);
+    const setDim=(k,v)=>setFeedback({...feedback,[selected.id]:{...f,[k]:v}});
+    return <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14}}>
+      <Card style={{padding:18}}>
+        <Tag label="FEEDBACK ENGINE" color={AI_GOLD} bg={AI_GOLD_L}/>
+        <h3 style={{fontSize:17,color:T.ink,fontWeight:800,fontFamily:F.h,margin:"10px 0 4px"}}>Multi-stakeholder feedback</h3>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 14px"}}>Every initiative collects feedback from the people who live with it. Scores roll up into a Scale / Continue / Improve / Retire recommendation that feeds the governed decision.</p>
+        <div style={{display:"grid",gap:11}}>
+          {FEEDBACK_DIMS.map(([k,label])=>{
+            const v=f[k]??50;
+            const c=k==="risk"?(v>=60?T.green:v>=40?T.amber:T.red):(v>=70?T.green:v>=50?T.amber:T.red);
+            return <div key={k}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.ink2,fontFamily:F.b,marginBottom:5}}><span>{label}{k==="risk"?" (higher = safer)":""}</span><span style={{fontFamily:F.m,fontWeight:800,color:c}}>{v}</span></div>
+              <input type="range" min={0} max={100} value={v} onChange={e=>setDim(k,parseInt(e.target.value,10))} style={{width:"100%",accentColor:AI_GOLD,cursor:"pointer"}}/>
+            </div>;
+          })}
+        </div>
+      </Card>
+      <div style={{display:"grid",gap:12,alignContent:"start"}}>
+        <Card style={{padding:16,border:`1px solid ${recColor}45`}}>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>Recommendation</div>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+            <Ring score={avg} color={recColor} size={62}/>
+            <div><div style={{fontSize:22,fontWeight:900,color:recColor,fontFamily:F.h}}>{rec}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>Composite {avg}/100</div></div>
+          </div>
+          <p style={{fontSize:10,color:T.ink4,fontFamily:F.b,lineHeight:1.6,margin:0}}>{rec==="Scale"?"Strong across stakeholders - ready for a governed scale decision.":rec==="Continue"?"Healthy - keep operating and monitoring.":rec==="Improve"?"Mixed signal - remediate before any scale decision.":"Weak or unsafe - a governed retirement decision is indicated."}</p>
+        </Card>
+        <Card style={{padding:16}}>
+          <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>The recommendation is advisory. The accountable executive still records the governed decision in <button onClick={()=>setInitTab("decision")} style={{background:"transparent",border:"none",color:rc,fontWeight:900,fontFamily:F.b,fontSize:11,cursor:"pointer",padding:0}}>Scale / Retire</button>.</div>
+        </Card>
+      </div>
+    </div>;
+  };
+
   const DecisionPanel=()=>{
     const existing=decisions[selected.id];
+    const fRec=feedbackDecision(feedback[selected.id]||DEFAULT_FEEDBACK);
     const isTerminal=TERMINAL_LIFECYCLE.has(selected.lifecycle)||!!existing;
     const readiness=Math.round((selected.guardrail+selected.adoption+selected.valueScore)/3);
     const canScale=readiness>=70&&!selected.blockedBy;
@@ -5189,7 +5301,11 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
       <Card style={{padding:18}}>
         <Tag label="GOVERNED DECISION" color={AI_GOLD} bg={AI_GOLD_L}/>
         <h3 style={{fontSize:18,color:T.ink,fontWeight:800,fontFamily:F.h,margin:"10px 0 4px"}}>Scale or retire {selected.name}</h3>
-        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:"0 0 14px"}}>AI Central plans, governs and monitors every initiative, then makes an accountable decision to scale or retire it. Retirement always records a reason - an initiative is never retired silently.</p>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:"0 0 12px"}}>AI Central plans, governs and monitors every initiative, then makes an accountable decision to scale or retire it. Retirement always records a reason - an initiative is never retired silently.</p>
+        <div style={{display:"flex",alignItems:"center",gap:9,background:decisionColorOf(fRec,T)+"12",border:`1px solid ${decisionColorOf(fRec,T)}35`,borderRadius:9,padding:"9px 12px",marginBottom:12}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background:decisionColorOf(fRec,T),flexShrink:0}}/>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>Feedback engine recommends <strong style={{color:decisionColorOf(fRec,T)}}>{fRec}</strong>. <button onClick={()=>setInitTab("feedback")} style={{background:"transparent",border:"none",color:rc,fontWeight:900,fontFamily:F.b,fontSize:11,cursor:"pointer",padding:0}}>Review feedback</button></div>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:9,marginBottom:8}}>
           {signals.map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:11}}>
             <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{l}</div>
@@ -5244,12 +5360,13 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
       </div>
     </div>
-    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Readiness"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
+    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Readiness"],["feedback","Feedback"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
     {initTab==="overview"&&<Overview/>}
     {initTab==="implementation"&&<Implementation/>}
     {initTab==="pilot"&&<PilotExecution/>}
     {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab}/>}
     {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab}/>}
+    {initTab==="feedback"&&<FeedbackPanel/>}
     {initTab==="decision"&&<DecisionPanel/>}
   </div>;
 
