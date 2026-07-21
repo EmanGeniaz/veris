@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
 
 /* ── Feedback engine ─────────────────────────────────────────── */
 const FEEDBACK_DIMS = [
@@ -220,6 +220,8 @@ const ROLES = {
   cio: {id:"cio", label:"CIO", title:"Chief Information Officer",name:"Marcus Reid",initials:"MR",frameworks:["ISO 27001","NIST CSF","GDPR","SOC 2"]},
   cdpo:{id:"cdpo",label:"CDPO",title:"Chief Data Privacy Officer",name:"Niamh Lynch",initials:"NL",frameworks:["GDPR","ISO 27701","CCPA/CPRA","ePrivacy"]},
   cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
+  employee:{id:"employee",label:"Employee",title:"Employee AI Workbench",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
+  manager:{id:"manager",label:"Manager",title:"Team AI Adoption Lead",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
 };
 const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
 const USER_PROFILES = {
@@ -234,6 +236,8 @@ const USER_PROFILES = {
   cdpo:{name:"Niamh Lynch",email:"niamh.lynch@veriszone.ai",password:"VerisZone-CDPO-2026",role:"CDPO",title:"Chief Data Privacy Officer",department:"Privacy and Data Protection",organization:"VerisZone Privacy Office",phone:"+353 1 555 0198",region:"EU",timezone:"Europe/Dublin",manager:"Data Protection Board",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 10:11"},
   cgo:{name:"Rafael Torres",email:"rafael.torres@veriszone.ai",password:"VerisZone-CGO-2026",role:"CGO",title:"Chief Governance Officer",department:"Governance, Risk and Compliance",organization:"VerisZone Governance Office",phone:"+1 212 555 0176",region:"US / LATAM",timezone:"America/New_York",manager:"Audit and Risk Committee",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 07:38"},
   aicentral:{name:"AI Central",email:"ai.central@veriszone.ai",password:"govern-with-certainty",role:"AI Central",title:"Execution and Assurance Workspace",department:"AI Central Operations",organization:"VerisZone AI Operating Center",phone:"+1 415 555 0150",region:"Global",timezone:"UTC",manager:"AI Transformation Office",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:40"},
+  employee:{name:"Jamie Park",email:"jamie.park@veriszone.ai",password:"govern-with-certainty",role:"Employee",title:"Product Engineer",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0171",region:"US",timezone:"America/Los_Angeles",manager:"Riley Chen",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 09:10"},
+  manager:{name:"Riley Chen",email:"riley.chen@veriszone.ai",password:"govern-with-certainty",role:"Manager",title:"Engineering Manager",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0164",region:"US",timezone:"America/Los_Angeles",manager:"Priya Mehta",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 08:45"},
 };
 
 /* Section */
@@ -261,6 +265,8 @@ const NAV = [
   {id:"aigov",     icon:"V", label:"AI Governance Cube"},
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
+  {id:"workbench", icon:"W", label:"AI Workbench"},
+  {id:"aiusage",   icon:"U", label:"My AI Dashboard"},
 ];
 
 const CAIO_EXTRA_NAV = [
@@ -287,6 +293,10 @@ const EXECUTIVE_NAV_SECTIONS = [
 const CAIO_NAV_SECTIONS = [
   {title:"AI Portfolio", items:["registry","maturity","usecases"]},
   {title:"Risk Treatment", items:["aira","airt"]},
+];
+
+const EMPLOYEE_NAV_SECTIONS = [
+  {title:"AI Workbench", items:["workbench","aiusage"]},
 ];
 
 const AI_CENTRAL_NAV = [
@@ -1372,7 +1382,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
-  const roleNavSections=EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
+  const roleNavSections=(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
@@ -5199,7 +5209,8 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const [hydrated,setHydrated]=useState(false);
   const selected=items.find(i=>i.id===selectedId)||items[0];
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
-  const evidenceRows=[...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
+  const gwEvidence=(typeof window!=="undefined")?(()=>{try{return JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");}catch{return [];}})():[];
+  const evidenceRows=[...gwEvidence,...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
   /* Persistence: created initiatives, governed decisions and feedback survive reload. */
   useEffect(()=>{
     try{
@@ -5860,6 +5871,8 @@ const LOGIN_PROFILES = [
   {id:"cio",label:"CIO",role:"cio",target:"home",accent:"#06B6D4",title:"CIO AI Portfolio Control",subtitle:"AI systems portfolio, implementation roadmap, platform controls, data readiness and enterprise adoption.",email:"marcus.chen@veriszone.ai",kpis:[["47","AI assets"],["12","Roadmap items"],["79%","Controls"]]},
   {id:"cdpo",label:"CDPO",role:"cdpo",target:"home",accent:"#14B8A6",title:"CDPO Privacy Oversight",subtitle:"DPIAs, GDPR Article 22, data processing controls, consent evidence and regulatory response readiness.",email:"elena.rossi@veriszone.ai",kpis:[["11","DPIAs"],["83%","GDPR"],["4","Deadlines"]]},
   {id:"cgo",label:"CGO",role:"cgo",target:"home",accent:"#F59E0B",title:"CGO Governance Office",subtitle:"Policy lifecycle, framework mapping, approvals, escalations and assurance reporting for leadership.",email:"rafael.torres@veriszone.ai",kpis:[["24","Policies"],["61%","ISO 42001 A"],["9","Reports"]]},
+  {id:"employee",label:"Employee",role:"employee",target:"workbench",accent:"#2BA88A",title:"Employee AI Workbench",subtitle:"One governed workbench for every AI interaction - approved models, enterprise knowledge and automatic compliance, faster than any public chat.",email:"jamie.park@veriszone.ai",kpis:[["84","Prompts governed"],["11.5h","Time saved"],["0","Data leaks"]]},
+  {id:"manager",label:"Manager",role:"manager",target:"aiusage",accent:"#0EA5E9",title:"Manager AI Adoption View",subtitle:"Team adoption, value and compliance without reading private prompts - aggregates only, by policy.",email:"riley.chen@veriszone.ai",kpis:[["64%","Team adoption"],["92%","Compliance"],["3","Blocked events"]]},
   {id:"aicentral",label:"AI Central",role:"caio",target:"aicentral",mode:"aicentral",accent:AI_GOLD,title:"AI Central Standalone",subtitle:"Dedicated command center for AI initiatives, guardrails, lifecycle workflow, CXO alignment and value tracking.",email:"ai.central@veriszone.ai",kpis:[["4","Initiatives"],["3","High risk"],["79%","Guardrails"]]}
 ];
 
@@ -5892,7 +5905,8 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   };
   const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
   const executiveProfiles=LOGIN_PROFILES.filter(p=>EXECUTIVE_ROLE_IDS.includes(p.role));
-  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
+  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral","employee","manager"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
+  const employeeProfiles=LOGIN_PROFILES.filter(p=>["employee","manager"].includes(p.id));
   const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
   const enterDemoLink=()=>onEnter(demoProfile);
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
@@ -5974,6 +5988,9 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
               <optgroup label="Governance workspaces">
                 {governanceProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
               </optgroup>
+              <optgroup label="Employee workspace">
+                {employeeProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
+              </optgroup>
               {aiCentralProfile&&<optgroup label="Execution and assurance">
                 <option value={aiCentralProfile.id}>{aiCentralProfile.label} - Standalone command center</option>
               </optgroup>}
@@ -6002,6 +6019,229 @@ function ProfileInput({label,value,type="text",onChange}) {
     <input type={type} value={value||""} onChange={e=>onChange(e.target.value)} style={{width:"100%",background:T.s3,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px",color:T.ink,fontFamily:F.b,fontSize:12,outline:"none"}} />
   </label>;
 }
+
+/* ── Employee Workspace: AI Workbench ─────────────────────────────
+   The employee-facing surface of the Enterprise AI Gateway. Consumes the
+   same canonical gateway objects the AI Central module monitors and the
+   admin tabs configure. Demo Center is seeded; real tenants start clean. */
+
+const WB_CLASSIFICATIONS=["Public","Internal","Confidential","Restricted"];
+
+/* Demo policy engine: inspect a prompt against the configured detectors. */
+function wbInspectPrompt(text){
+  if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
+    return {action:"Blocked",detector:"Credentials & API Keys",masked:text};
+  const cardRe=/\b(?:\d[ -]?){13,16}\b/g, emailRe=/[\w.+-]+@[\w-]+\.[\w.]+/g;
+  if(cardRe.test(text)||emailRe.test(text))
+    return {action:"Masked",detector:/(?:\d[ -]?){13,16}/.test(text)?"PCI / Card Data":"PII Detection",
+      masked:text.replace(/\b(?:\d[ -]?){13,16}\b/g,"[MASKED-CARD]").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[MASKED-EMAIL]")};
+  return null;
+}
+
+/* Internal Knowledge Engine: pick enrichment assets for a prompt. */
+function wbEnrichFor(text){
+  const t=text.toLowerCase(), picks=[];
+  if(/risk/.test(t))picks.push("Enterprise AI Risk Library","ISO 42001 Control Checklist");
+  if(/agent|architect|design|build/.test(t))picks.push("AI Reference Architecture Standard","Approved Prompt Library");
+  if(/proposal|sales|deck|present|draft/.test(t))picks.push("Approved Prompt Library","Pilot-to-Scale Playbook");
+  if(/privacy|dpia|gdpr|consent/.test(t))picks.push("DPIA / Privacy Assessment Template");
+  if(/policy|compliance/.test(t))picks.push("Responsible GenAI Use Policy");
+  if(!picks.length)picks.push("Responsible GenAI Use Policy","Approved Prompt Library");
+  return [...new Set(picks)].slice(0,4);
+}
+
+function PageWorkbench({role,sessionMode,showToast}){
+  const seeded=sessionMode==="demo";
+  const U=USER_PROFILES[role==="manager"?"manager":"employee"]||USER_PROFILES.employee;
+  const unit=U.department||"Engineering";
+  const route=gatewayRouting.find(r=>r.scope.toLowerCase().startsWith(unit.split(" ")[0].toLowerCase()))||gatewayRouting[1];
+  const provider=gatewayProviders.find(p=>p.id===route.providerId)||gatewayProviders[0];
+  const [convos,setConvos]=useState(seeded?demoConversations:[]);
+  const [hydrated,setHydrated]=useState(false);
+  const [selId,setSelId]=useState(seeded?demoConversations[0].id:null);
+  const [input,setInput]=useState("");
+  const [newOpen,setNewOpen]=useState(!seeded);
+  const [newTitle,setNewTitle]=useState("");
+  useEffect(()=>{
+    try{const saved=JSON.parse(localStorage.getItem("vz-wb-convos")||"[]");
+      if(Array.isArray(saved)&&saved.length){setConvos(prev=>[...saved.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);if(!seeded)setSelId(saved[0].id);}
+    }catch{/* ignore */}
+    setHydrated(true);
+  },[seeded]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    try{localStorage.setItem("vz-wb-convos",JSON.stringify(convos.filter(c=>!demoConversations.some(d=>d.id===c.id))));}catch{/* ignore */}
+  },[convos,hydrated]);
+  const sel=convos.find(c=>c.id===selId)||null;
+  const updateSel=fn=>setConvos(cs=>cs.map(c=>c.id===selId?fn(c):c));
+  const recordEvidence=(conv)=>{
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Workbench artifact: ${conv.title}`,initiative:acInitiatives.find(i=>i.id===conv.initiativeId)?.name||"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:U.name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+  };
+  const send=()=>{
+    const text=input.trim();
+    if(!text||!sel)return;
+    const guard=wbInspectPrompt(text);
+    const stamp=`m${Math.random().toString(36).slice(2,8)}`;
+    if(guard&&guard.action==="Blocked"){
+      updateSel(c=>({...c,lastActivity:"Just now",riskScore:Math.min(95,c.riskScore+20),policyDecision:"Blocked by policy",messages:[...c.messages,
+        {id:stamp,from:"user",text:"[Prompt blocked before leaving the enterprise boundary]",guardrail:{action:"Blocked",detector:guard.detector}},
+        {id:stamp+"a",from:"assistant",text:`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`,guardrail:{action:"Blocked",detector:guard.detector}}]}));
+      showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
+      setInput("");return;
+    }
+    const shown=guard?guard.masked:text;
+    const enriched=wbEnrichFor(text);
+    const artifact=/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
+    const reply=`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
+    updateSel(c=>({...c,lastActivity:"Just now",evidenceLinks:c.evidenceLinks+(artifact?1:0),policyDecision:guard?"Allowed with masking":"Allowed with enrichment",messages:[...c.messages,
+      {id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null},
+      {id:stamp+"a",from:"assistant",text:reply,enrichedWith:enriched}]}));
+    if(artifact){recordEvidence(sel);showToast&&showToast("Evidence recorded in Trust & Evidence");}
+    else if(guard)showToast&&showToast(`${guard.detector}: content masked`);
+    setInput("");
+  };
+  const createConvo=()=>{
+    const title=newTitle.trim();
+    if(!title){showToast&&showToast("Give the conversation a name","error");return;}
+    const id=`cv-${Math.random().toString(36).slice(2,8)}`;
+    const rec={id,title,unit,project:"Unassigned",initiativeId:null,providerId:provider.id,model:provider.models[0]||"Default",classification:"Internal",created:"Today",lastActivity:"Just now",riskScore:8,policyDecision:"No activity yet",evidenceLinks:0,retention:"90 days",messages:[]};
+    setConvos([rec,...convos]);setSelId(id);setNewTitle("");setNewOpen(false);
+  };
+  const gaColor=a=>a==="Blocked"?T.red:a==="Masked"?T.amber:a==="Justification required"?T.blue:T.green;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Workbench" sub={`Every interaction is governed by the Enterprise AI Gateway - ${unit} routes to ${provider.name}. Enterprise knowledge enriches every prompt; sensitive data never leaves the boundary.`}/>
+    <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
+      {/* Conversations */}
+      <Card style={{padding:0,overflow:"hidden"}}>
+        <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{margin:0,fontSize:13,color:T.ink,fontWeight:800,fontFamily:F.h}}>Conversations</h3>
+          <button onClick={()=>setNewOpen(!newOpen)} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>New</button>
+        </div>
+        {newOpen&&<div style={{padding:"10px 12px",borderBottom:`1px solid ${T.border}`,display:"grid",gap:7}}>
+          <input value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createConvo()} placeholder="e.g. Sales proposal, Risk register..." style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px 10px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+          <button onClick={createConvo} style={{background:AI_GOLD,border:"none",borderRadius:7,padding:"8px 10px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Start conversation</button>
+        </div>}
+        {convos.length===0&&!newOpen&&<div style={{padding:"22px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet. This workspace is clean - your first conversation creates your governed AI history.</div>}
+        <div style={{maxHeight:520,overflowY:"auto"}}>
+          {convos.map(c=><button key={c.id} onClick={()=>setSelId(c.id)} style={{display:"block",width:"100%",textAlign:"left",background:c.id===selId?AI_GOLD+"10":"transparent",border:"none",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${c.id===selId?AI_GOLD:"transparent"}`,padding:"11px 13px",cursor:"pointer"}}>
+            <div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.35}}>{c.title}</div>
+            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{c.unit}</span>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{gatewayProviders.find(p=>p.id===c.providerId)?.name||c.providerId}</span>
+              <span style={{marginLeft:"auto",fontSize:9,fontFamily:F.m,color:c.riskScore>=40?T.amber:T.green}}>{c.riskScore}</span>
+            </div>
+          </button>)}
+        </div>
+      </Card>
+      {/* Thread */}
+      {sel?<Card style={{padding:0,overflow:"hidden",display:"flex",flexDirection:"column",minHeight:560}}>
+        <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.h}}>{sel.title}</div>
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{sel.unit} · {sel.project} · Retention {sel.retention} · {sel.policyDecision}</div>
+          </div>
+          <Tag label={sel.classification} color={sel.classification==="Restricted"?T.red:sel.classification==="Confidential"?T.amber:T.blue} bg={(sel.classification==="Restricted"?T.red:sel.classification==="Confidential"?T.amber:T.blue)+"14"}/>
+          <Tag label={`${route.scope} → ${provider.name}`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"16px",display:"grid",gap:12,alignContent:"start"}}>
+          {sel.messages.length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,maxWidth:520}}>Ask anything. Before your prompt reaches {provider.name}, the Gateway checks policy, searches enterprise knowledge and attaches your project context. Try including an email address or card number to see the boundary protection work.</div>}
+          {sel.messages.map(m=><div key={m.id} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"78%"}}>
+            <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:12,padding:"11px 14px"}}>
+              <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{m.text}</div>
+              {m.guardrail&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:gaColor(m.guardrail.action)}}/>
+                <span style={{fontSize:9,fontWeight:800,color:gaColor(m.guardrail.action),fontFamily:F.m}}>{m.guardrail.action} · {m.guardrail.detector}</span>
+              </div>}
+              {m.enrichedWith&&m.enrichedWith.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`}}>
+                <span style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",alignSelf:"center"}}>Enriched with</span>
+                {m.enrichedWith.map(k=><span key={k} style={{fontSize:9,color:AI_GOLD,background:AI_GOLD+"10",border:`1px solid ${AI_GOLD}30`,borderRadius:5,padding:"2px 7px",fontFamily:F.b,fontWeight:700}}>{k}</span>)}
+              </div>}
+            </div>
+          </div>)}
+        </div>
+        <div style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`,display:"flex",gap:9}}>
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={`Message ${provider.name} through the Gateway...`} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
+          <button onClick={send} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Send</button>
+        </div>
+      </Card>
+      :<Card style={{padding:28,display:"flex",alignItems:"center",justifyContent:"center",minHeight:560}}>
+        <div style={{textAlign:"center",maxWidth:420}}>
+          <div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.h,marginBottom:8}}>Your governed AI workbench</div>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>Start a conversation to use approved models with enterprise knowledge and automatic compliance. Every interaction is policy-checked before it leaves the boundary.</p>
+        </div>
+      </Card>}
+    </div>
+  </div>;
+}
+
+/* ── My AI Dashboard (employee) + Manager adoption view ───────── */
+function PageAIUsage({role,sessionMode}){
+  const seeded=sessionMode==="demo";
+  const u=seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0};
+  const isManager=role==="manager";
+  const tiles=[
+    ["Time saved",`${u.timeSavedHrs}h`,"This month",T.green],
+    ["Successful prompts",u.prompts,"Through the Gateway",AI_GOLD],
+    ["Prompt success rate",u.successRate+"%","First-answer usefulness",T.teal],
+    ["Knowledge reuse",u.knowledgeReuse+"%","Answers enriched internally",T.blue],
+    ["Warnings",u.warnings,"Policy warnings received",T.amber],
+    ["Blocked",u.blocked,"Nothing left the boundary",T.red],
+  ];
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title={isManager?"Team AI Adoption":"My AI Dashboard"} sub={isManager?"Team adoption, value and compliance - private prompts are never shown. Content review requires explicit permission granted by policy.":"Your governed AI activity - productivity, safety and learning in one place."}/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+      {tiles.map(([l,v,sub,c])=><Card key={l} style={{padding:14}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,marginBottom:3}}>{v}</div>
+        <div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{sub}</div>
+      </Card>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Top AI skills</h3>
+        {(u.topSkills.length?u.topSkills:["No activity yet"]).map((s,i)=><div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{s}</span>
+          {u.topSkills.length>0&&<Bar value={[86,74,63][i]||50} color={AI_GOLD} />}
+        </div>)}
+        <div style={{marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:6}}><span>Learning progress</span><span style={{fontFamily:F.m}}>{u.learningProgress}%</span></div>
+          <Bar value={u.learningProgress} color={T.teal}/>
+        </div>
+      </Card>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Preferred models</h3>
+        {(u.preferredModels.length?u.preferredModels:["No usage yet"]).map(m=><div key={m} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background:AI_GOLD}}/>
+          <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{m}</span>
+        </div>)}
+        <p style={{fontSize:10,color:T.ink4,fontFamily:F.b,lineHeight:1.6,margin:"12px 0 0"}}>Model choice is routed by the Gateway from your business unit policy - you always get an approved model without thinking about it.</p>
+      </Card>
+    </div>
+    {isManager&&<Card style={{padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:0}}>Team view</h3>
+        <Tag label="Prompt content review: disabled by policy" color={T.ink3} bg={T.s3}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:13}}>
+        {[["Team adoption",seeded?"64%":"--",T.teal],["Business value",seeded?"$1.2M":"--",AI_GOLD],["Compliance score",seeded?"92%":"--",T.green],["High-risk activity",seeded?"1":"--",T.amber],["Blocked events",seeded?"3":"--",T.red],["Training gap",seeded?"People unit":"--",T.blue]].map(([l,v,c])=><div key={l} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+          <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:7}}>{l}</div>
+          <div style={{fontSize:17,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+        </div>)}
+      </div>
+      <h4 style={{fontSize:12,color:T.ink,margin:"0 0 8px"}}>Model utilization</h4>
+      {gatewayProviders.slice(0,5).map(p=><div key={p.id} style={{display:"grid",gridTemplateColumns:"140px 1fr 44px",gap:10,alignItems:"center",marginBottom:7}}>
+        <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{p.name}</span>
+        <Bar value={seeded?p.routedShare*2:0} color={AI_GOLD}/>
+        <span style={{fontSize:9,color:T.ink3,fontFamily:F.m,textAlign:"right"}}>{seeded?p.routedShare+"%":"--"}</span>
+      </div>)}
+    </Card>}
+  </div>;
+}
+
 
 function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut}) {
   const [selected,setSelected]=useState(sessionMode==="demo"?"demo":role);
@@ -6151,7 +6391,7 @@ export default function VerisZone() {
     setTimeout(()=>setToast(t=>({...t,vis:false})),3000);
   },[]);
 
-  const switchRole=r=>{setRole(r);setTab("home");setHitlCount((HITL[r]||[]).length);};
+  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
     setTab("home");
@@ -6230,6 +6470,7 @@ export default function VerisZone() {
     };
   },[enterApp]);
   const R=ROLES[role],rc=RC(role);
+  const roleHome=(role==="employee"||role==="manager")?"workbench":"home";
   const showSeededData=sessionMode==="demo"||!SEEDED_DEMO_TABS.has(tab);
 
   if(!hasEntered)return <BrandEntryShell theme={theme} onTheme={()=>setTheme(theme==="dark"?"light":"dark")} onEnter={enterApp}/>;
@@ -6248,13 +6489,13 @@ export default function VerisZone() {
         </div>}
         {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
           {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
-          {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
-          {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
+          {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
+          {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
         {isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s3:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1,overflowX:"auto"}}>
           {sessionMode==="demo"
             ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
-            :<button type="button" onClick={()=>setTab("home")} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
+            :<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setTheme(theme==="dark"?"light":"dark")} title="Toggle dark and light mode" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:isMobile?"4px 10px":"6px 13px",color:T.ink2,fontSize:isMobile?10:11,fontWeight:800,fontFamily:F.b,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.05)":"none"}}>{theme==="dark"?"Light":"Dark"}</button>
@@ -6297,6 +6538,8 @@ export default function VerisZone() {
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode}/>}
+        {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
+        {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
     {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}

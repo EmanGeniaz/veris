@@ -66,6 +66,8 @@ export const AC_RBAC: Record<string, ACRoleAccess> = {
   cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "governance", "evidence", "gateway", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
   cdpo: { lens: "Privacy",    modules: ["dashboard", "initiatives", "governance", "evidence"], focus: "DPIAs, data classification and privacy evidence" },
   cgo:  { lens: "Compliance", modules: ["dashboard", "governance", "evidence", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
+  employee: { lens: "Operations", modules: ["dashboard"], focus: "Your governed AI activity" },
+  manager:  { lens: "Operations", modules: ["dashboard"], focus: "Team adoption and governed usage" },
 };
 
 export const acInitiatives: ACInitiativeRecord[] = [
@@ -197,6 +199,8 @@ export const AC_FRAMEWORK_POSTURE: FrameworkPosture[] = [
 
 /* ── Executive Workspace 4.0 intelligence seeds ───────────────── */
 export const EXEC_BRIEF: Record<string, ExecBriefEntry> = {
+  employee:{focus:"AI Workbench Copilot",headline:"Your governed AI workbench is ready.",body:"Every prompt is policy-checked, enriched with enterprise knowledge and routed to an approved model.",deltas:[["Prompts","up","84"],["Time saved","up","11.5h"],["Blocked","flat","3"],["Leaks","flat","0"]]},
+  manager:{focus:"Team AI Adoption Advisor",headline:"Team adoption is healthy; one unit needs support.",body:"Aggregated team usage shows strong productivity gains with zero data leakage.",deltas:[["Adoption","up","64%"],["Value","up","$1.2M"],["Compliance","up","92%"],["Blocked","flat","3"]]},
   ceo:{focus:"AI Chief Strategy Officer",headline:"Portfolio is scaling, one initiative needs a board-level call.",
     body:"Enterprise AI maturity rose to 78/100 as two pilots reached scale-readiness. Finance Close Automation is board-pack ready and projects $1.8M value; Customer Resolution Copilot is held pending CISO evidence. One initiative is trending to retirement on weak adoption. Approving the scale package unlocks an estimated 9% portfolio ROI uplift this quarter.",
     deltas:[["AI maturity","up","+6"],["Value realized","up","$3.6M"],["Scale-ready pilots","up","2"],["At-risk initiatives","down","1"]]},
@@ -227,6 +231,14 @@ export const EXEC_BRIEF: Record<string, ExecBriefEntry> = {
 };
 
 export const EXEC_PRIORITIES: Record<string, ExecPriorityItem[]> = {
+  employee:[
+    {title:"Continue your risk register draft",owner:"You",priority:"Medium",due:"Today",impact:"Evidence auto-captured",benefit:"Enriched with the risk library",link:{tab:"workbench"}},
+    {title:"Review your masked-content warning",owner:"You",priority:"Medium",due:"Today",impact:"Prompt hygiene",benefit:"Learn what triggered the mask",link:{tab:"aiusage"}},
+  ],
+  manager:[
+    {title:"Review team adoption trend",owner:"You",priority:"Medium",due:"This week",impact:"Adoption 64%",benefit:"Aggregates only - no prompt content",link:{tab:"aiusage"}},
+    {title:"Assign training to close the gap",owner:"You",priority:"Medium",due:"This week",impact:"People unit lagging",benefit:"Auto-recommended learning path",link:{tab:"aiusage"}},
+  ],
   ceo:[
     {title:"Approve Finance Close Automation scale package",owner:"Maya Chen",priority:"Critical",due:"Today",impact:"$1.8M value unlock",benefit:"9% portfolio ROI uplift",link:{ac:"initiatives"}},
     {title:"Decide on Workforce Skills Navigator retirement",owner:"Aisha Patel",priority:"High",due:"2 days",impact:"Stops $0.2M sunk spend",benefit:"Frees budget for scale-ready pilots",link:{ac:"initiatives"}},
@@ -362,6 +374,8 @@ export const EXEC_DECISIONS: Record<string, ExecDecisionItem[]> = {
 };
 
 export const ASSISTANT_NUDGES: Record<string, string[]> = {
+  employee:["Your prompts are governed - sensitive data is masked before leaving the boundary.","Drafting a register, assessment or policy auto-creates evidence.","Try the approved prompt library for faster, safer results."],
+  manager:["Team adoption is 64% - the People unit lags behind.","3 prompts were blocked this month; nothing left the boundary.","Private prompt content stays hidden - you see aggregates only."],
   ceo:["2 governed decisions are waiting for you.","Finance Close Automation is ready to scale (ROI +31%).","One initiative is trending to retirement - review before the board meeting."],
   coo:["Retail Banking is blocked on evidence - clearing it unlocks the second wave.","People has the lowest AI adoption in the org.","I can draft the department rollout comms for you."],
   cfo:["Second-wave budget release is pending your approval.","Credit Decision Assurance is behind on benefits - want a re-forecast?","AI spend can be reduced ~$76K/mo via the Gateway."],
