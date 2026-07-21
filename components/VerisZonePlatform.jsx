@@ -2811,7 +2811,7 @@ function PagePlaybook({role,setTab,showToast}) {
   </div>;
 }
 /* Section */
-function PageCompliance({role,setTab,setAiCentralView}) {
+function CompliancePosture({role,setTab,setAiCentralView}) {
   const [openStd,setOpenStd]=useState(null);
   const goto=link=>{
     if(!link)return;
@@ -2873,6 +2873,40 @@ function PageCompliance({role,setTab,setAiCentralView}) {
 }
 
 /* Section */
+/* ── Compliance & Standards: one surface for every framework, control,
+   template, checklist and trust artifact. One control, many frameworks -
+   owned here, referenced everywhere else. */
+function PageComplianceStandards({role,tab,setTab,setAiCentralView,showToast}){
+  const LEGACY={compliance:"posture",checklists:"checklists",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",templates:"templates",controls:"controls",trustcenter:"trust",knowledge:"search"};
+  const FW_LEGACY={impl:"impl",iso27001:"iso27001",scope:"scope",gapanalysis:"gap",aigov:"cube"};
+  const [cTab,setCTab]=useState(LEGACY[tab]||"posture");
+  const [fw,setFw]=useState(FW_LEGACY[tab]||"impl");
+  const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["templates","Templates"],["checklists","Checklists"],["trust","Trust Center"]];
+  const FWS=[["impl","ISO 42001 Implementation"],["iso27001","ISO 27001 Workspace"],["scope","ISMS Scope"],["gap","Gap Analysis"],["cube","Framework Compare"]];
+  const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
+  return <div style={{animation:"up .3s ease"}}>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+      {TABS.map(([id,label])=><button key={id} onClick={()=>setCTab(id)} style={chip(cTab===id,T.blue)}>{label}</button>)}
+    </div>
+    {cTab==="posture"&&<CompliancePosture role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
+    {cTab==="search"&&<PageKnowledge role={role} setTab={setTab} showToast={showToast}/>}
+    {cTab==="frameworks"&&<div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+        {FWS.map(([id,label])=><button key={id} onClick={()=>setFw(id)} style={chip(fw===id,AI_GOLD)}>{label}</button>)}
+      </div>
+      {fw==="impl"&&<PageImpl role={role}/>}
+      {fw==="iso27001"&&<PageISO27001 role={role} showToast={showToast}/>}
+      {fw==="scope"&&<PageScope role={role}/>}
+      {fw==="gap"&&<PageGapAnalysis role={role} showToast={showToast}/>}
+      {fw==="cube"&&<PageAIGovCube role={role} setTab={setTab}/>}
+    </div>}
+    {cTab==="controls"&&<PageCommonControls role={role}/>}
+    {cTab==="templates"&&<PageTemplates role={role} showToast={showToast}/>}
+    {cTab==="checklists"&&<PageChecklists role={role} showToast={showToast}/>}
+    {cTab==="trust"&&<PageTrustCenter role={role} showToast={showToast}/>}
+  </div>;
+}
+
 function PageChecklists({role,showToast}) {
   const rc=RC(role);
   const available=CHECKLISTS_MAP[role]||[{key:"iso42001",label:"ISO 42001",data:ISO42001_CHECKLIST}];
@@ -7252,8 +7286,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
         {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
-        {showSeededData&&tab==="compliance" &&<PageCompliance role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
-        {showSeededData&&tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
+        {showSeededData&&["compliance","checklists","impl","templates","iso27001","scope","controls","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&tab==="aia"        &&<PageAIA        role={role}/>}
@@ -7262,22 +7295,13 @@ export default function VerisZone() {
         {showSeededData&&tab==="maturity"   &&<PageMaturityRadar/>}
         {showSeededData&&tab==="usecases"   &&<PageUseCases/>}
         {showSeededData&&tab==="aiia"       &&<PageAIIA       role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="impl"       &&<PageImpl       role={role}/>}
         {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
-        {showSeededData&&tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
-        {showSeededData&&tab==="scope"       &&<PageScope          role={role}/>}
-        {showSeededData&&tab==="controls"    &&<PageCommonControls  role={role}/>}
-        {showSeededData&&tab==="trustcenter" &&<PageTrustCenter     role={role} showToast={showToast}/>}
-        {showSeededData&&tab==="iso27001"    &&<PageISO27001    role={role} showToast={showToast}/>}
-        {showSeededData&&tab==="aigov"      &&<PageAIGovCube   role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="gapanalysis" &&<PageGapAnalysis  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&tab==="decisions" &&<PageDecisions role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&tab==="knowledge" &&<PageKnowledge role={role} setTab={setTab} showToast={showToast}/>}
         {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
