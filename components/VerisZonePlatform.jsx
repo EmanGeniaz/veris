@@ -266,6 +266,7 @@ const NAV = [
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
   {id:"workbench", icon:"W", label:"AI Workbench"},
+  {id:"myideas",   icon:"I", label:"My AI Ideas"},
   {id:"aiusage",   icon:"U", label:"My AI Dashboard"},
 ];
 
@@ -296,7 +297,7 @@ const CAIO_NAV_SECTIONS = [
 ];
 
 const EMPLOYEE_NAV_SECTIONS = [
-  {title:"AI Workbench", items:["workbench","aiusage"]},
+  {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
 ];
 
 const AI_CENTRAL_NAV = [
@@ -6142,8 +6143,6 @@ function PageWorkbench({role,sessionMode,showToast}){
   const [hydrated,setHydrated]=useState(false);
   const [selId,setSelId]=useState(seeded?demoConversations[0].id:null);
   const [input,setInput]=useState("");
-  const [newOpen,setNewOpen]=useState(!seeded);
-  const [newTitle,setNewTitle]=useState("");
   useEffect(()=>{
     try{const saved=JSON.parse(localStorage.getItem("vz-wb-convos")||"[]");
       if(Array.isArray(saved)&&saved.length){setConvos(prev=>[...saved.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);if(!seeded)setSelId(saved[0].id);}
@@ -6155,7 +6154,6 @@ function PageWorkbench({role,sessionMode,showToast}){
     try{localStorage.setItem("vz-wb-convos",JSON.stringify(convos.filter(c=>!demoConversations.some(d=>d.id===c.id))));}catch{/* ignore */}
   },[convos,hydrated]);
   const sel=convos.find(c=>c.id===selId)||null;
-  const updateSel=fn=>setConvos(cs=>cs.map(c=>c.id===selId?fn(c):c));
   const recordEvidence=(conv)=>{
     try{
       const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
@@ -6163,37 +6161,43 @@ function PageWorkbench({role,sessionMode,showToast}){
       localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
     }catch{/* ignore */}
   };
+  /* The chat window is always available: the first message of a clean
+     workspace creates its governed conversation automatically. */
   const send=()=>{
     const text=input.trim();
-    if(!text||!sel)return;
+    if(!text)return;
+    const base=sel||{
+      id:`cv-${Math.random().toString(36).slice(2,8)}`,
+      title:text.length>44?text.slice(0,44)+"...":text,
+      unit,project:"Unassigned",initiativeId:null,providerId:provider.id,model:provider.models[0]||"Default",
+      classification:"Internal",created:"Today",lastActivity:"Just now",riskScore:8,policyDecision:"No activity yet",
+      evidenceLinks:0,retention:"90 days",messages:[],
+    };
     const guard=wbInspectPrompt(text);
     const stamp=`m${Math.random().toString(36).slice(2,8)}`;
+    let updated;
     if(guard&&guard.action==="Blocked"){
-      updateSel(c=>({...c,lastActivity:"Just now",riskScore:Math.min(95,c.riskScore+20),policyDecision:"Blocked by policy",messages:[...c.messages,
+      updated={...base,lastActivity:"Just now",riskScore:Math.min(95,base.riskScore+20),policyDecision:"Blocked by policy",messages:[...base.messages,
         {id:stamp,from:"user",text:"[Prompt blocked before leaving the enterprise boundary]",guardrail:{action:"Blocked",detector:guard.detector}},
-        {id:stamp+"a",from:"assistant",text:`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`,guardrail:{action:"Blocked",detector:guard.detector}}]}));
+        {id:stamp+"a",from:"assistant",text:`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`,guardrail:{action:"Blocked",detector:guard.detector}}]};
       showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
-      setInput("");return;
+    }else{
+      const shown=guard?guard.masked:text;
+      const enriched=wbEnrichFor(text);
+      const artifact=/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
+      const reply=`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
+      updated={...base,lastActivity:"Just now",evidenceLinks:base.evidenceLinks+(artifact?1:0),policyDecision:guard?"Allowed with masking":"Allowed with enrichment",messages:[...base.messages,
+        {id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null},
+        {id:stamp+"a",from:"assistant",text:reply,enrichedWith:enriched}]};
+      if(artifact){recordEvidence(base);showToast&&showToast("Evidence recorded in Trust & Evidence");}
+      else if(guard)showToast&&showToast(`${guard.detector}: content masked`);
     }
-    const shown=guard?guard.masked:text;
-    const enriched=wbEnrichFor(text);
-    const artifact=/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
-    const reply=`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
-    updateSel(c=>({...c,lastActivity:"Just now",evidenceLinks:c.evidenceLinks+(artifact?1:0),policyDecision:guard?"Allowed with masking":"Allowed with enrichment",messages:[...c.messages,
-      {id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null},
-      {id:stamp+"a",from:"assistant",text:reply,enrichedWith:enriched}]}));
-    if(artifact){recordEvidence(sel);showToast&&showToast("Evidence recorded in Trust & Evidence");}
-    else if(guard)showToast&&showToast(`${guard.detector}: content masked`);
+    setConvos(cs=>[updated,...cs.filter(c=>c.id!==base.id)]);
+    setSelId(base.id);
     setInput("");
   };
-  const createConvo=()=>{
-    const title=newTitle.trim();
-    if(!title){showToast&&showToast("Give the conversation a name","error");return;}
-    const id=`cv-${Math.random().toString(36).slice(2,8)}`;
-    const rec={id,title,unit,project:"Unassigned",initiativeId:null,providerId:provider.id,model:provider.models[0]||"Default",classification:"Internal",created:"Today",lastActivity:"Just now",riskScore:8,policyDecision:"No activity yet",evidenceLinks:0,retention:"90 days",messages:[]};
-    setConvos([rec,...convos]);setSelId(id);setNewTitle("");setNewOpen(false);
-  };
   const gaColor=a=>a==="Blocked"?T.red:a==="Masked"?T.amber:a==="Justification required"?T.blue:T.green;
+  const clsColor=c=>c==="Restricted"?T.red:c==="Confidential"?T.amber:T.blue;
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="AI Workbench" sub={`Every interaction is governed by the Enterprise AI Gateway - ${unit} routes to ${provider.name}. Enterprise knowledge enriches every prompt; sensitive data never leaves the boundary.`}/>
     <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
@@ -6201,13 +6205,9 @@ function PageWorkbench({role,sessionMode,showToast}){
       <Card style={{padding:0,overflow:"hidden"}}>
         <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <h3 style={{margin:0,fontSize:13,color:T.ink,fontWeight:800,fontFamily:F.h}}>Conversations</h3>
-          <button onClick={()=>setNewOpen(!newOpen)} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>New</button>
+          <button onClick={()=>{setSelId(null);setInput("");}} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>New</button>
         </div>
-        {newOpen&&<div style={{padding:"10px 12px",borderBottom:`1px solid ${T.border}`,display:"grid",gap:7}}>
-          <input value={newTitle} onChange={e=>setNewTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createConvo()} placeholder="e.g. Sales proposal, Risk register..." style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px 10px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
-          <button onClick={createConvo} style={{background:AI_GOLD,border:"none",borderRadius:7,padding:"8px 10px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Start conversation</button>
-        </div>}
-        {convos.length===0&&!newOpen&&<div style={{padding:"22px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet. This workspace is clean - your first conversation creates your governed AI history.</div>}
+        {convos.length===0&&<div style={{padding:"18px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet - this workspace is clean. Type your first message on the right to start a governed conversation.</div>}
         <div style={{maxHeight:520,overflowY:"auto"}}>
           {convos.map(c=><button key={c.id} onClick={()=>setSelId(c.id)} style={{display:"block",width:"100%",textAlign:"left",background:c.id===selId?AI_GOLD+"10":"transparent",border:"none",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${c.id===selId?AI_GOLD:"transparent"}`,padding:"11px 13px",cursor:"pointer"}}>
             <div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.35}}>{c.title}</div>
@@ -6219,19 +6219,21 @@ function PageWorkbench({role,sessionMode,showToast}){
           </button>)}
         </div>
       </Card>
-      {/* Thread */}
-      {sel?<Card style={{padding:0,overflow:"hidden",display:"flex",flexDirection:"column",minHeight:560}}>
+      {/* Chat - always available */}
+      <Card style={{padding:0,overflow:"hidden",display:"flex",flexDirection:"column",minHeight:560}}>
         <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <div style={{minWidth:0,flex:1}}>
-            <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.h}}>{sel.title}</div>
-            <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{sel.unit} · {sel.project} · Retention {sel.retention} · {sel.policyDecision}</div>
+            <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.h}}>{sel?sel.title:"New conversation"}</div>
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{sel?`${sel.unit} · ${sel.project} · Retention ${sel.retention} · ${sel.policyDecision}`:`${unit} · Your first message starts a governed conversation`}</div>
           </div>
-          <Tag label={sel.classification} color={sel.classification==="Restricted"?T.red:sel.classification==="Confidential"?T.amber:T.blue} bg={(sel.classification==="Restricted"?T.red:sel.classification==="Confidential"?T.amber:T.blue)+"14"}/>
+          <Tag label={sel?sel.classification:"Internal"} color={clsColor(sel?sel.classification:"Internal")} bg={clsColor(sel?sel.classification:"Internal")+"14"}/>
           <Tag label={`${route.scope} → ${provider.name}`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px",display:"grid",gap:12,alignContent:"start"}}>
-          {sel.messages.length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,maxWidth:520}}>Ask anything. Before your prompt reaches {provider.name}, the Gateway checks policy, searches enterprise knowledge and attaches your project context. Try including an email address or card number to see the boundary protection work.</div>}
-          {sel.messages.map(m=><div key={m.id} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"78%"}}>
+          {(!sel||sel.messages.length===0)&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,maxWidth:560}}>
+            Ask anything. Before your prompt reaches {provider.name}, the Gateway checks policy, searches enterprise knowledge and attaches your project context. Sensitive data is masked or blocked at the boundary - try including an email address to see it work.
+          </div>}
+          {sel&&sel.messages.map(m=><div key={m.id} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"78%"}}>
             <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:12,padding:"11px 14px"}}>
               <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{m.text}</div>
               {m.guardrail&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
@@ -6250,12 +6252,107 @@ function PageWorkbench({role,sessionMode,showToast}){
           <button onClick={send} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Send</button>
         </div>
       </Card>
-      :<Card style={{padding:28,display:"flex",alignItems:"center",justifyContent:"center",minHeight:560}}>
-        <div style={{textAlign:"center",maxWidth:420}}>
-          <div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.h,marginBottom:8}}>Your governed AI workbench</div>
-          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>Start a conversation to use approved models with enterprise knowledge and automatic compliance. Every interaction is policy-checked before it leaves the boundary.</p>
+    </div>
+  </div>;
+}
+
+/* ── My AI Ideas: bottom-up intake ────────────────────────────────
+   Employees submit AI ideas that route into the existing intake funnel
+   (AI Opportunity Intake -> AI Central "New Ideas"). One funnel - this is
+   the employee-side entry, not a parallel pipeline. */
+
+const IDEA_JOURNEY=["Submitted","Under review","Accepted","In AI Central intake"];
+const DEMO_IDEAS=[
+  {id:"idea-1",title:"Auto-summarise support handovers",problem:"Shift handovers lose context between support tiers; agents re-read full tickets.",benefit:"Save ~40 min per agent per day",category:"GenAI Copilot",unit:"Engineering",status:"In AI Central intake",date:"2026-07-08"},
+  {id:"idea-2",title:"Contract clause pre-checker",problem:"Legal reviews start from scratch on standard clauses.",benefit:"Cut first-pass review time 30%",category:"Decision Support",unit:"Engineering",status:"Under review",date:"2026-07-15"},
+  {id:"idea-3",title:"Meeting action extractor",problem:"Action items from meetings get lost across tools.",benefit:"Fewer dropped follow-ups",category:"Process Automation",unit:"Engineering",status:"Submitted",date:"2026-07-19"},
+];
+
+function PageMyIdeas({role,sessionMode,showToast}){
+  const seeded=sessionMode==="demo";
+  const U=USER_PROFILES[role==="manager"?"manager":"employee"]||USER_PROFILES.employee;
+  const [ideas,setIdeas]=useState(seeded?DEMO_IDEAS:[]);
+  const [hydrated,setHydrated]=useState(false);
+  const [draft,setDraft]=useState({title:"",problem:"",benefit:"",category:"GenAI Copilot"});
+  useEffect(()=>{
+    try{const saved=JSON.parse(localStorage.getItem("vz-my-ideas")||"[]");
+      if(Array.isArray(saved)&&saved.length)setIdeas(prev=>[...saved.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);
+    }catch{/* ignore */}
+    setHydrated(true);
+  },[]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    try{localStorage.setItem("vz-my-ideas",JSON.stringify(ideas.filter(i=>!DEMO_IDEAS.some(d=>d.id===i.id))));}catch{/* ignore */}
+  },[ideas,hydrated]);
+  const submit=()=>{
+    if(!draft.title.trim()||!draft.problem.trim()){showToast&&showToast("Add a title and the problem it solves","error");return;}
+    const rec={id:`idea-${Math.random().toString(36).slice(2,8)}`,title:draft.title.trim(),problem:draft.problem.trim(),benefit:draft.benefit.trim()||"To be assessed",category:draft.category,unit:U.department||"Engineering",status:"Submitted",date:"Today"};
+    setIdeas([rec,...ideas]);
+    setDraft({title:"",problem:"",benefit:"",category:"GenAI Copilot"});
+    showToast&&showToast("Idea submitted - routed to AI Opportunity Intake");
+  };
+  const stColor=st=>st==="In AI Central intake"?AI_GOLD:st==="Accepted"?T.green:st==="Under review"?T.blue:T.ink3;
+  const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="My AI Ideas" sub="Bottom-up innovation: submit AI ideas from your daily work. Accepted ideas enter AI Opportunity Intake and become governed initiatives in AI Central."/>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(300px,.9fr) 1.1fr",gap:14,alignItems:"start"}}>
+      <Card style={{padding:18}}>
+        <Tag label="SUBMIT AN IDEA" color={AI_GOLD} bg={AI_GOLD_L}/>
+        <h3 style={{fontSize:15,color:T.ink,fontWeight:800,fontFamily:F.h,margin:"10px 0 4px"}}>What could AI do better in your work?</h3>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 14px"}}>You know the friction best. Every idea is reviewed; accepted ideas follow the governed lifecycle from day one.</p>
+        <div style={{display:"grid",gap:10}}>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Idea title</span>
+            <input value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})} placeholder="e.g. Auto-draft weekly status reports" style={fieldStyle}/>
+          </label>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>What problem does it solve?</span>
+            <textarea value={draft.problem} onChange={e=>setDraft({...draft,problem:e.target.value})} rows={3} placeholder="Describe the friction in your daily work..." style={{...fieldStyle,resize:"vertical"}}/>
+          </label>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Expected benefit</span>
+            <input value={draft.benefit} onChange={e=>setDraft({...draft,benefit:e.target.value})} placeholder="e.g. Save 2 hours per week per person" style={fieldStyle}/>
+          </label>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
+            <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
+              {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow"].map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <button onClick={submit} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 14px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Submit idea</button>
         </div>
-      </Card>}
+      </Card>
+      <div style={{display:"grid",gap:10,alignContent:"start"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{fontSize:14,color:T.ink,fontWeight:800,fontFamily:F.h,margin:0}}>My submitted ideas</h3>
+          <Tag label={`${ideas.length} ideas`} color={AI_GOLD} bg={AI_GOLD+"16"}/>
+        </div>
+        {ideas.length===0&&<Card style={{padding:22}}><p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>No ideas yet. Your first submission starts your innovation record - accepted ideas are credited to you through the whole lifecycle.</p></Card>}
+        {ideas.map(i=>{
+          const stepIdx=IDEA_JOURNEY.indexOf(i.status==="Accepted"?"Accepted":i.status);
+          return <Card key={i.id} style={{padding:15}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:8,flexWrap:"wrap"}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{i.title}</div>
+                <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{i.problem}</div>
+              </div>
+              <Tag label={i.status} color={stColor(i.status)} bg={stColor(i.status)+"16"}/>
+            </div>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:9,color:T.ink4,fontFamily:F.b,marginBottom:11}}>
+              <span>{i.category}</span><span>{i.unit}</span><span>Benefit: {i.benefit}</span><span>{i.date}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:0}}>
+              {IDEA_JOURNEY.map((step,si)=><div key={step} style={{display:"flex",alignItems:"center",flex:si<IDEA_JOURNEY.length-1?1:"0 0 auto"}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <span style={{width:10,height:10,borderRadius:"50%",background:si<=stepIdx?AI_GOLD:T.s4,border:`2px solid ${si<=stepIdx?AI_GOLD:T.border}`,boxShadow:si===stepIdx?`0 0 10px ${AI_GOLD}66`:"none"}}/>
+                  <span style={{fontSize:8,color:si<=stepIdx?AI_GOLD:T.ink4,fontFamily:F.m,fontWeight:800,whiteSpace:"nowrap"}}>{step}</span>
+                </div>
+                {si<IDEA_JOURNEY.length-1&&<div style={{flex:1,height:2,background:si<stepIdx?AI_GOLD+"70":T.border,margin:"0 6px 14px"}}/>}
+              </div>)}
+            </div>
+          </Card>;
+        })}
+      </div>
     </div>
   </div>;
 }
@@ -6621,6 +6718,7 @@ export default function VerisZone() {
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
+        {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
