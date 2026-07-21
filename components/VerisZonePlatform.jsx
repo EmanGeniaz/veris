@@ -1462,7 +1462,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
 }
 
 /* Section */
-function PageAISpine({mode="overview",setTab}) {
+function PageAISpine({mode="overview",setTab,focus}) {
   const titles={
     overview:["AI Spine Overview","The proprietary orchestration layer translating CXO intent into controlled AI execution."],
     dna:["AI Initiative DNA","A compact fingerprint of the use case, affected CXOs, inherited learning, controls, evidence and scale intent."],
@@ -1475,8 +1475,17 @@ function PageAISpine({mode="overview",setTab}) {
   const [title,sub]=titles[mode]||titles.overview;
   const decisionColor=d=>d==="Scale"?T.green:d==="Hold"?T.amber:d==="Remediate"?T.red:T.ink3;
   const driftColor=d=>String(d).startsWith("+")?T.red:T.green;
-  const activePrograms=AI_ROLLOUT_PROGRAMS;
-  const initiativeDna=[
+  const focusMatch=focus?AI_ROLLOUT_PROGRAMS.filter(pr=>focus.name.includes(pr.name.split(" ")[0])):[];
+  const activePrograms=focus&&focusMatch.length?focusMatch:AI_ROLLOUT_PROGRAMS;
+  /* DNA derives from the selected initiative when one is in focus. */
+  const initiativeDna=focus?[
+    {label:"Use-case pattern",value:`${focus.category} in ${focus.unit}`,detail:"Classifies pilot behavior before controls are activated."},
+    {label:"Affected CXOs",value:focus.cxo,detail:"CXO Impact Graph determines who must review or own tasks."},
+    {label:"Risk class",value:`${focus.risk} Risk`,detail:"Human impact, customer interaction and data handling drive governance class."},
+    {label:"Scale intent",value:focus.lifecycle==="Production"?"Enterprise rollout":"Multi-department rollout",detail:"Pilot learning is retained before moving to the next department."},
+    {label:"Activated controls",value:focus.controls.join(", ")||"None yet",detail:"Controls inherited by every downstream department."},
+    {label:"Evidence requirements",value:(AC_PHASES[focus.phaseIndex]?.deliverables||[]).slice(0,4).join(", "),detail:`Current phase: ${AC_PHASES[focus.phaseIndex]?.name}. AI Central tracks completion before expansion.`},
+  ]:[
     {label:"Use-case pattern",value:"Customer-facing assistance with human escalation",detail:"Classifies pilot behavior before controls are activated."},
     {label:"Affected CXOs",value:"COO, CIO, CAIO, CISO, CDPO",detail:"CXO Impact Graph determines who must review or own tasks."},
     {label:"Risk class",value:"High Risk",detail:"Human impact, customer interaction and data handling drive governance class."},
@@ -1655,7 +1664,15 @@ function ExecPriorities({role,goto}){
 function ExecDecisionCenter({role,goto,showToast}){
   const items=EXEC_DECISIONS[role]||EXEC_DECISIONS.caio;
   const [done,setDone]=useState({});
-  const act=(i,label)=>{setDone({...done,[i]:label});showToast&&showToast(`${label} recorded - audit evidence generated`);};
+  const act=(i,label,d)=>{
+    setDone({...done,[i]:label});
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Executive decision: ${d.title} - ${label}`,initiative:d.title,scope:"Organization",control:"Decision Center",risk:d.risk+" risk decision",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+    showToast&&showToast(`${label} recorded - audit evidence generated`);
+  };
   const rColor=r=>r==="High"?T.red:r==="Medium"?T.amber:T.green;
   return <Card style={{padding:16,marginBottom:12}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -1674,9 +1691,15 @@ function ExecDecisionCenter({role,goto,showToast}){
             <div style={{fontSize:10,color:l==="AI recommendation"?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:l==="AI recommendation"?800:500}}>{v}</div>
           </div>)}
         </div>
-        {decided?<div style={{display:"flex",alignItems:"center",gap:8}}><Tag label={decided} color={T.green} bg={T.greenL}/><button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button></div>
+        {decided?<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <Tag label={decided} color={T.green} bg={T.greenL}/>
+          <span style={{display:"inline-flex",alignItems:"center",gap:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:AI_GOLD,animation:"up .45s ease",boxShadow:`0 0 18px ${AI_GOLD}30`}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>Evidence record created → Trust &amp; Evidence
+          </span>
+          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button>
+        </div>
         :<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-          {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>label==="Approve"||label==="Reject"||label==="Request changes"||label==="Escalate"?act(i,label):null} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
+          {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>act(i,label,d)} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
           <button onClick={()=>goto(d.link)} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 12px",color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open evidence →</button>
         </div>}
       </div>;})}
@@ -1707,6 +1730,11 @@ function ExecRecommendations({role,goto}){
 }
 
 function ExecAssistant({role,goto,showToast,isMobile,tab}){
+  const [chat,setChat]=useState([]);
+  const [q,setQ]=useState("");
+  const [busy,setBusy]=useState(false);
+  const chatTimer=useRef(null);
+  useEffect(()=>()=>{if(chatTimer.current)clearTimeout(chatTimer.current);},[]);
   const pageLabel=(NAV.find(n=>n.id===tab)||{}).label||(tab==="aicentral"?"AI Central":tab==="home"?"Dashboard":"Workspace");
   const isWorkbench=tab==="workbench";
   const artifactActions=["Generate AIRA","Generate AI Impact Assessment","Generate Risk Register","Create Evidence Folder","Recommend Controls"];
@@ -1716,6 +1744,29 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const nudges=ASSISTANT_NUDGES[role]||ASSISTANT_NUDGES.caio;
   const focus=(EXEC_BRIEF[role]||EXEC_BRIEF.caio).focus;
   const priorities=EXEC_PRIORITIES[role]||EXEC_PRIORITIES.caio;
+  /* Grounded responder: answers reference the role's priorities, nudges and
+     modules - never invented content. External reasoning stays out of scope. */
+  const answer=text=>{
+    const t=text.toLowerCase();
+    const p0=priorities[0];
+    if(/risk/.test(t))return {text:`From your ${focus} view, the top risk-related item is "${p0.title}" (${p0.impact}). I can take you straight to it.`,link:p0.link,label:"Open it"};
+    if(/approve|decision|pending/.test(t))return {text:`You have ${priorities.length} priority actions today. The most urgent: "${p0.title}", due ${p0.due.toLowerCase()}.`,link:p0.link,label:"Go to decision"};
+    if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence"};
+    if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas"};
+    if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy"};
+    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`};
+    return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority"};
+  };
+  const ask=()=>{
+    const t=q.trim();
+    if(!t||busy)return;
+    setChat(c=>[...c.slice(-5),{from:"user",text:t}]);
+    setQ("");setBusy(true);
+    chatTimer.current=setTimeout(()=>{
+      setChat(c=>[...c.slice(-5),{from:"ai",...answer(t)}]);
+      setBusy(false);
+    },700);
+  };
   return <>
     {!open&&<button onClick={()=>setOpen(true)} title="AI Executive Assistant" style={{position:"fixed",bottom:22,right:22,zIndex:9000,display:"flex",alignItems:"center",gap:9,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:`1px solid ${AI_GOLD_B}`,borderRadius:999,padding:isMobile?"10px 14px":"12px 18px",fontSize:12,fontWeight:900,fontFamily:F.b,boxShadow:`0 16px 40px ${AI_GOLD}44`,cursor:"pointer"}}>
       <span style={{width:8,height:8,borderRadius:"50%",background:"#111",boxShadow:"0 0 0 3px rgba(17,17,17,.18)",animation:"pulse 2s infinite"}}/>
@@ -1755,9 +1806,25 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
             </button>)}
           </div>
         </div>
+        {chat.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Conversation</div>
+          <div style={{display:"grid",gap:6}}>
+            {chat.map((m,i)=><div key={i} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"92%"}}>
+              <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:10,padding:"8px 11px"}}>
+                <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{m.text}</div>
+                {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
+              </div>
+            </div>)}
+            {busy&&<div style={{justifySelf:"start"}}><div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:10,padding:"8px 11px",display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:5,height:5,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</div></div>}
+          </div>
+        </div>}
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.6,paddingTop:4,borderTop:`1px solid ${T.border}`}}>
           Reasoning order: Internal SLM (policies, playbooks, evidence) → Enterprise Knowledge Graph → external LLM for reasoning only. Confidential knowledge never leaves the enterprise boundary.
         </div>
+      </div>
+      <div style={{padding:"10px 13px",borderTop:`1px solid ${T.border}`,display:"flex",gap:7,background:T.s1}}>
+        <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder="Ask your Chief of Staff..." style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+        <button onClick={ask} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:8,padding:"9px 13px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Ask</button>
       </div>
     </div>}
   </>;
@@ -5397,6 +5464,11 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     const rec={outcome,reason:reason||null,rationale:rationale||"",decidedBy:R.label,at:"just now"};
     setDecisions({...decisions,[selected.id]:rec});
     setItems(items.map(i=>i.id===selected.id?{...i,lifecycle:outcome==="Scale"?"Scaling":"Retired",status:outcome==="Scale"?"Scaling":"Retired",blockedBy:null}:i));
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Governed decision: ${outcome} - ${selected.name}`,initiative:selected.name,scope:"Project",control:"Scale gate",risk:reason||"Executive decision",owner:R.label,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
     showToast&&showToast(outcome==="Scale"?"Governed decision recorded: approved to scale":"Governed decision recorded: initiative retired");
     setRetireDraft({reason:RETIREMENT_REASONS[0],rationale:""});
   };
@@ -5739,8 +5811,8 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     {initTab==="overview"&&<Overview/>}
     {initTab==="implementation"&&<Implementation/>}
     {initTab==="pilot"&&<PilotExecution/>}
-    {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab}/>}
-    {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab}/>}
+    {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab} focus={selected}/>}
+    {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab} focus={selected}/>}
     {initTab==="feedback"&&<FeedbackPanel/>}
     {initTab==="decision"&&<DecisionPanel/>}
   </div>;
@@ -6143,6 +6215,10 @@ function PageWorkbench({role,sessionMode,showToast}){
   const [hydrated,setHydrated]=useState(false);
   const [selId,setSelId]=useState(seeded?demoConversations[0].id:null);
   const [input,setInput]=useState("");
+  const [phase,setPhase]=useState(null); /* {convId, stageIdx} while the gateway "works" */
+  const [typed,setTyped]=useState(null); /* {convId, text} during the streaming reveal */
+  const timers=useRef([]);
+  useEffect(()=>()=>{timers.current.forEach(t=>clearTimeout(t));},[]);
   useEffect(()=>{
     try{const saved=JSON.parse(localStorage.getItem("vz-wb-convos")||"[]");
       if(Array.isArray(saved)&&saved.length){setConvos(prev=>[...saved.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);if(!seeded)setSelId(saved[0].id);}
@@ -6162,10 +6238,11 @@ function PageWorkbench({role,sessionMode,showToast}){
     }catch{/* ignore */}
   };
   /* The chat window is always available: the first message of a clean
-     workspace creates its governed conversation automatically. */
+     workspace creates its governed conversation automatically. The reply
+     streams in after visible policy/knowledge/routing stages. */
   const send=()=>{
     const text=input.trim();
-    if(!text)return;
+    if(!text||phase||typed)return;
     const base=sel||{
       id:`cv-${Math.random().toString(36).slice(2,8)}`,
       title:text.length>44?text.slice(0,44)+"...":text,
@@ -6175,26 +6252,45 @@ function PageWorkbench({role,sessionMode,showToast}){
     };
     const guard=wbInspectPrompt(text);
     const stamp=`m${Math.random().toString(36).slice(2,8)}`;
-    let updated;
-    if(guard&&guard.action==="Blocked"){
-      updated={...base,lastActivity:"Just now",riskScore:Math.min(95,base.riskScore+20),policyDecision:"Blocked by policy",messages:[...base.messages,
-        {id:stamp,from:"user",text:"[Prompt blocked before leaving the enterprise boundary]",guardrail:{action:"Blocked",detector:guard.detector}},
-        {id:stamp+"a",from:"assistant",text:`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`,guardrail:{action:"Blocked",detector:guard.detector}}]};
-      showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
-    }else{
-      const shown=guard?guard.masked:text;
-      const enriched=wbEnrichFor(text);
-      const artifact=/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
-      const reply=`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
-      updated={...base,lastActivity:"Just now",evidenceLinks:base.evidenceLinks+(artifact?1:0),policyDecision:guard?"Allowed with masking":"Allowed with enrichment",messages:[...base.messages,
-        {id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null},
-        {id:stamp+"a",from:"assistant",text:reply,enrichedWith:enriched}]};
-      if(artifact){recordEvidence(base);showToast&&showToast("Evidence recorded in Trust & Evidence");}
-      else if(guard)showToast&&showToast(`${guard.detector}: content masked`);
-    }
-    setConvos(cs=>[updated,...cs.filter(c=>c.id!==base.id)]);
+    const blocked=guard&&guard.action==="Blocked";
+    const shown=blocked?"[Prompt blocked before leaving the enterprise boundary]":(guard?guard.masked:text);
+    const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null};
+    const withUser={...base,lastActivity:"Just now",messages:[...base.messages,userMsg],
+      riskScore:blocked?Math.min(95,base.riskScore+20):base.riskScore,
+      policyDecision:blocked?"Blocked by policy":base.policyDecision};
+    setConvos(cs=>[withUser,...cs.filter(c=>c.id!==base.id)]);
     setSelId(base.id);
     setInput("");
+    const enriched=blocked?[]:wbEnrichFor(text);
+    const artifact=!blocked&&/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
+    const reply=blocked
+      ?`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`
+      :`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
+    const commit=finalText=>{
+      setConvos(cs=>cs.map(c=>c.id!==base.id?c:{...c,lastActivity:"Just now",
+        evidenceLinks:c.evidenceLinks+(artifact?1:0),
+        policyDecision:blocked?"Blocked by policy":guard?"Allowed with masking":"Allowed with enrichment",
+        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:finalText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null}]}));
+      setTyped(null);setPhase(null);
+      if(blocked)showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
+      else if(artifact){recordEvidence(base);showToast&&showToast("Evidence recorded in Trust & Evidence");}
+      else if(guard)showToast&&showToast(`${guard.detector}: content masked`);
+    };
+    /* staged gateway work, then a streaming reveal */
+    const stages=blocked?1:3;
+    setPhase({convId:base.id,stageIdx:0});
+    for(let i=1;i<stages;i++)timers.current.push(setTimeout(()=>setPhase({convId:base.id,stageIdx:i}),i*620));
+    timers.current.push(setTimeout(()=>{
+      setPhase(null);
+      let pos=0;
+      const step=()=>{
+        pos=Math.min(reply.length,pos+3);
+        setTyped({convId:base.id,text:reply.slice(0,pos)});
+        if(pos<reply.length)timers.current.push(setTimeout(step,16));
+        else timers.current.push(setTimeout(()=>commit(reply),140));
+      };
+      step();
+    },stages*620+180));
   };
   const gaColor=a=>a==="Blocked"?T.red:a==="Masked"?T.amber:a==="Justification required"?T.blue:T.green;
   const clsColor=c=>c==="Restricted"?T.red:c==="Confidential"?T.amber:T.blue;
@@ -6246,6 +6342,17 @@ function PageWorkbench({role,sessionMode,showToast}){
               </div>}
             </div>
           </div>)}
+          {phase&&sel&&phase.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
+            <div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:12,padding:"11px 14px",display:"flex",gap:10,alignItems:"center"}}>
+              <span style={{display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</span>
+              <span style={{fontSize:11,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{["Checking policy at the boundary...","Searching enterprise knowledge...",`Routing to ${provider.name}...`][phase.stageIdx]||"Working..."}</span>
+            </div>
+          </div>}
+          {typed&&sel&&typed.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
+            <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"11px 14px"}}>
+              <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{typed.text}<span style={{display:"inline-block",width:7,height:13,background:AI_GOLD,marginLeft:2,verticalAlign:"text-bottom",animation:"pulse 1s infinite"}}/></div>
+            </div>
+          </div>}
         </div>
         <div style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`,display:"flex",gap:9}}>
           <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={`Message ${provider.name} through the Gateway...`} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
