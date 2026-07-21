@@ -20,6 +20,11 @@ import type {
   KnowledgeAsset,
   KriRecord,
   RiskRecord,
+  GovEngine,
+  EngineOutcome,
+  PlaybookLens,
+  ExecQuickAction,
+  ExecRecentChange,
   GatewayPolicy,
   GatewayProvider,
   WorkbenchConversation,
@@ -74,9 +79,9 @@ export const AC_PHASES: ACPhaseTemplate[] = [
 /* Role-based access into AI Central. Everyone enters; each role sees
    a different lens. One product, multiple perspectives. */
 export const AC_RBAC: Record<string, ACRoleAccess> = {
-  ceo:  { lens: "Executive",  modules: ["dashboard", "initiatives", "governance", "academy"], focus: "Portfolio, ROI, risk, growth and board metrics" },
+  ceo:  { lens: "Executive",  modules: ["dashboard", "initiatives", "portfolio", "governance", "academy"], focus: "Portfolio, ROI, risk, growth and board metrics" },
   coo:  { lens: "Operations", modules: ["dashboard", "initiatives", "academy"], focus: "Rollout health, adoption and operating exceptions" },
-  cfo:  { lens: "Value",      modules: ["dashboard", "initiatives", "governance", "academy"], focus: "Budget utilization, ROI confidence and benefit realization" },
+  cfo:  { lens: "Value",      modules: ["dashboard", "initiatives", "portfolio", "governance", "academy"], focus: "Budget utilization, ROI confidence and benefit realization" },
   chro: { lens: "Workforce",  modules: ["dashboard", "initiatives", "academy"], focus: "Readiness, adoption resistance and learning completion" },
   ciso: { lens: "Security",   modules: ["dashboard", "initiatives", "governance", "evidence", "gateway"], focus: "Model security, gateway enforcement and control evidence" },
   caio: { lens: "Governance", modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Implementation, controls, evidence and lifecycle gates" },
@@ -658,3 +663,112 @@ export const kriRegister: KriRecord[] = [
   { id: "KRI-05", name: "Evidence coverage", value: 87, unit: "% of controls", threshold: 85, direction: "below", trend: "improving", initiativeId: null, framework: "ISO 42001 C.7.5" },
   { id: "KRI-06", name: "Incident response MTTR", value: 26, unit: "hours", threshold: 24, direction: "above", trend: "improving", initiativeId: null, framework: "NIST AI RMF MG-4" },
 ];
+
+/* ── Governance engines: VerisZone IP ───────────────────────────
+   Every AI initiative automatically runs the cascade. The engines are
+   never navigation - their outcomes surface in Risk Center assessments,
+   dashboards, reports and recommendations. */
+export const AI_GOV_ENGINES: GovEngine[] = [
+  { code: "AiOA", name: "AI Opportunity Assessment", question: "Is this opportunity worth qualifying?", owner: "CGO / Business Owner" },
+  { code: "AiIA", name: "AI Impact Assessment", question: "Who and what does this system affect?", owner: "CAIO / Risk Officer" },
+  { code: "AiRA", name: "AI Risk Assessment", question: "What can go wrong and how badly?", owner: "Risk Officer" },
+  { code: "AiSA", name: "AI Security Assessment", question: "Can it be attacked or leak data?", owner: "CISO" },
+  { code: "AiPA", name: "AI Privacy Assessment", question: "Is personal data processed lawfully?", owner: "CDPO" },
+  { code: "AiCA", name: "AI Compliance Assessment", question: "Which frameworks apply and are we covered?", owner: "Compliance Officer" },
+  { code: "AiGA", name: "AI Governance Assessment", question: "Are ownership, oversight and evidence in place?", owner: "CAIO" },
+  { code: "AiRT", name: "AI Risk Treatment", question: "Are the risks being driven down?", owner: "Risk Officer" },
+];
+
+/* Engine outcomes per initiative - derived from the same facts the
+   register and lifecycle already hold. One truth, another view. */
+export const acAssessments: Record<string, EngineOutcome[]> = {
+  "ai-001": [
+    { engine: "AiOA", score: 88, status: "Complete", outcome: "Qualified: high-volume support workload, $4.8M value hypothesis validated.", drill: { surface: "aicentral", hint: "Opportunity record" } },
+    { engine: "AiIA", score: 81, status: "Complete", outcome: "Customer-facing GenAI; affects customers and agents; human handoff required.", drill: { surface: "riskcenter", hint: "Impact drives RSK-001..003" } },
+    { engine: "AiRA", score: 76, status: "Complete", outcome: "3 risks registered (1 Critical bias, 2 High). Inherent 20/25 max.", drill: { surface: "riskcenter", hint: "RSK-001, RSK-002, RSK-003" } },
+    { engine: "AiSA", score: 64, status: "In Progress", outcome: "Prompt-shield live; red-team evidence pack outstanding (CISO).", drill: { surface: "riskcenter", hint: "RSK-001 treatment" } },
+    { engine: "AiPA", score: 79, status: "Complete", outcome: "PII masking at gateway verified; 30-day retention set.", drill: { surface: "riskcenter", hint: "RSK-002 treatment" } },
+    { engine: "AiCA", score: 82, status: "Complete", outcome: "ISO 42001 + EU AI Act mapping complete; Art.9 documentation current.", drill: { surface: "compliance", hint: "Framework posture" } },
+    { engine: "AiGA", score: 82, status: "Complete", outcome: "Owners assigned, HITL configured, evidence flowing. Guardrail 82%.", drill: { surface: "aicentral", hint: "Governance module" } },
+    { engine: "AiRT", score: 58, status: "In Progress", outcome: "3 treatments running; bias monitoring live, red-team pack due May 24.", drill: { surface: "riskcenter", hint: "Treatments tab" } },
+  ],
+  "ai-002": [
+    { engine: "AiOA", score: 90, status: "Complete", outcome: "Qualified: $7.2M value in decision assurance; board-sponsored.", drill: { surface: "aicentral", hint: "Opportunity record" } },
+    { engine: "AiIA", score: 68, status: "Complete", outcome: "High impact: automated decisions with legal effect on customers (Art.22).", drill: { surface: "riskcenter", hint: "Impact drives RSK-004/005" } },
+    { engine: "AiRA", score: 71, status: "Complete", outcome: "2 High risks: adverse decision harm, explainability gap.", drill: { surface: "riskcenter", hint: "RSK-004, RSK-005" } },
+    { engine: "AiSA", score: 77, status: "Complete", outcome: "Internal model, no external exposure; access controls verified.", drill: { surface: "riskcenter", hint: "Security controls" } },
+    { engine: "AiPA", score: 74, status: "Complete", outcome: "Art.22 processing basis documented; disclosure template with Legal.", drill: { surface: "riskcenter", hint: "RSK-005 treatment" } },
+    { engine: "AiCA", score: 70, status: "In Progress", outcome: "EU AI Act high-risk conformity path open; Art.14 oversight pending.", drill: { surface: "compliance", hint: "EU AI Act row" } },
+    { engine: "AiGA", score: 66, status: "In Progress", outcome: "Human-oversight design record awaiting approval - blocks Testing exit.", drill: { surface: "aicentral", hint: "Approval gate" } },
+    { engine: "AiRT", score: 52, status: "In Progress", outcome: "SHAP explainability in build; HITL review gate planned for Jun 5.", drill: { surface: "riskcenter", hint: "Treatments tab" } },
+  ],
+  "ai-003": [
+    { engine: "AiOA", score: 92, status: "Complete", outcome: "Qualified: close-cycle automation, clear SOX-safe value case.", drill: { surface: "aicentral", hint: "Opportunity record" } },
+    { engine: "AiIA", score: 89, status: "Complete", outcome: "Internal process impact only; controller review preserves accountability.", drill: { surface: "riskcenter", hint: "Impact record" } },
+    { engine: "AiRA", score: 90, status: "Complete", outcome: "2 Medium risks, both mitigated to residual 4/25.", drill: { surface: "riskcenter", hint: "RSK-006, RSK-007" } },
+    { engine: "AiSA", score: 91, status: "Complete", outcome: "No external model calls; SoD enforced at workflow layer.", drill: { surface: "riskcenter", hint: "RSK-007" } },
+    { engine: "AiPA", score: 93, status: "Complete", outcome: "No personal data in scope beyond employee IDs; retention compliant.", drill: { surface: "riskcenter", hint: "Privacy record" } },
+    { engine: "AiCA", score: 90, status: "Complete", outcome: "SOX 404 evidence trail automated; monthly sampling in audit pack.", drill: { surface: "compliance", hint: "SOX controls" } },
+    { engine: "AiGA", score: 91, status: "Complete", outcome: "Guardrail 91%; evidence complete through Optimization.", drill: { surface: "aicentral", hint: "Governance module" } },
+    { engine: "AiRT", score: 88, status: "Complete", outcome: "All treatments complete; controls monitored, drift low.", drill: { surface: "riskcenter", hint: "Treatments tab" } },
+  ],
+  "ai-004": [
+    { engine: "AiOA", score: 74, status: "Complete", outcome: "Qualified with conditions: $2.4M value dependent on adoption.", drill: { surface: "aicentral", hint: "Opportunity record" } },
+    { engine: "AiIA", score: 55, status: "In Progress", outcome: "Employment-related AI - EU AI Act Annex III high-risk classification.", drill: { surface: "riskcenter", hint: "Impact drives RSK-008/009" } },
+    { engine: "AiRA", score: 61, status: "Complete", outcome: "2 High risks: profiling and bias in matching. Residual 9-12/25.", drill: { surface: "riskcenter", hint: "RSK-008, RSK-009" } },
+    { engine: "AiSA", score: 78, status: "Complete", outcome: "Internal deployment; access limited to People analytics group.", drill: { surface: "riskcenter", hint: "Security controls" } },
+    { engine: "AiPA", score: 48, status: "In Progress", outcome: "DPIA overdue - required before any rollout beyond assessment.", drill: { surface: "riskcenter", hint: "RSK-008 treatment" } },
+    { engine: "AiCA", score: 63, status: "In Progress", outcome: "Annex III conformity path undecided; fairness workbook incomplete.", drill: { surface: "compliance", hint: "EU AI Act row" } },
+    { engine: "AiGA", score: 67, status: "In Progress", outcome: "Guardrail 67%; fairness assessment blocks the Governance gate.", drill: { surface: "aicentral", hint: "Phase gate" } },
+    { engine: "AiRT", score: 44, status: "Scheduled", outcome: "Treatment plan drafted; starts once fairness workbook lands.", drill: { surface: "riskcenter", hint: "Treatments tab" } },
+  ],
+};
+
+/* Playbook role lenses - same project, different perspective. */
+export const PLAYBOOK_LENS: Record<string, PlaybookLens> = {
+  ceo: { title: "Business value lens", angle: "What outcome does this phase protect or unlock?",
+    phaseGuidance: { early: "Confirm the value hypothesis and sponsor accountability before money flows.", mid: "Watch evidence quality - a weak gate now becomes a board problem at scale.", late: "Scale only where value is proven; retirement is a governed decision, not a failure." } },
+  cfo: { title: "Financial lens", angle: "Where does the money go and when does it come back?",
+    phaseGuidance: { early: "Lock the business case, budget and payback assumptions in this phase.", mid: "Track burn vs plan; testing and pilot are where forecasts slip first.", late: "Compare realized ROI to the case before releasing second-wave budget." } },
+  cio: { title: "Architecture lens", angle: "Will this hold up in production?",
+    phaseGuidance: { early: "Set integration and platform decisions here - retrofits cost 5x later.", mid: "Deployment readiness: rollback, runbooks and latency budgets are gate items.", late: "Optimization and routing decisions belong to the platform, not the project." } },
+  ciso: { title: "Security lens", angle: "Can it be attacked, and would we know?",
+    phaseGuidance: { early: "Classify data and threat-model before architecture hardens.", mid: "Red-team evidence and prompt-shield results gate Testing exit.", late: "Production monitoring must alert on injection and leakage patterns." } },
+  caio: { title: "Governance lens", angle: "Is the lifecycle evidence complete?",
+    phaseGuidance: { early: "Ownership, policy mapping and the assessment cascade start here.", mid: "No phase advances with missing mandatory artifacts - no exceptions.", late: "The scale/retire gate consumes everything this playbook produced." } },
+  coo: { title: "Operations lens", angle: "Does the operation absorb this without breaking?",
+    phaseGuidance: { early: "Map the process change and capacity impact before build.", mid: "Pilot with the receiving team, not around them - SLA impact surfaces here.", late: "Monitoring owns incident trends; scale follows operational stability." } },
+  chro: { title: "Workforce lens", angle: "Are the people ready and willing?",
+    phaseGuidance: { early: "Identify affected roles and resistance early - it prices the change program.", mid: "Training completion gates pilot exit as much as any technical artifact.", late: "Adoption tells the truth about value; invest in the lagging unit." } },
+  cdpo: { title: "Privacy lens", angle: "Is personal data processed lawfully end to end?",
+    phaseGuidance: { early: "DPIA and data classification are Governance-phase gate items.", mid: "Verify masking and retention in Testing with real traffic patterns.", late: "Monitoring includes sensitive-prompt and consent drift signals." } },
+  cgo: { title: "Growth lens", angle: "Does this compound into the pipeline?",
+    phaseGuidance: { early: "Qualify hard - unqualified opportunities pollute the portfolio.", mid: "Capture lessons as reusable assets while they are cheap.", late: "A scaled initiative should seed the next two qualified opportunities." } },
+};
+
+/* Dashboard quick actions - every action lands on a real surface. */
+export const EXEC_QUICK_ACTIONS: Record<string, ExecQuickAction[]> = {
+  ceo: [ { label: "Review board decisions", tab: "home" }, { label: "Open portfolio", tab: "aicentral", ac: "portfolio" }, { label: "Generate board pack", tab: "reports" }, { label: "Strategic risks", tab: "riskcenter" } ],
+  cfo: [ { label: "Portfolio ROI", tab: "aicentral", ac: "portfolio" }, { label: "Export portfolio CSV", tab: "reports" }, { label: "Financial risks", tab: "riskcenter" }, { label: "Business cases", tab: "playbook" } ],
+  cio: [ { label: "Delivery status", tab: "aicentral", ac: "initiatives" }, { label: "Gateway & routing", tab: "aicentral", ac: "admin" }, { label: "Delivery risks", tab: "riskcenter" }, { label: "Architecture playbook", tab: "playbook" } ],
+  ciso: [ { label: "Security risks", tab: "riskcenter" }, { label: "Gateway enforcement", tab: "aicentral", ac: "gateway" }, { label: "Control library", tab: "controls" }, { label: "Evidence", tab: "aicentral", ac: "evidence" } ],
+  caio: [ { label: "Record gate decisions", tab: "decisions" }, { label: "Lifecycle board", tab: "aicentral", ac: "initiatives" }, { label: "Audit pack", tab: "reports" }, { label: "Assessment cascade", tab: "riskcenter" } ],
+  coo: [ { label: "Rollout status", tab: "aicentral", ac: "initiatives" }, { label: "Operational risks", tab: "riskcenter" }, { label: "Execution playbook", tab: "playbook" }, { label: "Adoption report", tab: "reports" } ],
+  chro: [ { label: "Assign learning paths", tab: "academy" }, { label: "Adoption by unit", tab: "reports" }, { label: "People risks", tab: "riskcenter" }, { label: "Workforce initiative", tab: "playbook" } ],
+  cdpo: [ { label: "Privacy risks", tab: "riskcenter" }, { label: "Privacy evidence", tab: "aicentral", ac: "evidence" }, { label: "Framework posture", tab: "compliance" }, { label: "DPIA in playbook", tab: "playbook" } ],
+  cgo: [ { label: "Qualify opportunities", tab: "aicentral", ac: "initiatives" }, { label: "Compliance posture", tab: "compliance" }, { label: "Pipeline report", tab: "reports" }, { label: "Policy updates", tab: "compliance" } ],
+};
+
+/* Recent changes - the last meaningful platform events for each lens.
+   Seeded for demo; live evidence-bus records merge in at render time. */
+export const EXEC_RECENT_CHANGES: Record<string, ExecRecentChange[]> = {
+  ceo: [ { what: "Finance Close Automation reached scale-ready with all six gate checks green", initiative: "Finance Close Automation", when: "Today", kind: "decision" }, { what: "Workforce Navigator flagged as retire-trending by the feedback engine", initiative: "Workforce Skills Navigator", when: "Yesterday", kind: "risk" }, { what: "Q2 board pack generated with portfolio value $9.2M expected / $4.1M realized", initiative: "Portfolio", when: "2 days ago", kind: "evidence" } ],
+  cfo: [ { what: "Realized ROI updated: Finance Close at 31%, $1.8M savings booked", initiative: "Finance Close Automation", when: "Today", kind: "evidence" }, { what: "Credit Decision benefits re-baselined - $0.4M behind case", initiative: "Credit Decision Assurance", when: "Yesterday", kind: "risk" }, { what: "Gateway routing change cut model spend ~$76K/month", initiative: "Enterprise Gateway", when: "3 days ago", kind: "deployment" } ],
+  cio: [ { what: "Integration hardening started for the Finance scale wave", initiative: "Finance Close Automation", when: "Today", kind: "deployment" }, { what: "Model routing optimization deployed (-14% inference cost)", initiative: "Enterprise Gateway", when: "2 days ago", kind: "deployment" }, { what: "Platform control coverage moved 76% → 79%", initiative: "Portfolio", when: "This week", kind: "evidence" } ],
+  ciso: [ { what: "Gateway blocked 563 policy violations this month, zero leaks", initiative: "Enterprise Gateway", when: "Today", kind: "evidence" }, { what: "Red-team evidence pack for Copilot due May 24 - in progress", initiative: "Customer Resolution Copilot", when: "Yesterday", kind: "risk" }, { what: "Kill-switch verified on Finance Close production path", initiative: "Finance Close Automation", when: "This week", kind: "deployment" } ],
+  caio: [ { what: "AiRT treatment RSK-003 bias monitoring went live", initiative: "Customer Resolution Copilot", when: "Today", kind: "risk" }, { what: "Scale gate evidence completed through Optimization phase", initiative: "Finance Close Automation", when: "Yesterday", kind: "evidence" }, { what: "Human-oversight design record submitted for approval", initiative: "Credit Decision Assurance", when: "2 days ago", kind: "decision" } ],
+  coo: [ { what: "Customer Ops pilot expanded to second support queue", initiative: "Customer Resolution Copilot", when: "Today", kind: "deployment" }, { what: "Retail Banking rollout still blocked on oversight evidence", initiative: "Credit Decision Assurance", when: "Yesterday", kind: "risk" }, { what: "Close-cycle time down 26% in Finance", initiative: "Finance Close Automation", when: "This week", kind: "evidence" } ],
+  chro: [ { what: "3 learning paths staged for auto-assignment to People unit", initiative: "Workforce Skills Navigator", when: "Today", kind: "learning" }, { what: "Customer Ops training completion reached 68%", initiative: "Customer Resolution Copilot", when: "Yesterday", kind: "learning" }, { what: "Resistance survey: People unit flagged medium-high", initiative: "Workforce Skills Navigator", when: "This week", kind: "risk" } ],
+  cdpo: [ { what: "PII masking verified at 100% on card patterns in gateway sample", initiative: "Customer Resolution Copilot", when: "Today", kind: "evidence" }, { what: "Workforce Navigator DPIA flagged overdue - drafted for review", initiative: "Workforce Skills Navigator", when: "Yesterday", kind: "risk" }, { what: "Retention policy applied: 30-day prompt log window", initiative: "Enterprise Gateway", when: "This week", kind: "deployment" } ],
+  cgo: [ { what: "Two AI opportunities await AiOA qualification (~$2.4M)", initiative: "Pipeline", when: "Today", kind: "decision" }, { what: "Responsible-use policy update ready for approval", initiative: "Portfolio", when: "Yesterday", kind: "decision" }, { what: "Governance coverage reached 87% of controls", initiative: "Portfolio", when: "This week", kind: "evidence" } ],
+};

@@ -318,3 +318,40 @@ export type KriRecord = {
   initiativeId: string | null;
   framework: string;
 };
+
+/* ── Governance engines (VerisZone IP) ──────────────────────────
+   The engines power assessments across the platform; users experience
+   outcomes, never methodology pages. */
+export type GovEngine = {
+  code: string;
+  name: string;
+  question: string;
+  owner: string;
+};
+
+export type EngineOutcome = {
+  engine: string;
+  score: number;
+  status: "Complete" | "In Progress" | "Scheduled";
+  outcome: string;
+  drill: { surface: "riskcenter" | "compliance" | "aicentral"; hint: string };
+};
+
+export type PlaybookLens = {
+  title: string;
+  angle: string;
+  phaseGuidance: Record<string, string>;
+};
+
+export type ExecQuickAction = {
+  label: string;
+  tab: string;
+  ac?: string;
+};
+
+export type ExecRecentChange = {
+  what: string;
+  initiative: string;
+  when: string;
+  kind: "evidence" | "decision" | "risk" | "deployment" | "learning";
+};
