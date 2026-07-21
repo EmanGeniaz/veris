@@ -2666,7 +2666,174 @@ function PageStrategy({role,setTab}) {
 }
 
 /* Section */
-function PagePlaybook({role,setTab,showToast}) {
+/* ── Playbook: the execution workspace ─────────────────────────────
+   Open a project and the Playbook shows its objectives, business case,
+   the 13-phase lifecycle with tasks, owners, artifacts and evidence,
+   the policies and controls it inherits, its risks, blockers, lessons
+   from previous projects and the AI's next-step recommendation.
+   The lifecycle itself is owned by AI Central - this is its execution
+   surface, never a second implementation engine. */
+function PagePlaybook({role,setTab,setAiCentralView,showToast}){
+  const rc=RC(role);
+  const [selId,setSelId]=useState(acInitiatives[0].id);
+  const [pTab,setPTab]=useState("workspace");
+  const ini=acInitiatives.find(i=>i.id===selId)||acInitiatives[0];
+  const [activePhase,setActivePhase]=useState(ini.phaseIndex);
+  useEffect(()=>{setActivePhase(ini.phaseIndex);},[selId,ini.phaseIndex]);
+  const risks=riskRegister.filter(r=>r.initiativeId===ini.id);
+  const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  const phaseDone=idx=>idx<ini.phaseIndex?100:idx>ini.phaseIndex?0:Math.round((ini.phaseArtifactsDone/(AC_PHASES[idx].deliverables.length||1))*100);
+  const overall=Math.round(((ini.phaseIndex+(ini.phaseArtifactsDone/(AC_PHASES[ini.phaseIndex]?.deliverables.length||1)))/AC_PHASES.length)*100);
+  const ph=AC_PHASES[activePhase];
+  const phC=activePhase<ini.phaseIndex?T.green:activePhase===ini.phaseIndex?AI_GOLD:T.ink4;
+  const lessons=acInitiatives.filter(i=>i.id!==ini.id).map(i=>({
+    from:i.name,unit:i.unit,
+    text:i.adoption>=70?`Reached ${i.adoption}% adoption - champion-led enablement (${i.training}% trained) moved resistance from ${i.resistance} early.`
+      :i.blockedBy?`Currently blocked by "${i.blockedBy}" - sequence that artifact earlier than this project did.`
+      :`Holding at ${i.adoption}% adoption with ${i.resistance.toLowerCase()} resistance - invest in training before pilot exit.`,
+  })).slice(0,3);
+  const gotoAC=view=>{setAiCentralView&&setAiCentralView(view);setTab&&setTab("aicentral");};
+  const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
+  const owners=[["Business sponsor",ini.sponsor],["Executive owner",(ini.cxo||"CAIO").split(",")[0]],["Technical owner",ini.technicalOwner],["Business owner",ini.businessOwner],["Risk owner",risks[0]?risks[0].execOwner:"CAIO"],["AI champion",ini.champion]];
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Playbook" sub="The execution workspace. Pick a project - objectives, business case, phases, tasks, owners, evidence, risks and lessons assemble themselves from AI Central's lifecycle."/>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+      {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={chip(selId===i.id,rc)}>{i.name}</button>)}
+      <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+        {[["workspace","Execution Workspace"],["runbooks","Governance Runbooks"]].map(([id,l])=><button key={id} onClick={()=>setPTab(id)} style={chip(pTab===id,AI_GOLD)}>{l}</button>)}
+      </div>
+    </div>
+    {pTab==="runbooks"&&<PlaybookRunbooks role={role} setTab={setTab} showToast={showToast}/>}
+    {pTab==="workspace"&&<>
+    <Card style={{padding:18,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",gap:14,flexWrap:"wrap",alignItems:"flex-start"}}>
+        <div style={{minWidth:240,flex:1}}>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}><STag s={ini.lifecycle}/><PTag p={ini.priority}/><Tag label={`${ini.risk} risk`} color={lvC(ini.risk)} bg={lvC(ini.risk)+"16"}/></div>
+          <h2 style={{fontFamily:F.h,fontSize:20,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>{ini.name}</h2>
+          <div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{ini.unit} · {ini.category} · Objective: {ini.stage}</div>
+        </div>
+        <div style={{minWidth:200,flex:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>Implementation completion</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{overall}%</span>
+          </div>
+          <Bar value={overall} color={AI_GOLD}/>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:5}}>Phase {ini.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[ini.phaseIndex]?.name} · {ini.phaseArtifactsDone}/{AC_PHASES[ini.phaseIndex]?.deliverables.length} artifacts</div>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginTop:14}}>
+        {owners.map(([l,v])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px"}}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{v}</div>
+        </div>)}
+      </div>
+      {ini.blockedBy&&<div style={{marginTop:12,background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+        <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Current blocker:</strong> {ini.blockedBy}</span>
+        <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginLeft:"auto",background:T.red+"14",border:`1px solid ${T.red}40`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Trace in Risk Center →</button>
+      </div>}
+    </Card>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+      {[["Expected value",ini.expected,AI_GOLD],["Realized to date",ini.actual,T.green],["ROI",ini.roi,T.blue],["Productivity",ini.productivity,T.violet],["Adoption",`${ini.adoption}%`,T.amber],["Business value score",`${ini.valueScore}%`,T.green]].map(([l,v,c])=>
+        <Card key={l} onClick={()=>gotoAC("initiatives")} title="Open in AI Central" style={{padding:13,cursor:"pointer"}}>
+          <div style={{fontSize:8.5,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:900,fontFamily:F.m,marginBottom:6}}>{l}</div>
+          <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+        </Card>)}
+    </div>
+    <Card style={{padding:16,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Implementation phases</h3>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Lifecycle owned by AI Central · every phase generates artifacts, evidence and approvals</span>
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14}}>
+        {AC_PHASES.map((p2,idx)=>{
+          const c=idx<ini.phaseIndex?T.green:idx===ini.phaseIndex?AI_GOLD:T.ink4;
+          const active=activePhase===idx;
+          return <button key={p2.id} onClick={()=>setActivePhase(idx)} style={{display:"flex",alignItems:"center",gap:5,background:active?c+"1c":T.s2,border:`1px solid ${active?c+"55":T.border}`,borderRadius:7,padding:"5px 9px",cursor:"pointer"}}>
+            <span style={{width:14,height:14,borderRadius:"50%",background:idx<ini.phaseIndex?T.green:"transparent",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#fff",fontWeight:900}}>{idx<ini.phaseIndex?"✓":""}</span>
+            <span style={{fontSize:9.5,fontWeight:800,fontFamily:F.b,color:active?c:T.ink3}}>{idx+1}. {p2.name}</span>
+          </button>;
+        })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:14}}>
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div style={{fontSize:13,fontWeight:800,color:phC,fontFamily:F.b}}>{ph.name} - {phaseDone(activePhase)}% complete</div>
+            <Tag label={activePhase<ini.phaseIndex?"Complete":activePhase===ini.phaseIndex?"In progress":"Not started"} color={phC} bg={phC+"16"}/>
+          </div>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>{ph.objective}</p>
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Tasks & deliverables</div>
+          <div style={{display:"grid",gap:6}}>
+            {ph.deliverables.map((d,di)=>{
+              const done=activePhase<ini.phaseIndex||(activePhase===ini.phaseIndex&&di<ini.phaseArtifactsDone);
+              const isApproval=/approval|decision|sign-off/i.test(d);
+              return <div key={d} style={{display:"flex",gap:9,alignItems:"center",background:T.s2,border:`1px solid ${done?T.green+"35":T.border}`,borderRadius:8,padding:"8px 11px"}}>
+                <span style={{width:15,height:15,borderRadius:4,background:done?T.green:"transparent",border:`2px solid ${done?T.green:T.ink4}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:900,flexShrink:0}}>{done?"✓":""}</span>
+                <span style={{fontSize:11,color:done?T.ink:T.ink2,fontFamily:F.b,fontWeight:done?700:500,flex:1}}>{d}</span>
+                {isApproval&&<Tag label="Approval gate" color={T.amber} bg={T.amberL}/>}
+                {done?<button onClick={()=>gotoAC("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Evidence →</button>
+                :<span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Pending</span>}
+              </div>;
+            })}
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Responsibilities (RACI)</div>
+          <div style={{display:"grid",gap:6,marginBottom:12}}>
+            {[["Responsible",ph.raci.responsible,T.blue],["Accountable",ph.raci.accountable,AI_GOLD],["Consulted",ph.raci.consulted,T.violet],["Informed",ph.raci.informed,T.ink3]].map(([l,v,c])=>
+              <div key={l} style={{display:"flex",justifyContent:"space-between",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px"}}>
+                <span style={{fontSize:10,color:c,fontFamily:F.b,fontWeight:800}}>{l}</span>
+                <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:600}}>{v}</span>
+              </div>)}
+          </div>
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Inherited policies & controls</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
+            {ini.policies.map(pl=><Tag key={pl} label={pl} color={T.violet} bg={T.violet+"12"}/>)}
+            {ini.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.blue+"12",border:`1px solid ${T.blue}40`,borderRadius:6,padding:"2px 8px",color:T.blue,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
+          </div>
+          {activePhase===4&&<div style={{background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+            <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Governance-phase assessments</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <button onClick={()=>setTab&&setTab("aia")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 10px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>AI Impact Assessment →</button>
+              <button onClick={()=>setTab&&setTab("aiia")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 10px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Impact Assessment (AIIA) →</button>
+            </div>
+          </div>}
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Project risks - Risk Center register</div>
+          <div style={{display:"grid",gap:6}}>
+            {risks.slice(0,3).map(r=><button key={r.id} onClick={()=>setTab&&setTab("riskcenter")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:600}}>{r.id} · {r.title}</span>
+              <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
+            </button>)}
+            {risks.length===0&&<span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>No risks registered for this project.</span>}
+          </div>
+        </div>
+      </div>
+    </Card>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>AI recommendation for this project</div>
+        <p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.7,margin:"0 0 10px"}}>
+          {ini.blockedBy
+            ?`Progression to ${AC_PHASES[ini.phaseIndex+1]?.name||"the next phase"} is blocked: ${ini.blockedBy}. Resolve this artifact first - it gates ${ini.expected} of expected value. `
+            :`No blockers. Complete the remaining ${AC_PHASES[ini.phaseIndex].deliverables.length-ini.phaseArtifactsDone} artifact(s) in ${AC_PHASES[ini.phaseIndex].name} to advance. `}
+          {risks.find(r=>r.aiRecommendation)?risks.find(r=>r.aiRecommendation).aiRecommendation:""}
+        </p>
+        <button onClick={()=>gotoAC("initiatives")} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Act in AI Central →</button>
+      </Card>
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Lessons from previous projects</div>
+        <div style={{display:"grid",gap:7}}>
+          {lessons.map(l=><div key={l.from} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px"}}>
+            <div style={{fontSize:10,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:2}}>{l.from} <span style={{color:T.ink4,fontWeight:500}}>· {l.unit}</span></div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55}}>{l.text}</div>
+          </div>)}
+        </div>
+      </Card>
+    </div>
+    </>}
+  </div>;
+}
+
+function PlaybookRunbooks({role,setTab,showToast}) {
   const [executed,setExecuted]=useState({});
   const rc=RC(role), rcL=RCL(role), tasks=PLAYBOOK[role]||[];
   const [selIdx,setSelIdx]=useState(0);
@@ -7284,7 +7451,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} showToast={showToast}/>}
+        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
         {showSeededData&&["compliance","checklists","impl","templates","iso27001","scope","controls","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} theme={theme} sessionMode={sessionMode}/>}
