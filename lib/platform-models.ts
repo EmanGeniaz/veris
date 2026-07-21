@@ -1,6 +1,7 @@
 import type {
   ACCxoAlignment,
   ExecBriefEntry,
+  ExecKpiInsight,
   ExecDecisionItem,
   ExecPriorityItem,
   ExecRecommendationItem,
@@ -366,3 +367,44 @@ export const ASSISTANT_NUDGES: Record<string, string[]> = {
   cgo:["2 high-value opportunities are unqualified in the pipeline.","Qualifying them adds ~$2.4M to the forecast.","The responsible-use policy update is ready to approve."],
 };
 
+
+/* Authored root-cause intelligence for KPI and domain-metric labels.
+   Metrics without an entry fall back to an honest derived summary -
+   nothing is fabricated per-metric at render time. */
+export const KPI_INSIGHTS: Record<string, ExecKpiInsight> = {
+  "Mean Time to Detect (MTTD)": { rootCause: "Alert triage backlog after SIEM rule expansion doubled event volume.", impact: "Slower detection widens the breach exposure window across all AI workloads.", aiRec: "Auto-tune the new rule set and route AI-workload alerts to the priority queue.", link: { ac: "gateway" } },
+  "Mean Time to Respond (MTTR)": { rootCause: "Escalations wait on manual approval outside business hours.", impact: "Response delay increases incident cost and audit findings.", aiRec: "Enable pre-approved containment playbooks for P1 AI incidents.", link: { ac: "governance" } },
+  "Critical Patch SLA": { rootCause: "Two legacy inference hosts cannot take live patches.", impact: "91% vs 96% target leaves critical CVEs open past SLA.", aiRec: "Schedule maintenance windows and isolate the two hosts behind the Gateway.", link: { ac: "governance" } },
+  "Security Score": { rootCause: "Open prompt-injection evidence and 8 cloud misconfigurations drag the composite.", impact: "Blocks the Copilot scale gate and weakens board posture.", aiRec: "Approve the remediation package - projected -18% enterprise risk.", link: { ac: "governance" } },
+  "MFA Coverage": { rootCause: "Contractor accounts in two business units remain on legacy auth.", impact: "94% vs 100% target is the top identity finding for audit.", aiRec: "Enforce MFA at the identity provider for the remaining 6%.", link: { ac: "governance" } },
+  "Vendor Risk Index": { rootCause: "Two frontier-model vendors pending security review.", impact: "Unreviewed vendors carry data-handling risk into pilots.", aiRec: "Keep both restricted in the Gateway until reviews close.", link: { ac: "gateway" } },
+  "Misconfiguration Count": { rootCause: "Drift after the last infrastructure release bypassed policy-as-code checks.", impact: "8 open misconfigurations expose storage and network paths.", aiRec: "Re-run the compliance scan and gate releases on policy checks.", link: { ac: "governance" } },
+  "Cybersecurity Score": { rootCause: "Patch and MFA progress offset by open critical vulnerabilities.", impact: "Score gates enterprise scale decisions on two initiatives.", aiRec: "Prioritise the 14 critical vulnerabilities clustered on 3 initiatives.", link: { ac: "governance" } },
+  "Threat Detection (MTTD)": { rootCause: "Alert triage backlog after SIEM rule expansion.", impact: "Detection delay widens exposure on AI workloads.", aiRec: "Auto-tune rules; prioritise AI-workload alerts.", link: { ac: "gateway" } },
+  "Patch Compliance": { rootCause: "Legacy hosts excluded from automated patching.", impact: "SLA misses accumulate audit findings.", aiRec: "Isolate legacy hosts and automate the remainder.", link: { ac: "governance" } },
+  "Open Vulnerabilities": { rootCause: "14 criticals concentrated in 3 AI initiatives.", impact: "Blocks scale gates and raises enterprise risk.", aiRec: "Approve the clustered remediation package.", link: { ac: "governance" } },
+  "EU AI Act Conformity": { rootCause: "High-risk classification evidence incomplete for one credit system.", impact: "Conformity gap delays production approval in the EU.", aiRec: "Complete the Art.9 risk evidence via the Assess phase artifacts.", link: { ac: "evidence" } },
+  "Model Cards Complete": { rootCause: "10 of 17 models lack completed cards after registry import.", impact: "Incomplete cards fail ISO 42001 documentation checks.", aiRec: "Auto-draft the 10 missing cards from registry metadata.", link: { ac: "evidence" } },
+  "Fairness Score": { rootCause: "Bias findings open on the workforce recommendation model.", impact: "Blocks the People initiative at the Assess gate.", aiRec: "Complete the fairness workbook before any progression.", link: { ac: "initiatives" } },
+  "HITL Override Rate": { rootCause: "Operators overriding low-confidence copilot suggestions.", impact: "Rising overrides signal model quality drift.", aiRec: "Retrain on override samples; review confidence thresholds.", link: { ac: "initiatives" } },
+  "Drift Detection Cvg.": { rootCause: "Two production models not yet wired to drift monitoring.", impact: "Undetected drift risks silent decision degradation.", aiRec: "Extend monitoring via the Operate-phase checklist.", link: { ac: "initiatives" } },
+  "Avg. Model Accuracy": { rootCause: "Stable across production models this quarter.", impact: "Supports scale decisions with quality evidence.", aiRec: "Maintain monitoring cadence; no action required.", link: { ac: "initiatives" } },
+  "Audit Readiness Score": { rootCause: "Evidence completeness at 67% across active initiatives.", impact: "Gaps extend audit preparation time.", aiRec: "Close the two overdue evidence packs first.", link: { ac: "evidence" } },
+  "Consent Validity": { rootCause: "Legacy consent records predate the current notice version.", impact: "Invalid consent risks GDPR processing findings.", aiRec: "Trigger re-consent for the affected cohort.", link: { ac: "governance" } },
+  "DSAR Closure (avg.)": { rootCause: "Manual redaction slows subject-access responses.", impact: "Closure time trending toward the statutory limit.", aiRec: "Use Gateway PII detection to pre-redact DSAR bundles.", link: { ac: "gateway" } },
+  "Data Classification": { rootCause: "Unclassified legacy datasets in two business units.", impact: "Unclassified data cannot enter AI pipelines compliantly.", aiRec: "Run auto-classification before pipeline admission.", link: { ac: "governance" } },
+  "Residency Violations": { rootCause: "One cross-border flow lacks Art.44 transfer mapping.", impact: "Residency breach risk in one jurisdiction.", aiRec: "Complete the transfer impact assessment.", link: { ac: "governance" } },
+  "Vendor DPA Compliance": { rootCause: "Two AI vendors on outdated data-processing agreements.", impact: "DPA gaps transfer privacy risk to the enterprise.", aiRec: "Renew DPAs before the next procurement gate.", link: { ac: "governance" } },
+  "System Availability": { rootCause: "Stable; no AI-platform incidents this period.", impact: "Meets operational SLOs for AI workloads.", aiRec: "No action - continue monitoring.", link: { ac: "dashboard" } },
+  "Ticket SLA (P1)": { rootCause: "P1 volume up after the last rollout wave.", impact: "SLA pressure on the operations team.", aiRec: "Deploy the support copilot pattern to deflect P1 triage.", link: { ac: "initiatives" } },
+  "Change Failure Rate": { rootCause: "Failures concentrated in un-gated integration changes.", impact: "Rework slows the delivery roadmap.", aiRec: "Gate changes on the Design-phase architecture checks.", link: { ac: "initiatives" } },
+  "Cloud Cost Savings": { rootCause: "Model routing shifted eligible load to internal models.", impact: "Savings fund the next pilot wave.", aiRec: "Extend routing optimisation to remaining workloads.", link: { ac: "gateway" } },
+  "Automation Coverage": { rootCause: "Two eligible processes await automation approval.", impact: "Unrealised productivity in operations.", aiRec: "Approve the queued automation business cases.", link: { ac: "initiatives" } },
+  "GRC Maturity Level": { rootCause: "Control coverage strong; exception handling still manual.", impact: "Manual exceptions slow governance throughput.", aiRec: "Automate exception workflow with HITL approval.", link: { ac: "governance" } },
+  "Regulatory Compliance": { rootCause: "EU AI Act conformity is the lagging framework.", impact: "Drags the composite below target.", aiRec: "Close the Art.9 evidence gap on the credit system.", link: { ac: "governance" } },
+  "Audit Findings Closed": { rootCause: "Two findings wait on initiative-level evidence.", impact: "Open findings extend the audit cycle.", aiRec: "Auto-attach phase artifacts to both findings.", link: { ac: "evidence" } },
+  "Board Pack On-Time": { rootCause: "Manual compilation from multiple sources.", impact: "Late packs compress board review time.", aiRec: "Generate the pack from the evidence repository.", link: { ac: "evidence" } },
+  "Enterprise Risk Score": { rootCause: "Concentration risk in two critical AI initiatives.", impact: "Drives the enterprise appetite discussion.", aiRec: "Rebalance via the scale/retire decisions pending.", link: { ac: "initiatives" } },
+  "RTO Achievement": { rootCause: "Recovery tests passing for all AI platform services.", impact: "Resilience evidence ready for audit.", aiRec: "No action - schedule next test cycle.", link: { ac: "evidence" } },
+  "Vendor Risk Assessed": { rootCause: "Assessment backlog cleared except frontier vendors.", impact: "Remaining gap concentrated in two vendors.", aiRec: "Complete the two open frontier-vendor reviews.", link: { ac: "gateway" } },
+};

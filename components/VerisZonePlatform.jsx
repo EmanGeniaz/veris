@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS } from "@/lib/platform-models";
 
 /* ── Feedback engine ─────────────────────────────────────────── */
 const FEEDBACK_DIMS = [
@@ -1894,6 +1894,35 @@ function ExecGovernanceHealth({role,goAC,goto}){
   </Card>;
 }
 
+
+/* Expandable insight panel for KPIs and domain metrics. Authored insight
+   from KPI_INSIGHTS when available; otherwise an honest derived summary. */
+function KpiInsightPanel({label,status,role,goto}){
+  const R=ROLES[role]||ROLES.caio;
+  const ins=KPI_INSIGHTS[label];
+  const derived={
+    rootCause:status==="Good"||status==="Active"?"Tracking within target.":`Below target - under review by the ${R.label} office.`,
+    impact:status==="Critical"?"Requires executive attention this cycle.":status==="Alert"||status==="High"?"Trending toward threshold; monitor closely.":"No adverse business impact.",
+    aiRec:status==="Good"||status==="Active"?"No action required.":"Open the linked register to assign a corrective action.",
+    link:{ac:"governance"},
+  };
+  const d=ins||derived;
+  const linked=execInitiativesFor(role)[0];
+  return <div style={{gridColumn:"1 / -1",background:T.s3,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 13px",margin:"6px 0 4px",animation:"fade .2s ease"}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10,marginBottom:10}}>
+      {[["Owner",`${R.label} office`],["Root cause",d.rootCause],["Business impact",d.impact],["AI recommendation",d.aiRec]].map(([l,v])=><div key={l}>
+        <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>{l}</div>
+        <div style={{fontSize:10,color:l==="AI recommendation"?AI_GOLD:T.ink2,fontFamily:F.b,lineHeight:1.5,fontWeight:l==="AI recommendation"?700:500}}>{v}</div>
+      </div>)}
+    </div>
+    <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
+      {linked&&<span style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>Linked initiative: <strong style={{color:T.ink2}}>{linked.name}</strong></span>}
+      <button onClick={e=>{e.stopPropagation();goto(d.link);}} style={{marginLeft:"auto",background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"5px 10px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Take action in AI Central →</button>
+      <button onClick={e=>{e.stopPropagation();goto({ac:"evidence"});}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 10px",color:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Evidence →</button>
+    </div>
+  </div>;
+}
+
 /* Section */
 function PageHome({role,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), K=KPI[role]||KPI.caio;
@@ -1904,6 +1933,8 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
   const greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
   const R=ROLES[role];
   const [kpiPage,setKpiPage]=useState(0);
+  const [kpiOpen,setKpiOpen]=useState(null);
+  const [metricOpen,setMetricOpen]=useState(null);
   const KPI_PAGE_SIZE=5;
   const pagedKpis=roleKpis.slice(kpiPage*KPI_PAGE_SIZE,(kpiPage+1)*KPI_PAGE_SIZE);
   const totalKpiPages=Math.ceil(roleKpis.length/KPI_PAGE_SIZE);
@@ -2013,7 +2044,8 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
         {metrics.map((m,i)=>{
           const col=m.color;
-          return <div key={m.label} style={{background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${col}`,animation:`up ${.3+i*.05}s ease both`}}>
+          const isOpen=metricOpen===m.label;
+          return <div key={m.label} onClick={()=>setMetricOpen(isOpen?null:m.label)} title="Show root cause and recommended action" style={{background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${col}`,animation:`up ${.3+i*.05}s ease both`,cursor:"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
               <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:500,lineHeight:1.3,flex:1,paddingRight:6}}>{m.label}</span>
               <span style={{fontSize:9,fontFamily:F.m,color:m.trend>0&&m.label.includes("Violation")?"red":m.trend>0?T.green:T.red,whiteSpace:"nowrap"}}>
@@ -2022,6 +2054,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
             </div>
             <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}>{m.value}{m.unit}</div>
             <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,marginTop:3}}>{m.fw}</div>
+            {isOpen&&<KpiInsightPanel label={m.label} status={m.trend>0?"Good":"Alert"} role={role} goto={goto}/>}
           </div>;
         })}
       </div>
@@ -2041,7 +2074,8 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
       </div>
       {pagedKpis.map((k,i)=>{
         const sc=stColor(k.status);
-        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"9px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:i%2===0?T.s1:T.bg}}>
+        const isOpen=kpiOpen===k.kpi;
+        return <div key={i} onClick={()=>setKpiOpen(isOpen?null:k.kpi)} title="Show root cause and recommended action" style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"9px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:i%2===0?T.s1:T.bg,cursor:"pointer"}}>
           <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.cat}</span>
           <div>
             <div style={{fontSize:10,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
@@ -2051,6 +2085,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
           <span style={{fontSize:9,color:T.red,fontFamily:F.m}}>{k.threshold}</span>
           <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{k.fw}</span>
           <Tag label={k.status} color={sc} bg={sc+"18"}/>
+          {isOpen&&<KpiInsightPanel label={k.kpi} status={k.status} role={role} goto={goto}/>}
         </div>;
       })}
       {totalKpiPages>1&&<div style={{padding:"8px 14px",display:"flex",gap:6,alignItems:"center",borderTop:`1px solid ${T.border}`}}>
