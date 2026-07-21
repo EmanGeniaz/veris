@@ -1705,7 +1705,11 @@ function ExecRecommendations({role,goto}){
   </Card>;
 }
 
-function ExecAssistant({role,goto,showToast,isMobile}){
+function ExecAssistant({role,goto,showToast,isMobile,tab}){
+  const pageLabel=(NAV.find(n=>n.id===tab)||{}).label||(tab==="aicentral"?"AI Central":tab==="home"?"Dashboard":"Workspace");
+  const isWorkbench=tab==="workbench";
+  const artifactActions=["Generate AIRA","Generate AI Impact Assessment","Generate Risk Register","Create Evidence Folder","Recommend Controls"];
+  const runArtifact=a=>{try{const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");list.unshift({item:`${a} (assistant-generated)`,initiative:"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));}catch{}showToast&&showToast(`${a}: draft created and recorded in Trust & Evidence`);};
   const [open,setOpen]=useState(false);
   const R=ROLES[role]||ROLES.caio;
   const nudges=ASSISTANT_NUDGES[role]||ASSISTANT_NUDGES.caio;
@@ -1719,7 +1723,7 @@ function ExecAssistant({role,goto,showToast,isMobile}){
     {open&&<div style={{position:"fixed",bottom:22,right:22,zIndex:9000,width:isMobile?"calc(100vw - 32px)":360,maxHeight:"78vh",display:"flex",flexDirection:"column",background:T.card,border:`1px solid ${AI_GOLD}45`,borderRadius:16,boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden",animation:"up .25s ease"}}>
       <div style={{padding:"13px 15px",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(135deg,${T.s2},${T.s1})`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:"#111",fontFamily:F.h}}>AI</span></div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>AI Chief of Staff</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{focus} · {R.label}</div></div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>AI Chief of Staff</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{focus} · {R.label} · {pageLabel}</div></div>
         <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:T.ink3,cursor:"pointer",padding:4,display:"flex"}}><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg></button>
       </div>
       <div style={{padding:"13px 15px",overflowY:"auto",display:"grid",gap:12}}>
@@ -1732,6 +1736,15 @@ function ExecAssistant({role,goto,showToast,isMobile}){
             </div>)}
           </div>
         </div>
+        {isWorkbench&&<div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>I noticed you are working on an AI artifact</div>
+          <div style={{display:"grid",gap:6}}>
+            {artifactActions.map(a=><button key={a} onClick={()=>runArtifact(a)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:700}}>{a}</span>
+              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900,flexShrink:0}}>+</span>
+            </button>)}
+          </div>
+        </div>}
         <div>
           <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Do it now</div>
           <div style={{display:"grid",gap:6}}>
@@ -5198,6 +5211,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const [phaseSel,setPhaseSel]=useState(null);
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
+  const [gwTab,setGwTab]=useState("overview");
   const [lifecycleFilter,setLifecycleFilter]=useState("All");
   const [createOpen,setCreateOpen]=useState(false);
   const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
@@ -5780,7 +5794,74 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
 
   /* ── AI Gateway ────────────────────────────────────────────── */
   const gwActionColor=a=>a==="Allowed"?T.green:a==="Redacted"?T.amber:a==="Escalated"?T.blue:T.red;
+  const GatewayConfig=()=><div>
+    {gwTab==="providers"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Provider configuration</h3><p style={{margin:"3px 0 0",fontSize:10,color:T.ink3,fontFamily:F.b}}>Vendor neutral and configuration driven - adding a provider is configuration, never a redesign.</p></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead><tr>{["Provider","Connection","Models","Allowed units","Region","Latency","Role"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+        <tbody>{gatewayProviders.map((pv,idx)=><tr key={pv.id} style={{borderBottom:"1px solid "+T.border}}>
+          <td style={{padding:"11px 12px",color:T.ink,fontWeight:700}}>{pv.name}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{pv.kind}</div></td>
+          <td style={{padding:"11px 12px"}}><Tag label={pv.status==="Blocked"?"Disconnected":"Connected"} color={pv.status==="Blocked"?T.red:T.green} bg={(pv.status==="Blocked"?T.red:T.green)+"14"}/></td>
+          <td style={{padding:"11px 12px",color:T.ink2,fontSize:11}}>{pv.models.join(", ")}</td>
+          <td style={{padding:"11px 12px",color:T.ink2,fontSize:10}}>{pv.status==="Approved"?"All units":"Pilot units only"}</td>
+          <td style={{padding:"11px 12px",color:T.ink2,fontSize:10}}>{idx%2===0?"EU / US":"US"}</td>
+          <td style={{padding:"11px 12px",color:T.ink3,fontFamily:F.m,fontSize:10}}>{180+idx*45}ms</td>
+          <td style={{padding:"11px 12px"}}>{idx===1?<Tag label="Default" color={AI_GOLD} bg={AI_GOLD+"16"}/>:idx===6?<Tag label="Fallback" color={T.blue} bg={T.blue+"16"}/>:<span style={{fontSize:10,color:T.ink4}}>-</span>}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>}
+    {gwTab==="routing"&&<Card style={{padding:16}}>
+      <h3 style={{fontSize:14,color:T.ink,margin:"0 0 4px"}}>Routing policy</h3>
+      <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every request follows configurable routing by business unit and risk class. High-risk workloads never leave the enterprise.</p>
+      <div style={{display:"grid",gap:8}}>
+        {gatewayRouting.map(r=>{const pv=gatewayProviders.find(x=>x.id===r.providerId);return <div key={r.id} style={{display:"grid",gridTemplateColumns:"160px auto 1fr",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px"}}>
+          <span style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{r.scope}</span>
+          <Tag label={pv?.name||r.providerId} color={r.scope==="High Risk"?T.red:AI_GOLD} bg={(r.scope==="High Risk"?T.red:AI_GOLD)+"14"}/>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{r.reason}</span>
+        </div>;})}
+      </div>
+    </Card>}
+    {gwTab==="guardrails"&&<Card style={{padding:16}}>
+      <h3 style={{fontSize:14,color:T.ink,margin:"0 0 4px"}}>Guardrail detectors</h3>
+      <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every prompt is inspected before any model call. Actions are configurable per detector: allow, warn, require justification, mask, redact, block or escalate.</p>
+      <div style={{display:"grid",gap:8}}>
+        {guardrailDetectors.map(d=>{const c=d.action==="Block"?T.red:d.action==="Escalate"?T.violet:d.action==="Mask"||d.action==="Redact"?T.amber:d.action==="Require justification"?T.blue:T.green;return <div key={d.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px"}}>
+          <div><div style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{d.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Triggered {d.triggeredMtd.toLocaleString()}x MTD</div></div>
+          <Tag label={d.action} color={c} bg={c+"16"}/>
+        </div>;})}
+      </div>
+    </Card>}
+    {gwTab==="modes"&&<div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10,marginBottom:14}}>
+        {deploymentModes.map(m=><Card key={m.id} style={{padding:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><Tag label={m.status} color={m.status==="Active"?T.green:m.status==="Available"?T.blue:T.ink3} bg={(m.status==="Active"?T.green:m.status==="Available"?T.blue:T.ink3)+"14"}/></div>
+          <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{m.desc}</p>
+        </Card>)}
+      </div>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,margin:"0 0 10px"}}>Retention & compliance configuration</h3>
+        {gatewayRetention.map(r=><div key={r.setting} style={{display:"grid",gridTemplateColumns:"200px auto 1fr",gap:12,alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{r.setting}</span>
+          <Tag label={r.value} color={AI_GOLD} bg={AI_GOLD+"14"}/>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{r.note}</span>
+        </div>)}
+      </Card>
+    </div>}
+    {gwTab==="knowledge"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Internal Knowledge Engine</h3><p style={{margin:"3px 0 0",fontSize:10,color:T.ink3,fontFamily:F.b}}>Enterprise knowledge searched before any prompt reaches a model. Every approved artifact can graduate into this repository.</p></div>
+      {knowledgeAssets.map(k=><div key={k.id} style={{display:"grid",gridTemplateColumns:"1.3fr auto 1fr auto",gap:12,padding:"11px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+        <div style={{fontSize:12,color:T.ink,fontWeight:700}}>{k.title}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{k.sourceRef}</div></div>
+        <Tag label={k.kind} color={T.blue} bg={T.blue+"14"}/>
+        <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>Added by {k.addedBy}</span>
+        <span style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{k.reuseCount} reuses</span>
+      </div>)}
+    </Card>}
+  </div>;
+
   const Gateway=()=><div>
+    <SubTabs tabs={[["overview","Overview"],["providers","Providers"],["routing","Routing"],["guardrails","Guardrails"],["knowledge","Knowledge Engine"],["modes","Modes & Retention"]]} active={gwTab} onChange={setGwTab}/>
+    {gwTab!=="overview"&&<GatewayConfig/>}
+    {gwTab==="overview"&&<div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Requests MTD" value={gatewayStats.requestsMtd} sub="All AI interactions governed" color={rc}/>
       <Metric label="Tokens MTD" value={gatewayStats.tokensMtd} sub="Across all providers" color={T.blue}/>
@@ -5831,6 +5912,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         </tr>)}</tbody>
       </table></div>
     </Card>
+    </div>}
   </div>;
 
   /* ── Governance Academy ────────────────────────────────────── */
@@ -6542,6 +6624,6 @@ export default function VerisZone() {
         {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
-    {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
+    {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
   </div>;
 }
