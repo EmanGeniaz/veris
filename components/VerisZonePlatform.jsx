@@ -1773,13 +1773,20 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const answer=text=>{
     const t=text.toLowerCase();
     const p0=priorities[0];
-    if(/risk/.test(t))return {text:`From your ${focus} view, the top risk-related item is "${p0.title}" (${p0.impact}). I can take you straight to it.`,link:p0.link,label:"Open it"};
-    if(/approve|decision|pending/.test(t))return {text:`You have ${priorities.length} priority actions today. The most urgent: "${p0.title}", due ${p0.due.toLowerCase()}.`,link:p0.link,label:"Go to decision"};
-    if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence"};
-    if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas"};
-    if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy"};
-    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`};
-    return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority"};
+    if(/what is|explain|define/.test(t)){
+      const topic=/iso\s*42001/.test(t)?"ISO 42001 is the international AI management system standard: it defines how an organization governs AI across lifecycle, risk, evidence and continuous improvement. Your posture against it lives in Compliance & Standards."
+        :/eu ai act/.test(t)?"The EU AI Act is the European regulation classifying AI systems by risk tier. High-risk systems require conformity assessment, human oversight and technical documentation. Your affected systems are tracked in the Risk Center."
+        :/nist/.test(t)?"NIST AI RMF is the US voluntary framework for AI risk: Govern, Map, Measure, Manage. Your KRIs map to it in the Risk Center."
+        :null;
+      if(topic)return {text:topic,src:"Hybrid",srcNote:"General knowledge + your internal posture"};
+    }
+    if(/risk/.test(t)){const worst=[...riskRegister].sort((a,b)=>(b.likelihood*b.impact)-(a.likelihood*a.impact))[0];return {text:`The register holds ${riskRegister.length} risks; the most severe is ${worst.id} "${worst.title}" (${worst.level}, ${worst.system}), treatment ${worst.treatment.status.toLowerCase()} with ${worst.treatment.owner}.`,link:{tab:"riskcenter"},label:"Open Risk Center",src:"Internal",srcNote:"Risk Center register"};}
+    if(/approve|decision|pending/.test(t))return {text:`You have ${priorities.length} priority actions today. The most urgent: "${p0.title}", due ${p0.due.toLowerCase()}.`,link:p0.link,label:"Go to decision",src:"Internal",srcNote:"Your priority queue"};
+    if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence",src:"Internal",srcNote:"Trust & Evidence repository"};
+    if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas",src:"Internal",srcNote:"Idea pipeline"};
+    if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy",src:"Internal",srcNote:"Governance Academy records"};
+    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`,src:"Internal",srcNote:"Platform knowledge"};
+    return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority",src:"Internal",srcNote:"Your priorities and nudges"};
   };
   const ask=()=>{
     const t=q.trim();
@@ -1853,6 +1860,11 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
             {chat.map((m,i)=><div key={i} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"92%"}}>
               <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:10,padding:"8px 11px"}}>
                 <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{m.text}</div>
+                {m.from!=="user"&&m.src&&<div style={{marginTop:5,display:"inline-flex",alignItems:"center",gap:5}} title={m.srcNote||""}>
+                  <span style={{width:6,height:6,borderRadius:"50%",background:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber}}/>
+                  <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber,textTransform:"uppercase",letterSpacing:"0.06em"}}>Source: {m.src}</span>
+                  {m.srcNote&&<span style={{fontSize:8.5,color:T.ink4,fontFamily:F.b}}>· {m.srcNote}</span>}
+                </div>}
                 {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
               </div>
             </div>)}
@@ -2069,6 +2081,47 @@ function ExecSection({title,hint,defaultOpen=false,children}){
 }
 
 /* Section */
+/* Critical risks and business-unit heat, straight from the Risk Center
+   register - every number drills back to its origin. */
+function ExecRiskPulse({setTab}){
+  const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  const top=[...riskRegister].sort((a,b)=>(b.likelihood*b.impact)-(a.likelihood*a.impact)).slice(0,4);
+  const units=[...new Set(riskRegister.map(r=>r.unit))].map(u=>{
+    const rs=riskRegister.filter(r=>r.unit===u);
+    const worst=rs.some(r=>r.level==="Critical")?"Critical":rs.some(r=>r.level==="High")?"High":rs.some(r=>r.level==="Medium")?"Medium":"Low";
+    return {u,n:rs.length,worst};
+  }).sort((a,b)=>b.n-a.n);
+  return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
+    <Card style={{padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Critical risks right now</div>
+        <button onClick={()=>setTab("riskcenter")} style={{background:"transparent",border:"none",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risk Center →</button>
+      </div>
+      <div style={{display:"grid",gap:7}}>
+        {top.map(r=><button key={r.id} onClick={()=>setTab("riskcenter")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+          <span style={{minWidth:0}}><span style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700,display:"block"}}>{r.title}</span><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.system} · exec {r.execOwner} · treatment {r.treatment.status.toLowerCase()}</span></span>
+          <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
+        </button>)}
+      </div>
+    </Card>
+    <Card style={{padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Business unit heatmap</div>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{riskRegister.length} risks on register</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
+        {units.map(x=><button key={x.u} onClick={()=>setTab("riskcenter")} title="Open in Risk Center" style={{background:lvC(x.worst)+"10",border:`1px solid ${lvC(x.worst)}35`,borderRadius:9,padding:"11px 12px",cursor:"pointer",textAlign:"left"}}>
+          <div style={{fontSize:10.5,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4}}>{x.u}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:lvC(x.worst)}}>{x.n}</span>
+            <Tag label={x.worst} color={lvC(x.worst)} bg={lvC(x.worst)+"18"}/>
+          </div>
+        </button>)}
+      </div>
+    </Card>
+  </div>;
+}
+
 function PageHome({role,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), K=KPI[role]||KPI.caio;
   const metrics=DOMAIN_METRICS[role]||[];
@@ -2132,6 +2185,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
           </div>
         </Card>
       </div>
+      <ExecRiskPulse setTab={setTab}/>
       <ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/>
     </div>;
   }
@@ -2161,6 +2215,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
     <ExecBrief role={role} goAC={goAC}/>
     <ExecPriorities role={role} goto={goto}/>
     <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
+    <ExecRiskPulse setTab={setTab}/>
     <ExecRecommendations role={role} goto={goto}/>
     <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
     <ExecSection title="Enterprise Risk Center" hint="Exposure, mitigation and AI recommendations"><ExecRiskCenter role={role} goAC={goAC}/></ExecSection>
@@ -3912,6 +3967,72 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
 }
 
 /* Section */
+/* Generated reports - never built by hand. Filters scope what goes
+   into each generated pack; every download is real content derived
+   from the live registers. */
+function ReportsGenerator({showToast}){
+  const [bu,setBu]=useState("All");
+  const [fwF,setFwF]=useState("All");
+  const units=["All",...new Set(acInitiatives.map(i=>i.unit))];
+  const fws=["All","ISO 42001","ISO 27001","EU AI Act","GDPR","NIST AI RMF","SOX"];
+  const inis=acInitiatives.filter(i=>bu==="All"||i.unit===bu);
+  const risks=riskRegister.filter(r=>(bu==="All"||r.unit===bu)&&(fwF==="All"||r.frameworks.some(f=>f.startsWith(fwF))));
+  const chip=(active)=>({background:active?AI_GOLD+"20":T.s2,border:`1px solid ${active?AI_GOLD+"55":T.border}`,color:active?AI_GOLD:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"});
+  const boardPack=()=>{
+    const lines=["# Executive Board Pack - AI Portfolio","",`Scope: ${bu==="All"?"Enterprise":bu}${fwF==="All"?"":" · "+fwF}`,"","## Portfolio",""];
+    inis.forEach(i=>lines.push(`- **${i.name}** (${i.unit}) - ${i.lifecycle}, phase ${i.phaseIndex+1}/${AC_PHASES.length} ${AC_PHASES[i.phaseIndex]?.name}. Expected ${i.expected}, realized ${i.actual}, ROI ${i.roi}, adoption ${i.adoption}%.${i.blockedBy?" BLOCKED: "+i.blockedBy:""}`));
+    lines.push("","## Top risks","");
+    risks.slice(0,8).forEach(r=>lines.push(`- ${r.id} ${r.title} (${r.level}) - ${r.system}. Exec owner ${r.execOwner}. Treatment ${r.treatment.strategy}: ${r.treatment.status}.`));
+    lines.push("","## KRIs","");
+    kriRegister.forEach(k=>lines.push(`- ${k.name}: ${k.value} ${k.unit} (threshold ${k.threshold}, trend ${k.trend})`));
+    vzDownload(`board-pack-${bu==="All"?"enterprise":bu.toLowerCase().replace(/\s+/g,"-")}.md`,lines.join("\n"));
+    showToast&&showToast("Board pack generated from live portfolio and register data");
+  };
+  const auditPack=()=>{
+    const lines=["# Audit Pack - AI Governance","",`Scope: ${bu==="All"?"Enterprise":bu}${fwF==="All"?"":" · "+fwF}`,"","## Framework posture",""];
+    AC_FRAMEWORK_POSTURE.forEach(f=>lines.push(`- ${f.fw}: ${f.score}% (${f.state})`));
+    lines.push("","## Risk register extract","");
+    risks.forEach(r=>lines.push(`- ${r.id} | ${r.title} | ${r.level} | L${r.likelihood}xI${r.impact} residual ${r.residual} | controls ${r.controls.join("; ")} | frameworks ${r.frameworks.join("; ")}`));
+    lines.push("","## Lifecycle evidence","");
+    inis.forEach(i=>lines.push(`- ${i.name}: ${i.phaseArtifactsDone}/${AC_PHASES[i.phaseIndex]?.deliverables.length} artifacts complete in ${AC_PHASES[i.phaseIndex]?.name}; controls ${i.controls.join(", ")}`));
+    vzDownload(`audit-pack-${fwF==="All"?"all-frameworks":fwF.toLowerCase().replace(/\s+/g,"-")}.md`,lines.join("\n"));
+    showToast&&showToast("Audit pack generated - posture, register and evidence extract");
+  };
+  const riskCsv=()=>{
+    const head="id,title,system,category,initiative,unit,execOwner,riskOwner,likelihood,impact,residual,level,status,strategy,treatmentStatus,frameworks,controls";
+    const rows=risks.map(r=>[r.id,r.title,r.system,r.category,r.initiativeId||"",r.unit,r.execOwner,r.riskOwner,r.likelihood,r.impact,r.residual,r.level,r.status,r.treatment.strategy,r.treatment.status,r.frameworks.join("; "),r.controls.join("; ")].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(","));
+    vzDownload("risk-register.csv",[head,...rows].join("\n"));
+    showToast&&showToast(`Risk register exported - ${rows.length} records`);
+  };
+  const portfolioCsv=()=>{
+    const head="id,name,unit,category,lifecycle,phase,expected,actual,roi,adoption,valueScore,guardrail,blockedBy";
+    const rows=inis.map(i=>[i.id,i.name,i.unit,i.category,i.lifecycle,AC_PHASES[i.phaseIndex]?.name,i.expected,i.actual,i.roi,i.adoption,i.valueScore,i.guardrail,i.blockedBy||""].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(","));
+    vzDownload("ai-portfolio.csv",[head,...rows].join("\n"));
+    showToast&&showToast(`Portfolio exported - ${rows.length} initiatives`);
+  };
+  return <Card style={{padding:16,marginBottom:14,border:`1px solid ${AI_GOLD}30`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
+      <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Generated reports</h3>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Nothing built by hand - packs assemble from the live registers · {inis.length} initiatives, {risks.length} risks in scope</span>
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",alignSelf:"center"}}>Business unit</span>
+      {units.map(u=><button key={u} onClick={()=>setBu(u)} style={chip(bu===u)}>{u}</button>)}
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",alignSelf:"center"}}>Framework</span>
+      {fws.map(f2=><button key={f2} onClick={()=>setFwF(f2)} style={chip(fwF===f2)}>{f2}</button>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
+      {[["Executive Board Pack","Markdown - portfolio, risks, KRIs",boardPack],["Audit Pack","Markdown - posture, register, evidence",auditPack],["Risk Register","CSV - full treatment detail",riskCsv],["AI Portfolio","CSV - lifecycle and value",portfolioCsv]].map(([t2,d,fn])=>
+        <button key={t2} onClick={fn} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"12px 13px",cursor:"pointer",textAlign:"left"}}>
+          <div style={{fontSize:11.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b,marginBottom:3}}>{t2} ↓</div>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b}}>{d}</div>
+        </button>)}
+    </div>
+  </Card>;
+}
+
 function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), rcL=RCL(role), K=KPI[role]||KPI.caio;
   const standards=STANDARDS_MAP[role]||[];
@@ -3926,7 +4047,8 @@ function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}) {
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
   const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Reports& Analytics" sub="Executive-ready compliance reporting and operational metrics."/>
+    <SHead title="Reports & Analytics" sub="Generated, filterable, executive-ready. Every number traces to the register or lifecycle that produced it."/>
+    <ReportsGenerator showToast={showToast}/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16}}>
       {[{label:"Overall Compliance",value:`${K.compliance}%`,sub:`+${K.cTrend}% vs last month`,color:rc},
         {label:K.domainLabel,value:`${K.score}/100`,sub:K.scoreLabel,color:rc},
@@ -4048,7 +4170,33 @@ function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
     ["Avg. quiz score",seeded?"86%":"--",T.blue],
   ];
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Governance Academy" sub={`${R.label} learning path for AI governance, pilot readiness, approvals and audit evidence.`}/>
+    <SHead title="Governance Academy" sub={`${R.label} learning path for AI governance, pilot readiness, approvals and audit evidence. The Academy measures maturity - completion updates the Governance Score.`}/>
+    <Card style={{padding:16,marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Governance maturity - who understands AI</h3>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Learning completion feeds the Governance Score in AI Central</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:12}}>
+        {acCxoAlignment.slice(0,6).map(x=>{
+          const c=x.score>=80?T.green:x.score>=70?T.blue:T.amber;
+          return <div key={x.role} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+              <span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{x.role}</span>
+              <span style={{fontSize:14,fontWeight:900,fontFamily:F.m,color:c}}>{x.score}</span>
+            </div>
+            <Bar value={x.score} color={c}/>
+          </div>;
+        })}
+      </div>
+      <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Learning required - recommended from live project data</div>
+      <div style={{display:"grid",gap:7}}>
+        {acInitiatives.filter(i=>parseInt(i.training,10)<70).map(i=><div key={i.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+          <div><div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.unit} team - {i.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Only {i.training} trained · resistance {i.resistance.toLowerCase()} · adoption {i.adoption}% - training gap is holding value back</div></div>
+          <Tag label={`${i.training} trained`} color={T.amber} bg={T.amberL}/>
+          <button onClick={()=>showToast&&showToast(`Learning path assigned to the ${i.unit} team - completion will lift the governance score`)} style={{background:rc+"14",border:`1px solid ${rc}40`,borderRadius:7,padding:"6px 11px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Assign path</button>
+        </div>)}
+      </div>
+    </Card>
     <Card style={{padding:18,marginBottom:14,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${rc}35`}}>
       <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.15fr) minmax(260px,.85fr)",gap:16,alignItems:"stretch"}}>
         <div>
