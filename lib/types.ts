@@ -272,3 +272,49 @@ export type WorkbenchConversation = {
 };
 
 export type GatewayRetentionConfig = { setting: string; value: string; note: string };
+
+/* ── Canonical risk register (Risk Center is the system of record) ──
+   One risk record, many views: the initiative Risks tab, dashboards and
+   reports all render filtered views of this register. */
+export type RiskTreatmentPlan = {
+  strategy: "Mitigate" | "Transfer" | "Accept" | "Avoid";
+  action: string;
+  owner: string;
+  deadline: string;
+  status: "Planned" | "In Progress" | "Complete";
+  priority: "Critical" | "High" | "Medium" | "Low";
+};
+
+export type RiskRecord = {
+  id: string;
+  title: string;
+  system: string;
+  category: string;
+  initiativeId: string | null;
+  unit: string;
+  execOwner: string;
+  riskOwner: string;
+  likelihood: number;
+  impact: number;
+  residual: number;
+  level: "Critical" | "High" | "Medium" | "Low";
+  status: "Open" | "Treating" | "Monitored" | "Closed";
+  frameworks: string[];
+  controls: string[];
+  kris: string[];
+  desc: string;
+  treatment: RiskTreatmentPlan;
+  aiRecommendation: string;
+};
+
+export type KriRecord = {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  threshold: number;
+  direction: "above" | "below";
+  trend: "improving" | "stable" | "worsening";
+  initiativeId: string | null;
+  framework: string;
+};

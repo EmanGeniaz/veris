@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, demoConversations, employeeUsageSeed, riskRegister, kriRegister } from "@/lib/platform-models";
 
 /* ── Feedback engine ─────────────────────────────────────────── */
 const FEEDBACK_DIMS = [
@@ -263,6 +263,7 @@ const NAV = [
   {id:"gapanalysis",icon:"G",label:"Gap Analysis"},
   {id:"servicenow",icon:"N", label:"ServiceNow / CRM"},
   {id:"aigov",     icon:"V", label:"AI Governance Cube"},
+  {id:"riskcenter",icon:"R", label:"Risk Center"},
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
   {id:"workbench", icon:"W", label:"AI Workbench"},
@@ -273,8 +274,6 @@ const NAV = [
 ];
 
 const CAIO_EXTRA_NAV = [
-  {id:"aira",    icon:"R", label:"Risk Register (AIRA)"},
-  {id:"airt",    icon:"T", label:"Risk Treatment (AIRT)"},
   {id:"registry",icon:"M", label:"AI Model Registry"},
   {id:"maturity",icon:"S", label:"Governance Maturity"},
   {id:"usecases",icon:"U", label:"Use Case Pipeline"},
@@ -284,24 +283,24 @@ const NAV_SECTIONS = [
   {title:"Command Center", items:["home","aicentral"]},
   {title:"CXO Platform", items:["onboard","intake","strategy","aia","aiia","hitl"]},
   {title:"Governance Library", items:["playbook","academy","templates","checklists","compliance","impl","roadmap"]},
-  {title:"Risk & Controls", items:["controls","scope","gapanalysis","aigov"]},
+  {title:"Risk & Controls", items:["riskcenter","controls","scope","gapanalysis","aigov"]},
   {title:"Enterprise Assurance", items:["iso27001","trustcenter","servicenow","reports"]},
 ];
 
 const EXECUTIVE_NAV_SECTIONS = [
   {title:"Executive Workspace", items:["home","aicentral","intake","strategy","hitl"]},
-  {title:"Transformation Oversight", items:["roadmap","academy","reports"]},
+  {title:"Transformation Oversight", items:["riskcenter","roadmap","academy","reports"]},
 ];
 
 const CAIO_NAV_SECTIONS = [
   {title:"AI Portfolio", items:["registry","maturity","usecases"]},
-  {title:"Risk Treatment", items:["aira","airt"]},
+  {title:"Risk Center", items:["riskcenter"]},
 ];
 
 /* CAIO outcome navigation: business outcomes only - capabilities surface
    contextually inside AI Central, Decisions and Knowledge. */
 const CAIO_OUTCOME_SECTIONS = [
-  {title:"Executive Workspace", items:["home","aicentral","decisions","knowledge","reports"]},
+  {title:"Executive Workspace", items:["home","aicentral","riskcenter","decisions","knowledge","reports"]},
 ];
 
 const EMPLOYEE_NAV_SECTIONS = [
@@ -794,26 +793,6 @@ const STANDARDS_MAP = {
 };
 
 
-
-/* Section */
-const AIRA = [
-  {id:"r1",system:"LLM v2 (Customer Support)",category:"Bias & Fairness",likelihood:4,impact:5,score:20,level:"Critical",owner:"CAIO",clause:"ISO 42001 C.8.2 / EU AI Act Art.9",desc:"Model exhibits differential response quality across demographic groups. Disproportionate impact on non-native English speakers identified in bias testing. EU AI Act Art.9 risk management system must document this."},
-  {id:"r2",system:"Credit Scoring AI",category:"Transparency",likelihood:3,impact:5,score:15,level:"High",owner:"CAIO / Legal",clause:"EU AI Act Art.13 / GDPR Art.22",desc:"Decision logic opaque to affected individuals. Art.22 requires meaningful explanation for automated decisions with legal effect. Model cards incomplete."},
-  {id:"r3",system:"HR Recruitment AI",category:"Regulatory Compliance",likelihood:4,impact:4,score:16,level:"High",owner:"HR / CAIO",clause:"EU AI Act Annex III / ISO 42001 C.8.4",desc:"Potential EU AI Act High-Risk classification as employment-related AI. Conformity assessment may be required. ISO 42001 Clause 8.4 design documentation incomplete."},
-  {id:"r4",system:"Fraud Detection Model",category:"Data Privacy",likelihood:2,impact:4,score:8,level:"Medium",owner:"CISO",clause:"ISO 42001 C.7.2 / GDPR Art.5",desc:"Training dataset contains unmasked PII. ISO 42001 Clause 7.2 data resource requirements (provenance, bias identification) not fully documented."},
-  {id:"r5",system:"Document Summarisation AI",category:"Hallucination Risk",likelihood:3,impact:3,score:9,level:"Medium",owner:"Product",clause:"ISO 42001 C.9.1",desc:"Model produces confident incorrect summaries. ISO 42001 Clause 9.1 monitoring not yet tracking hallucination rate. Risk of decisions made on AI-fabricated content."},
-  {id:"r6",system:"Predictive Maintenance AI",category:"Safety",likelihood:2,impact:5,score:10,level:"Medium",owner:"Engineering",clause:"EU AI Act Annex III / ISO 42001 C.8.5",desc:"Incorrect predictions could cause equipment failure and physical harm. Potential High-Risk classification under EU AI Act Annex III. ISO 42001 C.8.5 kill-switch not implemented."},
-];
-
-/* Section */
-const AIRT = [
-  {id:"t1",riskId:"r1",system:"LLM v2",risk:"Bias & Fairness",treatment:"Mitigate",action:"Deploy continuous bias monitoring with automated alerts. Retrain on balanced dataset. Add fairness guardrails pre-go-live. ISO 42001 C.9.1 monitoring framework to track daily.",owner:"CAIO",deadline:"May 15",status:"In Progress",priority:"Critical"},
-  {id:"t2",riskId:"r2",system:"Credit Scoring AI",risk:"Transparency",treatment:"Mitigate",action:"Implement SHAP explainability layer. Generate automated Art.22 decision explanations. Legal to draft disclosure template. ISO 42001 model card to be updated.",owner:"CAIO / Legal",deadline:"May 30",status:"Planned",priority:"High"},
-  {id:"t3",riskId:"r3",system:"HR Recruitment AI",risk:"Regulatory",treatment:"Transfer",action:"Engage EU AI Act consultant for conformity assessment. Suspend system pending classification outcome. ISO 42001 C.8.4documentation to be completed.",owner:"HR / Legal",deadline:"Jun 15",status:"Planned",priority:"High"},
-  {id:"t4",riskId:"r4",system:"Fraud Detection",risk:"Data Privacy",treatment:"Mitigate",action:"Anonymise training dataset using differential privacy. Re-validate performance post-anonymisation. Update ISO 42001 C.7.2 data documentation.",owner:"CISO / ML Eng",deadline:"Jun 1",status:"In Progress",priority:"Medium"},
-  {id:"t5",riskId:"r5",system:"Document AI",risk:"Hallucination",treatment:"Accept",action:"Mandatory human review for all AI summaries in legal/financial contexts. Display confidence score to users. ISO 42001 C.9.1 hallucination rate tracking added.",owner:"Product",deadline:"May 20",status:"Complete",priority:"Medium"},
-  {id:"t6",riskId:"r6",system:"Predictive Maintenance",risk:"Safety",treatment:"Mitigate",action:"Add hard safety threshold override. Implement fail-safe mode for critical equipment. ISO 42001 C.8.5 kill-switch deployed.",owner:"Engineering",deadline:"Jun 30",status:"Planned",priority:"Medium"},
-];
 
 /* Section */
 const AIA_DATA = [
@@ -2340,7 +2319,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
           {label:"HITL Queue",tab:"hitl",color:T.amber,badge:"HQ"},
           {label:"Playbook",tab:"playbook",color:rc,badge:"PB"},
           {label:"ISO Checklists",tab:"checklists",color:T.teal,badge:"ISO"},
-          {label:"AI Risk (AIRA)",tab:role==="caio"?"aira":"aia",color:T.red,badge:"AR"},
+          {label:"Risk Center",tab:role==="caio"?"riskcenter":"aia",color:T.red,badge:"RC"},
           {label:role==="caio"?"Model Registry":"Templates",tab:role==="caio"?"registry":"templates",color:T.violet,badge:role==="caio"?"MR":"TP"},
           {label:role==="caio"?"Use Case Pipeline":"Roadmap",tab:role==="caio"?"usecases":"roadmap",color:T.green,badge:role==="caio"?"UC":"RM"},
         ].map(q=><button key={q.label} onClick={()=>setTab(q.tab)}
@@ -3128,122 +3107,217 @@ function PageAIA({role}) {
 }
 
 /* Section */
-function PageAIRA() {
-  const [sel,setSel]=useState(AIRA[0]);
-  const rColor=s=>s==="Critical"?T.red:s==="High"?T.amber:s==="Medium"?T.blue:T.green;
+/* ── Risk Center: system of record for every AI risk ──────────────
+   Owned once, viewed many times - the initiative Risks tab, dashboards
+   and reports render filtered views of this register. Every risk drills
+   back to its initiative, executive, controls, frameworks and treatment. */
+function PageRiskCenter({role,setTab,setAiCentralView,showToast}){
+  const [rcTab,setRcTab]=useState("register");
+  const [dimBy,setDimBy]=useState("Enterprise");
+  const [dimVal,setDimVal]=useState("All");
+  const [sel,setSel]=useState(riskRegister[0]);
+  const [cell,setCell]=useState(null);
+  const [bumped,setBumped]=useState({});
+  const lvColor=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  const initOf=r=>r.initiativeId?acInitiatives.find(i=>i.id===r.initiativeId):null;
+  const openInitiative=()=>{setAiCentralView&&setAiCentralView("initiatives");setTab&&setTab("aicentral");};
+  const FW_FAMILIES=["ISO 42001","ISO 27001","EU AI Act","GDPR","NIST AI RMF","SOX","OWASP"];
+  const dimValues=dimBy==="Business Unit"?[...new Set(riskRegister.map(r=>r.unit))]
+    :dimBy==="Project"?acInitiatives.filter(i=>riskRegister.some(r=>r.initiativeId===i.id)).map(i=>i.name)
+    :dimBy==="Framework"?FW_FAMILIES.filter(fw=>riskRegister.some(r=>r.frameworks.some(f=>f.startsWith(fw))))
+    :[];
+  const matchDim=r=>{
+    if(dimBy==="Enterprise"||dimVal==="All")return true;
+    if(dimBy==="Business Unit")return r.unit===dimVal;
+    if(dimBy==="Project"){const ini=initOf(r);return (ini&&ini.name)===dimVal;}
+    if(dimBy==="Framework")return r.frameworks.some(f=>f.startsWith(dimVal));
+    return true;
+  };
+  const rows=riskRegister.filter(matchDim);
+  const effT=r=>bumped[r.id]||r.treatment.status;
+  const advance=r=>{
+    const cur=effT(r);
+    if(cur==="Complete")return;
+    const next=cur==="Planned"?"In Progress":"Complete";
+    setBumped(prev=>({...prev,[r.id]:next}));
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      const ini=initOf(r);
+      list.unshift({item:`Treatment update: ${r.id} ${r.title} -> ${next}`,initiative:ini?ini.name:r.unit,scope:ini?"Project":"Enterprise",control:`Risk Center - ISO 42001 C.8.3 (${r.controls.join(", ")})`,risk:r.category,owner:r.treatment.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+    showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
+  };
+  const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;
+  const openCritHigh=riskRegister.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
+  const inProg=riskRegister.filter(r=>effT(r)==="In Progress").length;
+  const breaching=kriRegister.filter(kriBreach).length;
+  const kpis=[
+    ["Risks on register",riskRegister.length,T.blue,"register"],
+    ["Critical / high open",openCritHigh,T.red,"heatmap"],
+    ["Treatments in progress",inProg,T.violet,"treatments"],
+    ["KRIs breaching",breaching,T.amber,"kris"],
+  ];
+  const TABS=[["register","Risk Register"],["heatmap","Heat Map"],["treatments","Treatments"],["kris","KRIs"],["drift","Risk Drift"]];
+  const Dots=({n,color})=><div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(x=><div key={x} style={{width:7,height:7,borderRadius:2,background:x<=n?color:T.border}}/>)}</div>;
+  const detail=sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${lvColor(sel.level)}10`,animation:"fade .25s ease"}}>
+    <div style={{background:`linear-gradient(135deg,${lvColor(sel.level)}18,${T.s3})`,borderBottom:`1px solid ${lvColor(sel.level)}30`,padding:"14px 16px"}}>
+      <div style={{display:"flex",gap:7,alignItems:"center"}}><Tag label={sel.level} color={lvColor(sel.level)} bg={lvColor(sel.level)+"20"}/><STag s={sel.status}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:"auto"}}>{sel.id}</span></div>
+      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.title}</h3>
+      <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:3}}>{sel.system}</p>
+    </div>
+    <div style={{padding:16}}>
+      <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:12}}>{sel.desc}</p>
+      {[["Category",sel.category],["Business unit",sel.unit],["Executive owner",sel.execOwner],["Risk owner",sel.riskOwner],["Inherent score",`${sel.likelihood*sel.impact}/25`],["Residual score",`${sel.residual}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
+        <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:170}}>{v}</span>
+      </div>)}
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"11px 0 0"}}>
+        {sel.frameworks.map(f=><Tag key={f} label={f} color={T.blue} bg={T.blue+"14"}/>)}
+        {sel.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.violet+"14",border:`1px solid ${T.violet}40`,borderRadius:6,padding:"2px 8px",color:T.violet,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
+      </div>
+      <div style={{marginTop:13,background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${T.violet}`}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Treatment - {sel.treatment.strategy} · {sel.treatment.owner} · due {sel.treatment.deadline}</div>
+        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.treatment.action}</p>
+      </div>
+      <div style={{marginTop:10,background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px"}}>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>AI recommendation</div>
+        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.aiRecommendation}</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:initOf(sel)?"1fr 1fr":"1fr",gap:8,marginTop:12}}>
+        <button onClick={()=>{setRcTab("treatments");}} style={{background:T.violet,border:"none",borderRadius:7,padding:"9px",color:"#fff",fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{effT(sel)==="Complete"?"Treatment complete":"Manage treatment"}</button>
+        {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open initiative →</button>}
+      </div>
+    </div>
+  </Card>;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Risk Assessment Register (AIRA)" sub="ISO 42001 Clause 8.2"/>
-    <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
+    <SHead title="Risk Center" sub="The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+      {kpis.map(([l,v,c,t])=><Card key={l} onClick={()=>setRcTab(t)} style={{padding:14,cursor:"pointer"}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c}}><CountUp value={v}/></div>
+      </Card>)}
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+      {TABS.map(([id,label])=><button key={id} onClick={()=>setRcTab(id)} style={{background:rcTab===id?T.red+"18":T.s2,border:`1px solid ${rcTab===id?T.red+"50":T.border}`,color:rcTab===id?T.red:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
+    </div>
+    {(rcTab==="register"||rcTab==="heatmap")&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>View by</span>
+      {["Enterprise","Business Unit","Project","Framework"].map(d=><button key={d} onClick={()=>{setDimBy(d);setDimVal("All");}} style={{background:dimBy===d?T.blue+"18":T.s2,border:`1px solid ${dimBy===d?T.blue+"50":T.border}`,color:dimBy===d?T.blue:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{d}</button>)}
+      {dimValues.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",borderLeft:`1px solid ${T.border}`,paddingLeft:10}}>
+        {["All",...dimValues].map(v=><button key={v} onClick={()=>setDimVal(v)} style={{background:dimVal===v?AI_GOLD+"20":T.s2,border:`1px solid ${dimVal===v?AI_GOLD+"55":T.border}`,color:dimVal===v?AI_GOLD:T.ink3,borderRadius:7,padding:"4px 9px",fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{v}</button>)}
+      </div>}
+      <Tag label={`${rows.length} risks`} color={T.red} bg={T.red+"14"}/>
+    </Card>}
+    {rcTab==="register"&&<div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
       <div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 60px 60px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["AI System","Category","L","I","Score"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+          {["Risk","Initiative / Unit","L","I","Residual"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
         </div>
         <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-          {AIRA.map((r,i)=>{
-            const rc2=rColor(r.level);
-            return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<AIRA.length-1?`1px solid ${T.border}`:"none",background:sel?.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===r.id?`3px solid ${rc2}`:"3px solid transparent",transition:"all .15s"}}>
+          {rows.map((r,i)=>{
+            const c=lvColor(r.level);const ini=initOf(r);
+            return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",background:sel&&sel.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel&&sel.id===r.id?`3px solid ${c}`:"3px solid transparent",transition:"all .15s"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.system}</div>
-                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.owner}</span>
+                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
+                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.id} · {r.riskOwner}</span>
               </div>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.category}</span>
-              <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(n=><div key={n} style={{width:7,height:7,borderRadius:2,background:n<=r.likelihood?T.amber:T.border}}/>)}</div>
-              <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(n=><div key={n} style={{width:7,height:7,borderRadius:2,background:n<=r.impact?rc2:T.border}}/>)}</div>
+              <div>
+                <div style={{fontSize:10,color:ini?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:ini?800:500}}>{ini?ini.name:r.unit}</div>
+                <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{ini?"Initiative":"Enterprise"} · Exec: {r.execOwner}</span>
+              </div>
+              <Dots n={r.likelihood} color={T.amber}/>
+              <Dots n={r.impact} color={c}/>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:rc2}}>{r.score}</span>
-                <Tag label={r.level} color={rc2} bg={rc2+"18"}/>
+                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:c}}>{r.residual}</span>
+                <Tag label={r.level} color={c} bg={c+"18"}/>
               </div>
             </div>;
           })}
         </div>
       </div>
-      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${rColor(sel.level)}10`,animation:"fade .25s ease"}}>
-        <div style={{background:`linear-gradient(135deg,${rColor(sel.level)}18,${T.s3})`,borderBottom:`1px solid ${rColor(sel.level)}30`,padding:"14px 16px"}}>
-          <Tag label={sel.level} color={rColor(sel.level)} bg={rColor(sel.level)+"20"}/>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.system}</h3>
+      {detail}
+    </div>}
+    {rcTab==="heatmap"&&<div style={{display:"grid",gridTemplateColumns:"minmax(0,420px) 1fr",gap:14}}>
+      <Card style={{padding:16}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>Inherent risk heat map</h3>
+        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Click a cell to see the risks behind it. Rows are impact, columns likelihood.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
+          {[5,4,3,2,1].map(imp=>[1,2,3,4,5].map(lik=>{
+            const cellRisks=rows.filter(r=>r.likelihood===lik&&r.impact===imp);
+            const sc=lik*imp;
+            const bg=sc>=16?T.red:sc>=10?T.amber:sc>=5?T.blue:T.green;
+            const active=cell&&cell.l===lik&&cell.i===imp;
+            return <button key={`${imp}-${lik}`} onClick={()=>setCell(active?null:{l:lik,i:imp})} style={{height:52,borderRadius:6,background:active?bg:bg+(cellRisks.length?"45":"18"),border:active?`2px solid ${bg}`:`1px solid ${bg}30`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:900,fontFamily:F.m,color:active?"#fff":cellRisks.length?T.ink:"transparent"}}>{cellRisks.length||0}</button>;
+          }))}
         </div>
-        <div style={{padding:16}}>
-          <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:14}}>{sel.desc}</p>
-          {[["ISO/Regulatory Reference",sel.clause],["Risk Category",sel.category],["Owner",sel.owner],["Likelihood",`${sel.likelihood}/5`],["Impact",`${sel.impact}/5`],["Risk Score",`${sel.score}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-            <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:160}}>{v}</span>
-          </div>)}
-          {/* Heatmap */}
-          <div style={{marginTop:14}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Risk Heatmap</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
-              {[5,4,3,2,1].map(impact=>[1,2,3,4,5].map(likelihood=>{
-                const s=likelihood*impact;
-                const isThis=likelihood===sel.likelihood&&impact===sel.impact;
-                const bg=s>=16?T.red:s>=10?T.amber:s>=5?T.blue:T.green;
-                return <div key={`${impact}-${likelihood}`} style={{height:18,borderRadius:3,background:isThis?bg:bg+"25",border:isThis?`2px solid ${bg}`:"none",transition:"all .15s"}}/>;
-              }))}
-            </div>
-          </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>← lower likelihood</span>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>higher likelihood →</span>
         </div>
-      </Card>}
-    </div>
-  </div>;
-}
-
-/* Section */
-function PageAIRT({showToast}) {
-  const [sel,setSel]=useState(AIRT[0]);
-  const [bumped,setBumped]=useState({});
-  const effStatus=t=>bumped[t.id]||t.status;
-  const advance=()=>{
-    const cur=effStatus(sel);
-    const next=cur==="Planned"?"In Progress":cur==="In Progress"?"Complete":"Complete";
-    if(cur==="Complete")return;
-    setBumped({...bumped,[sel.id]:next});
-    try{
-      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-      list.unshift({item:`Treatment update: ${sel.system} -> ${next}`,initiative:sel.system,scope:"Project",control:"AIRT - ISO 42001 C.8.3",risk:sel.risk,owner:sel.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-    }catch{/* ignore */}
-    showToast&&showToast(`Treatment plan updated: ${next} - evidence recorded`);
-  };
-  return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Risk Treatment Register (AIRT)" sub="ISO 42001 Clause 8.3"/>
-    <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
-      <div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 90px 100px 90px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["AI System","Treatment","Owner","Deadline","Status"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+      </Card>
+      <Card style={{padding:16}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>{cell?`Risks at likelihood ${cell.l} × impact ${cell.i}`:"All risks in view"}</h3>
+        <div style={{display:"grid",gap:8}}>
+          {(cell?rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i):rows).map(r=>{
+            const c=lvColor(r.level);const ini=initOf(r);
+            return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+              <div><div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r.title}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{ini?ini.name:r.unit} · {r.category}</div></div>
+              <Tag label={r.level} color={c} bg={c+"16"}/>
+              <button onClick={()=>{setSel(r);setRcTab("register");}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 10px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open →</button>
+            </div>;
+          })}
+          {cell&&rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i).length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No risks sit in this cell - the register has nothing at this likelihood and impact.</div>}
         </div>
-        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-          {AIRT.map((t,i)=><div key={t.id} onClick={()=>setSel(t)} style={{display:"grid",gridTemplateColumns:"2fr 90px 100px 90px 90px",padding:"10px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<AIRT.length-1?`1px solid ${T.border}`:"none",background:sel?.id===t.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===t.id?`3px solid ${T.violet}`:"3px solid transparent",transition:"all .15s"}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.system}</div>
-              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Risk: {t.risk}</span>
-            </div>
-            <STag s={t.treatment}/>
-            <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{t.owner}</span>
-            <span style={{fontSize:9,fontFamily:F.m,color:T.ink3}}>{t.deadline}</span>
-            <STag s={effStatus(t)}/>
-          </div>)}
-        </div>
+      </Card>
+    </div>}
+    {rcTab==="treatments"&&<div>
+      <div style={{display:"grid",gridTemplateColumns:"1.6fr 90px 1fr 90px 110px 150px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+        {["Risk","Strategy","Owner / deadline","Priority","Status","Action"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
       </div>
-      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 24px ${T.violet}10`,animation:"fade .25s ease"}}>
-        <div style={{background:`linear-gradient(135deg,${T.violetL},${T.s3})`,borderBottom:`1px solid ${T.violet}30`,padding:"14px 16px"}}>
-          <div style={{display:"flex",gap:7,marginBottom:9}}><STag s={sel.treatment}/><PTag p={sel.priority}/></div>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3}}>{sel.system}</h3>
-          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>Risk: {sel.risk}</p>
-        </div>
-        <div style={{padding:16}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Treatment Action</div>
-          <p style={{fontSize:11,color:T.ink2,lineHeight:1.7,fontFamily:F.b,marginBottom:14,padding:"10px 12px",background:T.s3,borderRadius:7,borderLeft:`3px solid ${T.violet}`}}>{sel.action}</p>
-          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",effStatus(sel)],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-            <span style={{fontSize:10,color:T.ink,fontFamily:F.m}}>{v}</span>
-          </div>)}
-          <button onClick={advance} disabled={effStatus(sel)==="Complete"} style={{width:"100%",marginTop:13,background:effStatus(sel)==="Complete"?T.s3:T.violet,color:effStatus(sel)==="Complete"?T.green:"#fff",border:effStatus(sel)==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b,cursor:effStatus(sel)==="Complete"?"default":"pointer"}}>{effStatus(sel)==="Complete"?"Treatment Complete - Evidence Recorded":effStatus(sel)==="Planned"?"Start Treatment (mark In Progress)":"Mark Treatment Complete"}</button>
-        </div>
-      </Card>}
-    </div>
+      <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+        {riskRegister.map((r,i)=>{
+          const st=effT(r);
+          return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1.6fr 90px 1fr 90px 110px 150px",padding:"10px 12px",alignItems:"center",borderBottom:i<riskRegister.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.id} · {r.system}</span>
+            </div>
+            <STag s={r.treatment.strategy}/>
+            <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.treatment.owner}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>due {r.treatment.deadline}</span></div>
+            <PTag p={r.treatment.priority}/>
+            <STag s={st}/>
+            <button onClick={()=>advance(r)} disabled={st==="Complete"} style={{background:st==="Complete"?T.s3:T.violet,color:st==="Complete"?T.green:"#fff",border:st==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"7px 8px",fontSize:9.5,fontWeight:700,fontFamily:F.b,cursor:st==="Complete"?"default":"pointer"}}>{st==="Complete"?"Evidence recorded":st==="Planned"?"Start treatment":"Mark complete"}</button>
+          </div>;
+        })}
+      </div>
+    </div>}
+    {rcTab==="kris"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:10}}>
+      {kriRegister.map(k=>{
+        const breach=kriBreach(k);
+        const c=breach?T.red:T.green;
+        const ini=k.initiativeId?acInitiatives.find(i=>i.id===k.initiativeId):null;
+        const linked=riskRegister.filter(r=>r.kris.includes(k.id));
+        return <Card key={k.id} style={{padding:15,border:`1px solid ${c}30`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <Tag label={breach?"Breaching":"Within appetite"} color={c} bg={c+"16"}/>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{k.id} · trend {k.trend}</span>
+          </div>
+          <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{k.name}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:8}}>
+            <span style={{fontSize:24,fontWeight:900,fontFamily:F.m,color:c}}>{k.value}</span>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.unit} · threshold {k.direction==="above"?"≤":"≥"} {k.threshold}</span>
+          </div>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginBottom:10}}>Protects {k.framework}{linked.length>0&&` · watches ${linked.map(r=>r.id).join(", ")}`}</div>
+          {ini?<button onClick={openInitiative} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ini.name} →</button>
+          :<Tag label="Enterprise-level" color={T.blue} bg={T.blue+"14"}/>}
+        </Card>;
+      })}
+    </div>}
+    {rcTab==="drift"&&<PageAISpine mode="riskdrift" setTab={setTab}/>}
   </div>;
 }
 
-/* Section */
 function PageRoadmap({role,setTab,setAiCentralView}) {
   const gotoAC=m=>{setAiCentralView&&setAiCentralView(m);setTab&&setTab("aicentral");};
   const rc=RC(role), rcL=RCL(role), qs=ROADMAP[role]||ROADMAP.caio||[];
@@ -5967,20 +6041,24 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
 
   /* ── Initiative context tabs: derived views over the initiative's own
         data. Risks are owned here and aggregated by Risk Center. ── */
-  const InitRisks=()=><Card style={{padding:16}}>
+  const InitRisks=()=>{
+    const rows=riskRegister.filter(r=>r.initiativeId===selected.id);
+    const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+    return <Card style={{padding:16}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risk register</h3>
-      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Owned by this initiative - aggregated in Risk Center</span>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risks - a view of the Risk Center register</h3>
+      <button onClick={()=>setTab&&setTab("riskcenter")} style={{background:T.red+"14",border:`1px solid ${T.red}40`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Risk Center →</button>
     </div>
     <div style={{display:"grid",gap:8}}>
-      {selected.risks.map(r=><div key={r} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
-        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Owner: {selected.businessOwner} · Exposure: {selected.expected} · Mitigation: {selected.controls[0]||"unassigned"}</div></div>
-        <PTag p={selected.risk}/>
-        <Tag label={`${selected.guardrail}% controls`} color={selected.guardrail>=80?T.green:T.amber} bg={(selected.guardrail>=80?T.green:T.amber)+"14"}/>
+      {rows.map(r=><div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r.id} · {r.title}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Risk owner: {r.riskOwner} · Treatment: {r.treatment.strategy} ({r.treatment.status}) · Controls: {r.controls.join(", ")}</div></div>
+        <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
+        <Tag label={`Residual ${r.residual}/25`} color={r.residual<=6?T.green:T.amber} bg={(r.residual<=6?T.green:T.amber)+"14"}/>
       </div>)}
+      {rows.length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No risks registered for this initiative yet - raise one in the Risk Center.</div>}
       {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Open blocker:</strong> {selected.blockedBy}</div>}
     </div>
-  </Card>;
+  </Card>;};
   const InitEvidence=()=>{
     const rows=evidenceRows.filter(e=>e.initiative===selected.name);
     return <Card style={{padding:0,overflow:"hidden"}}>
@@ -7191,8 +7269,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&tab==="aia"        &&<PageAIA        role={role}/>}
-        {showSeededData&&tab==="aira"       &&<PageAIRA/>}
-        {showSeededData&&tab==="airt"       &&<PageAIRT showToast={showToast}/>}
+        {showSeededData&&(tab==="riskcenter"||tab==="aira"||tab==="airt")&&<PageRiskCenter role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="registry"   &&<PageModelRegistry setTab={setTab}/>}
         {showSeededData&&tab==="maturity"   &&<PageMaturityRadar/>}
         {showSeededData&&tab==="usecases"   &&<PageUseCases/>}
