@@ -3,9 +3,11 @@
 export type ACModuleId =
   | "dashboard"
   | "initiatives"
+  | "portfolio"
   | "governance"
   | "evidence"
   | "gateway"
+  | "admin"
   | "academy";
 
 export type ACLens =
