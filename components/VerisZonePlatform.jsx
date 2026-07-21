@@ -1597,8 +1597,337 @@ function PageAISpine({mode="overview",setTab}) {
   </div>;
 }
 
+/* ── Executive Workspace 4.0 intelligence layer ──────────────────
+   Personal, role-specific decision intelligence. Everything deep-links
+   into AI Central where operational work happens - no duplication. */
+
+/* Deep-link targets: {tab} for a top-level tab, {ac} for an AI Central module. */
+const EXEC_BRIEF = {
+  ceo:{focus:"AI Chief Strategy Officer",headline:"Portfolio is scaling, one initiative needs a board-level call.",
+    body:"Enterprise AI maturity rose to 78/100 as two pilots reached scale-readiness. Finance Close Automation is board-pack ready and projects $1.8M value; Customer Resolution Copilot is held pending CISO evidence. One initiative is trending to retirement on weak adoption. Approving the scale package unlocks an estimated 9% portfolio ROI uplift this quarter.",
+    deltas:[["AI maturity","up","+6"],["Value realized","up","$3.6M"],["Scale-ready pilots","up","2"],["At-risk initiatives","down","1"]]},
+  coo:{focus:"AI Operating Advisor",headline:"Adoption is up but two department rollouts are blocked.",
+    body:"Operating adoption reached 64% across active pilots. Finance is ready for its second wave; Retail Banking is at risk on evidence gaps and People shows high change resistance. Clearing the two blocked tasks would return an estimated 26% productivity gain in the affected units.",
+    deltas:[["Adoption","up","+4"],["Active pilots","flat","4"],["Blocked tasks","up","3"],["Productivity","up","+18%"]]},
+  cfo:{focus:"AI Financial Advisor",headline:"ROI confidence is strong; one business case is under-delivering.",
+    body:"Portfolio ROI confidence is 88% with 6% budget variance. Finance Close Automation is beating its business case (+$1.8M realized vs plan). Credit Decision Assurance is behind on benefits with a 14-month payback slipping. A value-recovery review is recommended before the next investment gate.",
+    deltas:[["ROI confidence","up","88%"],["Budget variance","down","6%"],["Value realized","up","$3.6M"],["Payback","flat","14mo"]]},
+  chro:{focus:"AI Workforce Advisor",headline:"Readiness is improving but one unit is resisting adoption.",
+    body:"Enterprise training completion is 68% and AI literacy 77%. Finance shows low resistance and strong uptake; People (HR) has the lowest adoption at 31% with high resistance. Assigning the targeted change program would lift readiness an estimated 14 points in that unit.",
+    deltas:[["Training","up","68%"],["AI literacy","up","77%"],["Lowest adoption","down","31%"],["Resistance","flat","1 unit"]]},
+  ciso:{focus:"AI Security Operations Advisor",headline:"Security posture improved, but critical evidence is still open.",
+    body:"Enterprise security score rose to 72/100 on patch and MFA progress. The AI Gateway blocked 563 policy violations this month and shadow-AI exposure is contained. Customer Resolution Copilot still lacks prompt-injection evidence, blocking its scale gate. Approving the remediation package reduces projected enterprise risk ~18%.",
+    deltas:[["Security score","up","+8"],["Blocked prompts","up","563"],["Open risks","down","6"],["Critical evidence","up","1 due"]]},
+  caio:{focus:"AI Chief of Staff",headline:"Governance is healthy; two initiatives need a lifecycle decision.",
+    body:"AI governance maturity is 72/100 with 7 HITL approvals pending. Finance Close Automation is scale-ready; Workforce Skills Navigator is trending to retirement on weak feedback and adoption. Two governed scale/retire decisions are waiting on you, and one initiative is blocked on missing Phase artifacts.",
+    deltas:[["Maturity","up","72"],["HITL pending","flat","7"],["Scale-ready","up","1"],["Retire candidates","up","1"]]},
+  cio:{focus:"AI Enterprise Architect",headline:"Platform is stable; integration debt is the next constraint.",
+    body:"IT operations score is 74/100 across 47 AI assets. Model routing through the Gateway is balanced across approved providers. Two initiatives depend on integrations not yet hardened for production. Prioritising the architecture review unblocks the Finance scale wave.",
+    deltas:[["Ops score","up","+5"],["AI assets","flat","47"],["Roadmap items","flat","12"],["Controls","up","79%"]]},
+  cdpo:{focus:"AI Privacy Advisor",headline:"Privacy posture is solid; one DPIA is overdue.",
+    body:"Privacy score is 81/100 with 11 DPIAs tracked. PII redaction in the Gateway triggered 1,284 times this month with no confirmed leakage. Workforce Skills Navigator processes employee data and its fairness/DPIA evidence is incomplete, blocking progression. Completing it clears the privacy gate.",
+    deltas:[["Privacy score","up","81"],["DPIAs","flat","11"],["PII redactions","up","1284"],["Overdue","up","1"]]},
+  cgo:{focus:"AI Growth Advisor",headline:"Governance coverage is up; new AI opportunities are unqualified.",
+    body:"Governance coverage rose 5 points across frameworks. The opportunity pipeline holds several unscored ideas with commercial upside. Qualifying the top two use cases would add an estimated $2.4M to the value forecast while staying inside risk appetite.",
+    deltas:[["Coverage","up","+5"],["Open risks","down","23"],["Pipeline ideas","up","6"],["Forecast upside","up","$2.4M"]]},
+};
+
+const EXEC_PRIORITIES = {
+  ceo:[
+    {title:"Approve Finance Close Automation scale package",owner:"Maya Chen",priority:"Critical",due:"Today",impact:"$1.8M value unlock",benefit:"9% portfolio ROI uplift",link:{ac:"initiatives"}},
+    {title:"Decide on Workforce Skills Navigator retirement",owner:"Aisha Patel",priority:"High",due:"2 days",impact:"Stops $0.2M sunk spend",benefit:"Frees budget for scale-ready pilots",link:{ac:"initiatives"}},
+    {title:"Review board AI risk pack",owner:"Rafael Torres",priority:"Medium",due:"This week",impact:"Board readiness",benefit:"Auto-compiled from evidence",link:{ac:"evidence"}},
+  ],
+  coo:[
+    {title:"Clear Retail Banking evidence blocker",owner:"Omar Khan",priority:"Critical",due:"Today",impact:"Unblocks second wave",benefit:"26% productivity in unit",link:{ac:"initiatives"}},
+    {title:"Approve department enablement plan",owner:"Priya Mehta",priority:"High",due:"2 days",impact:"Adoption +12%",benefit:"AI can draft the rollout comms",link:{tab:"hitl"}},
+    {title:"Review People change-resistance report",owner:"Hannah Lee",priority:"Medium",due:"This week",impact:"Lowest-adoption unit",benefit:"Targeted learning recommended",link:{tab:"academy"}},
+  ],
+  cfo:[
+    {title:"Approve second-wave budget release",owner:"Elena Rossi",priority:"Critical",due:"Today",impact:"$3.1M program",benefit:"ROI confidence 88%",link:{ac:"initiatives"}},
+    {title:"Order value-recovery review: Credit Decision Assurance",owner:"Omar Khan",priority:"High",due:"3 days",impact:"Payback slipping",benefit:"AI drafts the benefits re-forecast",link:{ac:"initiatives"}},
+    {title:"Sign off benefits realization evidence",owner:"Internal Audit",priority:"Medium",due:"This week",impact:"Audit readiness",benefit:"Evidence auto-captured",link:{ac:"evidence"}},
+  ],
+  chro:[
+    {title:"Assign change program to People unit",owner:"Hannah Lee",priority:"Critical",due:"Today",impact:"Adoption 31% to 45%",benefit:"AI selects the learning path",link:{tab:"academy"}},
+    {title:"Approve AI literacy curriculum update",owner:"L&D",priority:"High",due:"2 days",impact:"Enterprise readiness",benefit:"Completion becomes evidence",link:{tab:"academy"}},
+    {title:"Review resistance sentiment by unit",owner:"People Analytics",priority:"Medium",due:"This week",impact:"Early warning",benefit:"AI flags at-risk teams",link:{ac:"dashboard"}},
+  ],
+  ciso:[
+    {title:"Approve prompt-injection remediation package",owner:"Jordan Sinclair",priority:"Critical",due:"Today",impact:"-18% enterprise risk",benefit:"Unblocks Copilot scale gate",link:{ac:"gateway"}},
+    {title:"Review 14 critical vulnerabilities",owner:"Security Eng",priority:"High",due:"2 days",impact:"3 initiatives affected",benefit:"AI clusters by root cause",link:{ac:"governance"}},
+    {title:"Sign off shadow-AI exposure report",owner:"CISO Office",priority:"Medium",due:"This week",impact:"Gateway coverage",benefit:"Auto-generated from logs",link:{ac:"gateway"}},
+  ],
+  caio:[
+    {title:"Record Finance Close Automation scale decision",owner:"Aisha Patel",priority:"Critical",due:"Today",impact:"Board-pack ready",benefit:"Governed decision + evidence",link:{ac:"initiatives"}},
+    {title:"Decide Workforce Skills Navigator: improve or retire",owner:"Aisha Patel",priority:"High",due:"2 days",impact:"Weak feedback score",benefit:"Feedback engine recommends Retire",link:{ac:"initiatives"}},
+    {title:"Clear 7 HITL approvals",owner:"CAIO Office",priority:"Medium",due:"This week",impact:"Pipeline flow",benefit:"AI pre-summarises each",link:{tab:"hitl"}},
+  ],
+  cio:[
+    {title:"Approve architecture review for Finance wave",owner:"Marcus Reid",priority:"Critical",due:"Today",impact:"Unblocks production",benefit:"AI maps integration gaps",link:{ac:"initiatives"}},
+    {title:"Rationalise model routing policy",owner:"Platform AI",priority:"High",due:"2 days",impact:"Cost + resilience",benefit:"Gateway usage analysed",link:{ac:"gateway"}},
+    {title:"Review platform control coverage",owner:"IT GRC",priority:"Medium",due:"This week",impact:"79% to target",benefit:"Evidence auto-captured",link:{ac:"governance"}},
+  ],
+  cdpo:[
+    {title:"Complete Workforce Navigator DPIA",owner:"Niamh Lynch",priority:"Critical",due:"Today",impact:"Clears privacy gate",benefit:"AI drafts the DPIA from template",link:{ac:"evidence"}},
+    {title:"Review cross-border data flows",owner:"Privacy Office",priority:"High",due:"3 days",impact:"GDPR Art.44",benefit:"AI maps transfers",link:{ac:"governance"}},
+    {title:"Confirm PII redaction thresholds",owner:"Data Protection",priority:"Medium",due:"This week",impact:"Gateway policy",benefit:"1,284 redactions reviewed",link:{ac:"gateway"}},
+  ],
+  cgo:[
+    {title:"Qualify top 2 AI opportunities",owner:"Rafael Torres",priority:"Critical",due:"Today",impact:"+$2.4M forecast",benefit:"AI scores impact/feasibility/risk",link:{ac:"initiatives"}},
+    {title:"Approve responsible-use policy update",owner:"Governance Office",priority:"High",due:"2 days",impact:"+12% compliance",benefit:"Policy drafted from kit",link:{ac:"governance"}},
+    {title:"Review growth value forecast",owner:"Strategy",priority:"Medium",due:"This week",impact:"Commercialization",benefit:"AI trend analysis",link:{ac:"dashboard"}},
+  ],
+};
+
+const EXEC_RECOMMENDATIONS = {
+  ceo:[
+    {action:"Scale Finance Close Automation",metric:"Projected ROI",value:"+31%",rationale:"Readiness 88%, evidence 91%, board-pack ready.",link:{ac:"initiatives"}},
+    {action:"Retire Workforce Skills Navigator",metric:"Annual savings",value:"$0.2M",rationale:"Weak multi-stakeholder feedback; adoption 31%.",link:{ac:"initiatives"}},
+    {action:"Rebalance portfolio to scale-ready pilots",metric:"Portfolio ROI",value:"+9%",rationale:"Two pilots at scale gate; capital better deployed.",link:{ac:"dashboard"}},
+  ],
+  coo:[
+    {action:"Fast-track Finance second wave",metric:"Productivity",value:"+26%",rationale:"Adoption 79%, resistance low, evidence ready.",link:{ac:"initiatives"}},
+    {action:"Deploy targeted enablement to People",metric:"Adoption",value:"+14%",rationale:"Lowest-adoption unit with high resistance.",link:{tab:"academy"}},
+    {action:"Automate rollout comms",metric:"Cycle time",value:"-3 days",rationale:"AI can draft and personalise department comms.",link:{ac:"initiatives"}},
+  ],
+  cfo:[
+    {action:"Approve second-wave budget",metric:"ROI confidence",value:"88%",rationale:"Value evidence supports controlled rollout.",link:{ac:"initiatives"}},
+    {action:"Re-forecast Credit Decision Assurance",metric:"Payback",value:"-2mo",rationale:"Benefits behind plan; recover before gate.",link:{ac:"initiatives"}},
+    {action:"Consolidate AI spend via Gateway",metric:"Cost avoidance",value:"$76K/mo",rationale:"Routing and cost guard reduce provider spend.",link:{ac:"gateway"}},
+  ],
+  chro:[
+    {action:"Assign change program to People",metric:"Readiness",value:"+14pts",rationale:"Lowest adoption; targeted learning indicated.",link:{tab:"academy"}},
+    {action:"Roll out AI literacy refresh",metric:"Literacy",value:"+8%",rationale:"Completion becomes governance evidence.",link:{tab:"academy"}},
+    {action:"Monitor resistance signals",metric:"Early warning",value:"2 teams",rationale:"Sentiment trending down in two units.",link:{ac:"dashboard"}},
+  ],
+  ciso:[
+    {action:"Deploy prompt firewall to Copilot",metric:"Risk reduction",value:"22%",rationale:"Closes prompt-injection exposure; unblocks scale.",link:{ac:"gateway"}},
+    {action:"Approve AI procurement policy",metric:"Compliance",value:"+12%",rationale:"Standardises vendor and model controls.",link:{ac:"governance"}},
+    {action:"Expand Gateway logging to all units",metric:"Coverage",value:"+11%",rationale:"Reduces shadow-AI blind spots.",link:{ac:"gateway"}},
+  ],
+  caio:[
+    {action:"Scale Finance Close Automation",metric:"Projected ROI",value:"+31%",rationale:"Governed scale decision ready to record.",link:{ac:"initiatives"}},
+    {action:"Retire Workforce Skills Navigator",metric:"Annual savings",value:"$0.2M",rationale:"Feedback engine recommends retirement.",link:{ac:"initiatives"}},
+    {action:"Auto-generate missing Phase artifacts",metric:"Unblocks",value:"1 initiative",rationale:"Copilot blocked on Design-phase evidence.",link:{ac:"evidence"}},
+  ],
+  cio:[
+    {action:"Harden integrations for Finance wave",metric:"Time to prod",value:"-2 wks",rationale:"Two dependencies not production-ready.",link:{ac:"initiatives"}},
+    {action:"Optimise model routing",metric:"Cost",value:"-14%",rationale:"Shift eligible load to internal models.",link:{ac:"gateway"}},
+    {action:"Lift platform control coverage",metric:"Coverage",value:"79% to 88%",rationale:"Close gaps flagged in governance.",link:{ac:"governance"}},
+  ],
+  cdpo:[
+    {action:"Generate Workforce Navigator DPIA",metric:"Clears gate",value:"1 blocker",rationale:"AI drafts DPIA from approved template.",link:{ac:"evidence"}},
+    {action:"Tighten cross-border transfer controls",metric:"GDPR risk",value:"-1 tier",rationale:"Art.44 mapping incomplete for one flow.",link:{ac:"governance"}},
+    {action:"Tune PII redaction sensitivity",metric:"Leakage risk",value:"-9%",rationale:"1,284 redactions; threshold review due.",link:{ac:"gateway"}},
+  ],
+  cgo:[
+    {action:"Qualify top 2 opportunities",metric:"Forecast",value:"+$2.4M",rationale:"Highest impact/feasibility, within appetite.",link:{ac:"initiatives"}},
+    {action:"Approve responsible-use policy",metric:"Compliance",value:"+12%",rationale:"Unlocks GenAI adoption across units.",link:{ac:"governance"}},
+    {action:"Commercialise Finance Copilot pattern",metric:"New value",value:"$1.1M",rationale:"Proven pattern reusable in Procurement.",link:{ac:"initiatives"}},
+  ],
+};
+
+const EXEC_DECISIONS = {
+  ceo:[
+    {title:"Scale Finance Close Automation to Procurement",context:"Pilot met scale threshold; board pack ready.",impact:"$1.8M value, 88% readiness",risk:"Medium",aiRec:"Approve",evidence:"Scale gate + evidence ledger",link:{ac:"initiatives"}},
+    {title:"Retire Workforce Skills Navigator",context:"Weak feedback and adoption after assessment.",impact:"Stops $0.2M spend",risk:"Low",aiRec:"Retire with reason",evidence:"Feedback engine + risk review",link:{ac:"initiatives"}},
+  ],
+  coo:[
+    {title:"Release Retail Banking second wave",context:"Blocked on evidence; value case strong.",impact:"26% productivity",risk:"Medium",aiRec:"Approve after blocker clears",evidence:"Pilot control room",link:{ac:"initiatives"}},
+    {title:"Approve People enablement budget",context:"Lowest adoption unit needs change support.",impact:"Adoption +14%",risk:"Low",aiRec:"Approve",evidence:"Academy readiness",link:{tab:"academy"}},
+  ],
+  cfo:[
+    {title:"Release second-wave investment",context:"Finance program value evidence sufficient.",impact:"$3.1M program",risk:"Low",aiRec:"Approve",evidence:"Benefits realization pack",link:{ac:"initiatives"}},
+    {title:"Hold Credit Decision Assurance funding",context:"Benefits behind plan; payback slipping.",impact:"Protects ROI",risk:"Medium",aiRec:"Request changes",evidence:"Value re-forecast",link:{ac:"initiatives"}},
+  ],
+  chro:[
+    {title:"Approve People change program",context:"Highest resistance, lowest adoption.",impact:"Readiness +14pts",risk:"Low",aiRec:"Approve",evidence:"Learning completion records",link:{tab:"academy"}},
+    {title:"Mandate AI literacy for high-risk roles",context:"Roles exposed to AI decisions need baseline.",impact:"Compliance evidence",risk:"Low",aiRec:"Approve",evidence:"Governance Academy",link:{tab:"academy"}},
+  ],
+  ciso:[
+    {title:"Approve prompt-injection remediation",context:"Copilot blocked on security evidence.",impact:"-18% enterprise risk",risk:"High",aiRec:"Approve",evidence:"Gateway logs + test results",link:{ac:"gateway"}},
+    {title:"Restrict two frontier models",context:"Vendor risk review pending on Gemini/OpenAI.",impact:"Reduces exposure",risk:"Medium",aiRec:"Restrict pending review",evidence:"Vendor risk assessment",link:{ac:"gateway"}},
+  ],
+  caio:[
+    {title:"Record Finance scale decision",context:"Governed scale decision ready.",impact:"Unlocks next wave",risk:"Medium",aiRec:"Approve to scale",evidence:"Scale gate captured",link:{ac:"initiatives"}},
+    {title:"Retire Workforce Skills Navigator",context:"Feedback engine recommends retirement.",impact:"$0.2M saved",risk:"Low",aiRec:"Retire with reason",evidence:"Feedback + governed decision",link:{ac:"initiatives"}},
+  ],
+  cio:[
+    {title:"Approve architecture review",context:"Finance wave depends on hardened integrations.",impact:"Unblocks production",risk:"Medium",aiRec:"Approve",evidence:"Architecture record",link:{ac:"initiatives"}},
+    {title:"Approve model-routing policy change",context:"Shift eligible load to internal models.",impact:"-14% cost",risk:"Low",aiRec:"Approve",evidence:"Gateway analytics",link:{ac:"gateway"}},
+  ],
+  cdpo:[
+    {title:"Approve Workforce Navigator DPIA",context:"Employee-data processing needs sign-off.",impact:"Clears privacy gate",risk:"Medium",aiRec:"Approve after DPIA",evidence:"DPIA + fairness workbook",link:{ac:"evidence"}},
+    {title:"Approve cross-border transfer controls",context:"One flow lacks Art.44 mapping.",impact:"GDPR alignment",risk:"Medium",aiRec:"Request changes",evidence:"Transfer impact assessment",link:{ac:"governance"}},
+  ],
+  cgo:[
+    {title:"Approve top opportunity for intake",context:"Highest scored idea, within appetite.",impact:"+$2.4M forecast",risk:"Low",aiRec:"Approve",evidence:"Use-case scoring",link:{ac:"initiatives"}},
+    {title:"Approve responsible-use policy",context:"Enables governed GenAI adoption.",impact:"+12% compliance",risk:"Low",aiRec:"Approve",evidence:"Policy pack",link:{ac:"governance"}},
+  ],
+};
+
+const ASSISTANT_NUDGES = {
+  ceo:["2 governed decisions are waiting for you.","Finance Close Automation is ready to scale (ROI +31%).","One initiative is trending to retirement - review before the board meeting."],
+  coo:["Retail Banking is blocked on evidence - clearing it unlocks the second wave.","People has the lowest AI adoption in the org.","I can draft the department rollout comms for you."],
+  cfo:["Second-wave budget release is pending your approval.","Credit Decision Assurance is behind on benefits - want a re-forecast?","AI spend can be reduced ~$76K/mo via the Gateway."],
+  chro:["People unit adoption is 31% - a change program is recommended.","Assigning targeted learning could lift readiness 14 points.","3 learning paths are ready to auto-assign."],
+  ciso:["Customer Resolution Copilot is missing prompt-injection evidence.","14 critical vulnerabilities span 3 initiatives.","The Gateway blocked 563 policy violations this month."],
+  caio:["2 initiatives need a scale/retire decision.","7 HITL approvals are pending - I can pre-summarise each.","Copilot cannot advance to Build - missing Design artifacts."],
+  cio:["Finance scale wave is blocked on integration hardening.","Model routing can be optimised for -14% cost.","Platform control coverage is 79% against target."],
+  cdpo:["Workforce Navigator DPIA is overdue - I can draft it.","One cross-border flow lacks Art.44 mapping.","PII redaction threshold review is due."],
+  cgo:["2 high-value opportunities are unqualified in the pipeline.","Qualifying them adds ~$2.4M to the forecast.","The responsible-use policy update is ready to approve."],
+};
+
+const priColor = (p,T) => p==="Critical"?T.red:p==="High"?T.amber:T.blue;
+
+function ExecBrief({role,goAC}){
+  const b=EXEC_BRIEF[role]||EXEC_BRIEF.caio;
+  return <Card style={{padding:16,marginBottom:12,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${AI_GOLD}30`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:10,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:9}}>
+        <span style={{width:7,height:7,borderRadius:"50%",background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}`,animation:"pulse 2.4s infinite"}}/>
+        <span style={{fontSize:9,fontWeight:900,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.16em",fontFamily:F.m}}>Executive AI Brief</span>
+      </div>
+      <Tag label={b.focus} color={AI_GOLD} bg={AI_GOLD+"16"}/>
+    </div>
+    <h2 style={{fontFamily:F.h,fontSize:18,fontWeight:900,color:T.ink,margin:"0 0 8px",lineHeight:1.3}}>{b.headline}</h2>
+    <p style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.75,margin:"0 0 14px",maxWidth:900}}>{b.body}</p>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
+      {b.deltas.map(([label,dir,val])=>{const c=dir==="up"?T.green:dir==="down"?T.amber:T.ink3;return <div key={label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}>{val}</span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></div>
+      </div>;})}
+    </div>
+  </Card>;
+}
+
+function ExecPriorities({role,goto}){
+  const items=EXEC_PRIORITIES[role]||EXEC_PRIORITIES.caio;
+  return <Card style={{padding:16,marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>My Priorities Today</h3>
+      <Tag label={`${items.length} to action`} color={AI_GOLD} bg={AI_GOLD+"16"}/>
+    </div>
+    <div style={{display:"grid",gap:8}}>
+      {items.map((p,i)=><button key={i} onClick={()=>goto(p.link)} style={{display:"grid",gridTemplateColumns:"auto 1fr auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",textAlign:"left",cursor:"pointer",transition:"border-color .15s"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor=priColor(p.priority,T)+"66"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+        <div style={{width:34,height:34,borderRadius:9,background:priColor(p.priority,T)+"18",border:`1px solid ${priColor(p.priority,T)}35`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,fontFamily:F.m,color:priColor(p.priority,T)}}>{i+1}</div>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{p.title}</div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:9,color:T.ink3,fontFamily:F.b}}>
+            <span>Owner: {p.owner}</span><span>Impact: {p.impact}</span><span style={{color:AI_GOLD}}>AI: {p.benefit}</span>
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}>
+          <Tag label={p.priority} color={priColor(p.priority,T)} bg={priColor(p.priority,T)+"16"}/>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{p.due}</span>
+        </div>
+      </button>)}
+    </div>
+  </Card>;
+}
+
+function ExecDecisionCenter({role,goto,showToast}){
+  const items=EXEC_DECISIONS[role]||EXEC_DECISIONS.caio;
+  const [done,setDone]=useState({});
+  const act=(i,label)=>{setDone({...done,[i]:label});showToast&&showToast(`${label} recorded - audit evidence generated`);};
+  const rColor=r=>r==="High"?T.red:r==="Medium"?T.amber:T.green;
+  return <Card style={{padding:16,marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Decision Center</h3>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Every decision auto-generates evidence</span>
+    </div>
+    <div style={{display:"grid",gap:10}}>
+      {items.map((d,i)=>{const decided=done[i];return <div key={i} style={{background:T.s2,border:`1px solid ${decided?T.green+"40":T.border}`,borderRadius:10,padding:"13px 14px",opacity:decided?.85:1,transition:"all .25s"}}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:8,flexWrap:"wrap"}}>
+          <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{d.title}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{d.context}</div></div>
+          <div style={{display:"flex",gap:6,flexShrink:0}}><Tag label={`Risk: ${d.risk}`} color={rColor(d.risk)} bg={rColor(d.risk)+"16"}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:11}}>
+          {[["Impact",d.impact],["AI recommendation",d.aiRec],["Supporting evidence",d.evidence]].map(([l,v])=><div key={l} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 10px"}}>
+            <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>{l}</div>
+            <div style={{fontSize:10,color:l==="AI recommendation"?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:l==="AI recommendation"?800:500}}>{v}</div>
+          </div>)}
+        </div>
+        {decided?<div style={{display:"flex",alignItems:"center",gap:8}}><Tag label={decided} color={T.green} bg={T.greenL}/><button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button></div>
+        :<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>label==="Approve"||label==="Reject"||label==="Request changes"||label==="Escalate"?act(i,label):null} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
+          <button onClick={()=>goto(d.link)} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 12px",color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open evidence →</button>
+        </div>}
+      </div>;})}
+    </div>
+  </Card>;
+}
+
+function ExecRecommendations({role,goto}){
+  const items=EXEC_RECOMMENDATIONS[role]||EXEC_RECOMMENDATIONS.caio;
+  return <Card style={{padding:16,marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>AI Recommendations</h3>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Proactive - ranked by impact</span>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10}}>
+      {items.map((r,i)=><button key={i} onClick={()=>goto(r.link)} style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:14,cursor:"pointer",transition:"border-color .15s"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor=AI_GOLD+"55"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+        <div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:10,lineHeight:1.35,minHeight:32}}>{r.action}</div>
+        <div style={{display:"flex",alignItems:"baseline",gap:7,marginBottom:8}}>
+          <span style={{fontSize:22,fontWeight:900,fontFamily:F.h,color:AI_GOLD}}>{r.value}</span>
+          <span style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>{r.metric}</span>
+        </div>
+        <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5,marginBottom:9}}>{r.rationale}</div>
+        <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Act in AI Central →</span>
+      </button>)}
+    </div>
+  </Card>;
+}
+
+function ExecAssistant({role,goto,showToast,isMobile}){
+  const [open,setOpen]=useState(false);
+  const R=ROLES[role]||ROLES.caio;
+  const nudges=ASSISTANT_NUDGES[role]||ASSISTANT_NUDGES.caio;
+  const focus=(EXEC_BRIEF[role]||EXEC_BRIEF.caio).focus;
+  const priorities=EXEC_PRIORITIES[role]||EXEC_PRIORITIES.caio;
+  return <>
+    {!open&&<button onClick={()=>setOpen(true)} title="AI Executive Assistant" style={{position:"fixed",bottom:22,right:22,zIndex:9000,display:"flex",alignItems:"center",gap:9,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:`1px solid ${AI_GOLD_B}`,borderRadius:999,padding:isMobile?"10px 14px":"12px 18px",fontSize:12,fontWeight:900,fontFamily:F.b,boxShadow:`0 16px 40px ${AI_GOLD}44`,cursor:"pointer"}}>
+      <span style={{width:8,height:8,borderRadius:"50%",background:"#111",boxShadow:"0 0 0 3px rgba(17,17,17,.18)",animation:"pulse 2s infinite"}}/>
+      AI Chief of Staff
+    </button>}
+    {open&&<div style={{position:"fixed",bottom:22,right:22,zIndex:9000,width:isMobile?"calc(100vw - 32px)":360,maxHeight:"78vh",display:"flex",flexDirection:"column",background:T.card,border:`1px solid ${AI_GOLD}45`,borderRadius:16,boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden",animation:"up .25s ease"}}>
+      <div style={{padding:"13px 15px",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(135deg,${T.s2},${T.s1})`,display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:"#111",fontFamily:F.h}}>AI</span></div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>AI Chief of Staff</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{focus} · {R.label}</div></div>
+        <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:T.ink3,cursor:"pointer",padding:4,display:"flex"}}><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg></button>
+      </div>
+      <div style={{padding:"13px 15px",overflowY:"auto",display:"grid",gap:12}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>What needs your attention</div>
+          <div style={{display:"grid",gap:7}}>
+            {nudges.map((n,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,marginTop:5,flexShrink:0}}/>
+              <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{n}</span>
+            </div>)}
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Do it now</div>
+          <div style={{display:"grid",gap:6}}>
+            {priorities.slice(0,3).map((p,i)=><button key={i} onClick={()=>{goto(p.link);setOpen(false);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:700,minWidth:0}}>{p.title}</span>
+              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900,flexShrink:0}}>→</span>
+            </button>)}
+          </div>
+        </div>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.6,paddingTop:4,borderTop:`1px solid ${T.border}`}}>
+          Reasoning order: Internal SLM (policies, playbooks, evidence) → Enterprise Knowledge Graph → external LLM for reasoning only. Confidential knowledge never leaves the enterprise boundary.
+        </div>
+      </div>
+    </div>}
+  </>;
+}
+
 /* Section */
-function PageHome({role,setTab}) {
+function PageHome({role,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), K=KPI[role]||KPI.caio;
   const metrics=DOMAIN_METRICS[role]||[];
   const roleKpis=ROLE_KPIS[role]||[];
@@ -1612,13 +1941,20 @@ function PageHome({role,setTab}) {
   const totalKpiPages=Math.ceil(roleKpis.length/KPI_PAGE_SIZE);
 
   const topKpis=[
-    {label:K.domainLabel,        value:K.score+"/100", sub:K.scoreLabel,    color:rc,       badge:"Maturity", tab:"compliance"},
-    {label:"Overall Compliance", value:K.compliance+"%",sub:"All frameworks",color:T.teal,  badge:"Coverage", tab:"compliance"},
-    {label:"Active Risks",       value:K.risks,        sub:"In register",   color:T.amber,  badge:"Risk", tab:role==="caio"?"aira":"compliance"},
-    {label:"HITL Pending",       value:K.hitl,         sub:"Need approval", color:T.violet, badge:"Approvals",tab:"hitl"},
+    {label:K.domainLabel,        value:K.score+"/100", sub:K.scoreLabel,    color:rc,       badge:"Maturity", link:{ac:"governance"}},
+    {label:"Overall Compliance", value:K.compliance+"%",sub:"All frameworks",color:T.teal,  badge:"Coverage", link:{ac:"governance"}},
+    {label:"Active Risks",       value:K.risks,        sub:"In register",   color:T.amber,  badge:"Risk", link:{ac:"governance"}},
+    {label:"HITL Pending",       value:K.hitl,         sub:"Need approval", color:T.violet, badge:"Approvals",link:{tab:"hitl"}},
   ];
 
   const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink3;
+  /* Deep-link from the personal Executive Workspace into organizational AI Central. */
+  const goto=link=>{
+    if(!link)return;
+    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab("aicentral");}
+    else if(link.tab){setTab(link.tab);}
+  };
+  const goAC=m=>goto({ac:m});
 
   return <div style={{animation:"up .3s ease"}}>
     {/* Header */}
@@ -1629,7 +1965,7 @@ function PageHome({role,setTab}) {
 
     {/* Top KPI strip */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-      {topKpis.map((k,i)=><div key={k.label} onClick={()=>setTab(k.tab)}
+      {topKpis.map((k,i)=><div key={k.label} onClick={()=>goto(k.link)} title="Open in AI Central"
         style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",position:"relative",overflow:"hidden",transition:"border-color .2s"}}
         onMouseEnter={e=>e.currentTarget.style.borderColor=k.color+"60"}
         onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
@@ -1640,6 +1976,12 @@ function PageHome({role,setTab}) {
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </div>)}
     </div>
+
+    {/* Executive Workspace 4.0 intelligence layer */}
+    <ExecBrief role={role} goAC={goAC}/>
+    <ExecPriorities role={role} goto={goto}/>
+    <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
+    <ExecRecommendations role={role} goto={goto}/>
 
     {/* Enterprise AI Transformation Control Plane */}
     <Card style={{padding:16,marginBottom:12,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${T.border}`}}>
@@ -5921,7 +6263,7 @@ export default function VerisZone() {
       {/* Page content */}
       <div style={{flex:1,padding:"20px 16px 60px",maxWidth:1140,width:"100%",margin:"0 auto"}}>
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
-        {showSeededData&&tab==="home"       &&<PageHome       role={role} setTab={setTab}/>}
+        {showSeededData&&tab==="home"       &&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
@@ -5952,5 +6294,6 @@ export default function VerisZone() {
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
+    {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
   </div>;
 }
