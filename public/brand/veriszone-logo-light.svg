@@ -1,0 +1,44 @@
+<svg width="1325" height="831" viewBox="0 0 1325 831" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">VerisZone</title>
+  <desc id="desc">VerisZone logo for light mode with navy and royal blue mark, charcoal wordmark, and Govern with certainty tagline.</desc>
+  <defs>
+    <linearGradient id="vz-blue" x1="210" y1="150" x2="612" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#143A73"/>
+    </linearGradient>
+    <linearGradient id="vz-mark-light" x1="704" y1="155" x2="1070" y2="632" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#143A73"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(382 40)">
+    <path d="M82 118C132 42 232 1 327 22C394 37 450 73 489 124" stroke="#143A73" stroke-width="24" stroke-linecap="butt"/>
+    <path d="M40 250C16 340 46 448 120 515" stroke="#143A73" stroke-width="22" stroke-linecap="butt"/>
+    <path d="M526 250C552 345 518 457 440 522" stroke="#143A73" stroke-width="22" stroke-linecap="butt"/>
+    <path d="M148 252C187 200 235 169 285 158" stroke="#2563EB" stroke-width="18" stroke-linecap="butt"/>
+    <path d="M414 252C379 203 333 171 285 158" stroke="#143A73" stroke-width="18" stroke-linecap="butt"/>
+    <path d="M0 168H112L302 590H202L0 168Z" fill="url(#vz-blue)"/>
+    <path d="M448 168H560L348 590H250L448 168Z" fill="url(#vz-mark-light)"/>
+    <circle cx="285" cy="90" r="16" fill="#143A73"/>
+    <circle cx="285" cy="145" r="15" fill="#2563EB"/>
+    <circle cx="285" cy="200" r="14" fill="#143A73"/>
+    <circle cx="285" cy="255" r="13" fill="#2563EB"/>
+    <circle cx="285" cy="310" r="12" fill="#143A73"/>
+  </g>
+  <g fill="#1F2937">
+    <path d="M86 654L34 535H76L107 611L139 535H180L128 654H86Z"/>
+    <path d="M199 654V535H320V565H239V581H312V609H239V624H323V654H199Z"/>
+    <path d="M351 654V535H429C458 535 478 552 478 578C478 596 468 610 451 617L482 654H436L410 622H391V654H351ZM391 592H423C432 592 438 587 438 579C438 571 432 566 423 566H391V592Z"/>
+    <path d="M512 654V535H552V654H512Z"/>
+    <path d="M591 654V624H676C684 624 688 621 688 616C688 611 684 608 676 608H632C605 608 589 594 589 572C589 549 607 535 637 535H719V565H640C633 565 629 568 629 573C629 578 633 581 640 581H684C713 581 728 594 728 617C728 640 710 654 680 654H591Z"/>
+    <path d="M746 654V628L830 566H752V535H891V562L808 624H894V654H746Z" fill="#1F2937"/>
+    <path d="M923 654V535H964V654H923Z"/>
+    <path d="M1060 657C1019 657 990 632 990 594C990 557 1019 532 1060 532C1101 532 1130 557 1130 594C1130 632 1101 657 1060 657ZM1060 625C1078 625 1090 613 1090 594C1090 576 1078 564 1060 564C1042 564 1030 576 1030 594C1030 613 1042 625 1060 625Z"/>
+    <path d="M1160 654V535H1196L1259 601V535H1297V654H1262L1198 588V654H1160Z"/>
+  </g>
+  <g fill="#374151">
+    <rect x="120" y="711" width="156" height="4" rx="2"/>
+    <rect x="1048" y="711" width="156" height="4" rx="2"/>
+    <text x="662" y="731" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-size="42" font-weight="600" letter-spacing="16">GOVERN WITH CERTAINTY.</text>
+  </g>
+</svg>
