@@ -1789,6 +1789,18 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const nudges=ASSISTANT_NUDGES[role]||ASSISTANT_NUDGES.caio;
   const focus=(EXEC_BRIEF[role]||EXEC_BRIEF.caio).focus;
   const priorities=EXEC_PRIORITIES[role]||EXEC_PRIORITIES.caio;
+  /* Reasoned recommendation: every line traces to the initiative record,
+     its feedback scores, controls and phase evidence. Nothing invented. */
+  const isExec=!["employee","manager"].includes(role);
+  const gate=isExec?acInitiatives.map(i=>({i,f:acFeedback[i.id]||DEFAULT_FEEDBACK,rec:feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)})).find(x=>x.rec==="Scale"||x.rec==="Retire"):null;
+  const gateChecks=gate?[
+    [`Governance score ${gate.i.guardrail}% (target ≥85)`,gate.i.guardrail>=85],
+    [gate.i.blockedBy?`Open blocker: ${gate.i.blockedBy}`:"No open blockers",!gate.i.blockedBy],
+    [`Residual risk ${gate.i.risk}; stakeholder risk score ${gate.f.risk}/100`,gate.i.risk!=="Critical"&&gate.f.risk>=60],
+    [`Adoption ${gate.i.adoption}% (threshold 70%)`,gate.i.adoption>=70],
+    [`Business value score ${gate.i.valueScore}%`,gate.i.valueScore>=75],
+    [`Evidence complete through Phase ${gate.i.phaseIndex} (${AC_PHASES[gate.i.phaseIndex-1]?.name||"Discover"})`,gate.i.phaseIndex>=3],
+  ]:[];
   /* Grounded responder: answers reference the role's priorities, nudges and
      modules - never invented content. External reasoning stays out of scope. */
   const answer=text=>{
@@ -1833,6 +1845,23 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
             </div>)}
           </div>
         </div>
+        {gate&&<div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Reasoned recommendation</div>
+          <div style={{background:T.s2,border:`1px solid ${decisionColorOf(gate.rec,T)}40`,borderRadius:10,padding:"11px 12px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",marginBottom:8}}>
+              <span style={{fontSize:11,fontWeight:900,color:T.ink,fontFamily:F.b}}>{gate.i.name}</span>
+              <Tag label={`Recommend: ${gate.rec}`} color={decisionColorOf(gate.rec,T)} bg={decisionColorOf(gate.rec,T)+"16"}/>
+            </div>
+            <div style={{display:"grid",gap:4,marginBottom:9}}>
+              {gateChecks.map(([txt,ok],i)=><div key={i} style={{display:"flex",gap:7,alignItems:"flex-start"}}>
+                <span style={{fontSize:10,fontWeight:900,color:ok?T.green:T.red,fontFamily:F.m,flexShrink:0}}>{ok?"✓":"✗"}</span>
+                <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.45}}>{txt}</span>
+              </div>)}
+            </div>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>Sources: feedback engine scores · controls {gate.i.controls.join(", ")||"none"} · policies {gate.i.policies.join(", ")||"none"} · phase artifact evidence. Value at stake: {gate.i.expected} expected.</div>
+            <button onClick={()=>{goto({ac:"initiatives"});setOpen(false);}} style={{width:"100%",background:decisionColorOf(gate.rec,T)+"14",border:`1px solid ${decisionColorOf(gate.rec,T)}45`,borderRadius:7,padding:"7px 10px",color:decisionColorOf(gate.rec,T),fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record {gate.rec} decision in AI Central →</button>
+          </div>
+        </div>}
         {isWorkbench&&<div>
           <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>I noticed you are working on an AI artifact</div>
           <div style={{display:"grid",gap:6}}>
@@ -5936,6 +5965,103 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     </div>;
   };
 
+  /* ── Initiative context tabs: derived views over the initiative's own
+        data. Risks are owned here and aggregated by Risk Center. ── */
+  const InitRisks=()=><Card style={{padding:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risk register</h3>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Owned by this initiative - aggregated in Risk Center</span>
+    </div>
+    <div style={{display:"grid",gap:8}}>
+      {selected.risks.map(r=><div key={r} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Owner: {selected.businessOwner} · Exposure: {selected.expected} · Mitigation: {selected.controls[0]||"unassigned"}</div></div>
+        <PTag p={selected.risk}/>
+        <Tag label={`${selected.guardrail}% controls`} color={selected.guardrail>=80?T.green:T.amber} bg={(selected.guardrail>=80?T.green:T.amber)+"14"}/>
+      </div>)}
+      {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Open blocker:</strong> {selected.blockedBy}</div>}
+    </div>
+  </Card>;
+  const InitEvidence=()=>{
+    const rows=evidenceRows.filter(e=>e.initiative===selected.name);
+    return <Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Evidence for this initiative</h3><Tag label={`${rows.length} records`} color={AI_GOLD} bg={AI_GOLD+"16"}/></div>
+      {rows.length===0&&<div style={{padding:"18px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No evidence yet - completed phase artifacts and decisions will appear here automatically.</div>}
+      {rows.map(e=><div key={`${e.item}-${e.time}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr auto",gap:12,padding:"12px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+        <div><div style={{fontSize:12,color:T.ink,fontWeight:700}}>{e.item}</div><div style={{fontSize:9,color:T.ink3}}>Control: {e.control}</div></div>
+        <span style={{fontSize:10,color:T.ink2}}>Owner: {e.owner}</span>
+        <div style={{display:"flex",gap:6}}><STag s={e.status}/><STag s={e.approval}/></div>
+      </div>)}
+      <div style={{padding:"10px 18px"}}><button onClick={()=>setView("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open the enterprise repository →</button></div>
+    </Card>;
+  };
+  const InitControls=()=><Card style={{padding:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Activated controls & policies</h3>
+      <Ring score={selected.guardrail} color={selected.guardrail>=80?T.green:T.amber} size={44}/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <div>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Controls</div>
+        {selected.controls.length?selected.controls.map(c=><div key={c} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}><span style={{width:7,height:7,borderRadius:"50%",background:T.green}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.m}}>{c}</span></div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No controls activated yet - assigned in the Design phase.</div>}
+      </div>
+      <div>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Policies</div>
+        {selected.policies.length?selected.policies.map(c=><div key={c} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}><span style={{width:7,height:7,borderRadius:"50%",background:T.blue}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{c}</span></div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No policies mapped yet.</div>}
+      </div>
+    </div>
+    <button onClick={()=>setView("governance")} style={{marginTop:12,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open AI Governance →</button>
+  </Card>;
+  const InitApprovals=()=><Card style={{padding:16}}>
+    <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Phase approvals</h3>
+    <div style={{display:"grid",gap:7}}>
+      {AC_PHASES.map((ph,idx)=>{
+        const st=idx<selected.phaseIndex?"Approved":idx===selected.phaseIndex?(selected.blockedBy?"Blocked":"In review"):"Pending";
+        const c=st==="Approved"?T.green:st==="Blocked"?T.red:st==="In review"?T.amber:T.ink4;
+        return <div key={ph.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+          <span style={{fontSize:11,color:T.ink,fontWeight:700,fontFamily:F.b}}>Phase {ph.order}: {ph.name}</span>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>Accountable: {ph.raci.accountable}</span>
+          <Tag label={st} color={c} bg={c+"16"}/>
+        </div>;
+      })}
+    </div>
+    <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10}}>Human-in-the-loop items for this initiative appear in the Decisions queue.</div>
+  </Card>;
+  const InitROI=()=><Card style={{padding:16}}>
+    <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Return on investment</h3>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+      {[["Expected ROI",selected.roi,T.green],["Value realized",`${selected.actual} / ${selected.expected}`,AI_GOLD],["Cost savings",selected.savings,T.green],["Revenue impact",selected.revenue,T.teal],["Productivity",selected.productivity,T.blue]].map(([l,v,c])=><div key={l} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:6}}>{l}</div>
+        <div style={{fontSize:17,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+      </div>)}
+    </div>
+    <Bar value={selected.valueScore} color={selected.valueScore>80?T.green:T.amber}/>
+    <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>Business value score {selected.valueScore}% - feeds the Value Center and the scale decision.</div>
+  </Card>;
+  const InitAdoption=()=><Card style={{padding:16}}>
+    <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Adoption & workforce readiness</h3>
+    <div style={{display:"flex",gap:18,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
+      <Ring score={selected.adoption} color={selected.adoption>=70?T.green:T.amber} size={72}/>
+      <div style={{flex:1,minWidth:220}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.ink2,fontFamily:F.b,marginBottom:5}}><span>Training completion</span><span style={{fontFamily:F.m}}>{selected.training}</span></div>
+        <Bar value={parseInt(selected.training)||0} color={(parseInt(selected.training)||0)>75?T.green:T.amber}/>
+        <div style={{marginTop:10}}><Tag label={`Resistance: ${selected.resistance}`} color={selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green} bg={(selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green)+"14"}/></div>
+      </div>
+    </div>
+    <button onClick={()=>{setView("academy");}} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Assign learning in Governance Academy →</button>
+  </Card>;
+  const InitLessons=()=>{
+    const linked=knowledgeAssets.filter(k=>k.sourceRef.includes(selected.id)||k.title.toLowerCase().includes(selected.name.split(" ")[0].toLowerCase()));
+    return <Card style={{padding:16}}>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 6px"}}>Lessons learned</h3>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 12px"}}>Knowledge captured from this initiative feeds the enterprise Knowledge Engine and every future rollout. Formal knowledge capture is a mandatory artifact of the Scale or Retire phase.</p>
+      {linked.length?linked.map(k=><div key={k.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",marginBottom:7}}>
+        <div><div style={{fontSize:12,color:T.ink,fontWeight:700,fontFamily:F.b}}>{k.title}</div><div style={{fontSize:9,color:T.ink3}}>{k.sourceRef}</div></div>
+        <Tag label={k.kind} color={T.blue} bg={T.blue+"14"}/>
+        <span style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{k.reuseCount} reuses</span>
+      </div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"12px"}}>No knowledge captured from this initiative yet - it is generated at the Scale/Retire gate.</div>}
+    </Card>;
+  };
+
   const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
       <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; Portfolio</button>
@@ -5947,14 +6073,19 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
       </div>
     </div>
-    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Readiness"],["feedback","Feedback"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
-    {initTab==="overview"&&<Overview/>}
+    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["risks","Risks"],["evidence","Evidence"],["controls","Controls"],["approvals","Approvals"],["pilot","Monitoring"],["roi","ROI"],["adoption","Adoption"],["feedback","Feedback"],["lessons","Lessons"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
+    {initTab==="overview"&&<div><Overview/><div style={{marginTop:14}}><PageAISpine mode="dna" setTab={setTab} focus={selected}/></div></div>}
     {initTab==="implementation"&&<Implementation/>}
+    {initTab==="risks"&&<InitRisks/>}
+    {initTab==="evidence"&&<InitEvidence/>}
+    {initTab==="controls"&&<InitControls/>}
+    {initTab==="approvals"&&<InitApprovals/>}
     {initTab==="pilot"&&<PilotExecution/>}
-    {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab} focus={selected}/>}
-    {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab} focus={selected}/>}
+    {initTab==="roi"&&<InitROI/>}
+    {initTab==="adoption"&&<InitAdoption/>}
     {initTab==="feedback"&&<FeedbackPanel/>}
-    {initTab==="decision"&&<DecisionPanel/>}
+    {initTab==="lessons"&&<InitLessons/>}
+    {initTab==="decision"&&<div><PageAISpine mode="scalegate" setTab={setTab} focus={selected}/><div style={{marginTop:14}}><DecisionPanel/></div></div>}
   </div>;
 
   /* ── AI Governance ─────────────────────────────────────────── */
