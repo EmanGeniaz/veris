@@ -195,3 +195,10 @@ export type ExecRecommendationItem = {
 };
 
 export type FrameworkPosture = { id: string; name: string; score: number; sub: string };
+
+export type ExecKpiInsight = {
+  rootCause: string;
+  impact: string;
+  aiRec: string;
+  link: ExecLink;
+};
