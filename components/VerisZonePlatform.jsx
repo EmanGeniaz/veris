@@ -231,6 +231,7 @@ const NAV = [
   {id:"servicenow",icon:"N", label:"ServiceNow / CRM"},
   {id:"aigov",     icon:"V", label:"AI Governance Cube"},
   {id:"reports",   icon:"B", label:"Reports"},
+  {id:"aicentral", icon:"V", label:"AI Central"},
 ];
 
 const CAIO_EXTRA_NAV = [
@@ -242,7 +243,7 @@ const CAIO_EXTRA_NAV = [
 ];
 
 const NAV_SECTIONS = [
-  {title:"Command Center", items:["home"]},
+  {title:"Command Center", items:["home","aicentral"]},
   {title:"CXO Platform", items:["onboard","intake","strategy","aia","aiia","hitl"]},
   {title:"Governance Library", items:["playbook","academy","templates","checklists","compliance","impl","roadmap"]},
   {title:"Risk & Controls", items:["controls","scope","gapanalysis","aigov"]},
@@ -250,7 +251,7 @@ const NAV_SECTIONS = [
 ];
 
 const EXECUTIVE_NAV_SECTIONS = [
-  {title:"Executive Workspace", items:["home","intake","strategy","hitl"]},
+  {title:"Executive Workspace", items:["home","aicentral","intake","strategy","hitl"]},
   {title:"Transformation Oversight", items:["roadmap","academy","reports"]},
 ];
 
@@ -278,6 +279,26 @@ const AC_LEGACY_VIEWS = {
 };
 
 const acAccessFor = role => AC_RBAC[role] || AC_RBAC.caio;
+
+/* Governed lifecycle: initiatives are planned, delivered, then a control-plane
+   decision scales or retires them. Retirement is never a free jump - it is a
+   justified governance decision. */
+const LIFECYCLE_BANDS = [
+  {band:"Plan",    cats:["New Ideas","Assessment","Approved"]},
+  {band:"Deliver", cats:["Implementation","Pilot","Production"]},
+  {band:"Decide",  cats:["Scaling","Completed","Retired"]},
+];
+const LIFECYCLE_ORDER = ["New Ideas","Assessment","Approved","Implementation","Pilot","Production","Scaling","Completed","Retired"];
+const TERMINAL_LIFECYCLE = new Set(["Scaling","Completed","Retired"]);
+/* An AI initiative / agent / AIMS is retired only for a governed reason. */
+const RETIREMENT_REASONS = [
+  "Non-performing model",
+  "Inefficient / low business value",
+  "Vision cancelled or deprioritised",
+  "Superseded by a newer initiative",
+  "Unacceptable risk or compliance exposure",
+  "Data source or vendor no longer viable",
+];
 
 const AI_GOLD = "#D6A84F";
 const AI_GOLD_L = "#211806";
@@ -1366,8 +1387,8 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
       </div>
       <nav className="vz-side-nav" style={{flex:1,padding:"10px 9px",overflowY:"auto"}}>
         {isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
-          <AICentralBrand theme={theme} width={42} compact style={{marginBottom:8}}/>
-          <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Standalone AI operating center for downstream pilot execution, guardrails, evidence and scale readiness.</div>
+          <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
+          <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
         </div>}
         {isAICentral&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
           const isA=aiCentralView===item.id;
@@ -4794,6 +4815,8 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
   const [evQuery,setEvQuery]=useState("");
   const [evScope,setEvScope]=useState("All");
+  const [decisions,setDecisions]=useState({});
+  const [retireDraft,setRetireDraft]=useState({reason:RETIREMENT_REASONS[0],rationale:""});
   const selected=items.find(i=>i.id===selectedId)||items[0];
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
   const evidenceRows=[...acEvidence,...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
@@ -4920,8 +4943,15 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   </div>;
 
   /* ── AI Initiatives ────────────────────────────────────────── */
-  const LIFECYCLE_CATS=["New Ideas","Assessment","Approved","Implementation","Pilot","Production","Scaling","Completed","Retired"];
   const filtered=lifecycleFilter==="All"?items:items.filter(i=>i.lifecycle===lifecycleFilter);
+  const catColor=cat=>cat==="Retired"?T.red:cat==="Scaling"?T.green:cat==="Completed"?T.teal:cat==="Production"||cat==="Pilot"?AI_GOLD:T.blue;
+  const decide=(outcome,reason,rationale)=>{
+    const rec={outcome,reason:reason||null,rationale:rationale||"",decidedBy:R.label,at:"just now"};
+    setDecisions({...decisions,[selected.id]:rec});
+    setItems(items.map(i=>i.id===selected.id?{...i,lifecycle:outcome==="Scale"?"Scaling":"Retired",status:outcome==="Scale"?"Scaling":"Retired",blockedBy:null}:i));
+    showToast&&showToast(outcome==="Scale"?"Governed decision recorded: approved to scale":"Governed decision recorded: initiative retired");
+    setRetireDraft({reason:RETIREMENT_REASONS[0],rationale:""});
+  };
   const phaseStatus=(ini,idx)=>idx<ini.phaseIndex?"Complete":idx>ini.phaseIndex?"Not Started":ini.blockedBy?"Blocked":"Active";
   const artifactStatus=(ini,phaseIdx,artIdx)=>{
     if(phaseIdx<ini.phaseIndex)return "Complete";
@@ -4946,14 +4976,32 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
 
   const InitiativeList=()=><div>
-    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-      {["All",...LIFECYCLE_CATS].map(cat=>{
-        const count=cat==="All"?items.length:items.filter(i=>i.lifecycle===cat).length;
-        const isA=lifecycleFilter===cat;
-        return <button key={cat} onClick={()=>setLifecycleFilter(cat)} style={{background:isA?rc+"20":T.s2,border:`1px solid ${isA?rc+"55":T.border}`,color:isA?rc:count?T.ink2:T.ink4,borderRadius:8,padding:"6px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{cat} <span style={{fontFamily:F.m,opacity:.8}}>{count}</span></button>;
-      })}
-      <button onClick={()=>setCreateOpen(!createOpen)} style={{marginLeft:"auto",background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"7px 13px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{createOpen?"Close":"Create AI Initiative"}</button>
-    </div>
+    <Card style={{padding:"14px 16px",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>setLifecycleFilter("All")} style={{background:lifecycleFilter==="All"?rc+"20":T.s2,border:`1px solid ${lifecycleFilter==="All"?rc+"55":T.border}`,color:lifecycleFilter==="All"?rc:T.ink2,borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>All initiatives <span style={{fontFamily:F.m,opacity:.8}}>{items.length}</span></button>
+          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em"}}>Governed lifecycle</span>
+        </div>
+        <button onClick={()=>setCreateOpen(!createOpen)} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"7px 13px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{createOpen?"Close":"Create AI Initiative"}</button>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"stretch"}}>
+        {LIFECYCLE_BANDS.map((band,bi)=><div key={band.band} style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 10px"}}>
+            <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:band.band==="Decide"?AI_GOLD:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7,textAlign:"center"}}>{band.band}</div>
+            <div style={{display:"flex",gap:5}}>
+              {band.cats.map(cat=>{
+                const count=items.filter(i=>i.lifecycle===cat).length;
+                const isA=lifecycleFilter===cat;
+                const c=catColor(cat);
+                return <button key={cat} onClick={()=>setLifecycleFilter(cat)} title={cat==="Retired"?"Governed retirement decision required":cat} style={{background:isA?c+"22":"transparent",border:`1px solid ${isA?c+"66":count?T.border:T.border}`,color:isA?c:count?T.ink2:T.ink4,borderRadius:7,padding:"5px 9px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{cat} <span style={{fontFamily:F.m,opacity:.85}}>{count}</span></button>;
+              })}
+            </div>
+          </div>
+          {bi<LIFECYCLE_BANDS.length-1&&<span aria-hidden style={{color:T.ink4,fontSize:14,fontWeight:900}}>&#8594;</span>}
+        </div>)}
+      </div>
+      <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10,lineHeight:1.5}}>Plan and deliver move forward through phase gates. <strong style={{color:AI_GOLD}}>Scale or Retire is a governed decision</strong> - an initiative is never retired without a recorded reason (non-performing model, low value, cancelled vision, superseded, or risk).</div>
+    </Card>
     {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${rc}45`,animation:"up .25s ease"}}>
       <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Create AI Initiative</h3>
       <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every initiative starts in Discover. Mandatory artifacts gate each phase; the record becomes the single source of truth.</p>
@@ -4978,7 +5026,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         <tbody>{filtered.map(i=><tr key={i.id} onClick={()=>openInitiative(i.id)} style={{cursor:"pointer",borderBottom:"1px solid "+T.border}}>
           <td style={{padding:"13px 12px",color:T.ink,fontWeight:700}}>{i.name}<div style={{fontSize:10,color:T.ink3,fontWeight:400}}>{i.category}</div></td>
           <td style={{padding:"13px 12px",color:T.ink2}}>{i.unit}</td>
-          <td style={{padding:"13px 12px"}}><Tag label={i.lifecycle} color={rc} bg={rc+"14"}/></td>
+          <td style={{padding:"13px 12px"}}><Tag label={i.lifecycle} color={catColor(i.lifecycle)} bg={catColor(i.lifecycle)+"16"}/></td>
           <td style={{padding:"13px 12px",color:T.ink2}}>{i.businessOwner}<div style={{fontSize:10,color:T.ink3}}>{i.sponsor}</div></td>
           <td style={{padding:"13px 12px"}}><STag s={i.status}/></td>
           <td style={{padding:"13px 12px"}}><PTag p={i.risk}/></td>
@@ -5126,23 +5174,83 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     </div>;
   };
 
+  const DecisionPanel=()=>{
+    const existing=decisions[selected.id];
+    const isTerminal=TERMINAL_LIFECYCLE.has(selected.lifecycle)||!!existing;
+    const readiness=Math.round((selected.guardrail+selected.adoption+selected.valueScore)/3);
+    const canScale=readiness>=70&&!selected.blockedBy;
+    const signals=[
+      ["Guardrail compliance",selected.guardrail,selected.guardrail>=80?T.green:selected.guardrail>=70?T.amber:T.red],
+      ["Adoption",selected.adoption,selected.adoption>=70?T.green:T.amber],
+      ["Business value",selected.valueScore,selected.valueScore>=75?T.green:T.amber],
+      ["Composite readiness",readiness,readiness>=70?T.green:T.amber],
+    ];
+    return <div style={{display:"grid",gridTemplateColumns:"1.1fr .9fr",gap:14}}>
+      <Card style={{padding:18}}>
+        <Tag label="GOVERNED DECISION" color={AI_GOLD} bg={AI_GOLD_L}/>
+        <h3 style={{fontSize:18,color:T.ink,fontWeight:800,fontFamily:F.h,margin:"10px 0 4px"}}>Scale or retire {selected.name}</h3>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:"0 0 14px"}}>AI Central plans, governs and monitors every initiative, then makes an accountable decision to scale or retire it. Retirement always records a reason - an initiative is never retired silently.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:9,marginBottom:8}}>
+          {signals.map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:11}}>
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{l}</div>
+            <Bar value={v} color={c}/><div style={{fontSize:12,color:T.ink,fontFamily:F.m,fontWeight:800,marginTop:6}}>{v}%</div>
+          </div>)}
+        </div>
+        {selected.blockedBy&&!isTerminal&&<div style={{fontSize:11,color:T.amber,fontFamily:F.b,marginTop:4}}>Open blocker: {selected.blockedBy}. Resolve before scaling.</div>}
+      </Card>
+      <div style={{display:"grid",gap:12,alignContent:"start"}}>
+        {existing?<Card style={{padding:16,border:`1px solid ${(existing.outcome==="Scale"?T.green:T.red)}45`}}>
+          <Tag label={existing.outcome==="Scale"?"DECISION: SCALE":"DECISION: RETIRE"} color={existing.outcome==="Scale"?T.green:T.red} bg={(existing.outcome==="Scale"?T.green:T.red)+"16"}/>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.7,marginTop:10}}>
+            {existing.reason&&<div><strong style={{color:T.ink}}>Reason:</strong> {existing.reason}</div>}
+            {existing.rationale&&<div style={{marginTop:4}}><strong style={{color:T.ink}}>Rationale:</strong> {existing.rationale}</div>}
+            <div style={{marginTop:4}}><strong style={{color:T.ink}}>Decided by:</strong> {existing.decidedBy} - {existing.at}</div>
+          </div>
+          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10}}>Recorded as a governed decision and captured in Trust &amp; Evidence.</div>
+        </Card>:<>
+          <Card style={{padding:16,border:`1px solid ${T.green}35`}}>
+            <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 6px"}}>Approve to scale</h3>
+            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>Readiness, evidence and value support expanding this initiative to the next wave.</p>
+            <button disabled={!canScale} onClick={()=>decide("Scale")} style={{width:"100%",background:canScale?T.green:T.s3,border:`1px solid ${canScale?T.green:T.border}`,borderRadius:8,padding:"10px",color:canScale?"#fff":T.ink4,fontSize:12,fontWeight:900,fontFamily:F.b,cursor:canScale?"pointer":"not-allowed"}}>{canScale?"Approve to scale":"Readiness below scale threshold"}</button>
+          </Card>
+          <Card style={{padding:16,border:`1px solid ${T.red}35`}}>
+            <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 6px"}}>Retire initiative</h3>
+            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>Retirement is careful and accountable. Record why this AI initiative, agent or AIMS is being retired.</p>
+            <label style={{display:"grid",gap:5,marginBottom:9}}>
+              <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Retirement reason</span>
+              <select value={retireDraft.reason} onChange={e=>setRetireDraft({...retireDraft,reason:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
+                {RETIREMENT_REASONS.map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+            <label style={{display:"grid",gap:5,marginBottom:10}}>
+              <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Rationale</span>
+              <textarea value={retireDraft.rationale} onChange={e=>setRetireDraft({...retireDraft,rationale:e.target.value})} rows={3} placeholder="Evidence and context for the retirement decision" style={{...fieldStyle,resize:"vertical",lineHeight:1.5}}/>
+            </label>
+            <button disabled={!retireDraft.rationale.trim()} onClick={()=>decide("Retire",retireDraft.reason,retireDraft.rationale.trim())} style={{width:"100%",background:retireDraft.rationale.trim()?T.red:T.s3,border:`1px solid ${retireDraft.rationale.trim()?T.red:T.border}`,borderRadius:8,padding:"10px",color:retireDraft.rationale.trim()?"#fff":T.ink4,fontSize:12,fontWeight:900,fontFamily:F.b,cursor:retireDraft.rationale.trim()?"pointer":"not-allowed"}}>Record retirement decision</button>
+          </Card>
+        </>}
+      </div>
+    </div>;
+  };
+
   const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
       <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; Portfolio</button>
       <div style={{minWidth:0}}>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <h3 style={{fontSize:18,color:T.ink,fontWeight:800,margin:0,fontFamily:F.h}}>{selected.name}</h3>
-          <Tag label={selected.lifecycle} color={rc} bg={rc+"14"}/><PTag p={selected.risk}/>
+          <Tag label={selected.lifecycle} color={catColor(selected.lifecycle)} bg={catColor(selected.lifecycle)+"16"}/><PTag p={selected.risk}/>
         </div>
         <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
       </div>
     </div>
-    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Gate"]]} active={initTab} onChange={setInitTab}/>
+    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Readiness"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
     {initTab==="overview"&&<Overview/>}
     {initTab==="implementation"&&<Implementation/>}
     {initTab==="pilot"&&<PilotExecution/>}
     {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab}/>}
     {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab}/>}
+    {initTab==="decision"&&<DecisionPanel/>}
   </div>;
 
   /* ── AI Governance ─────────────────────────────────────────── */
@@ -5676,13 +5784,12 @@ export default function VerisZone() {
         </div>}
         {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
           {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
-          {sessionMode==="demo"&&<span aria-hidden style={{width:1,background:T.border,margin:"4px 3px",flexShrink:0}}/>}
-          {sessionMode==="demo"&&<button onClick={()=>setTab("aicentral")} title="Open the seeded AI Central showcase" style={{background:tab==="aicentral"?AI_GOLD+"1C":"transparent",border:tab==="aicentral"?`1px solid ${AI_GOLD}55`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:tab==="aicentral"?AI_GOLD:T.ink3,fontSize:11,fontWeight:900,fontFamily:F.b,transition:"all .2s",whiteSpace:"nowrap",cursor:"pointer"}}>AI Central</button>}
-          {sessionMode!=="demo"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:tab!=="aicentral"?rc+"18":T.s2,border:`1px solid ${tab!=="aicentral"?rc+"45":T.border}`,borderRadius:8,padding:"5px 14px",color:tab!=="aicentral"?rc:T.ink2,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
+          {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
+          {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
         {isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s3:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1,overflowX:"auto"}}>
           {sessionMode==="demo"
-            ?[...Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>}),<button key="aicentral" onClick={()=>setTab("aicentral")} style={{flex:1,background:tab==="aicentral"?AI_GOLD+"20":"transparent",border:tab==="aicentral"?`1px solid ${AI_GOLD}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:tab==="aicentral"?AI_GOLD:T.ink4,fontSize:9,fontWeight:800,fontFamily:F.b,whiteSpace:"nowrap"}}>AI Central</button>]
+            ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
             :<button type="button" onClick={()=>setTab("home")} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
