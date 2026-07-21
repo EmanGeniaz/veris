@@ -1227,6 +1227,30 @@ function glyphIconFor(value) {
   return Sparkles;
 }
 
+/* Animates the first number in a value string from zero on mount. */
+function CountUp({value,duration=900}){
+  const str=String(value??"");
+  const m=str.match(/-?\d+(\.\d+)?/);
+  const [disp,setDisp]=useState(m?str.replace(m[0],"0"):str);
+  useEffect(()=>{
+    if(!m){setDisp(str);return;}
+    const target=parseFloat(m[0]);
+    const dec=(m[0].split(".")[1]||"").length;
+    const t0=performance.now();
+    let raf;
+    const tick=now=>{
+      const p=Math.min(1,(now-t0)/duration);
+      const eased=1-Math.pow(1-p,3);
+      setDisp(str.replace(m[0],(target*eased).toFixed(dec)));
+      if(p<1)raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[str]);
+  return <>{disp}</>;
+}
+
 function Glyph({name, color=T.ink3, size=16, strokeWidth=1.8, style={}}) {
   const Icon=glyphIconFor(name);
   return <Icon size={size} color={color} strokeWidth={strokeWidth} style={{display:"block",flexShrink:0,...style}} aria-hidden="true"/>;
@@ -1629,7 +1653,7 @@ function ExecBrief({role,goAC}){
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
       {b.deltas.map(([label,dir,val])=>{const c=dir==="up"?T.green:dir==="down"?T.amber:T.ink3;return <div key={label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}>{val}</span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}><CountUp value={val}/></span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></div>
       </div>;})}
     </div>
   </Card>;
@@ -2014,6 +2038,19 @@ function KpiInsightPanel({label,status,role,goto}){
   </div>;
 }
 
+/* Collapsible section shell for the executive dashboard's deep sections. */
+function ExecSection({title,hint,defaultOpen=false,children}){
+  const [open,setOpen]=useState(defaultOpen);
+  return <div style={{marginBottom:12}}>
+    <button onClick={()=>setOpen(!open)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,background:T.s2,border:`1px solid ${T.border}`,borderRadius:open?"10px 10px 0 0":10,padding:"11px 14px",cursor:"pointer",textAlign:"left"}}>
+      <span style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.h}}>{title}</span>
+      {hint&&<span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{hint}</span>}
+      <span style={{marginLeft:"auto",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.m,transform:open?"rotate(90deg)":"none",transition:"transform .2s"}}>›</span>
+    </button>
+    {open&&<div style={{border:`1px solid ${T.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"12px 12px 4px",background:T.s1,animation:"fade .25s ease"}}>{children}</div>}
+  </div>;
+}
+
 /* Section */
 function PageHome({role,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), K=KPI[role]||KPI.caio;
@@ -2061,7 +2098,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
         onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
         <div style={{position:"absolute",top:0,right:0,width:50,height:50,background:`radial-gradient(circle at top right,${k.color}15,transparent 70%)`}}/>
         <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",height:22,padding:"0 8px",borderRadius:999,background:k.color+"14",border:"1px solid "+k.color+"32",color:k.color,fontSize:9,fontWeight:800,fontFamily:F.m,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10}}>{k.badge}</div>
-        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}>{k.value}</div>
+        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}><CountUp value={k.value}/></div>
         <div style={{fontSize:10,fontWeight:600,color:T.ink2,fontFamily:F.b,marginBottom:1}}>{k.label}</div>
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </div>)}
@@ -2072,10 +2109,10 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
     <ExecPriorities role={role} goto={goto}/>
     <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
     <ExecRecommendations role={role} goto={goto}/>
-    <ExecMyInitiatives role={role} goAC={goAC}/>
-    <ExecRiskCenter role={role} goAC={goAC}/>
-    <ExecValueCenter role={role} goAC={goAC}/>
-    <ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/>
+    <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
+    <ExecSection title="Enterprise Risk Center" hint="Exposure, mitigation and AI recommendations"><ExecRiskCenter role={role} goAC={goAC}/></ExecSection>
+    <ExecSection title="Value Center" hint="Realized value, ROI and target achievement"><ExecValueCenter role={role} goAC={goAC}/></ExecSection>
+    <ExecSection title="Governance Health" hint="Controls, evidence, audit readiness and frameworks"><ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/></ExecSection>
 
     {/* Enterprise AI Transformation Control Plane */}
     <Card style={{padding:16,marginBottom:12,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${T.border}`}}>
@@ -2143,7 +2180,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
                 {m.trend>0?"Up":"Down"} {Math.abs(m.trend)}{m.unit==="%" ?"%":""}
               </span>
             </div>
-            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}>{m.value}{m.unit}</div>
+            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}><CountUp value={m.value}/>{m.unit}</div>
             <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,marginTop:3}}>{m.fw}</div>
             {isOpen&&<KpiInsightPanel label={m.label} status={m.trend>0?"Good":"Alert"} role={role} goto={goto}/>}
           </div>;
@@ -3489,10 +3526,16 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
 }
 
 /* Section */
-function PageReports({role,sessionMode}) {
+function PageReports({role,sessionMode,setTab,setAiCentralView}) {
   const rc=RC(role), rcL=RCL(role), K=KPI[role]||KPI.caio;
   const standards=STANDARDS_MAP[role]||[];
   const roleKpis=ROLE_KPIS[role]||[];
+  const [rowOpen,setRowOpen]=useState(null);
+  const goto=link=>{
+    if(!link)return;
+    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
+    else if(link.tab){setTab&&setTab(link.tab);}
+  };
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
   const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
   return <div style={{animation:"up .3s ease"}}>
@@ -3504,7 +3547,7 @@ function PageReports({role,sessionMode}) {
         {label:"HITL Pending",value:K.hitl,sub:"Awaiting approval",color:T.violet}
       ].map((k,i)=><Card key={k.label} style={{padding:15,animation:`up ${.3+i*.07}s ease both`}}>
         <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:9}}>{k.label}</div>
-        <div style={{fontSize:28,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:4}}>{k.value}</div>
+        <div style={{fontSize:28,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:4}}><CountUp value={k.value}/></div>
         <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </Card>)}
     </div>
@@ -3515,11 +3558,12 @@ function PageReports({role,sessionMode}) {
       {standards.map((s,i)=>{
         const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
         const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
-        return <div key={s.std} style={{padding:"11px 16px",borderBottom:i<standards.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"100px 1fr 1fr 80px",gap:12,alignItems:"center"}}>
+        return <div key={s.std} onClick={()=>setRowOpen(rowOpen===s.std?null:s.std)} title="Show root cause and recommended action" style={{padding:"11px 16px",borderBottom:i<standards.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"100px 1fr 1fr 80px",gap:12,alignItems:"center",cursor:"pointer"}}>
           <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:T.ink}}>{s.std}</span>
           <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
           <div><Bar value={s.score} color={rc} delay={i*80}/></div>
           <Tag label={status} color={col} bg={col+"15"}/>
+          {rowOpen===s.std&&<KpiInsightPanel label={s.std} status={status==="Strong"||status==="Good"?"Good":"Alert"} role={role} goto={goto}/>}
         </div>;
       })}
     </Card>
@@ -3529,7 +3573,7 @@ function PageReports({role,sessionMode}) {
       </div>
       {roleKpis.slice(0,5).map((k,i)=>{
         const sc=stColor(k.status);
-        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 70px",padding:"10px 16px",alignItems:"center",borderBottom:i<4?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg}}>
+        return <div key={i} onClick={()=>setRowOpen(rowOpen===k.kpi?null:k.kpi)} title="Show root cause and recommended action" style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 70px",padding:"10px 16px",alignItems:"center",borderBottom:i<4?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,cursor:"pointer"}}>
           <div>
             <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
             <span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.cat}</span>
@@ -3537,6 +3581,7 @@ function PageReports({role,sessionMode}) {
           <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
           <span style={{fontSize:10,fontWeight:700,color:rc,fontFamily:F.m}}>{k.value}</span>
           <Tag label={k.status} color={sc} bg={sc+"18"}/>
+          {rowOpen===k.kpi&&<KpiInsightPanel label={k.kpi} status={k.status} role={role} goto={goto}/>}
         </div>;
       })}
     </Card>
@@ -5331,7 +5376,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
       <div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>{label}</div>
-        <div style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h}}>{value}</div>
+        <div style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h}}><CountUp value={value}/></div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:4}}>{sub}</div>
       </div>
       {typeof score==="number"?<Ring score={score} color={color||rc} size={54}/>:<div style={{width:38,height:38,borderRadius:12,background:(color||rc)+"18",border:"1px solid "+(color||rc)+"35"}}/>}
@@ -6823,7 +6868,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="gapanalysis" &&<PageGapAnalysis  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
-        {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode}/>}
+        {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
