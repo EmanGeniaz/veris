@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
+import { AC_PHASES, AC_RBAC, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats } from "@/lib/platform-models";
 import {
   Activity,
   AlertTriangle,
@@ -259,23 +260,24 @@ const CAIO_NAV_SECTIONS = [
 ];
 
 const AI_CENTRAL_NAV = [
-  {id:"dashboard", label:"Dashboard", sub:"Portfolio pulse"},
-  {id:"registry", label:"Initiative Registry", sub:"AI systems and owners"},
-  {id:"pilot", label:"Pilot Workspace", sub:"Department execution"},
-  {id:"detail", label:"Initiative Detail", sub:"Risk, value and controls"},
-  {id:"lifecycle", label:"Lifecycle Workflow", sub:"Mandatory gates"},
-  {id:"guardrails", label:"Guardrail Engine", sub:"Policy checks"},
-  {id:"evidence", label:"Audit & Evidence", sub:"Assurance files"},
-  {id:"cxo", label:"CXO Alignment", sub:"Optional accountability"},
-  {id:"value", label:"Value & Workforce", sub:"ROI and adoption"},
-  {id:"spine", label:"AI Spine", sub:"Orchestration layer"},
-  {id:"dna", label:"Initiative DNA", sub:"Use-case fingerprint"},
-  {id:"controlmatrix", label:"Control Matrix", sub:"Activated controls"},
-  {id:"scalegate", label:"Scale Readiness", sub:"Scale gate engine"},
-  {id:"riskdrift", label:"Risk Drift", sub:"Risk movement"},
-  {id:"evidenceconfidence", label:"Evidence Confidence", sub:"Proof strength"},
-  {id:"maturitymap", label:"Maturity Map", sub:"Learning propagation"},
+  {id:"dashboard", label:"Dashboard", sub:"Executive intelligence"},
+  {id:"initiatives", label:"AI Initiatives", sub:"Lifecycle and delivery"},
+  {id:"governance", label:"AI Governance", sub:"Controls and compliance"},
+  {id:"evidence", label:"Trust & Evidence", sub:"Enterprise evidence"},
+  {id:"gateway", label:"AI Gateway", sub:"Enterprise control plane"},
+  {id:"academy", label:"Governance Academy", sub:"Readiness and learning"},
 ];
+
+/* Pre-consolidation view ids still reachable via old URLs/hashes */
+const AC_LEGACY_VIEWS = {
+  registry:"initiatives", pilot:"initiatives", detail:"initiatives", lifecycle:"initiatives",
+  dna:"initiatives", scalegate:"initiatives",
+  guardrails:"governance", controlmatrix:"governance", riskdrift:"governance", spine:"governance",
+  cxo:"dashboard", value:"dashboard", maturitymap:"dashboard",
+  evidenceconfidence:"evidence",
+};
+
+const acAccessFor = role => AC_RBAC[role] || AC_RBAC.caio;
 
 const AI_GOLD = "#D6A84F";
 const AI_GOLD_L = "#211806";
@@ -1367,7 +1369,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           <AICentralBrand theme={theme} width={42} compact style={{marginBottom:8}}/>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Standalone AI operating center for downstream pilot execution, guardrails, evidence and scale readiness.</div>
         </div>}
-        {isAICentral&&AI_CENTRAL_NAV.map((item,idx)=>{
+        {isAICentral&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
           const isA=aiCentralView===item.id;
           return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setAiCentralView(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
@@ -4776,74 +4778,40 @@ function PageAIGovCube({role,setTab}) {
 }
 
 /* AI Central - enterprise AI transformation command center */
-const AI_CENTRAL_GUARDRAILS = [
-  {cat:"Strategic", items:["Business objective linked","Executive sponsor required","Business value hypothesis","Success metrics defined"]},
-  {cat:"Governance", items:["AI owner assigned","Risk owner assigned","Governance review completed","Policy mapping completed","AI inventory updated"]},
-  {cat:"Compliance", items:["ISO 42001 checklist","ISO 27001 checklist","NIST AI RMF checklist","GDPR/DPDP checklist","Regulatory impact assessment"]},
-  {cat:"Security", items:["Data classification completed","Access control reviewed","Prompt injection risk reviewed","Model security review completed","Vendor risk reviewed"]},
-  {cat:"Responsible AI", items:["Fairness assessment","Bias assessment","Explainability assessment","Transparency statement","Accountability mapping"]},
-  {cat:"Human Oversight", items:["HITL for critical decisions","HOTL monitoring","Human-in-command for high risk","Escalation owner","Manual override process"]},
-  {cat:"Audit", items:["Evidence repository updated","Approval history retained","Risk decisions logged","Control testing captured","Open findings tracked"]},
-];
-
-const AI_CENTRAL_INITIATIVES = [
-  {
-    id:"ai-001", name:"Customer Resolution Copilot", unit:"Customer Operations", category:"GenAI Copilot", businessOwner:"Priya Mehta", technicalOwner:"Platform AI", sponsor:"Aisha Patel", cxo:"CAIO, COO, CISO", status:"In Progress", priority:"Critical", risk:"High", expected:"$4.8M", actual:"$1.2M", stage:"Governance Review", guardrail:82, adoption:64, valueScore:76,
-    policies:["Responsible GenAI Use","Human Oversight Standard"], controls:["CTRL-AI-014","CTRL-SEC-022"], audits:["AUD-Q2-09"], risks:["Prompt injection","Data leakage"], roi:"22%", savings:"$1.2M", revenue:"$0.6M", productivity:"18%", training:"68%", resistance:"Medium"
-  },
-  {
-    id:"ai-002", name:"Credit Decision Assurance", unit:"Retail Banking", category:"Decision Support", businessOwner:"Omar Khan", technicalOwner:"Risk Engineering", sponsor:"Rafael Torres", cxo:"CEO, CAIO, CRO, Legal", status:"Awaiting Approval", priority:"Critical", risk:"Critical", expected:"$7.2M", actual:"$0.9M", stage:"Human Oversight Review", guardrail:74, adoption:42, valueScore:69,
-    policies:["High-Risk AI Policy","Adverse Decision Review"], controls:["CTRL-AI-001","CTRL-GRC-044"], audits:["AUD-EUAI-03"], risks:["Adverse decision harm","Explainability gap"], roi:"14%", savings:"$0.7M", revenue:"$1.1M", productivity:"11%", training:"54%", resistance:"High"
-  },
-  {
-    id:"ai-003", name:"Finance Close Automation", unit:"Finance", category:"Process Automation", businessOwner:"Elena Rossi", technicalOwner:"Enterprise Apps", sponsor:"Marcus Reid", cxo:"CFO, CIO, COO", status:"Build", priority:"High", risk:"Medium", expected:"$3.1M", actual:"$1.8M", stage:"Build", guardrail:91, adoption:79, valueScore:88,
-    policies:["Automation Control Policy","Audit Evidence Policy"], controls:["CTRL-FIN-008","CTRL-AUD-019"], audits:["AUD-SOX-11"], risks:["Incorrect journal suggestion","Segregation of duties"], roi:"31%", savings:"$1.8M", revenue:"$0.1M", productivity:"26%", training:"82%", resistance:"Low"
-  },
-  {
-    id:"ai-004", name:"Workforce Skills Navigator", unit:"People", category:"Recommendation", businessOwner:"Hannah Lee", technicalOwner:"Data Science", sponsor:"Niamh Lynch", cxo:"CHRO, CDPO, CAIO", status:"Risk Assessment", priority:"Medium", risk:"High", expected:"$2.4M", actual:"$0.2M", stage:"Risk Assessment", guardrail:67, adoption:31, valueScore:58,
-    policies:["Employee Data Use","Fairness and Bias Standard"], controls:["CTRL-PRV-012","CTRL-RAI-006"], audits:["AUD-PRV-02"], risks:["Employee profiling","Bias in opportunity matching"], roi:"8%", savings:"$0.2M", revenue:"$0", productivity:"7%", training:"39%", resistance:"Medium"
-  }
-];
-
-const AI_CENTRAL_LIFECYCLE = ["Demand Intake","Business Case Review","Risk Assessment","Governance Review","Security Review","Human Oversight Review","Approval","Build","Deployment","Monitoring","Audit","Continuous Improvement","Retirement"];
-const AI_CENTRAL_CXOS = [
-  {role:"CEO", focus:"Strategic value and enterprise transformation", count:7, score:84},
-  {role:"CIO", focus:"Technology architecture and platform readiness", count:9, score:78},
-  {role:"CAIO", focus:"AI governance, lifecycle, and adoption", count:14, score:82},
-  {role:"CISO", focus:"Cybersecurity, model security, and data leakage risk", count:8, score:74},
-  {role:"CFO", focus:"Investment, ROI, and cost optimization", count:5, score:80},
-  {role:"CHRO", focus:"Workforce readiness and AI training", count:4, score:69},
-  {role:"COO", focus:"Operational adoption and process change", count:6, score:76},
-  {role:"CRO", focus:"Enterprise risk and risk acceptance", count:5, score:72},
-  {role:"Legal", focus:"Regulatory and policy compliance", count:10, score:81},
-];
-const AI_CENTRAL_EVIDENCE = [
-  {item:"Human oversight design record", initiative:"Credit Decision Assurance", control:"CTRL-AI-001", risk:"Adverse decision harm", owner:"Model Risk", status:"In Review", approval:"Awaiting Approval", time:"2026-06-18 09:20"},
-  {item:"Prompt injection test results", initiative:"Customer Resolution Copilot", control:"CTRL-SEC-022", risk:"Prompt injection", owner:"CISO Office", status:"Complete", approval:"Approved", time:"2026-06-17 16:10"},
-  {item:"Fairness assessment workbook", initiative:"Workforce Skills Navigator", control:"CTRL-RAI-006", risk:"Bias in opportunity matching", owner:"People Analytics", status:"In Progress", approval:"Pending", time:"2026-06-16 11:45"},
-  {item:"SOX automation audit sample", initiative:"Finance Close Automation", control:"CTRL-AUD-019", risk:"Segregation of duties", owner:"Internal Audit", status:"Complete", approval:"Approved", time:"2026-06-15 14:30"},
-];
-
 function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const rc=AI_GOLD;
-  const [selectedId,setSelectedId]=useState(AI_CENTRAL_INITIATIVES[0].id);
-  const selected=AI_CENTRAL_INITIATIVES.find(i=>i.id===selectedId)||AI_CENTRAL_INITIATIVES[0];
+  const access=acAccessFor(role);
+  const R=ROLES[role]||ROLES.caio;
+  const activeModule=access.modules.includes(view)?view:"dashboard";
+  const [items,setItems]=useState(acInitiatives);
+  const [selectedId,setSelectedId]=useState(acInitiatives[0].id);
+  const [initTab,setInitTab]=useState("list");
+  const [phaseSel,setPhaseSel]=useState(null);
+  const [govTab,setGovTab]=useState("controls");
+  const [evTab,setEvTab]=useState("repository");
+  const [lifecycleFilter,setLifecycleFilter]=useState("All");
+  const [createOpen,setCreateOpen]=useState(false);
+  const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
+  const [evQuery,setEvQuery]=useState("");
+  const [evScope,setEvScope]=useState("All");
+  const selected=items.find(i=>i.id===selectedId)||items[0];
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
-  const evidenceItems=[...AI_CENTRAL_EVIDENCE,...learningEvidence];
-  const total=AI_CENTRAL_INITIATIVES.length;
-  const active=AI_CENTRAL_INITIATIVES.filter(i=>!["Retirement","Complete"].includes(i.status)).length;
-  const high=AI_CENTRAL_INITIATIVES.filter(i=>i.risk==="High"||i.risk==="Critical").length;
-  const pending=AI_CENTRAL_INITIATIVES.filter(i=>i.status==="Awaiting Approval").length+2;
-  const avgGuard=Math.round(AI_CENTRAL_INITIATIVES.reduce((s,i)=>s+i.guardrail,0)/total);
-  const avgAdopt=Math.round(AI_CENTRAL_INITIATIVES.reduce((s,i)=>s+i.adoption,0)/total);
-  const avgValue=Math.round(AI_CENTRAL_INITIATIVES.reduce((s,i)=>s+i.valueScore,0)/total);
-  const statusToneLocal=s=>s==="Complete"||s==="Approved"?T.green:s==="Awaiting Approval"||s==="Pending"?T.amber:s==="Critical"||s==="Overdue"?T.red:T.blue;
-  const SectionTabs=()=> <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
-    {AI_CENTRAL_NAV.map(({id,label})=>
-      <button key={id} onClick={()=>setView(id)} style={{background:view===id?rc+"20":T.s2,border:"1px solid "+(view===id?rc+"55":T.border),color:view===id?rc:T.ink2,borderRadius:8,padding:"8px 11px",fontSize:11,fontWeight:700,fontFamily:F.b}}>{label}</button>
-    )}
+  const evidenceRows=[...acEvidence,...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
+  const total=items.length;
+  const active=items.filter(i=>!["Completed","Retired"].includes(i.lifecycle)).length;
+  const high=items.filter(i=>i.risk==="High"||i.risk==="Critical").length;
+  const pending=items.filter(i=>i.status==="Awaiting Approval").length+2;
+  const avgGuard=Math.round(items.reduce((s,i)=>s+i.guardrail,0)/total);
+  const avgAdopt=Math.round(items.reduce((s,i)=>s+i.adoption,0)/total);
+  const avgValue=Math.round(items.reduce((s,i)=>s+i.valueScore,0)/total);
+  const openInitiative=(id,tab="overview")=>{setSelectedId(id);setInitTab(tab);setPhaseSel(null);setView("initiatives");};
+  const openModule=id=>{if(access.modules.includes(id))setView(id);};
+
+  const SubTabs=({tabs,active:a,onChange})=><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+    {tabs.map(([id,label])=><button key={id} onClick={()=>onChange(id)} style={{background:a===id?rc+"20":T.s2,border:`1px solid ${a===id?rc+"55":T.border}`,color:a===id?rc:T.ink2,borderRadius:8,padding:"7px 11px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
   </div>;
-  const Metric=({label,value,sub,color,score})=> <Card style={{padding:16}}>
+
+  const Metric=({label,value,sub,color,score,onClick})=><Card onClick={onClick} style={{padding:16,cursor:onClick?"pointer":"default",transition:"border-color .15s"}}>
     <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
       <div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>{label}</div>
@@ -4853,40 +4821,72 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
       {typeof score==="number"?<Ring score={score} color={color||rc} size={54}/>:<div style={{width:38,height:38,borderRadius:12,background:(color||rc)+"18",border:"1px solid "+(color||rc)+"35"}}/>}
     </div>
   </Card>;
-  const Header=()=> <div style={{background:"linear-gradient(135deg,"+T.s2+", "+T.s1+")",border:"1px solid "+T.border,borderRadius:16,padding:"22px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+
+  const Header=()=><div style={{background:"linear-gradient(135deg,"+T.s2+", "+T.s1+")",border:"1px solid "+T.border,borderRadius:16,padding:"20px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
     <div style={{position:"absolute",right:-60,top:-80,width:220,height:220,borderRadius:"50%",background:rc+"16",filter:"blur(24px)"}}/>
-    <div style={{display:"flex",justifyContent:"space-between",gap:20,alignItems:"flex-start",position:"relative"}}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:20,alignItems:"flex-start",position:"relative",flexWrap:"wrap"}}>
       <div style={{display:"flex",gap:18,alignItems:"flex-start",minWidth:0}}>
         <AICentralBrand theme={theme} width={102} style={{flexShrink:0,minWidth:260}}/>
         <div style={{minWidth:0}}>
           <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
             <Tag label="AI CENTRAL" color={AI_GOLD} bg={AI_GOLD_L}/>
-            <Tag label="Optional CXO workspace" color={AI_GOLD} bg={AI_GOLD+"14"}/>
+            <Tag label={`Viewing as ${R.label}`} color={RC(role)} bg={RC(role)+"16"}/>
+            <Tag label={`${access.lens} lens`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
           </div>
-          <h2 style={{fontSize:28,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0}}>Enterprise AI Transformation Command Center</h2>
-          <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,maxWidth:780,margin:"8px 0 0",fontFamily:F.b}}>Single source of truth for AI initiatives, use cases, models, risks, controls, approvals, audits, owners, business outcomes, workforce readiness, and CXO oversight.</p>
+          <h2 style={{fontSize:28,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
+          <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,maxWidth:780,margin:"8px 0 0",fontFamily:F.b}}>{access.focus}. One platform, one source of truth - every role sees its own perspective.</p>
         </div>
       </div>
-      <button onClick={()=>{setTab("hitl");showToast&&showToast("Opening HITL approvals from AI Central");}} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"10px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,whiteSpace:"nowrap",boxShadow:"0 14px 34px "+AI_GOLD+"22"}}>Review Approvals</button>
+      <button onClick={()=>{setTab("hitl");showToast&&showToast("Opening HITL approvals from AI Central");}} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"10px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,whiteSpace:"nowrap",boxShadow:"0 14px 34px "+AI_GOLD+"22",cursor:"pointer"}}>Review Approvals</button>
     </div>
   </div>;
 
-  const Dashboard=()=> <div>
+  /* ── Dashboard ─────────────────────────────────────────────── */
+  const W={
+    portfolio:{label:"Total initiatives",value:total,sub:"Enterprise AI portfolio",color:rc,go:()=>openModule("initiatives")},
+    active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openModule("initiatives")},
+    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>openModule("initiatives")},
+    approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("hitl");}},
+    findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("evidence")},
+    guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("governance")},
+    adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
+    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openModule("initiatives")},
+    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>openModule("initiatives")},
+    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("initiatives")},
+  };
+  const LENS_WIDGETS={
+    Executive:["portfolio","value","roi","risk","budget","approvals"],
+    Operations:["active","adoption","risk","approvals","portfolio","guardrail"],
+    Value:["value","roi","budget","portfolio","adoption","findings"],
+    Workforce:["adoption","portfolio","active","approvals","guardrail","value"],
+    Security:["risk","guardrail","findings","approvals","portfolio","active"],
+    Governance:["portfolio","active","risk","approvals","findings","guardrail","adoption","value"],
+    Delivery:["portfolio","active","risk","approvals","findings","guardrail","adoption","value"],
+    Privacy:["risk","findings","guardrail","portfolio","approvals","adoption"],
+    Compliance:["guardrail","findings","risk","approvals","portfolio","value"],
+  };
+  const showCxo=["Executive","Governance","Delivery"].includes(access.lens);
+  const showValueSection=["Executive","Value","Workforce","Operations","Governance","Delivery"].includes(access.lens);
+  const attention=items.filter(i=>i.blockedBy);
+
+  const Dashboard=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
-      <Metric label="Total initiatives" value={total} sub="Enterprise AI portfolio" color={rc}/>
-      <Metric label="Active AI projects" value={active} sub="In lifecycle" color={T.blue}/>
-      <Metric label="High-risk use cases" value={high} sub="High or critical" color={T.red}/>
-      <Metric label="Pending approvals" value={pending} sub="HITL and CXO" color={T.amber}/>
-      <Metric label="Open audit findings" value="6" sub="2 overdue" color={T.red}/>
-      <Metric label="Guardrail compliance" value={avgGuard+"%"} sub="Mandatory controls" color={T.green} score={avgGuard}/>
-      <Metric label="AI adoption score" value={avgAdopt+"%"} sub="Workforce readiness" color={T.teal} score={avgAdopt}/>
-      <Metric label="Business value score" value={avgValue+"%"} sub="ROI and outcomes" color={AI_GOLD} score={avgValue}/>
+      {(LENS_WIDGETS[access.lens]||LENS_WIDGETS.Governance).map(k=>{const w=W[k];return <Metric key={k} label={w.label} value={w.value} sub={w.sub} color={w.color} score={w.score} onClick={w.go}/>;})}
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14}}>
+    {attention.length>0&&<Card style={{padding:"14px 18px",marginBottom:14,border:`1px solid ${T.amber}40`}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:0}}>Initiatives needing attention</h3><Tag label={`${attention.length}`} color={T.amber} bg={T.amberL}/></div>
+      <div style={{display:"grid",gap:7}}>
+        {attention.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+          <div style={{minWidth:0}}><div style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{i.name}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>{i.blockedBy}</div></div>
+          <button onClick={()=>openInitiative(i.id,"implementation")} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:7,padding:"6px 11px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>Open phase</button>
+        </div>)}
+      </div>
+    </Card>}
+    <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14,marginBottom:14}}>
       <Card style={{padding:18}}>
         <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 14px"}}>Risk heatmap</h3>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-          {AI_CENTRAL_INITIATIVES.map(i=><button key={i.id} onClick={()=>{setSelectedId(i.id);setView("detail");}} style={{background:(i.risk==="Critical"?T.red:i.risk==="High"?T.amber:T.blue)+"18",border:"1px solid "+(i.risk==="Critical"?T.red:i.risk==="High"?T.amber:T.blue)+"35",borderRadius:10,padding:12,textAlign:"left"}}>
+          {items.map(i=><button key={i.id} onClick={()=>openInitiative(i.id)} style={{background:(i.risk==="Critical"?T.red:i.risk==="High"?T.amber:T.blue)+"18",border:"1px solid "+(i.risk==="Critical"?T.red:i.risk==="High"?T.amber:T.blue)+"35",borderRadius:10,padding:12,textAlign:"left",cursor:"pointer"}}>
             <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginBottom:6}}>{i.unit}</div>
             <div style={{fontSize:12,color:T.ink,fontWeight:700,lineHeight:1.35}}>{i.name}</div>
             <div style={{marginTop:10}}><PTag p={i.risk}/></div>
@@ -4894,50 +4894,199 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         </div>
       </Card>
       <Card style={{padding:18}}>
-        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 14px"}}>Governance maturity view</h3>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:0}}>Governance maturity</h3>
+          {access.modules.includes("governance")&&<button onClick={()=>setView("governance")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open AI Governance</button>}
+        </div>
         {["Strategy linkage","Policy mapping","Human oversight","Evidence readiness","Value realization"].map((m,idx)=>{const val=[88,79,74,83,71][idx];return <div key={m} style={{marginBottom:13}}>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.ink2,marginBottom:6}}><span>{m}</span><span style={{fontFamily:F.m}}>{val}%</span></div>
           <Bar value={val} color={val>80?T.green:val>72?T.blue:T.amber}/>
         </div>})}
       </Card>
     </div>
+    {showValueSection&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+      <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business value tracking</h3>{items.map(i=><button key={i.id} onClick={()=>openInitiative(i.id)} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:0,marginBottom:14,cursor:"pointer"}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink2,marginBottom:6}}><span>{i.name}</span><span>{i.valueScore}%</span></div><Bar value={i.valueScore} color={i.valueScore>80?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>Expected {i.expected} - Actual {i.actual}</div></button>)}</Card>
+      <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business unit comparison</h3>{items.map(i=><div key={i.id} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:9,padding:12,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink,marginBottom:8}}><span>{i.unit}</span><Tag label={"Resistance: "+i.resistance} color={i.resistance==="High"?T.red:i.resistance==="Medium"?T.amber:T.green}/></div><Bar value={parseInt(i.training)||0} color={(parseInt(i.training)||0)>75?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:7}}>Training {i.training} - Adoption {i.adoption}%</div></div>)}</Card>
+    </div>}
+    {showCxo&&<Card style={{padding:18}}>
+      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 14px"}}>CXO alignment</h3>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+        {acCxoAlignment.map(c=><div key={c.role} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:10,padding:13}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}><div><div style={{fontSize:17,color:T.ink,fontWeight:800}}>{c.role}</div><div style={{fontSize:10,color:T.ink3}}>{c.count} mapped initiatives</div></div><Ring score={c.score} color={c.score>80?T.green:c.score>72?T.blue:T.amber} size={44}/></div>
+          <p style={{fontSize:10,color:T.ink3,lineHeight:1.55,margin:0}}>{c.focus}</p>
+        </div>)}
+      </div>
+    </Card>}
   </div>;
 
-  const Registry=()=> <Card style={{padding:0,overflow:"hidden"}}>
-    <div style={{padding:"16px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:15,color:T.ink}}>AI Initiative Registry</h3><Tag label="Mock seed data" color={T.ink3}/></div>
-    <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-      <thead><tr>{["Initiative","Business unit","Owners","CXO sponsors","Status","Priority","Risk","Value","Stage","Guardrails"].map(h=><th key={h} style={{textAlign:"left",padding:"10px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
-      <tbody>{AI_CENTRAL_INITIATIVES.map(i=><tr key={i.id} onClick={()=>{setSelectedId(i.id);setView("detail");}} style={{cursor:"pointer",borderBottom:"1px solid "+T.border}}>
-        <td style={{padding:"13px 12px",color:T.ink,fontWeight:700}}>{i.name}<div style={{fontSize:10,color:T.ink3,fontWeight:400}}>{i.category}</div></td>
-        <td style={{padding:"13px 12px",color:T.ink2}}>{i.unit}</td>
-        <td style={{padding:"13px 12px",color:T.ink2}}>{i.businessOwner}<div style={{fontSize:10,color:T.ink3}}>{i.technicalOwner}</div></td>
-        <td style={{padding:"13px 12px",color:T.ink2}}>{i.cxo}</td>
-        <td style={{padding:"13px 12px"}}><STag s={i.status}/></td>
-        <td style={{padding:"13px 12px"}}><PTag p={i.priority}/></td>
-        <td style={{padding:"13px 12px"}}><PTag p={i.risk}/></td>
-        <td style={{padding:"13px 12px",color:T.green,fontFamily:F.m}}>{i.actual} / {i.expected}</td>
-        <td style={{padding:"13px 12px",color:T.ink2}}>{i.stage}</td>
-        <td style={{padding:"13px 12px",minWidth:120}}><Bar value={i.guardrail} color={i.guardrail>80?T.green:i.guardrail>70?T.amber:T.red}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>{i.guardrail}%</div></td>
-      </tr>)}</tbody>
-    </table></div>
-  </Card>;
+  /* ── AI Initiatives ────────────────────────────────────────── */
+  const LIFECYCLE_CATS=["New Ideas","Assessment","Approved","Implementation","Pilot","Production","Scaling","Completed","Retired"];
+  const filtered=lifecycleFilter==="All"?items:items.filter(i=>i.lifecycle===lifecycleFilter);
+  const phaseStatus=(ini,idx)=>idx<ini.phaseIndex?"Complete":idx>ini.phaseIndex?"Not Started":ini.blockedBy?"Blocked":"Active";
+  const artifactStatus=(ini,phaseIdx,artIdx)=>{
+    if(phaseIdx<ini.phaseIndex)return "Complete";
+    if(phaseIdx>ini.phaseIndex)return "Not Started";
+    if(artIdx<ini.phaseArtifactsDone)return "Complete";
+    return artIdx===ini.phaseArtifactsDone&&ini.blockedBy?"Blocked":"Missing";
+  };
+  const phaseProgress=ini=>Math.round(((ini.phaseIndex+(ini.phaseArtifactsDone/(AC_PHASES[ini.phaseIndex]?.deliverables.length||1)))/AC_PHASES.length)*100);
+  const createInitiative=()=>{
+    if(!draft.name.trim()||!draft.unit.trim()){showToast&&showToast("Name and business unit are required","error");return;}
+    const rec={
+      id:`ai-${String(items.length+1).padStart(3,"0")}`,name:draft.name.trim(),unit:draft.unit.trim(),category:draft.category,lifecycle:"New Ideas",
+      businessOwner:draft.businessOwner.trim()||"Unassigned",technicalOwner:"Unassigned",sponsor:draft.sponsor.trim()||"Unassigned",champion:"Unassigned",cxo:"CAIO",
+      status:"New Idea",priority:"Medium",risk:"Medium",expected:draft.expected.trim()||"TBD",actual:"$0",stage:"Demand Intake",
+      guardrail:20,adoption:0,valueScore:0,policies:[],controls:[],audits:[],risks:[],roi:"--",savings:"$0",revenue:"$0",productivity:"--",training:"0%",resistance:"Medium",
+      phaseIndex:0,phaseArtifactsDone:0,blockedBy:"Discover artifacts not started",
+    };
+    setItems([rec,...items]);setSelectedId(rec.id);setInitTab("implementation");setPhaseSel(0);setCreateOpen(false);
+    setDraft({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
+    showToast&&showToast("Initiative created - Discover phase opened");
+  };
+  const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
 
-  const PilotWorkspace=()=> {
+  const InitiativeList=()=><div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+      {["All",...LIFECYCLE_CATS].map(cat=>{
+        const count=cat==="All"?items.length:items.filter(i=>i.lifecycle===cat).length;
+        const isA=lifecycleFilter===cat;
+        return <button key={cat} onClick={()=>setLifecycleFilter(cat)} style={{background:isA?rc+"20":T.s2,border:`1px solid ${isA?rc+"55":T.border}`,color:isA?rc:count?T.ink2:T.ink4,borderRadius:8,padding:"6px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{cat} <span style={{fontFamily:F.m,opacity:.8}}>{count}</span></button>;
+      })}
+      <button onClick={()=>setCreateOpen(!createOpen)} style={{marginLeft:"auto",background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"7px 13px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{createOpen?"Close":"Create AI Initiative"}</button>
+    </div>
+    {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${rc}45`,animation:"up .25s ease"}}>
+      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Create AI Initiative</h3>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every initiative starts in Discover. Mandatory artifacts gate each phase; the record becomes the single source of truth.</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
+        {[["Initiative name","name"],["Business unit","unit"],["Business owner","businessOwner"],["Executive sponsor","sponsor"],["Expected value","expected"]].map(([l,k])=><label key={k} style={{display:"grid",gap:5}}>
+          <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>
+          <input value={draft[k]} onChange={e=>setDraft({...draft,[k]:e.target.value})} style={fieldStyle}/>
+        </label>)}
+        <label style={{display:"grid",gap:5}}>
+          <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
+          <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
+            {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow","Internal Model"].map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+      </div>
+      <button onClick={createInitiative} style={{background:rc,border:"none",borderRadius:8,padding:"10px 16px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create initiative</button>
+    </Card>}
+    <Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"16px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:15,color:T.ink}}>AI Initiative Portfolio</h3><Tag label={`${filtered.length} shown`} color={T.ink3}/></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead><tr>{["Initiative","Business unit","Lifecycle","Owners","Status","Risk","Value","Phase","Guardrails"].map(h=><th key={h} style={{textAlign:"left",padding:"10px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+        <tbody>{filtered.map(i=><tr key={i.id} onClick={()=>openInitiative(i.id)} style={{cursor:"pointer",borderBottom:"1px solid "+T.border}}>
+          <td style={{padding:"13px 12px",color:T.ink,fontWeight:700}}>{i.name}<div style={{fontSize:10,color:T.ink3,fontWeight:400}}>{i.category}</div></td>
+          <td style={{padding:"13px 12px",color:T.ink2}}>{i.unit}</td>
+          <td style={{padding:"13px 12px"}}><Tag label={i.lifecycle} color={rc} bg={rc+"14"}/></td>
+          <td style={{padding:"13px 12px",color:T.ink2}}>{i.businessOwner}<div style={{fontSize:10,color:T.ink3}}>{i.sponsor}</div></td>
+          <td style={{padding:"13px 12px"}}><STag s={i.status}/></td>
+          <td style={{padding:"13px 12px"}}><PTag p={i.risk}/></td>
+          <td style={{padding:"13px 12px",color:T.green,fontFamily:F.m}}>{i.actual} / {i.expected}</td>
+          <td style={{padding:"13px 12px",minWidth:120}}><div style={{fontSize:10,color:T.ink2,fontFamily:F.m,marginBottom:4}}>{AC_PHASES[i.phaseIndex]?.name} - {i.phaseIndex+1}/8</div><Bar value={phaseProgress(i)} color={rc}/></td>
+          <td style={{padding:"13px 12px",minWidth:110}}><Bar value={i.guardrail} color={i.guardrail>80?T.green:i.guardrail>70?T.amber:T.red}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>{i.guardrail}%</div></td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>
+  </div>;
+
+  const Overview=()=><div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
+    <Card style={{padding:20}}>
+      <div style={{display:"flex",justifyContent:"space-between",gap:12,marginBottom:18}}>
+        <div><Tag label={selected.id.toUpperCase()} color={rc}/><h3 style={{fontSize:24,color:T.ink,margin:"10px 0 4px",fontWeight:800}}>{selected.name}</h3><p style={{color:T.ink3,fontSize:12,margin:0}}>{selected.unit} - {selected.category}</p></div>
+        <Ring score={selected.guardrail} color={selected.guardrail>80?T.green:T.amber} size={76}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
+        {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["Executive sponsor",selected.sponsor],["AI champion",selected.champion],["CXO sponsors",selected.cxo],["Status",selected.status],["Lifecycle",selected.lifecycle],["Linked policies",selected.policies.join(", ")||"None yet"],["Linked controls",selected.controls.join(", ")||"None yet"],["Linked risks",selected.risks.join(", ")||"None yet"],["Audits",selected.audits.join(", ")||"None yet"],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/8)`]].map(([l,v])=><div key={l} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",marginBottom:5}}>{l}</div><div style={{fontSize:12,color:T.ink2,lineHeight:1.35}}>{v}</div></div>)}
+      </div>
+      <h4 style={{color:T.ink,margin:"0 0 10px",fontSize:14}}>Risk, control, audit and corrective action mapping</h4>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+        {["Compliant","Partially compliant","Non-compliant","Not assessed"].map((s,idx)=><div key={s} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><Tag label={s} color={[T.green,T.amber,T.red,T.ink3][idx]}/><div style={{fontSize:10,color:T.ink3,marginTop:8}}>{[5,3,1,2][idx]} linked items</div></div>)}
+      </div>
+    </Card>
+    <Card style={{padding:18}}>
+      <h3 style={{fontSize:14,color:T.ink,margin:"0 0 14px"}}>Business value tracking</h3>
+      {[["Expected ROI",selected.roi],["Cost savings",selected.savings],["Revenue impact",selected.revenue],["Productivity gains",selected.productivity],["Adoption rate",selected.adoption+"%"],["Training status",selected.training]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid "+T.border,padding:"10px 0",fontSize:12}}><span style={{color:T.ink3}}>{l}</span><span style={{color:T.ink,fontWeight:700}}>{v}</span></div>)}
+    </Card>
+  </div>;
+
+  const Implementation=()=>{
+    const activePhase=phaseSel==null?selected.phaseIndex:phaseSel;
+    const phase=AC_PHASES[activePhase];
+    const st=phaseStatus(selected,activePhase);
+    const stColor=st==="Complete"?T.green:st==="Active"?rc:st==="Blocked"?T.red:T.ink3;
+    return <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(8,minmax(96px,1fr))",gap:6,marginBottom:14,overflowX:"auto"}}>
+        {AC_PHASES.map((p,idx)=>{
+          const s=phaseStatus(selected,idx);
+          const col=s==="Complete"?T.green:s==="Active"?rc:s==="Blocked"?T.red:T.ink4;
+          const isSel=idx===activePhase;
+          return <button key={p.id} onClick={()=>setPhaseSel(idx)} style={{background:isSel?col+"1C":T.s2,border:`1px solid ${isSel?col+"55":T.border}`,borderRadius:10,padding:"10px 8px",textAlign:"left",cursor:"pointer"}}>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginBottom:4}}>PHASE {p.order}</div>
+            <div style={{fontSize:11,color:isSel?col:T.ink2,fontWeight:800,fontFamily:F.b,lineHeight:1.25,marginBottom:6}}>{p.name}</div>
+            <Tag label={s} color={col} bg={col+"16"}/>
+          </button>;
+        })}
+      </div>
+      {selected.blockedBy&&activePhase===selected.phaseIndex&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:10,padding:"11px 14px",marginBottom:14,display:"flex",gap:9,alignItems:"center"}}>
+        <span style={{width:7,height:7,borderRadius:"50%",background:T.red,flexShrink:0,animation:"pulse 2s infinite"}}/>
+        <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}><strong style={{color:T.red}}>Progression blocked.</strong> {selected.blockedBy}. Missing mandatory artifacts prevent advancing to {AC_PHASES[selected.phaseIndex+1]?.name||"completion"}.</div>
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14}}>
+        <Card style={{padding:18}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <h3 style={{fontSize:16,color:T.ink,fontWeight:800,margin:0}}>Phase {phase.order}: {phase.name}</h3>
+            <Tag label={st} color={stColor} bg={stColor+"16"}/>
+          </div>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 14px"}}>{phase.objective}</p>
+          <h4 style={{fontSize:12,color:T.ink,margin:"0 0 8px"}}>Mandatory artifacts</h4>
+          <div style={{display:"grid",gap:7}}>
+            {phase.deliverables.map((d,ai)=>{
+              const as_=artifactStatus(selected,activePhase,ai);
+              const ac_=as_==="Complete"?T.green:as_==="Blocked"?T.red:as_==="Missing"?T.amber:T.ink4;
+              return <div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px"}}>
+                <div style={{display:"flex",gap:9,alignItems:"center"}}><span style={{width:7,height:7,borderRadius:"50%",background:ac_}}/><span style={{fontSize:12,color:T.ink2,fontFamily:F.b}}>{d}</span></div>
+                <Tag label={as_} color={ac_} bg={ac_+"14"}/>
+              </div>;
+            })}
+          </div>
+          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:12,lineHeight:1.6}}>Artifacts are stored automatically in Trust &amp; Evidence when completed. A phase cannot close with missing mandatory artifacts.</div>
+        </Card>
+        <div style={{display:"grid",gap:12,alignContent:"start"}}>
+          <Card style={{padding:16}}>
+            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px"}}>Ownership (RACI)</h3>
+            {[["Responsible",phase.raci.responsible,T.green],["Accountable",phase.raci.accountable,rc],["Consulted",phase.raci.consulted,T.blue],["Informed",phase.raci.informed,T.ink3]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+              <Tag label={l} color={c} bg={c+"14"}/><span style={{fontSize:11,color:T.ink,fontWeight:700,fontFamily:F.b}}>{v}</span>
+            </div>)}
+            <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10}}>Nothing is ownerless: every phase carries explicit accountability.</div>
+          </Card>
+          <Card style={{padding:16}}>
+            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 8px"}}>Overall progress</h3>
+            <div style={{fontSize:24,fontWeight:800,color:rc,fontFamily:F.h,marginBottom:8}}>{phaseProgress(selected)}%</div>
+            <Bar value={phaseProgress(selected)} color={rc}/>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of 8 - {AC_PHASES[selected.phaseIndex]?.name}</div>
+          </Card>
+        </div>
+      </div>
+    </div>;
+  };
+
+  const PilotExecution=()=>{
     const program=AI_ROLLOUT_PROGRAMS.find(p=>selected.name.includes(p.name.split(" ")[0]))||AI_ROLLOUT_PROGRAMS[0];
     const tasks=[
-      ["Guardrail activation", "AI Spine", "In Progress", selected.guardrail, "Controls and HITL checks activated for pilot workspace"],
-      ["Department enablement", selected.unit, selected.adoption>=70?"On Track":"At Risk", selected.adoption, "Training, workflow comms and adoption readiness"],
-      ["Evidence collection", "Assurance", program.evidence>=80?"Ready":"Incomplete", program.evidence, program.blocker],
-      ["Risk monitoring", "Risk owner", parseInt(program.riskDrift,10)>8?"Escalate":"Monitor", Math.max(35,100-Math.abs(parseInt(program.riskDrift,10))*4), "Live risk drift against approved appetite"],
+      ["Guardrail activation","AI Spine","In Progress",selected.guardrail,"Controls and HITL checks activated for pilot workspace"],
+      ["Department enablement",selected.unit,selected.adoption>=70?"On Track":"At Risk",selected.adoption,"Training, workflow comms and adoption readiness"],
+      ["Evidence collection","Assurance",program.evidence>=80?"Ready":"Incomplete",program.evidence,program.blocker],
+      ["Risk monitoring","Risk owner",parseInt(program.riskDrift,10)>8?"Escalate":"Monitor",Math.max(35,100-Math.abs(parseInt(program.riskDrift,10))*4),"Live risk drift against approved appetite"],
     ];
     const wave=[program.pilot,program.next,"Enterprise rollout"].map((dept,idx)=>({dept,status:idx===0?"Pilot active":idx===1?program.decision==="Scale"?"Queued":"Waiting gate":"Not started",score:idx===0?program.adoption:idx===1?program.readiness:42}));
     return <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14}}>
       <Card style={{padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start",marginBottom:16}}>
           <div>
-            <Tag label="DEPARTMENT PILOT WORKSPACE" color={AI_GOLD} bg={AI_GOLD_L}/>
+            <Tag label="DEPARTMENT PILOT EXECUTION" color={AI_GOLD} bg={AI_GOLD_L}/>
             <h3 style={{fontFamily:F.h,fontSize:22,fontWeight:900,color:T.ink,margin:"10px 0 5px"}}>{selected.name}</h3>
-            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:0}}>Downstream execution workspace for the pilot department. AI Central monitors tasks, deviations, adoption, guardrails, evidence and scale readiness.</p>
+            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:0}}>Downstream execution for the pilot department. AI Central monitors tasks, deviations, adoption, guardrails, evidence and scale readiness.</p>
           </div>
           <Tag label={program.decision} color={program.decision==="Scale"?T.green:program.decision==="Hold"?T.amber:T.red} bg={(program.decision==="Scale"?T.green:program.decision==="Hold"?T.amber:T.red)+"18"}/>
         </div>
@@ -4961,7 +5110,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
           })}
         </div>
       </Card>
-      <div style={{display:"grid",gap:12}}>
+      <div style={{display:"grid",gap:12,alignContent:"start"}}>
         <Card style={{padding:16}}>
           <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:900,color:T.ink,margin:"0 0 12px"}}>Pilot control room</h3>
           {[["Risk drift",program.riskDrift,parseInt(program.riskDrift,10)>0?T.red:T.green],["Evidence confidence",program.evidence+"%",program.evidence>=80?T.green:T.amber],["Adoption",program.adoption+"%",program.adoption>=70?T.green:T.amber],["Value realized",program.value,AI_GOLD]].map(([l,v,col])=><div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.border}`}}>
@@ -4971,91 +5120,160 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         <Card style={{padding:16,border:`1px solid ${program.decision==="Scale"?T.green+"40":T.amber+"40"}`}}>
           <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:900,color:T.ink,margin:"0 0 8px"}}>Next required action</h3>
           <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.65,margin:"0 0 12px"}}>{program.blocker}</p>
-          <button onClick={()=>setView(program.decision==="Scale"?"scalegate":"evidenceconfidence")} style={{width:"100%",background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"9px 10px",color:AI_GOLD,fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>{program.decision==="Scale"?"Open scale gate":"Review evidence"}</button>
+          <button onClick={()=>{program.decision==="Scale"?setInitTab("scalegate"):access.modules.includes("evidence")?setView("evidence"):setInitTab("implementation");}} style={{width:"100%",background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"9px 10px",color:AI_GOLD,fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>{program.decision==="Scale"?"Open scale gate":"Review evidence"}</button>
         </Card>
       </div>
     </div>;
   };
 
-  const Detail=()=> <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
-    <Card style={{padding:20}}>
-      <div style={{display:"flex",justifyContent:"space-between",gap:12,marginBottom:18}}>
-        <div><Tag label={selected.id.toUpperCase()} color={rc}/><h3 style={{fontSize:24,color:T.ink,margin:"10px 0 4px",fontWeight:800}}>{selected.name}</h3><p style={{color:T.ink3,fontSize:12,margin:0}}>{selected.unit} - {selected.category}</p></div>
-        <Ring score={selected.guardrail} color={selected.guardrail>80?T.green:T.amber} size={76}/>
+  const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
+      <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; Portfolio</button>
+      <div style={{minWidth:0}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <h3 style={{fontSize:18,color:T.ink,fontWeight:800,margin:0,fontFamily:F.h}}>{selected.name}</h3>
+          <Tag label={selected.lifecycle} color={rc} bg={rc+"14"}/><PTag p={selected.risk}/>
+        </div>
+        <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
-        {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["Executive sponsor",selected.sponsor],["CXO sponsors",selected.cxo],["Status",selected.status],["Lifecycle stage",selected.stage],["Linked policies",selected.policies.join(", ")],["Linked controls",selected.controls.join(", ")],["Linked risks",selected.risks.join(", ")]].map(([l,v])=><div key={l} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",marginBottom:5}}>{l}</div><div style={{fontSize:12,color:T.ink2,lineHeight:1.35}}>{v}</div></div>)}
-      </div>
-      <h4 style={{color:T.ink,margin:"0 0 10px",fontSize:14}}>Risk, control, audit and corrective action mapping</h4>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-        {["Compliant","Partially compliant","Non-compliant","Not assessed"].map((s,idx)=><div key={s} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><Tag label={s} color={[T.green,T.amber,T.red,T.ink3][idx]}/><div style={{fontSize:10,color:T.ink3,marginTop:8}}>{[5,3,1,2][idx]} linked items</div></div>)}
-      </div>
-    </Card>
-    <Card style={{padding:18}}>
-      <h3 style={{fontSize:14,color:T.ink,margin:"0 0 14px"}}>Business value tracking</h3>
-      {[["Expected ROI",selected.roi],["Cost savings",selected.savings],["Revenue impact",selected.revenue],["Productivity gains",selected.productivity],["Adoption rate",selected.adoption+"%"],["Training status",selected.training]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid "+T.border,padding:"10px 0",fontSize:12}}><span style={{color:T.ink3}}>{l}</span><span style={{color:T.ink,fontWeight:700}}>{v}</span></div>)}
-    </Card>
-  </div>;
-
-  const Lifecycle=()=> <Card style={{padding:18}}>
-    <h3 style={{fontSize:15,color:T.ink,margin:"0 0 16px"}}>AI Lifecycle Workflow - mandatory gates</h3>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10}}>
-      {AI_CENTRAL_LIFECYCLE.map((stage,idx)=>{const activeIdx=AI_CENTRAL_LIFECYCLE.indexOf(selected.stage);const done=idx<activeIdx,current=idx===activeIdx;return <div key={stage} style={{background:current?rc+"14":done?T.greenL:T.s2,border:"1px solid "+(current?rc+"50":done?T.green+"30":T.border),borderRadius:10,padding:12}}>
-        <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center"}}><div style={{fontSize:12,color:T.ink,fontWeight:800}}>{idx+1}. {stage}</div><Tag label={done?"Approved":current?"In Review":"Pending"} color={done?T.green:current?T.amber:T.ink3}/></div>
-        <div style={{fontSize:10,color:T.ink3,lineHeight:1.55,marginTop:9}}>Required fields, owner, due date, evidence placeholder, comments and audit trail captured for this stage.</div>
-        <div style={{marginTop:10,fontSize:10,color:T.ink2}}>Owner: {idx%3===0?"CAIO":idx%3===1?"CISO":"Business Owner"} - Due: 2026-07-{String(10+idx).padStart(2,"0")}</div>
-      </div>})}
     </div>
-  </Card>;
-
-  const Guardrails=()=> <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
-    {AI_CENTRAL_GUARDRAILS.map((g,idx)=><Card key={g.cat} style={{padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h3 style={{fontSize:14,color:T.ink,margin:0}}>{g.cat} Guardrails</h3><Ring score={[92,84,78,74,81,69,88][idx]} color={[T.green,T.blue,T.amber,T.amber,T.teal,T.red,T.green][idx]} size={46}/></div>
-      {g.items.map((it,j)=><div key={it} style={{display:"flex",gap:8,alignItems:"center",padding:"7px 0",borderTop:j?"1px solid "+T.border:"none"}}><span style={{width:7,height:7,borderRadius:"50%",background:j<3?T.green:T.amber}}/><span style={{fontSize:11,color:T.ink2}}>{it}</span></div>)}
-    </Card>)}
+    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Gate"]]} active={initTab} onChange={setInitTab}/>
+    {initTab==="overview"&&<Overview/>}
+    {initTab==="implementation"&&<Implementation/>}
+    {initTab==="pilot"&&<PilotExecution/>}
+    {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab}/>}
+    {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab}/>}
   </div>;
 
-  const Evidence=()=> <Card style={{padding:0,overflow:"hidden"}}>
-    <div style={{padding:"16px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",gap:12,alignItems:"center"}}><div><h3 style={{margin:0,fontSize:15,color:T.ink}}>Audit-ready Evidence Repository</h3><p style={{margin:"4px 0 0",fontSize:10,color:T.ink3,fontFamily:F.b}}>Includes Academy learning attestations when completed.</p></div><Tag label={`${evidenceItems.length} evidence items`} color={AI_GOLD} bg={AI_GOLD+"18"}/></div>
-    {evidenceItems.map(e=><div key={`${e.item}-${e.time}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr 1fr 1fr",gap:12,padding:"14px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
-      <div><div style={{fontSize:13,color:T.ink,fontWeight:700}}>{e.item}</div><div style={{fontSize:10,color:T.ink3}}>Linked initiative: {e.initiative}</div></div>
-      <div style={{fontSize:11,color:T.ink2}}>Control: {e.control}<br/>Risk: {e.risk}</div>
-      <div style={{fontSize:11,color:T.ink2}}>Owner: {e.owner}<br/>Upload placeholder: Ready</div>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}><STag s={e.status}/><STag s={e.approval}/><Tag label={e.time} color={T.ink3}/></div>
-    </div>)}
-  </Card>;
-
-  const CXO=()=> <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:12}}>
-    {AI_CENTRAL_CXOS.map(c=><Card key={c.role} style={{padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div><div style={{fontSize:20,color:T.ink,fontWeight:800}}>{c.role}</div><div style={{fontSize:10,color:T.ink3}}>{c.count} mapped initiatives</div></div><Ring score={c.score} color={c.score>80?T.green:c.score>72?T.blue:T.amber} size={50}/></div>
-      <p style={{fontSize:11,color:T.ink3,lineHeight:1.6,margin:0}}>{c.focus}</p>
-    </Card>)}
+  /* ── AI Governance ─────────────────────────────────────────── */
+  const Governance=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Governance score" value={avgGuard+"%"} sub="Portfolio control compliance" color={rc} score={avgGuard}/>
+      <Metric label="ISO 42001" value="74%" sub="AI management system" color={T.blue} score={74} onClick={()=>setGovTab("controls")}/>
+      <Metric label="NIST AI RMF" value="71%" sub="Risk management framework" color={T.teal} score={71} onClick={()=>setGovTab("controls")}/>
+      <Metric label="EU AI Act" value="68%" sub="Regulatory conformity" color={T.amber} score={68} onClick={()=>setGovTab("controls")}/>
+      <Metric label="Policy violations" value="3" sub="1 repeated - training assigned" color={T.red} onClick={()=>openModule("academy")}/>
+      <Metric label="Active exceptions" value="4" sub="2 expiring this month" color={T.amber} onClick={()=>{setTab("hitl");}}/>
+    </div>
+    <SubTabs tabs={[["controls","Controls & Guardrails"],["matrix","Control Matrix"],["drift","Risk Drift"]]} active={govTab} onChange={setGovTab}/>
+    {govTab==="controls"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
+      {acGuardrails.map((g,idx)=><Card key={g.cat} style={{padding:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h3 style={{fontSize:14,color:T.ink,margin:0}}>{g.cat} Guardrails</h3><Ring score={[92,84,78,74,81,69,88][idx]} color={[T.green,T.blue,T.amber,T.amber,T.teal,T.red,T.green][idx]} size={46}/></div>
+        {g.items.map((it,j)=><div key={it} style={{display:"flex",gap:8,alignItems:"center",padding:"7px 0",borderTop:j?"1px solid "+T.border:"none"}}><span style={{width:7,height:7,borderRadius:"50%",background:j<3?T.green:T.amber}}/><span style={{fontSize:11,color:T.ink2}}>{it}</span></div>)}
+        <button onClick={()=>{setLifecycleFilter("All");openInitiative(items[idx%items.length].id);}} style={{marginTop:12,background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Linked to {items.length} initiatives &#8594;</button>
+      </Card>)}
+    </div>}
+    {govTab==="matrix"&&<PageAISpine mode="controlmatrix" setTab={setTab}/>}
+    {govTab==="drift"&&<PageAISpine mode="riskdrift" setTab={setTab}/>}
   </div>;
 
-  const ValueWorkforce=()=> <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-    <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business value tracking</h3>{AI_CENTRAL_INITIATIVES.map(i=><div key={i.id} style={{marginBottom:14}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink2,marginBottom:6}}><span>{i.name}</span><span>{i.valueScore}%</span></div><Bar value={i.valueScore} color={i.valueScore>80?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>Expected {i.expected} - Actual {i.actual} - Time saved and customer impact tracked</div></div>)}</Card>
-    <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Workforce readiness</h3>{AI_CENTRAL_INITIATIVES.map(i=><div key={i.id} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:9,padding:12,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink,marginBottom:8}}><span>{i.unit}</span><Tag label={"Resistance: "+i.resistance} color={i.resistance==="High"?T.red:i.resistance==="Medium"?T.amber:T.green}/></div><Bar value={parseInt(i.training)} color={parseInt(i.training)>75?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:7}}>Required skills, training status, communication plan and change owner tracked.</div></div>)}</Card>
+  /* ── Trust & Evidence ──────────────────────────────────────── */
+  const q=evQuery.trim().toLowerCase();
+  const evFiltered=evidenceRows.filter(e=>
+    (evScope==="All"||e.scope===evScope)&&
+    (!q||[e.item,e.initiative,e.control,e.owner,e.risk].join(" ").toLowerCase().includes(q))
+  );
+  const EvidenceModule=()=><div>
+    <SubTabs tabs={[["repository","Evidence Repository"],["confidence","Evidence Confidence"]]} active={evTab} onChange={setEvTab}/>
+    {evTab==="repository"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+        <div><h3 style={{margin:0,fontSize:15,color:T.ink}}>Enterprise Evidence Repository</h3><p style={{margin:"3px 0 0",fontSize:10,color:T.ink3,fontFamily:F.b}}>Everything searchable. Everything versioned. Nothing duplicated.</p></div>
+        <input value={evQuery} onChange={e=>setEvQuery(e.target.value)} placeholder="Search evidence, controls, owners..." style={{...fieldStyle,maxWidth:280,marginLeft:"auto"}}/>
+        <div style={{display:"flex",gap:5}}>
+          {["All","Project","Business Unit","Organization"].map(s=><button key={s} onClick={()=>setEvScope(s)} style={{background:evScope===s?rc+"20":T.s2,border:`1px solid ${evScope===s?rc+"55":T.border}`,color:evScope===s?rc:T.ink3,borderRadius:7,padding:"6px 9px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{s}</button>)}
+        </div>
+        <Tag label={`${evFiltered.length} items`} color={AI_GOLD} bg={AI_GOLD+"18"}/>
+      </div>
+      {evFiltered.map(e=><div key={`${e.item}-${e.time}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr 1fr 1fr",gap:12,padding:"14px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+        <div><div style={{fontSize:13,color:T.ink,fontWeight:700}}>{e.item} <span style={{fontSize:9,color:rc,fontFamily:F.m,border:`1px solid ${rc}40`,borderRadius:5,padding:"1px 5px",marginLeft:4}}>{e.version||"v1"}</span></div><div style={{fontSize:10,color:T.ink3}}>{e.initiative} - {e.scope||"Project"}</div></div>
+        <div style={{fontSize:11,color:T.ink2}}>Control: {e.control}<br/>Risk: {e.risk}</div>
+        <div style={{fontSize:11,color:T.ink2}}>Owner: {e.owner}</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}><STag s={e.status}/><STag s={e.approval}/><Tag label={e.time} color={T.ink3}/></div>
+      </div>)}
+      {evFiltered.length===0&&<div style={{padding:"28px 18px",textAlign:"center",fontSize:12,color:T.ink3,fontFamily:F.b}}>No evidence matches this search.</div>}
+    </Card>}
+    {evTab==="confidence"&&<PageAISpine mode="evidenceconfidence" setTab={setTab}/>}
+  </div>;
+
+  /* ── AI Gateway ────────────────────────────────────────────── */
+  const gwActionColor=a=>a==="Allowed"?T.green:a==="Redacted"?T.amber:a==="Escalated"?T.blue:T.red;
+  const Gateway=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Requests MTD" value={gatewayStats.requestsMtd} sub="All AI interactions governed" color={rc}/>
+      <Metric label="Tokens MTD" value={gatewayStats.tokensMtd} sub="Across all providers" color={T.blue}/>
+      <Metric label="Cost MTD" value={gatewayStats.costMtd} sub="FinOps monitored" color={T.green}/>
+      <Metric label="Blocked" value={gatewayStats.blockedMtd} sub="Policy enforcement actions" color={T.red}/>
+      <Metric label="Avg prompt risk" value={gatewayStats.avgRiskScore} sub="0-100 risk scoring" color={T.teal} score={gatewayStats.avgRiskScore}/>
+    </div>
+    <div style={{background:AI_GOLD_L,border:`1px solid ${AI_GOLD}35`,borderRadius:10,padding:"11px 14px",marginBottom:14,fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>
+      <strong style={{color:AI_GOLD}}>AI Gateway is the enterprise control plane.</strong> Every AI interaction passes through it - prompt filtering, PII detection, policy enforcement, model routing and cost control. Employee Workspace consumes the Gateway; it never bypasses it.
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1.1fr .9fr",gap:14,marginBottom:14}}>
+      <Card style={{padding:0,overflow:"hidden"}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Model providers &amp; routing</h3></div>
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead><tr>{["Provider","Status","Approved models","Routed","Cost MTD"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+          <tbody>{gatewayProviders.map(p=><tr key={p.id} style={{borderBottom:"1px solid "+T.border}}>
+            <td style={{padding:"11px 12px",color:T.ink,fontWeight:700}}>{p.name}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{p.kind}</div></td>
+            <td style={{padding:"11px 12px"}}><Tag label={p.status} color={p.status==="Approved"?T.green:p.status==="Restricted"?T.amber:T.red} bg={(p.status==="Approved"?T.green:p.status==="Restricted"?T.amber:T.red)+"16"}/></td>
+            <td style={{padding:"11px 12px",color:T.ink2,fontSize:11}}>{p.models.join(", ")}</td>
+            <td style={{padding:"11px 12px",minWidth:90}}><Bar value={p.routedShare} color={rc}/><div style={{fontSize:9,color:T.ink3,marginTop:4}}>{p.routedShare}%</div></td>
+            <td style={{padding:"11px 12px",color:T.ink2,fontFamily:F.m}}>{p.costMtd}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </Card>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,margin:"0 0 12px"}}>Enforcement policies</h3>
+        <div style={{display:"grid",gap:8}}>
+          {gatewayPolicies.map(p=><div key={p.id} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
+            <div style={{minWidth:0}}><div style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{p.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{p.category} - triggered {p.triggeredMtd.toLocaleString()}x MTD</div></div>
+            <Tag label={p.enforcement} color={p.enforcement==="Block"?T.red:p.enforcement==="Redact"?T.amber:p.enforcement==="Route to review"?T.blue:T.ink3} bg={(p.enforcement==="Block"?T.red:p.enforcement==="Redact"?T.amber:p.enforcement==="Route to review"?T.blue:T.ink3)+"16"}/>
+          </div>)}
+        </div>
+      </Card>
+    </div>
+    <Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Live prompt log</h3><Tag label="Streaming" color={T.green} bg={T.greenL}/></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead><tr>{["Time","User","Business unit","Provider / model","Risk","Action","Policy","Tokens"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+        <tbody>{gatewayLog.map(l=><tr key={l.id} style={{borderBottom:"1px solid "+T.border}}>
+          <td style={{padding:"10px 12px",color:T.ink3,fontFamily:F.m}}>{l.time}</td>
+          <td style={{padding:"10px 12px",color:T.ink2}}>{l.user}</td>
+          <td style={{padding:"10px 12px",color:T.ink2}}>{l.unit}</td>
+          <td style={{padding:"10px 12px",color:T.ink2}}>{l.provider}<div style={{fontSize:9,color:T.ink4}}>{l.model}</div></td>
+          <td style={{padding:"10px 12px"}}><span style={{color:l.riskScore>=60?T.red:l.riskScore>=30?T.amber:T.green,fontFamily:F.m,fontWeight:800}}>{l.riskScore}</span></td>
+          <td style={{padding:"10px 12px"}}><Tag label={l.action} color={gwActionColor(l.action)} bg={gwActionColor(l.action)+"16"}/></td>
+          <td style={{padding:"10px 12px",color:T.ink3,fontSize:10}}>{l.policy}</td>
+          <td style={{padding:"10px 12px",color:T.ink3,fontFamily:F.m}}>{l.tokens.toLocaleString()}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>
+  </div>;
+
+  /* ── Governance Academy ────────────────────────────────────── */
+  const Academy=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:14}}>
+      {items.map(i=><Card key={i.id} style={{padding:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{i.unit}</div><Tag label={i.resistance+" resistance"} color={i.resistance==="High"?T.red:i.resistance==="Medium"?T.amber:T.green} bg={(i.resistance==="High"?T.red:i.resistance==="Medium"?T.amber:T.green)+"14"}/></div>
+        <Bar value={parseInt(i.training)||0} color={(parseInt(i.training)||0)>75?T.green:T.amber}/>
+        <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:7}}>Learning completion {i.training}</div>
+      </Card>)}
+    </div>
+    <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 14px",marginBottom:14,display:"flex",gap:16,flexWrap:"wrap",fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>
+      <span><strong style={{color:rc}}>Auto-recommend:</strong> a falling governance score triggers recommended learning.</span>
+      <span><strong style={{color:T.red}}>Auto-assign:</strong> repeated policy violations assign mandatory training.</span>
+    </div>
+    <PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>
   </div>;
 
   return <div style={{animation:"up .3s ease"}}>
     <Header/>
-    <SectionTabs/>
-    {view==="dashboard"&&<Dashboard/>}
-    {view==="registry"&&<Registry/>}
-    {view==="pilot"&&<PilotWorkspace/>}
-    {view==="detail"&&<Detail/>}
-    {view==="lifecycle"&&<Lifecycle/>}
-    {view==="guardrails"&&<Guardrails/>}
-    {view==="evidence"&&<Evidence/>}
-    {view==="cxo"&&<CXO/>}
-    {view==="value"&&<ValueWorkforce/>}
-    {view==="spine"&&<PageAISpine mode="overview" setTab={setTab}/>}
-    {view==="dna"&&<PageAISpine mode="dna" setTab={setTab}/>}
-    {view==="controlmatrix"&&<PageAISpine mode="controlmatrix" setTab={setTab}/>}
-    {view==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab}/>}
-    {view==="riskdrift"&&<PageAISpine mode="riskdrift" setTab={setTab}/>}
-    {view==="evidenceconfidence"&&<PageAISpine mode="evidenceconfidence" setTab={setTab}/>}
-    {view==="maturitymap"&&<PageAISpine mode="maturitymap" setTab={setTab}/>}
+    {activeModule==="dashboard"&&<Dashboard/>}
+    {activeModule==="initiatives"&&<Initiatives/>}
+    {activeModule==="governance"&&<Governance/>}
+    {activeModule==="evidence"&&<EvidenceModule/>}
+    {activeModule==="gateway"&&<Gateway/>}
+    {activeModule==="academy"&&<Academy/>}
   </div>;
 }
 
@@ -5389,7 +5607,8 @@ export default function VerisZone() {
         const view=parts[2]||"dashboard";
         setRole("caio");
         setTab("aicentral");
-        if(AI_CENTRAL_NAV.some(item=>item.id===view))setAiCentralView(view);
+        const mappedView=AC_LEGACY_VIEWS[view]||view;
+        if(AI_CENTRAL_NAV.some(item=>item.id===mappedView))setAiCentralView(mappedView);
         setSessionMode("aicentral");
         setHasEntered(true);
         return true;
@@ -5417,7 +5636,8 @@ export default function VerisZone() {
         const view=window.location.hash.replace("#workspace-aicentral-","");
         setRole("caio");
         setTab("aicentral");
-        if(AI_CENTRAL_NAV.some(item=>item.id===view))setAiCentralView(view);
+        const mappedView=AC_LEGACY_VIEWS[view]||view;
+        if(AI_CENTRAL_NAV.some(item=>item.id===mappedView))setAiCentralView(mappedView);
         setSessionMode("aicentral");
         setHasEntered(true);
         return;
@@ -5456,11 +5676,13 @@ export default function VerisZone() {
         </div>}
         {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
           {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
+          {sessionMode==="demo"&&<span aria-hidden style={{width:1,background:T.border,margin:"4px 3px",flexShrink:0}}/>}
+          {sessionMode==="demo"&&<button onClick={()=>setTab("aicentral")} title="Open the seeded AI Central showcase" style={{background:tab==="aicentral"?AI_GOLD+"1C":"transparent",border:tab==="aicentral"?`1px solid ${AI_GOLD}55`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:tab==="aicentral"?AI_GOLD:T.ink3,fontSize:11,fontWeight:900,fontFamily:F.b,transition:"all .2s",whiteSpace:"nowrap",cursor:"pointer"}}>AI Central</button>}
           {sessionMode!=="demo"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:tab!=="aicentral"?rc+"18":T.s2,border:`1px solid ${tab!=="aicentral"?rc+"45":T.border}`,borderRadius:8,padding:"5px 14px",color:tab!=="aicentral"?rc:T.ink2,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
         {isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s3:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1,overflowX:"auto"}}>
           {sessionMode==="demo"
-            ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
+            ?[...Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>}),<button key="aicentral" onClick={()=>setTab("aicentral")} style={{flex:1,background:tab==="aicentral"?AI_GOLD+"20":"transparent",border:tab==="aicentral"?`1px solid ${AI_GOLD}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:tab==="aicentral"?AI_GOLD:T.ink4,fontSize:9,fontWeight:800,fontFamily:F.b,whiteSpace:"nowrap"}}>AI Central</button>]
             :<button type="button" onClick={()=>setTab("home")} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
