@@ -1,5 +1,6 @@
 import type {
   ACCxoAlignment,
+  DeploymentMode,
   ExecBriefEntry,
   ExecKpiInsight,
   ExecDecisionItem,
@@ -13,8 +14,13 @@ import type {
   ACPhaseTemplate,
   ACRoleAccess,
   GatewayLogEntry,
+  GatewayRetentionConfig,
+  GatewayRoutingRule,
+  GuardrailDetector,
+  KnowledgeAsset,
   GatewayPolicy,
   GatewayProvider,
+  WorkbenchConversation,
 } from "./types";
 
 /* ── AI Central operating layer data ──────────────────────────── */
@@ -56,10 +62,12 @@ export const AC_RBAC: Record<string, ACRoleAccess> = {
   cfo:  { lens: "Value",      modules: ["dashboard", "initiatives", "governance", "academy"], focus: "Budget utilization, ROI confidence and benefit realization" },
   chro: { lens: "Workforce",  modules: ["dashboard", "initiatives", "academy"], focus: "Readiness, adoption resistance and learning completion" },
   ciso: { lens: "Security",   modules: ["dashboard", "initiatives", "governance", "evidence", "gateway"], focus: "Model security, gateway enforcement and control evidence" },
-  caio: { lens: "Governance", modules: ["dashboard", "initiatives", "governance", "evidence", "gateway", "academy"], focus: "Implementation, controls, evidence and lifecycle gates" },
-  cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "governance", "evidence", "gateway", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
+  caio: { lens: "Governance", modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Implementation, controls, evidence and lifecycle gates" },
+  cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
   cdpo: { lens: "Privacy",    modules: ["dashboard", "initiatives", "governance", "evidence"], focus: "DPIAs, data classification and privacy evidence" },
   cgo:  { lens: "Compliance", modules: ["dashboard", "governance", "evidence", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
+  employee: { lens: "Operations", modules: ["dashboard"], focus: "Your governed AI activity" },
+  manager:  { lens: "Operations", modules: ["dashboard"], focus: "Team adoption and governed usage" },
 };
 
 export const acInitiatives: ACInitiativeRecord[] = [
@@ -191,6 +199,8 @@ export const AC_FRAMEWORK_POSTURE: FrameworkPosture[] = [
 
 /* ── Executive Workspace 4.0 intelligence seeds ───────────────── */
 export const EXEC_BRIEF: Record<string, ExecBriefEntry> = {
+  employee:{focus:"AI Workbench Copilot",headline:"Your governed AI workbench is ready.",body:"Every prompt is policy-checked, enriched with enterprise knowledge and routed to an approved model.",deltas:[["Prompts","up","84"],["Time saved","up","11.5h"],["Blocked","flat","3"],["Leaks","flat","0"]]},
+  manager:{focus:"Team AI Adoption Advisor",headline:"Team adoption is healthy; one unit needs support.",body:"Aggregated team usage shows strong productivity gains with zero data leakage.",deltas:[["Adoption","up","64%"],["Value","up","$1.2M"],["Compliance","up","92%"],["Blocked","flat","3"]]},
   ceo:{focus:"AI Chief Strategy Officer",headline:"Portfolio is scaling, one initiative needs a board-level call.",
     body:"Enterprise AI maturity rose to 78/100 as two pilots reached scale-readiness. Finance Close Automation is board-pack ready and projects $1.8M value; Customer Resolution Copilot is held pending CISO evidence. One initiative is trending to retirement on weak adoption. Approving the scale package unlocks an estimated 9% portfolio ROI uplift this quarter.",
     deltas:[["AI maturity","up","+6"],["Value realized","up","$3.6M"],["Scale-ready pilots","up","2"],["At-risk initiatives","down","1"]]},
@@ -221,6 +231,14 @@ export const EXEC_BRIEF: Record<string, ExecBriefEntry> = {
 };
 
 export const EXEC_PRIORITIES: Record<string, ExecPriorityItem[]> = {
+  employee:[
+    {title:"Continue your risk register draft",owner:"You",priority:"Medium",due:"Today",impact:"Evidence auto-captured",benefit:"Enriched with the risk library",link:{tab:"workbench"}},
+    {title:"Review your masked-content warning",owner:"You",priority:"Medium",due:"Today",impact:"Prompt hygiene",benefit:"Learn what triggered the mask",link:{tab:"aiusage"}},
+  ],
+  manager:[
+    {title:"Review team adoption trend",owner:"You",priority:"Medium",due:"This week",impact:"Adoption 64%",benefit:"Aggregates only - no prompt content",link:{tab:"aiusage"}},
+    {title:"Assign training to close the gap",owner:"You",priority:"Medium",due:"This week",impact:"People unit lagging",benefit:"Auto-recommended learning path",link:{tab:"aiusage"}},
+  ],
   ceo:[
     {title:"Approve Finance Close Automation scale package",owner:"Maya Chen",priority:"Critical",due:"Today",impact:"$1.8M value unlock",benefit:"9% portfolio ROI uplift",link:{ac:"initiatives"}},
     {title:"Decide on Workforce Skills Navigator retirement",owner:"Aisha Patel",priority:"High",due:"2 days",impact:"Stops $0.2M sunk spend",benefit:"Frees budget for scale-ready pilots",link:{ac:"initiatives"}},
@@ -356,6 +374,8 @@ export const EXEC_DECISIONS: Record<string, ExecDecisionItem[]> = {
 };
 
 export const ASSISTANT_NUDGES: Record<string, string[]> = {
+  employee:["Your prompts are governed - sensitive data is masked before leaving the boundary.","Drafting a register, assessment or policy auto-creates evidence.","Try the approved prompt library for faster, safer results."],
+  manager:["Team adoption is 64% - the People unit lags behind.","3 prompts were blocked this month; nothing left the boundary.","Private prompt content stays hidden - you see aggregates only."],
   ceo:["2 governed decisions are waiting for you.","Finance Close Automation is ready to scale (ROI +31%).","One initiative is trending to retirement - review before the board meeting."],
   coo:["Retail Banking is blocked on evidence - clearing it unlocks the second wave.","People has the lowest AI adoption in the org.","I can draft the department rollout comms for you."],
   cfo:["Second-wave budget release is pending your approval.","Credit Decision Assurance is behind on benefits - want a re-forecast?","AI spend can be reduced ~$76K/mo via the Gateway."],
@@ -407,4 +427,114 @@ export const KPI_INSIGHTS: Record<string, ExecKpiInsight> = {
   "Enterprise Risk Score": { rootCause: "Concentration risk in two critical AI initiatives.", impact: "Drives the enterprise appetite discussion.", aiRec: "Rebalance via the scale/retire decisions pending.", link: { ac: "initiatives" } },
   "RTO Achievement": { rootCause: "Recovery tests passing for all AI platform services.", impact: "Resilience evidence ready for audit.", aiRec: "No action - schedule next test cycle.", link: { ac: "evidence" } },
   "Vendor Risk Assessed": { rootCause: "Assessment backlog cleared except frontier vendors.", impact: "Remaining gap concentrated in two vendors.", aiRec: "Complete the two open frontier-vendor reviews.", link: { ac: "gateway" } },
+};
+
+/* ── Employee Workspace / Enterprise AI Gateway config ────────── */
+
+/* Configurable routing: which provider serves which scope. */
+export const gatewayRouting: GatewayRoutingRule[] = [
+  { id: "rt-hr",    scope: "People (HR)",     providerId: "gw-copilot",  reason: "M365-native workflows and HR document context" },
+  { id: "rt-eng",   scope: "Engineering",     providerId: "gw-claude",   reason: "Code reasoning quality and long-context reviews" },
+  { id: "rt-legal", scope: "Legal",           providerId: "gw-azure",    reason: "EU data boundary and contractual DPA" },
+  { id: "rt-fin",   scope: "Finance",         providerId: "gw-azure",    reason: "SOX-scoped tenant isolation" },
+  { id: "rt-cust",  scope: "Customer Operations", providerId: "gw-bedrock", reason: "Latency and regional deployment" },
+  { id: "rt-high",  scope: "High Risk",       providerId: "gw-internal", reason: "Confidential workloads never leave the enterprise" },
+];
+
+/* Sensitive-content detectors and their configured actions. */
+export const guardrailDetectors: GuardrailDetector[] = [
+  { id: "det-pii",   name: "PII Detection",                action: "Redact",  triggeredMtd: 1284 },
+  { id: "det-phi",   name: "PHI Detection",                action: "Block",   triggeredMtd: 42 },
+  { id: "det-pci",   name: "PCI / Card Data",              action: "Block",   triggeredMtd: 17 },
+  { id: "det-fin",   name: "Financial Data",               action: "Warn",    triggeredMtd: 236 },
+  { id: "det-code",  name: "Source Code",                  action: "Warn",    triggeredMtd: 388 },
+  { id: "det-cred",  name: "Credentials & API Keys",       action: "Block",   triggeredMtd: 61 },
+  { id: "det-doc",   name: "Confidential Documents",       action: "Require justification", triggeredMtd: 149 },
+  { id: "det-cust",  name: "Sensitive Customer Data",      action: "Mask",    triggeredMtd: 512 },
+  { id: "det-trade", name: "Trade Secrets",                action: "Escalate", triggeredMtd: 9 },
+];
+
+export const deploymentModes: DeploymentMode[] = [
+  { id: "mode-workspace", name: "Enterprise Workspace", desc: "Prompts intercepted inside VerisZone before any model call.", status: "Active" },
+  { id: "mode-copilot",   name: "Microsoft Copilot Integration", desc: "Consume Copilot telemetry via Graph, Purview and Defender APIs.", status: "Available" },
+  { id: "mode-api",       name: "API Gateway", desc: "Enterprise applications call the VerisZone Gateway before invoking models.", status: "Active" },
+  { id: "mode-ext",       name: "Browser Extension", desc: "Inspect prompts on external AI sites: warn, block, redact, log.", status: "Planned" },
+  { id: "mode-byol",      name: "Bring Your Own LLM", desc: "Any compatible endpoint configured as a connector - no redesign required.", status: "Available" },
+];
+
+export const gatewayRetention: GatewayRetentionConfig[] = [
+  { setting: "Prompt storage",        value: "Metadata only", note: "Raw prompt text is not retained by default policy" },
+  { setting: "Conversation retention", value: "90 days",      note: "Configurable per business unit and classification" },
+  { setting: "Evidence retention",     value: "7 years",      note: "Aligned to enterprise audit policy" },
+  { setting: "Regional compliance",    value: "EU / US",      note: "Requests pinned to the user's data region" },
+  { setting: "Manager prompt access",  value: "Disabled",     note: "Aggregates only; content review requires explicit permission" },
+];
+
+/* Internal Knowledge Engine: enterprise assets used for prompt enrichment.
+   Every approved artifact can graduate into this repository. */
+export const knowledgeAssets: KnowledgeAsset[] = [
+  { id: "ka-genai",   title: "Responsible GenAI Use Policy",        kind: "Policy",               sourceRef: "POL-RAI-001 v6",        addedBy: "Governance Office", reuseCount: 312 },
+  { id: "ka-iso",     title: "ISO 42001 Control Checklist",         kind: "Framework",            sourceRef: "ISO 42001 workspace",   addedBy: "CAIO Office",       reuseCount: 214 },
+  { id: "ka-nist",    title: "NIST AI RMF Mapping",                 kind: "Framework",            sourceRef: "Compliance scorecard",  addedBy: "CAIO Office",       reuseCount: 168 },
+  { id: "ka-risklib", title: "Enterprise AI Risk Library",          kind: "Risk Library",         sourceRef: "AIRA register",         addedBy: "Risk Office",        reuseCount: 190 },
+  { id: "ka-riskreg", title: "Credit Decision risk register",       kind: "Evidence",             sourceRef: "ai-002 Assess phase",   addedBy: "Auto-captured",      reuseCount: 57 },
+  { id: "ka-dpia",    title: "DPIA / Privacy Assessment Template",  kind: "Template",             sourceRef: "CAIO-1008",             addedBy: "Privacy Office",     reuseCount: 84 },
+  { id: "ka-lessons", title: "Finance Close Automation lessons",    kind: "Lessons Learned",      sourceRef: "ai-003 Operate phase",  addedBy: "Auto-captured",      reuseCount: 73 },
+  { id: "ka-arch",    title: "AI Reference Architecture Standard",  kind: "Architecture Standard", sourceRef: "Design phase kit",     addedBy: "CIO Office",         reuseCount: 121 },
+  { id: "ka-prompts", title: "Approved Prompt Library",             kind: "Prompt Library",       sourceRef: "Build phase artifacts", addedBy: "Platform AI",        reuseCount: 402 },
+  { id: "ka-play",    title: "Pilot-to-Scale Playbook",             kind: "Playbook",             sourceRef: "Governance Library",    addedBy: "Transformation Office", reuseCount: 95 },
+];
+
+/* Seeded workbench conversations - Demo Center only; real employee
+   workspaces start clean per the tenant data policy. */
+export const demoConversations: WorkbenchConversation[] = [
+  {
+    id: "cv-risk", title: "AI Risk Register - Copilot rollout", unit: "Engineering", project: "Customer Resolution Copilot",
+    initiativeId: "ai-001", providerId: "gw-claude", model: "Claude Sonnet", classification: "Confidential",
+    created: "2026-07-18", lastActivity: "Today 14:02", riskScore: 34, policyDecision: "Allowed with enrichment",
+    evidenceLinks: 2, retention: "90 days",
+    messages: [
+      { id: "m1", from: "user", text: "Create an AI risk register for the Customer Resolution Copilot pilot." },
+      { id: "m2", from: "assistant", text: "Drafted a 12-entry risk register aligned to your enterprise risk library. Prompt-injection and data-leakage entries inherit controls CTRL-AI-014 and CTRL-SEC-022 from the initiative record; residual scores follow the ISO 42001 scale your risk office uses.", enrichedWith: ["Enterprise AI Risk Library", "ISO 42001 Control Checklist", "Credit Decision risk register", "Responsible GenAI Use Policy"] },
+      { id: "m3", from: "user", text: "Add the customer PII exposure scenario. Sample record: jordan.smith@example.com, account 4556-9871-2201-8834." },
+      { id: "m4", from: "assistant", text: "Added the PII exposure scenario. Your sample contained live-looking card data - it was masked before leaving the enterprise boundary and the register entry references the redacted token instead.", guardrail: { action: "Masked", detector: "PCI / Card Data" }, enrichedWith: ["Enterprise AI Risk Library"] },
+    ],
+  },
+  {
+    id: "cv-agent", title: "AI Agent design - invoice triage", unit: "Finance", project: "Finance Close Automation",
+    initiativeId: "ai-003", providerId: "gw-azure", model: "GPT-4o", classification: "Internal",
+    created: "2026-07-19", lastActivity: "Today 11:40", riskScore: 18, policyDecision: "Allowed",
+    evidenceLinks: 1, retention: "90 days",
+    messages: [
+      { id: "m1", from: "user", text: "Design an agent that triages incoming invoices and routes exceptions to controllers." },
+      { id: "m2", from: "assistant", text: "Proposed a three-step agent aligned to the AI Reference Architecture Standard: classify, match against PO, route exceptions with HITL approval for amounts over threshold. Segregation-of-duties controls from the Finance Close initiative are pre-mapped.", enrichedWith: ["AI Reference Architecture Standard", "Finance Close Automation lessons", "Approved Prompt Library"] },
+    ],
+  },
+  {
+    id: "cv-sales", title: "Sales proposal - Nordic bank", unit: "Customer Operations", project: "Regional expansion",
+    initiativeId: null, providerId: "gw-bedrock", model: "Claude Sonnet", classification: "Internal",
+    created: "2026-07-20", lastActivity: "Yesterday", riskScore: 12, policyDecision: "Allowed",
+    evidenceLinks: 0, retention: "90 days",
+    messages: [
+      { id: "m1", from: "user", text: "Draft a proposal summary for the Nordic bank opportunity using our standard structure." },
+      { id: "m2", from: "assistant", text: "Draft ready using the approved proposal template. Compliance positioning references your EU AI Act conformity posture; no client-confidential data was needed from outside the enterprise boundary.", enrichedWith: ["Approved Prompt Library", "Pilot-to-Scale Playbook"] },
+    ],
+  },
+  {
+    id: "cv-legal", title: "Legal review - vendor DPA", unit: "Legal", project: "Vendor onboarding",
+    initiativeId: null, providerId: "gw-azure", model: "GPT-4o", classification: "Restricted",
+    created: "2026-07-17", lastActivity: "2 days ago", riskScore: 41, policyDecision: "Justification recorded",
+    evidenceLinks: 1, retention: "30 days",
+    messages: [
+      { id: "m1", from: "user", text: "Summarise the differences between this vendor DPA draft and our standard clauses." },
+      { id: "m2", from: "assistant", text: "This conversation is classified Restricted: a business justification was recorded and the confidential document stayed within the EU boundary. Three clause deviations found - liability cap, sub-processor notice period and audit rights.", guardrail: { action: "Justification required", detector: "Confidential Documents" }, enrichedWith: ["Responsible GenAI Use Policy"] },
+    ],
+  },
+];
+
+/* Employee usage rollup - Demo Center seed; derived live in real tenants. */
+export const employeeUsageSeed = {
+  timeSavedHrs: 11.5, prompts: 84, blocked: 3, warnings: 6, successRate: 93,
+  knowledgeReuse: 61, topSkills: ["Risk drafting", "Proposal writing", "Agent design"],
+  preferredModels: ["Claude Sonnet", "GPT-4o"], learningProgress: 68,
 };

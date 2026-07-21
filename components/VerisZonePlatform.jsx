@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
 
 /* ── Feedback engine ─────────────────────────────────────────── */
 const FEEDBACK_DIMS = [
@@ -220,6 +220,8 @@ const ROLES = {
   cio: {id:"cio", label:"CIO", title:"Chief Information Officer",name:"Marcus Reid",initials:"MR",frameworks:["ISO 27001","NIST CSF","GDPR","SOC 2"]},
   cdpo:{id:"cdpo",label:"CDPO",title:"Chief Data Privacy Officer",name:"Niamh Lynch",initials:"NL",frameworks:["GDPR","ISO 27701","CCPA/CPRA","ePrivacy"]},
   cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
+  employee:{id:"employee",label:"Employee",title:"Employee AI Workbench",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
+  manager:{id:"manager",label:"Manager",title:"Team AI Adoption Lead",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
 };
 const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
 const USER_PROFILES = {
@@ -234,6 +236,8 @@ const USER_PROFILES = {
   cdpo:{name:"Niamh Lynch",email:"niamh.lynch@veriszone.ai",password:"VerisZone-CDPO-2026",role:"CDPO",title:"Chief Data Privacy Officer",department:"Privacy and Data Protection",organization:"VerisZone Privacy Office",phone:"+353 1 555 0198",region:"EU",timezone:"Europe/Dublin",manager:"Data Protection Board",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 10:11"},
   cgo:{name:"Rafael Torres",email:"rafael.torres@veriszone.ai",password:"VerisZone-CGO-2026",role:"CGO",title:"Chief Governance Officer",department:"Governance, Risk and Compliance",organization:"VerisZone Governance Office",phone:"+1 212 555 0176",region:"US / LATAM",timezone:"America/New_York",manager:"Audit and Risk Committee",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 07:38"},
   aicentral:{name:"AI Central",email:"ai.central@veriszone.ai",password:"govern-with-certainty",role:"AI Central",title:"Execution and Assurance Workspace",department:"AI Central Operations",organization:"VerisZone AI Operating Center",phone:"+1 415 555 0150",region:"Global",timezone:"UTC",manager:"AI Transformation Office",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:40"},
+  employee:{name:"Jamie Park",email:"jamie.park@veriszone.ai",password:"govern-with-certainty",role:"Employee",title:"Product Engineer",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0171",region:"US",timezone:"America/Los_Angeles",manager:"Riley Chen",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 09:10"},
+  manager:{name:"Riley Chen",email:"riley.chen@veriszone.ai",password:"govern-with-certainty",role:"Manager",title:"Engineering Manager",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0164",region:"US",timezone:"America/Los_Angeles",manager:"Priya Mehta",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 08:45"},
 };
 
 /* Section */
@@ -261,6 +265,11 @@ const NAV = [
   {id:"aigov",     icon:"V", label:"AI Governance Cube"},
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
+  {id:"workbench", icon:"W", label:"AI Workbench"},
+  {id:"myideas",   icon:"I", label:"My AI Ideas"},
+  {id:"aiusage",   icon:"U", label:"My AI Dashboard"},
+  {id:"decisions", icon:"D", label:"Decisions"},
+  {id:"knowledge", icon:"K", label:"Knowledge"},
 ];
 
 const CAIO_EXTRA_NAV = [
@@ -289,12 +298,24 @@ const CAIO_NAV_SECTIONS = [
   {title:"Risk Treatment", items:["aira","airt"]},
 ];
 
+/* CAIO outcome navigation: business outcomes only - capabilities surface
+   contextually inside AI Central, Decisions and Knowledge. */
+const CAIO_OUTCOME_SECTIONS = [
+  {title:"Executive Workspace", items:["home","aicentral","decisions","knowledge","reports"]},
+];
+
+const EMPLOYEE_NAV_SECTIONS = [
+  {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
+];
+
 const AI_CENTRAL_NAV = [
   {id:"dashboard", label:"Dashboard", sub:"Executive intelligence"},
   {id:"initiatives", label:"AI Initiatives", sub:"Lifecycle and delivery"},
   {id:"governance", label:"AI Governance", sub:"Controls and compliance"},
   {id:"evidence", label:"Trust & Evidence", sub:"Enterprise evidence"},
+  {id:"portfolio", label:"Portfolio", sub:"Models, maturity, use cases"},
   {id:"gateway", label:"AI Gateway", sub:"Enterprise control plane"},
+  {id:"admin", label:"Administration", sub:"Providers, routing, policies"},
   {id:"academy", label:"Governance Academy", sub:"Readiness and learning"},
 ];
 
@@ -1216,6 +1237,41 @@ function glyphIconFor(value) {
   return Sparkles;
 }
 
+/* Downloads generated text content as a real file. */
+function vzDownload(filename,text){
+  try{
+    const blob=new Blob([text],{type:"text/markdown"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;a.click();
+    URL.revokeObjectURL(url);
+  }catch{/* download unavailable in this environment */}
+}
+
+/* Animates the first number in a value string from zero on mount. */
+function CountUp({value,duration=900}){
+  const str=String(value??"");
+  const m=str.match(/-?\d+(\.\d+)?/);
+  const [disp,setDisp]=useState(m?str.replace(m[0],"0"):str);
+  useEffect(()=>{
+    if(!m){setDisp(str);return;}
+    const target=parseFloat(m[0]);
+    const dec=(m[0].split(".")[1]||"").length;
+    const t0=performance.now();
+    let raf;
+    const tick=now=>{
+      const p=Math.min(1,(now-t0)/duration);
+      const eased=1-Math.pow(1-p,3);
+      setDisp(str.replace(m[0],(target*eased).toFixed(dec)));
+      if(p<1)raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[str]);
+  return <>{disp}</>;
+}
+
 function Glyph({name, color=T.ink3, size=16, strokeWidth=1.8, style={}}) {
   const Icon=glyphIconFor(name);
   return <Icon size={size} color={color} strokeWidth={strokeWidth} style={{display:"block",flexShrink:0,...style}} aria-hidden="true"/>;
@@ -1372,7 +1428,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
-  const roleNavSections=EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
+  const roleNavSections=role==="caio"?CAIO_OUTCOME_SECTIONS:(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
@@ -1425,7 +1481,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {items.map(renderNavButton)}
           </div>;
         })}
-        {!isAICentral&&role==="caio"&&CAIO_NAV_SECTIONS.map(section=>{
+        {false&&role==="caio"&&CAIO_NAV_SECTIONS.map(section=>{
           const items=section.items.map(item=>typeof item==="string"?navById[item]:item).filter(Boolean);
           return <div key={section.title} style={{marginBottom:4}}>
             {renderSectionHeader(section.title)}
@@ -1451,7 +1507,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
 }
 
 /* Section */
-function PageAISpine({mode="overview",setTab}) {
+function PageAISpine({mode="overview",setTab,focus}) {
   const titles={
     overview:["AI Spine Overview","The proprietary orchestration layer translating CXO intent into controlled AI execution."],
     dna:["AI Initiative DNA","A compact fingerprint of the use case, affected CXOs, inherited learning, controls, evidence and scale intent."],
@@ -1464,8 +1520,17 @@ function PageAISpine({mode="overview",setTab}) {
   const [title,sub]=titles[mode]||titles.overview;
   const decisionColor=d=>d==="Scale"?T.green:d==="Hold"?T.amber:d==="Remediate"?T.red:T.ink3;
   const driftColor=d=>String(d).startsWith("+")?T.red:T.green;
-  const activePrograms=AI_ROLLOUT_PROGRAMS;
-  const initiativeDna=[
+  const focusMatch=focus?AI_ROLLOUT_PROGRAMS.filter(pr=>focus.name.includes(pr.name.split(" ")[0])):[];
+  const activePrograms=focus&&focusMatch.length?focusMatch:AI_ROLLOUT_PROGRAMS;
+  /* DNA derives from the selected initiative when one is in focus. */
+  const initiativeDna=focus?[
+    {label:"Use-case pattern",value:`${focus.category} in ${focus.unit}`,detail:"Classifies pilot behavior before controls are activated."},
+    {label:"Affected CXOs",value:focus.cxo,detail:"CXO Impact Graph determines who must review or own tasks."},
+    {label:"Risk class",value:`${focus.risk} Risk`,detail:"Human impact, customer interaction and data handling drive governance class."},
+    {label:"Scale intent",value:focus.lifecycle==="Production"?"Enterprise rollout":"Multi-department rollout",detail:"Pilot learning is retained before moving to the next department."},
+    {label:"Activated controls",value:focus.controls.join(", ")||"None yet",detail:"Controls inherited by every downstream department."},
+    {label:"Evidence requirements",value:(AC_PHASES[focus.phaseIndex]?.deliverables||[]).slice(0,4).join(", "),detail:`Current phase: ${AC_PHASES[focus.phaseIndex]?.name}. AI Central tracks completion before expansion.`},
+  ]:[
     {label:"Use-case pattern",value:"Customer-facing assistance with human escalation",detail:"Classifies pilot behavior before controls are activated."},
     {label:"Affected CXOs",value:"COO, CIO, CAIO, CISO, CDPO",detail:"CXO Impact Graph determines who must review or own tasks."},
     {label:"Risk class",value:"High Risk",detail:"Human impact, customer interaction and data handling drive governance class."},
@@ -1609,7 +1674,7 @@ function ExecBrief({role,goAC}){
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
       {b.deltas.map(([label,dir,val])=>{const c=dir==="up"?T.green:dir==="down"?T.amber:T.ink3;return <div key={label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}>{val}</span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}><CountUp value={val}/></span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></div>
       </div>;})}
     </div>
   </Card>;
@@ -1644,7 +1709,15 @@ function ExecPriorities({role,goto}){
 function ExecDecisionCenter({role,goto,showToast}){
   const items=EXEC_DECISIONS[role]||EXEC_DECISIONS.caio;
   const [done,setDone]=useState({});
-  const act=(i,label)=>{setDone({...done,[i]:label});showToast&&showToast(`${label} recorded - audit evidence generated`);};
+  const act=(i,label,d)=>{
+    setDone({...done,[i]:label});
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Executive decision: ${d.title} - ${label}`,initiative:d.title,scope:"Organization",control:"Decision Center",risk:d.risk+" risk decision",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+    showToast&&showToast(`${label} recorded - audit evidence generated`);
+  };
   const rColor=r=>r==="High"?T.red:r==="Medium"?T.amber:T.green;
   return <Card style={{padding:16,marginBottom:12}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -1663,9 +1736,15 @@ function ExecDecisionCenter({role,goto,showToast}){
             <div style={{fontSize:10,color:l==="AI recommendation"?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:l==="AI recommendation"?800:500}}>{v}</div>
           </div>)}
         </div>
-        {decided?<div style={{display:"flex",alignItems:"center",gap:8}}><Tag label={decided} color={T.green} bg={T.greenL}/><button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button></div>
+        {decided?<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <Tag label={decided} color={T.green} bg={T.greenL}/>
+          <span style={{display:"inline-flex",alignItems:"center",gap:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:AI_GOLD,animation:"up .45s ease",boxShadow:`0 0 18px ${AI_GOLD}30`}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>Evidence record created → Trust &amp; Evidence
+          </span>
+          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button>
+        </div>
         :<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-          {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>label==="Approve"||label==="Reject"||label==="Request changes"||label==="Escalate"?act(i,label):null} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
+          {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>act(i,label,d)} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
           <button onClick={()=>goto(d.link)} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 12px",color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open evidence →</button>
         </div>}
       </div>;})}
@@ -1695,12 +1774,56 @@ function ExecRecommendations({role,goto}){
   </Card>;
 }
 
-function ExecAssistant({role,goto,showToast,isMobile}){
+function ExecAssistant({role,goto,showToast,isMobile,tab}){
+  const [chat,setChat]=useState([]);
+  const [q,setQ]=useState("");
+  const [busy,setBusy]=useState(false);
+  const chatTimer=useRef(null);
+  useEffect(()=>()=>{if(chatTimer.current)clearTimeout(chatTimer.current);},[]);
+  const pageLabel=(NAV.find(n=>n.id===tab)||{}).label||(tab==="aicentral"?"AI Central":tab==="home"?"Dashboard":"Workspace");
+  const isWorkbench=tab==="workbench";
+  const artifactActions=["Generate AIRA","Generate AI Impact Assessment","Generate Risk Register","Create Evidence Folder","Recommend Controls"];
+  const runArtifact=a=>{try{const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");list.unshift({item:`${a} (assistant-generated)`,initiative:"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));}catch{}showToast&&showToast(`${a}: draft created and recorded in Trust & Evidence`);};
   const [open,setOpen]=useState(false);
   const R=ROLES[role]||ROLES.caio;
   const nudges=ASSISTANT_NUDGES[role]||ASSISTANT_NUDGES.caio;
   const focus=(EXEC_BRIEF[role]||EXEC_BRIEF.caio).focus;
   const priorities=EXEC_PRIORITIES[role]||EXEC_PRIORITIES.caio;
+  /* Reasoned recommendation: every line traces to the initiative record,
+     its feedback scores, controls and phase evidence. Nothing invented. */
+  const isExec=!["employee","manager"].includes(role);
+  const gate=isExec?acInitiatives.map(i=>({i,f:acFeedback[i.id]||DEFAULT_FEEDBACK,rec:feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)})).find(x=>x.rec==="Scale"||x.rec==="Retire"):null;
+  const gateChecks=gate?[
+    [`Governance score ${gate.i.guardrail}% (target ≥85)`,gate.i.guardrail>=85],
+    [gate.i.blockedBy?`Open blocker: ${gate.i.blockedBy}`:"No open blockers",!gate.i.blockedBy],
+    [`Residual risk ${gate.i.risk}; stakeholder risk score ${gate.f.risk}/100`,gate.i.risk!=="Critical"&&gate.f.risk>=60],
+    [`Adoption ${gate.i.adoption}% (threshold 70%)`,gate.i.adoption>=70],
+    [`Business value score ${gate.i.valueScore}%`,gate.i.valueScore>=75],
+    [`Evidence complete through Phase ${gate.i.phaseIndex} (${AC_PHASES[gate.i.phaseIndex-1]?.name||"Discover"})`,gate.i.phaseIndex>=3],
+  ]:[];
+  /* Grounded responder: answers reference the role's priorities, nudges and
+     modules - never invented content. External reasoning stays out of scope. */
+  const answer=text=>{
+    const t=text.toLowerCase();
+    const p0=priorities[0];
+    if(/risk/.test(t))return {text:`From your ${focus} view, the top risk-related item is "${p0.title}" (${p0.impact}). I can take you straight to it.`,link:p0.link,label:"Open it"};
+    if(/approve|decision|pending/.test(t))return {text:`You have ${priorities.length} priority actions today. The most urgent: "${p0.title}", due ${p0.due.toLowerCase()}.`,link:p0.link,label:"Go to decision"};
+    if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence"};
+    if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas"};
+    if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy"};
+    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`};
+    return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority"};
+  };
+  const ask=()=>{
+    const t=q.trim();
+    if(!t||busy)return;
+    setChat(c=>[...c.slice(-5),{from:"user",text:t}]);
+    setQ("");setBusy(true);
+    chatTimer.current=setTimeout(()=>{
+      setChat(c=>[...c.slice(-5),{from:"ai",...answer(t)}]);
+      setBusy(false);
+    },700);
+  };
   return <>
     {!open&&<button onClick={()=>setOpen(true)} title="AI Executive Assistant" style={{position:"fixed",bottom:22,right:22,zIndex:9000,display:"flex",alignItems:"center",gap:9,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:`1px solid ${AI_GOLD_B}`,borderRadius:999,padding:isMobile?"10px 14px":"12px 18px",fontSize:12,fontWeight:900,fontFamily:F.b,boxShadow:`0 16px 40px ${AI_GOLD}44`,cursor:"pointer"}}>
       <span style={{width:8,height:8,borderRadius:"50%",background:"#111",boxShadow:"0 0 0 3px rgba(17,17,17,.18)",animation:"pulse 2s infinite"}}/>
@@ -1709,7 +1832,7 @@ function ExecAssistant({role,goto,showToast,isMobile}){
     {open&&<div style={{position:"fixed",bottom:22,right:22,zIndex:9000,width:isMobile?"calc(100vw - 32px)":360,maxHeight:"78vh",display:"flex",flexDirection:"column",background:T.card,border:`1px solid ${AI_GOLD}45`,borderRadius:16,boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden",animation:"up .25s ease"}}>
       <div style={{padding:"13px 15px",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(135deg,${T.s2},${T.s1})`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:"#111",fontFamily:F.h}}>AI</span></div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>AI Chief of Staff</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{focus} · {R.label}</div></div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>AI Chief of Staff</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{focus} · {R.label} · {pageLabel}</div></div>
         <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:T.ink3,cursor:"pointer",padding:4,display:"flex"}}><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg></button>
       </div>
       <div style={{padding:"13px 15px",overflowY:"auto",display:"grid",gap:12}}>
@@ -1722,6 +1845,32 @@ function ExecAssistant({role,goto,showToast,isMobile}){
             </div>)}
           </div>
         </div>
+        {gate&&<div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Reasoned recommendation</div>
+          <div style={{background:T.s2,border:`1px solid ${decisionColorOf(gate.rec,T)}40`,borderRadius:10,padding:"11px 12px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",marginBottom:8}}>
+              <span style={{fontSize:11,fontWeight:900,color:T.ink,fontFamily:F.b}}>{gate.i.name}</span>
+              <Tag label={`Recommend: ${gate.rec}`} color={decisionColorOf(gate.rec,T)} bg={decisionColorOf(gate.rec,T)+"16"}/>
+            </div>
+            <div style={{display:"grid",gap:4,marginBottom:9}}>
+              {gateChecks.map(([txt,ok],i)=><div key={i} style={{display:"flex",gap:7,alignItems:"flex-start"}}>
+                <span style={{fontSize:10,fontWeight:900,color:ok?T.green:T.red,fontFamily:F.m,flexShrink:0}}>{ok?"✓":"✗"}</span>
+                <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.45}}>{txt}</span>
+              </div>)}
+            </div>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>Sources: feedback engine scores · controls {gate.i.controls.join(", ")||"none"} · policies {gate.i.policies.join(", ")||"none"} · phase artifact evidence. Value at stake: {gate.i.expected} expected.</div>
+            <button onClick={()=>{goto({ac:"initiatives"});setOpen(false);}} style={{width:"100%",background:decisionColorOf(gate.rec,T)+"14",border:`1px solid ${decisionColorOf(gate.rec,T)}45`,borderRadius:7,padding:"7px 10px",color:decisionColorOf(gate.rec,T),fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record {gate.rec} decision in AI Central →</button>
+          </div>
+        </div>}
+        {isWorkbench&&<div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>I noticed you are working on an AI artifact</div>
+          <div style={{display:"grid",gap:6}}>
+            {artifactActions.map(a=><button key={a} onClick={()=>runArtifact(a)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:700}}>{a}</span>
+              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900,flexShrink:0}}>+</span>
+            </button>)}
+          </div>
+        </div>}
         <div>
           <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Do it now</div>
           <div style={{display:"grid",gap:6}}>
@@ -1731,9 +1880,25 @@ function ExecAssistant({role,goto,showToast,isMobile}){
             </button>)}
           </div>
         </div>
+        {chat.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Conversation</div>
+          <div style={{display:"grid",gap:6}}>
+            {chat.map((m,i)=><div key={i} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"92%"}}>
+              <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:10,padding:"8px 11px"}}>
+                <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{m.text}</div>
+                {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
+              </div>
+            </div>)}
+            {busy&&<div style={{justifySelf:"start"}}><div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:10,padding:"8px 11px",display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:5,height:5,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</div></div>}
+          </div>
+        </div>}
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.6,paddingTop:4,borderTop:`1px solid ${T.border}`}}>
           Reasoning order: Internal SLM (policies, playbooks, evidence) → Enterprise Knowledge Graph → external LLM for reasoning only. Confidential knowledge never leaves the enterprise boundary.
         </div>
+      </div>
+      <div style={{padding:"10px 13px",borderTop:`1px solid ${T.border}`,display:"flex",gap:7,background:T.s1}}>
+        <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder="Ask your Chief of Staff..." style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+        <button onClick={ask} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:8,padding:"9px 13px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Ask</button>
       </div>
     </div>}
   </>;
@@ -1923,6 +2088,19 @@ function KpiInsightPanel({label,status,role,goto}){
   </div>;
 }
 
+/* Collapsible section shell for the executive dashboard's deep sections. */
+function ExecSection({title,hint,defaultOpen=false,children}){
+  const [open,setOpen]=useState(defaultOpen);
+  return <div style={{marginBottom:12}}>
+    <button onClick={()=>setOpen(!open)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,background:T.s2,border:`1px solid ${T.border}`,borderRadius:open?"10px 10px 0 0":10,padding:"11px 14px",cursor:"pointer",textAlign:"left"}}>
+      <span style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.h}}>{title}</span>
+      {hint&&<span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{hint}</span>}
+      <span style={{marginLeft:"auto",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.m,transform:open?"rotate(90deg)":"none",transition:"transform .2s"}}>›</span>
+    </button>
+    {open&&<div style={{border:`1px solid ${T.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"12px 12px 4px",background:T.s1,animation:"fade .25s ease"}}>{children}</div>}
+  </div>;
+}
+
 /* Section */
 function PageHome({role,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), K=KPI[role]||KPI.caio;
@@ -1955,6 +2133,42 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
   };
   const goAC=m=>goto({ac:m});
 
+  /* CAIO reference architecture: the dashboard answers exactly four
+     questions. Everything else lives inside AI Central. */
+  if(role==="caio"){
+    const atRisk=acInitiatives.filter(i=>i.risk==="High"||i.risk==="Critical"||i.blockedBy);
+    const gates=acInitiatives.filter(i=>["Scale","Retire"].includes(feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)));
+    const decisionsWaiting=(EXEC_DECISIONS.caio||[]).length+K.hitl+gates.length;
+    return <div style={{animation:"up .3s ease"}}>
+      <div style={{marginBottom:18}}>
+        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,letterSpacing:0,marginBottom:4}}>{greet}, {R.name.split(" ")[0]}</h1>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{R.title} - {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+      </div>
+      <ExecBrief role={role} goAC={goAC}/>
+      <ExecPriorities role={role} goto={goto}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
+        <Card onClick={()=>setTab("decisions")} style={{padding:18,cursor:"pointer",border:`1px solid ${AI_GOLD}35`}}>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>Which decisions require me?</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:8}}>
+            <span style={{fontSize:34,fontWeight:900,fontFamily:F.h,color:AI_GOLD}}><CountUp value={decisionsWaiting}/></span>
+            <span style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>waiting - approvals, HITL and scale/retire gates</span>
+          </div>
+          <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Open Decisions →</span>
+        </Card>
+        <Card style={{padding:18}}>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>Which initiatives are at risk?</div>
+          <div style={{display:"grid",gap:7}}>
+            {atRisk.map(i=><button key={i.id} onClick={()=>goAC("initiatives")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700,minWidth:0}}>{i.name}</span>
+              <PTag p={i.risk}/>
+            </button>)}
+          </div>
+        </Card>
+      </div>
+      <ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/>
+    </div>;
+  }
+
   return <div style={{animation:"up .3s ease"}}>
     {/* Header */}
     <div style={{marginBottom:18}}>
@@ -1970,7 +2184,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
         onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
         <div style={{position:"absolute",top:0,right:0,width:50,height:50,background:`radial-gradient(circle at top right,${k.color}15,transparent 70%)`}}/>
         <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",height:22,padding:"0 8px",borderRadius:999,background:k.color+"14",border:"1px solid "+k.color+"32",color:k.color,fontSize:9,fontWeight:800,fontFamily:F.m,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10}}>{k.badge}</div>
-        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}>{k.value}</div>
+        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}><CountUp value={k.value}/></div>
         <div style={{fontSize:10,fontWeight:600,color:T.ink2,fontFamily:F.b,marginBottom:1}}>{k.label}</div>
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </div>)}
@@ -1981,10 +2195,10 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
     <ExecPriorities role={role} goto={goto}/>
     <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
     <ExecRecommendations role={role} goto={goto}/>
-    <ExecMyInitiatives role={role} goAC={goAC}/>
-    <ExecRiskCenter role={role} goAC={goAC}/>
-    <ExecValueCenter role={role} goAC={goAC}/>
-    <ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/>
+    <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
+    <ExecSection title="Enterprise Risk Center" hint="Exposure, mitigation and AI recommendations"><ExecRiskCenter role={role} goAC={goAC}/></ExecSection>
+    <ExecSection title="Value Center" hint="Realized value, ROI and target achievement"><ExecValueCenter role={role} goAC={goAC}/></ExecSection>
+    <ExecSection title="Governance Health" hint="Controls, evidence, audit readiness and frameworks"><ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/></ExecSection>
 
     {/* Enterprise AI Transformation Control Plane */}
     <Card style={{padding:16,marginBottom:12,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${T.border}`}}>
@@ -2052,7 +2266,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
                 {m.trend>0?"Up":"Down"} {Math.abs(m.trend)}{m.unit==="%" ?"%":""}
               </span>
             </div>
-            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}>{m.value}{m.unit}</div>
+            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}><CountUp value={m.value}/>{m.unit}</div>
             <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,marginTop:3}}>{m.fw}</div>
             {isOpen&&<KpiInsightPanel label={m.label} status={m.trend>0?"Good":"Alert"} role={role} goto={goto}/>}
           </div>;
@@ -2485,7 +2699,8 @@ function PageStrategy({role,setTab}) {
 }
 
 /* Section */
-function PagePlaybook({role}) {
+function PagePlaybook({role,setTab,showToast}) {
+  const [executed,setExecuted]=useState({});
   const rc=RC(role), rcL=RCL(role), tasks=PLAYBOOK[role]||[];
   const [selIdx,setSelIdx]=useState(0);
   const [runbook,setRunbook]=useState(null); // full runbook modal
@@ -2565,7 +2780,16 @@ function PagePlaybook({role}) {
 
         <div style={{display:"flex",gap:10}}>
           <button onClick={()=>setRunbook(null)} style={{flex:1,background:T.s2,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>Back</button>
-          <button style={{flex:2,background:rc,color:"#fff",border:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>Execute Runbook</button>
+          <button onClick={()=>{
+            if(rb.hitl){setTab&&setTab(role==="caio"?"decisions":"hitl");return;}
+            setExecuted({...executed,[rb.id||rb.title]:true});
+            try{
+              const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+              list.unshift({item:`Runbook executed: ${rb.title}`,initiative:rb.fw||"Governance Playbook",scope:"Organization",control:"Playbook execution",risk:"Operational",owner:rb.owner||"Playbook owner",status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+              localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+            }catch{/* ignore */}
+            showToast&&showToast("Runbook executed - evidence recorded");
+          }} style={{flex:2,background:executed[rb.id||rb.title]?T.s2:rc,color:executed[rb.id||rb.title]?T.green:"#fff",border:executed[rb.id||rb.title]?`1px solid ${T.green}40`:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>{executed[rb.id||rb.title]?"Executed - Evidence Recorded":rb.hitl?"Review in HITL Queue →":"Execute Runbook"}</button>
         </div>
       </div>
     );
@@ -2620,7 +2844,13 @@ function PagePlaybook({role}) {
   </div>;
 }
 /* Section */
-function PageCompliance({role}) {
+function PageCompliance({role,setTab,setAiCentralView}) {
+  const [openStd,setOpenStd]=useState(null);
+  const goto=link=>{
+    if(!link)return;
+    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
+    else if(link.tab){setTab&&setTab(link.tab);}
+  };
   const rc=RC(role);
   const standards=STANDARDS_MAP[role]||[];
   const roleKpis=ROLE_KPIS[role]||[];
@@ -2631,7 +2861,7 @@ function PageCompliance({role}) {
       {standards.map((s,i)=>{
         const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
         const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
-        return <Card key={s.std} style={{padding:18,animation:`up ${.3+i*.08}s ease both`}}>
+        return <Card key={s.std} onClick={()=>setOpenStd(openStd===s.std?null:s.std)} style={{padding:18,animation:`up ${.3+i*.08}s ease both`,cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
             <div>
               <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink,marginBottom:6}}>{s.std}</h3>
@@ -2643,6 +2873,9 @@ function PageCompliance({role}) {
           <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
             <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
             <span style={{fontSize:10,fontWeight:700,fontFamily:F.m,color:col}}>{status}</span>
+          </div>
+          {openStd===s.std&&<div style={{marginTop:4}}><KpiInsightPanel label={s.std} status={status==="Strong"||status==="Good"?"Good":"Alert"} role={role} goto={goto}/></div>}
+          <div style={{display:"none"}}>
           </div>
         </Card>;
       })}
@@ -2954,8 +3187,22 @@ function PageAIRA() {
 }
 
 /* Section */
-function PageAIRT() {
+function PageAIRT({showToast}) {
   const [sel,setSel]=useState(AIRT[0]);
+  const [bumped,setBumped]=useState({});
+  const effStatus=t=>bumped[t.id]||t.status;
+  const advance=()=>{
+    const cur=effStatus(sel);
+    const next=cur==="Planned"?"In Progress":cur==="In Progress"?"Complete":"Complete";
+    if(cur==="Complete")return;
+    setBumped({...bumped,[sel.id]:next});
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Treatment update: ${sel.system} -> ${next}`,initiative:sel.system,scope:"Project",control:"AIRT - ISO 42001 C.8.3",risk:sel.risk,owner:sel.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+    showToast&&showToast(`Treatment plan updated: ${next} - evidence recorded`);
+  };
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="AI Risk Treatment Register (AIRT)" sub="ISO 42001 Clause 8.3"/>
     <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
@@ -2972,7 +3219,7 @@ function PageAIRT() {
             <STag s={t.treatment}/>
             <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{t.owner}</span>
             <span style={{fontSize:9,fontFamily:F.m,color:T.ink3}}>{t.deadline}</span>
-            <STag s={t.status}/>
+            <STag s={effStatus(t)}/>
           </div>)}
         </div>
       </div>
@@ -2985,11 +3232,11 @@ function PageAIRT() {
         <div style={{padding:16}}>
           <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Treatment Action</div>
           <p style={{fontSize:11,color:T.ink2,lineHeight:1.7,fontFamily:F.b,marginBottom:14,padding:"10px 12px",background:T.s3,borderRadius:7,borderLeft:`3px solid ${T.violet}`}}>{sel.action}</p>
-          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",sel.status],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",effStatus(sel)],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
             <span style={{fontSize:10,color:T.ink,fontFamily:F.m}}>{v}</span>
           </div>)}
-          <button style={{width:"100%",marginTop:13,background:T.violet,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Update Treatment Plan</button>
+          <button onClick={advance} disabled={effStatus(sel)==="Complete"} style={{width:"100%",marginTop:13,background:effStatus(sel)==="Complete"?T.s3:T.violet,color:effStatus(sel)==="Complete"?T.green:"#fff",border:effStatus(sel)==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b,cursor:effStatus(sel)==="Complete"?"default":"pointer"}}>{effStatus(sel)==="Complete"?"Treatment Complete - Evidence Recorded":effStatus(sel)==="Planned"?"Start Treatment (mark In Progress)":"Mark Treatment Complete"}</button>
         </div>
       </Card>}
     </div>
@@ -2997,7 +3244,8 @@ function PageAIRT() {
 }
 
 /* Section */
-function PageRoadmap({role}) {
+function PageRoadmap({role,setTab,setAiCentralView}) {
+  const gotoAC=m=>{setAiCentralView&&setAiCentralView(m);setTab&&setTab("aicentral");};
   const rc=RC(role), rcL=RCL(role), qs=ROADMAP[role]||ROADMAP.caio||[];
   const nexts={
     ceo:[{a:"Review two scale-gate decisions with the board pack",w:"Scale recommendations affect regulated departments and require executive sponsorship before AI Central opens the next wave.",i:"High"},{a:"Confirm enterprise AI risk appetite for Q3",w:"Risk drift alerts are active on three pilots. The CEO view should align value ambition with acceptable exposure.",i:"High"},{a:"Approve maturity propagation targets",w:"Each successful pilot should raise the enterprise maturity map before broader rollout.",i:"Medium"}],
@@ -3043,7 +3291,10 @@ function PageRoadmap({role}) {
         <div style={{flex:1}}>
           <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{ns.a}</div>
           <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:6}}>{ns.w}</div>
-          <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
+            <button onClick={()=>gotoAC(/risk|dpia|violation|assessment/i.test(ns.a+ns.w)?"governance":/evidence|docs|report|pack/i.test(ns.a+ns.w)?"evidence":"initiatives")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>Act in AI Central →</button>
+          </div>
         </div>
       </div>)}
     </Card>
@@ -3398,10 +3649,17 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
 }
 
 /* Section */
-function PageReports({role,sessionMode}) {
+function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), rcL=RCL(role), K=KPI[role]||KPI.caio;
   const standards=STANDARDS_MAP[role]||[];
   const roleKpis=ROLE_KPIS[role]||[];
+  const [rowOpen,setRowOpen]=useState(null);
+  const [ranNow,setRanNow]=useState({});
+  const goto=link=>{
+    if(!link)return;
+    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
+    else if(link.tab){setTab&&setTab(link.tab);}
+  };
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
   const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
   return <div style={{animation:"up .3s ease"}}>
@@ -3413,7 +3671,7 @@ function PageReports({role,sessionMode}) {
         {label:"HITL Pending",value:K.hitl,sub:"Awaiting approval",color:T.violet}
       ].map((k,i)=><Card key={k.label} style={{padding:15,animation:`up ${.3+i*.07}s ease both`}}>
         <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:9}}>{k.label}</div>
-        <div style={{fontSize:28,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:4}}>{k.value}</div>
+        <div style={{fontSize:28,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:4}}><CountUp value={k.value}/></div>
         <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </Card>)}
     </div>
@@ -3424,11 +3682,12 @@ function PageReports({role,sessionMode}) {
       {standards.map((s,i)=>{
         const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
         const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
-        return <div key={s.std} style={{padding:"11px 16px",borderBottom:i<standards.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"100px 1fr 1fr 80px",gap:12,alignItems:"center"}}>
+        return <div key={s.std} onClick={()=>setRowOpen(rowOpen===s.std?null:s.std)} title="Show root cause and recommended action" style={{padding:"11px 16px",borderBottom:i<standards.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"100px 1fr 1fr 80px",gap:12,alignItems:"center",cursor:"pointer"}}>
           <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:T.ink}}>{s.std}</span>
           <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
           <div><Bar value={s.score} color={rc} delay={i*80}/></div>
           <Tag label={status} color={col} bg={col+"15"}/>
+          {rowOpen===s.std&&<KpiInsightPanel label={s.std} status={status==="Strong"||status==="Good"?"Good":"Alert"} role={role} goto={goto}/>}
         </div>;
       })}
     </Card>
@@ -3438,7 +3697,7 @@ function PageReports({role,sessionMode}) {
       </div>
       {roleKpis.slice(0,5).map((k,i)=>{
         const sc=stColor(k.status);
-        return <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 70px",padding:"10px 16px",alignItems:"center",borderBottom:i<4?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg}}>
+        return <div key={i} onClick={()=>setRowOpen(rowOpen===k.kpi?null:k.kpi)} title="Show root cause and recommended action" style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 70px",padding:"10px 16px",alignItems:"center",borderBottom:i<4?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,cursor:"pointer"}}>
           <div>
             <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
             <span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.cat}</span>
@@ -3446,6 +3705,7 @@ function PageReports({role,sessionMode}) {
           <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
           <span style={{fontSize:10,fontWeight:700,color:rc,fontFamily:F.m}}>{k.value}</span>
           <Tag label={k.status} color={sc} bg={sc+"18"}/>
+          {rowOpen===k.kpi&&<KpiInsightPanel label={k.kpi} status={k.status} role={role} goto={goto}/>}
         </div>;
       })}
     </Card>
@@ -3503,7 +3763,7 @@ function PageReports({role,sessionMode}) {
           <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{r.freq} {r.next}</span>
         </div>
         <Tag label={r.fmt} color={rc} bg={rcL+"80"}/>
-        <button style={{fontSize:10,color:rc,fontWeight:600,background:rcL+"60",border:`1px solid ${rc}35`,borderRadius:6,padding:"5px 11px",fontFamily:F.b}}>Run Now</button>
+        <button onClick={()=>{setRanNow({...ranNow,[r.name]:true});showToast&&showToast(`${r.name} generated - available in exports`);}} style={{fontSize:10,color:ranNow[r.name]?T.green:rc,fontWeight:600,background:ranNow[r.name]?T.greenL:rcL+"60",border:`1px solid ${ranNow[r.name]?T.green+"40":rc+"35"}`,borderRadius:6,padding:"5px 11px",fontFamily:F.b,cursor:"pointer"}}>{ranNow[r.name]?"Ran just now":"Run Now"}</button>
       </div>)}
     </Card>
   </div>;
@@ -3546,7 +3806,7 @@ function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
           <div style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:5}}>Featured path</div>
           <h3 style={{fontFamily:F.h,fontSize:16,fontWeight:900,color:T.ink,margin:"0 0 5px"}}>{featured.title}</h3>
           <p style={{fontFamily:F.b,fontSize:10,lineHeight:1.55,color:T.ink3,margin:"0 0 10px"}}>{featured.desc}</p>
-          <button type="button" onClick={()=>showToast(`${featured.framework} video placeholder opened`)} style={{background:rc,border:"none",borderRadius:9,padding:"9px 12px",color:"#fff",fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>Preview lesson</button>
+          <button type="button" onClick={()=>showToast("Video lessons ship with the production media library - module outline is available now","error")} style={{background:rc,border:"none",borderRadius:9,padding:"9px 12px",color:"#fff",fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>Preview lesson</button>
         </div>
       </div>
     </Card>
@@ -4618,8 +4878,8 @@ function PageTrustCenter({role, showToast}) {
           <Tag label={q.status} color={T.green} bg={T.greenL}/>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>showToast("AI auto-completing questionnaire...")} style={{flex:1,background:rc,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>AI Complete</button>
-          <button onClick={()=>showToast("Downloading questionnaire...")} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
+          <button onClick={()=>showToast("Auto-complete requires the production AI Gateway connection - available after go-live","error")} style={{flex:1,background:rc,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>AI Complete</button>
+          <button onClick={()=>{vzDownload("veriszone-security-questionnaire.md",`# Security Questionnaire (generated demo)\n\nGenerated from the VerisZone Trust Center.\n\nFramework posture:\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}% (${f.sub})`).join("\n")}\n`);showToast("Questionnaire downloaded");}} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
         </div>
       </Card>)}
     </div>}
@@ -4628,7 +4888,7 @@ function PageTrustCenter({role, showToast}) {
       {D.policies.map((p,i)=><div key={i} style={{padding:"12px 16px",borderBottom:i<D.policies.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"flex",alignItems:"center",gap:12}}>
         <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{p.name}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>v{p.version} {p.updated}</span></div>
         <Tag label="Public" color={T.green} bg={T.greenL}/>
-        <button onClick={()=>showToast("Downloading policy")} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:6,padding:"5px 11px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
+        <button onClick={()=>{vzDownload("veriszone-policy.md","# Policy document (generated demo)\n\nExported from the VerisZone Trust Center policy library.\n");showToast("Policy downloaded");}} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:6,padding:"5px 11px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
       </div>)}
     </Card>}
     {tab==="copilot"&&<Card style={{padding:20}}>
@@ -4647,7 +4907,7 @@ function PageTrustCenter({role, showToast}) {
       {aiResponse&&<div style={{background:T.s3,borderRadius:8,padding:"14px 16px",borderLeft:"3px solid "+rc,animation:"up .3s ease"}}>
         <div style={{fontSize:9,fontWeight:700,color:rc,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>AI Trust Response</div>
         <p style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.8,margin:0,whiteSpace:"pre-wrap"}}>{aiResponse}</p>
-        <button onClick={()=>showToast("Copied to clipboard")} style={{marginTop:10,background:T.s4,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 12px",fontSize:10,fontFamily:F.b}}>Copy Response</button>
+        <button onClick={()=>{try{navigator.clipboard&&navigator.clipboard.writeText(aiResponse);}catch{}showToast("Response copied to clipboard");}} style={{marginTop:10,background:T.s4,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 12px",fontSize:10,fontFamily:F.b}}>Copy Response</button>
       </div>}
     </Card>}
   </div>;
@@ -4830,7 +5090,7 @@ function PageISO27001({role,showToast}){
         <Tag label={p.status} color={sc} bg={sc+"18"}/><span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{p.owner}</span>
         <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{p.reviewed}</span>
         <Tag label={p.risk} color={p.risk==="High"?T.red:p.risk==="Medium"?T.amber:T.green} bg={p.risk==="High"?T.redL:p.risk==="Medium"?T.amberL:T.greenL}/>
-        <button onClick={()=>showToast("Policy editor opening...")} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Edit</button>
+        <button onClick={()=>showToast("Policy editing arrives with the production document service - view-only in this workspace","error")} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Edit</button>
       </div>;})}
     </Card>}
     {activeTab==="evidence"&&<Card style={{overflow:"hidden"}}>
@@ -4842,7 +5102,7 @@ function PageISO27001({role,showToast}){
         <div><div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{e.name}</div><div style={{display:"flex",gap:6}}><Tag label={e.control} color={T.ink4} bg={T.s3}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{e.type} - {e.size}</span></div></div>
         <Tag label={e.status} color={sc} bg={sc+"18"}/><span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{e.owner}</span>
         <span style={{fontSize:9,color:sc,fontFamily:F.m,fontWeight:600}}>Exp: {e.expires}</span>
-        <button onClick={()=>showToast("Evidence viewer opening...")} style={{background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>View</button>
+        <button onClick={()=>showToast("Full evidence viewer arrives with production file storage - records are listed in Trust & Evidence","error")} style={{background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>View</button>
       </div>;})}
     </Card>}
     {activeTab==="audit"&&<Card style={{overflow:"hidden"}}>
@@ -4995,7 +5255,7 @@ function PageIntegrations({role,showToast}){
           <div style={{flex:1}}><div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.title}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{t.type} {t.created}</span></div>
           <Tag label={t.priority} color={t.priority==="High"?T.amber:t.priority==="Critical"?T.red:T.blue} bg={t.priority==="High"?T.amberL:t.priority==="Critical"?T.redL:T.blueL}/>
           <Tag label={t.status} color={tsc(t.status)} bg={tsc(t.status)+"18"}/>
-          <button onClick={()=>showToast("Opening in ServiceNow...")} style={{background:T.s3,color:T.ink3,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 9px",fontSize:9,fontFamily:F.b}}>Open </button>
+          <button onClick={()=>showToast("ServiceNow hand-off requires a connected production instance","error")} style={{background:T.s3,color:T.ink3,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 9px",fontSize:9,fontFamily:F.b}}>Open </button>
         </div>)}
       </Card>
     </div>}
@@ -5010,7 +5270,7 @@ function PageIntegrations({role,showToast}){
             <Tag label={p.status} color={T.amber} bg={T.amberL}/>
           </div>
           <p style={{fontSize:10,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:10}}>Customer trust requests, security questionnaires, compliance evidence sharing from your CRM pipeline.</p>
-          <button onClick={()=>showToast("Opening OAuth flow...")} style={{width:"100%",background:p.color,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Connect {p.name}</button>
+          <button onClick={()=>showToast("Connector authorisation requires production credentials","error")} style={{width:"100%",background:p.color,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Connect {p.name}</button>
         </Card>)}
       </div>
       <Card style={{overflow:"hidden"}}>
@@ -5023,7 +5283,7 @@ function PageIntegrations({role,showToast}){
           <Tag label={r.stage} color={rc} bg={RCL(role)+"80"}/>
           <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Due {r.due}</span>
           <Tag label={r.status} color={sc} bg={sc+"18"}/>
-          <button onClick={()=>showToast("Trust pack opening...")} style={{background:rc+"20",color:rc,border:"1px solid "+rc+"30",borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Respond</button>
+          <button onClick={()=>{vzDownload("veriszone-trust-pack.md",`# VerisZone Trust Pack (generated demo)\n\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}%`).join("\n")}\n`);showToast("Trust pack downloaded");}} style={{background:rc+"20",color:rc,border:"1px solid "+rc+"30",borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Respond</button>
         </div>;})}
       </Card>
     </div>}
@@ -5031,7 +5291,7 @@ function PageIntegrations({role,showToast}){
       {[{name:"Jira",icon:"?",cat:"Task Management",status:"Available",col:"#0052CC"},{name:"Slack",icon:"?",cat:"Notifications",status:"Available",col:"#4A154B"},{name:"Microsoft 365",icon:"?",cat:"Evidence Collection",status:"Available",col:"#0078D4"},{name:"Google Workspace",icon:"?",cat:"Evidence Collection",status:"Available",col:"#4285F4"},{name:"AWS Security",icon:"?",cat:"Cloud Evidence",status:"Coming Q3",col:"#FF9900"},{name:"Azure Defender",icon:"?",cat:"Cloud Evidence",status:"Coming Q3",col:"#0078D4"},{name:"GitHub",icon:"?",cat:"Dev Security",status:"Coming Q3",col:"#6E5494"},{name:"Qualys",icon:"?",cat:"Vulnerability",status:"Coming Q4",col:"#ED1C24"},{name:"Okta",icon:"?",cat:"IAM Evidence",status:"Coming Q4",col:"#007DC1"},{name:"Crowdstrike",icon:"?",cat:"Endpoint Security",status:"Coming Q4",col:"#E01B2D"},{name:"Tenable",icon:"?",cat:"Vulnerability",status:"Roadmap",col:"#00B4C8"},{name:"Splunk",icon:"?",cat:"SIEM Evidence",status:"Roadmap",col:"#65A637"}].map((p,i)=><Card key={p.name} style={{padding:13,animation:`up ${.3+i*.04}s ease both`}}>
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}><IconBox name={`${p.name} ${p.cat}`} color={p.col} size={13} style={{width:28,height:28,borderRadius:7}}/><div><div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b}}>{p.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{p.cat}</div></div></div>
         <Tag label={p.status} color={p.status==="Available"?T.green:p.status.includes("Q")?T.amber:T.ink3} bg={p.status==="Available"?T.greenL:p.status.includes("Q")?T.amberL:T.ink5}/>
-        {p.status==="Available"&&<button onClick={()=>showToast("Connecting to "+p.name+"...")} style={{width:"100%",marginTop:8,background:rc,color:"#fff",border:"none",borderRadius:6,padding:"6px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Connect</button>}
+        {p.status==="Available"&&<button onClick={()=>showToast(p.name+" connection requires production credentials","error")} style={{width:"100%",marginTop:8,background:rc,color:"#fff",border:"none",borderRadius:6,padding:"6px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Connect</button>}
       </Card>)}
     </div>}
   </div>;
@@ -5188,6 +5448,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const [phaseSel,setPhaseSel]=useState(null);
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
+  const [gwTab,setGwTab]=useState("overview");
   const [lifecycleFilter,setLifecycleFilter]=useState("All");
   const [createOpen,setCreateOpen]=useState(false);
   const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
@@ -5199,7 +5460,8 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const [hydrated,setHydrated]=useState(false);
   const selected=items.find(i=>i.id===selectedId)||items[0];
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
-  const evidenceRows=[...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
+  const gwEvidence=(typeof window!=="undefined")?(()=>{try{return JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");}catch{return [];}})():[];
+  const evidenceRows=[...gwEvidence,...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
   /* Persistence: created initiatives, governed decisions and feedback survive reload. */
   useEffect(()=>{
     try{
@@ -5238,7 +5500,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
       <div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>{label}</div>
-        <div style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h}}>{value}</div>
+        <div style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h}}><CountUp value={value}/></div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:4}}>{sub}</div>
       </div>
       {typeof score==="number"?<Ring score={score} color={color||rc} size={54}/>:<div style={{width:38,height:38,borderRadius:12,background:(color||rc)+"18",border:"1px solid "+(color||rc)+"35"}}/>}
@@ -5371,6 +5633,11 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     const rec={outcome,reason:reason||null,rationale:rationale||"",decidedBy:R.label,at:"just now"};
     setDecisions({...decisions,[selected.id]:rec});
     setItems(items.map(i=>i.id===selected.id?{...i,lifecycle:outcome==="Scale"?"Scaling":"Retired",status:outcome==="Scale"?"Scaling":"Retired",blockedBy:null}:i));
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Governed decision: ${outcome} - ${selected.name}`,initiative:selected.name,scope:"Project",control:"Scale gate",risk:reason||"Executive decision",owner:R.label,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
     showToast&&showToast(outcome==="Scale"?"Governed decision recorded: approved to scale":"Governed decision recorded: initiative retired");
     setRetireDraft({reason:RETIREMENT_REASONS[0],rationale:""});
   };
@@ -5698,6 +5965,103 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     </div>;
   };
 
+  /* ── Initiative context tabs: derived views over the initiative's own
+        data. Risks are owned here and aggregated by Risk Center. ── */
+  const InitRisks=()=><Card style={{padding:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risk register</h3>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Owned by this initiative - aggregated in Risk Center</span>
+    </div>
+    <div style={{display:"grid",gap:8}}>
+      {selected.risks.map(r=><div key={r} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Owner: {selected.businessOwner} · Exposure: {selected.expected} · Mitigation: {selected.controls[0]||"unassigned"}</div></div>
+        <PTag p={selected.risk}/>
+        <Tag label={`${selected.guardrail}% controls`} color={selected.guardrail>=80?T.green:T.amber} bg={(selected.guardrail>=80?T.green:T.amber)+"14"}/>
+      </div>)}
+      {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Open blocker:</strong> {selected.blockedBy}</div>}
+    </div>
+  </Card>;
+  const InitEvidence=()=>{
+    const rows=evidenceRows.filter(e=>e.initiative===selected.name);
+    return <Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Evidence for this initiative</h3><Tag label={`${rows.length} records`} color={AI_GOLD} bg={AI_GOLD+"16"}/></div>
+      {rows.length===0&&<div style={{padding:"18px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No evidence yet - completed phase artifacts and decisions will appear here automatically.</div>}
+      {rows.map(e=><div key={`${e.item}-${e.time}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr auto",gap:12,padding:"12px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+        <div><div style={{fontSize:12,color:T.ink,fontWeight:700}}>{e.item}</div><div style={{fontSize:9,color:T.ink3}}>Control: {e.control}</div></div>
+        <span style={{fontSize:10,color:T.ink2}}>Owner: {e.owner}</span>
+        <div style={{display:"flex",gap:6}}><STag s={e.status}/><STag s={e.approval}/></div>
+      </div>)}
+      <div style={{padding:"10px 18px"}}><button onClick={()=>setView("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open the enterprise repository →</button></div>
+    </Card>;
+  };
+  const InitControls=()=><Card style={{padding:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Activated controls & policies</h3>
+      <Ring score={selected.guardrail} color={selected.guardrail>=80?T.green:T.amber} size={44}/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <div>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Controls</div>
+        {selected.controls.length?selected.controls.map(c=><div key={c} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}><span style={{width:7,height:7,borderRadius:"50%",background:T.green}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.m}}>{c}</span></div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No controls activated yet - assigned in the Design phase.</div>}
+      </div>
+      <div>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Policies</div>
+        {selected.policies.length?selected.policies.map(c=><div key={c} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}><span style={{width:7,height:7,borderRadius:"50%",background:T.blue}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{c}</span></div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No policies mapped yet.</div>}
+      </div>
+    </div>
+    <button onClick={()=>setView("governance")} style={{marginTop:12,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open AI Governance →</button>
+  </Card>;
+  const InitApprovals=()=><Card style={{padding:16}}>
+    <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Phase approvals</h3>
+    <div style={{display:"grid",gap:7}}>
+      {AC_PHASES.map((ph,idx)=>{
+        const st=idx<selected.phaseIndex?"Approved":idx===selected.phaseIndex?(selected.blockedBy?"Blocked":"In review"):"Pending";
+        const c=st==="Approved"?T.green:st==="Blocked"?T.red:st==="In review"?T.amber:T.ink4;
+        return <div key={ph.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+          <span style={{fontSize:11,color:T.ink,fontWeight:700,fontFamily:F.b}}>Phase {ph.order}: {ph.name}</span>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>Accountable: {ph.raci.accountable}</span>
+          <Tag label={st} color={c} bg={c+"16"}/>
+        </div>;
+      })}
+    </div>
+    <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10}}>Human-in-the-loop items for this initiative appear in the Decisions queue.</div>
+  </Card>;
+  const InitROI=()=><Card style={{padding:16}}>
+    <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Return on investment</h3>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+      {[["Expected ROI",selected.roi,T.green],["Value realized",`${selected.actual} / ${selected.expected}`,AI_GOLD],["Cost savings",selected.savings,T.green],["Revenue impact",selected.revenue,T.teal],["Productivity",selected.productivity,T.blue]].map(([l,v,c])=><div key={l} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:6}}>{l}</div>
+        <div style={{fontSize:17,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+      </div>)}
+    </div>
+    <Bar value={selected.valueScore} color={selected.valueScore>80?T.green:T.amber}/>
+    <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>Business value score {selected.valueScore}% - feeds the Value Center and the scale decision.</div>
+  </Card>;
+  const InitAdoption=()=><Card style={{padding:16}}>
+    <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Adoption & workforce readiness</h3>
+    <div style={{display:"flex",gap:18,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
+      <Ring score={selected.adoption} color={selected.adoption>=70?T.green:T.amber} size={72}/>
+      <div style={{flex:1,minWidth:220}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.ink2,fontFamily:F.b,marginBottom:5}}><span>Training completion</span><span style={{fontFamily:F.m}}>{selected.training}</span></div>
+        <Bar value={parseInt(selected.training)||0} color={(parseInt(selected.training)||0)>75?T.green:T.amber}/>
+        <div style={{marginTop:10}}><Tag label={`Resistance: ${selected.resistance}`} color={selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green} bg={(selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green)+"14"}/></div>
+      </div>
+    </div>
+    <button onClick={()=>{setView("academy");}} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Assign learning in Governance Academy →</button>
+  </Card>;
+  const InitLessons=()=>{
+    const linked=knowledgeAssets.filter(k=>k.sourceRef.includes(selected.id)||k.title.toLowerCase().includes(selected.name.split(" ")[0].toLowerCase()));
+    return <Card style={{padding:16}}>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 6px"}}>Lessons learned</h3>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 12px"}}>Knowledge captured from this initiative feeds the enterprise Knowledge Engine and every future rollout. Formal knowledge capture is a mandatory artifact of the Scale or Retire phase.</p>
+      {linked.length?linked.map(k=><div key={k.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",marginBottom:7}}>
+        <div><div style={{fontSize:12,color:T.ink,fontWeight:700,fontFamily:F.b}}>{k.title}</div><div style={{fontSize:9,color:T.ink3}}>{k.sourceRef}</div></div>
+        <Tag label={k.kind} color={T.blue} bg={T.blue+"14"}/>
+        <span style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{k.reuseCount} reuses</span>
+      </div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"12px"}}>No knowledge captured from this initiative yet - it is generated at the Scale/Retire gate.</div>}
+    </Card>;
+  };
+
   const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
       <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; Portfolio</button>
@@ -5709,14 +6073,19 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
       </div>
     </div>
-    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["pilot","Pilot Execution"],["dna","Initiative DNA"],["scalegate","Scale Readiness"],["feedback","Feedback"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
-    {initTab==="overview"&&<Overview/>}
+    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["risks","Risks"],["evidence","Evidence"],["controls","Controls"],["approvals","Approvals"],["pilot","Monitoring"],["roi","ROI"],["adoption","Adoption"],["feedback","Feedback"],["lessons","Lessons"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
+    {initTab==="overview"&&<div><Overview/><div style={{marginTop:14}}><PageAISpine mode="dna" setTab={setTab} focus={selected}/></div></div>}
     {initTab==="implementation"&&<Implementation/>}
+    {initTab==="risks"&&<InitRisks/>}
+    {initTab==="evidence"&&<InitEvidence/>}
+    {initTab==="controls"&&<InitControls/>}
+    {initTab==="approvals"&&<InitApprovals/>}
     {initTab==="pilot"&&<PilotExecution/>}
-    {initTab==="dna"&&<PageAISpine mode="dna" setTab={setTab}/>}
-    {initTab==="scalegate"&&<PageAISpine mode="scalegate" setTab={setTab}/>}
+    {initTab==="roi"&&<InitROI/>}
+    {initTab==="adoption"&&<InitAdoption/>}
     {initTab==="feedback"&&<FeedbackPanel/>}
-    {initTab==="decision"&&<DecisionPanel/>}
+    {initTab==="lessons"&&<InitLessons/>}
+    {initTab==="decision"&&<div><PageAISpine mode="scalegate" setTab={setTab} focus={selected}/><div style={{marginTop:14}}><DecisionPanel/></div></div>}
   </div>;
 
   /* ── AI Governance ─────────────────────────────────────────── */
@@ -5769,7 +6138,85 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
 
   /* ── AI Gateway ────────────────────────────────────────────── */
   const gwActionColor=a=>a==="Allowed"?T.green:a==="Redacted"?T.amber:a==="Escalated"?T.blue:T.red;
+  const GatewayConfig=()=><div>
+    {adminTab==="providers"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Provider configuration</h3><p style={{margin:"3px 0 0",fontSize:10,color:T.ink3,fontFamily:F.b}}>Vendor neutral and configuration driven - adding a provider is configuration, never a redesign.</p></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead><tr>{["Provider","Connection","Models","Allowed units","Region","Latency","Role"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+        <tbody>{gatewayProviders.map((pv,idx)=><tr key={pv.id} style={{borderBottom:"1px solid "+T.border}}>
+          <td style={{padding:"11px 12px",color:T.ink,fontWeight:700}}>{pv.name}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{pv.kind}</div></td>
+          <td style={{padding:"11px 12px"}}><Tag label={pv.status==="Blocked"?"Disconnected":"Connected"} color={pv.status==="Blocked"?T.red:T.green} bg={(pv.status==="Blocked"?T.red:T.green)+"14"}/></td>
+          <td style={{padding:"11px 12px",color:T.ink2,fontSize:11}}>{pv.models.join(", ")}</td>
+          <td style={{padding:"11px 12px",color:T.ink2,fontSize:10}}>{pv.status==="Approved"?"All units":"Pilot units only"}</td>
+          <td style={{padding:"11px 12px",color:T.ink2,fontSize:10}}>{idx%2===0?"EU / US":"US"}</td>
+          <td style={{padding:"11px 12px",color:T.ink3,fontFamily:F.m,fontSize:10}}>{180+idx*45}ms</td>
+          <td style={{padding:"11px 12px"}}>{idx===1?<Tag label="Default" color={AI_GOLD} bg={AI_GOLD+"16"}/>:idx===6?<Tag label="Fallback" color={T.blue} bg={T.blue+"16"}/>:<span style={{fontSize:10,color:T.ink4}}>-</span>}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>}
+    {adminTab==="routing"&&<Card style={{padding:16}}>
+      <h3 style={{fontSize:14,color:T.ink,margin:"0 0 4px"}}>Routing policy</h3>
+      <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every request follows configurable routing by business unit and risk class. High-risk workloads never leave the enterprise.</p>
+      <div style={{display:"grid",gap:8}}>
+        {gatewayRouting.map(r=>{const pv=gatewayProviders.find(x=>x.id===r.providerId);return <div key={r.id} style={{display:"grid",gridTemplateColumns:"160px auto 1fr",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px"}}>
+          <span style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{r.scope}</span>
+          <Tag label={pv?.name||r.providerId} color={r.scope==="High Risk"?T.red:AI_GOLD} bg={(r.scope==="High Risk"?T.red:AI_GOLD)+"14"}/>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{r.reason}</span>
+        </div>;})}
+      </div>
+    </Card>}
+    {adminTab==="guardrails"&&<Card style={{padding:16}}>
+      <h3 style={{fontSize:14,color:T.ink,margin:"0 0 4px"}}>Guardrail detectors</h3>
+      <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every prompt is inspected before any model call. Actions are configurable per detector: allow, warn, require justification, mask, redact, block or escalate.</p>
+      <div style={{display:"grid",gap:8}}>
+        {guardrailDetectors.map(d=>{const c=d.action==="Block"?T.red:d.action==="Escalate"?T.violet:d.action==="Mask"||d.action==="Redact"?T.amber:d.action==="Require justification"?T.blue:T.green;return <div key={d.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px"}}>
+          <div><div style={{fontSize:12,color:T.ink,fontWeight:800,fontFamily:F.b}}>{d.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Triggered {d.triggeredMtd.toLocaleString()}x MTD</div></div>
+          <Tag label={d.action} color={c} bg={c+"16"}/>
+        </div>;})}
+      </div>
+    </Card>}
+    {adminTab==="modes"&&<div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10,marginBottom:14}}>
+        {deploymentModes.map(m=><Card key={m.id} style={{padding:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><Tag label={m.status} color={m.status==="Active"?T.green:m.status==="Available"?T.blue:T.ink3} bg={(m.status==="Active"?T.green:m.status==="Available"?T.blue:T.ink3)+"14"}/></div>
+          <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{m.desc}</p>
+        </Card>)}
+      </div>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,margin:"0 0 10px"}}>Retention & compliance configuration</h3>
+        {gatewayRetention.map(r=><div key={r.setting} style={{display:"grid",gridTemplateColumns:"200px auto 1fr",gap:12,alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{r.setting}</span>
+          <Tag label={r.value} color={AI_GOLD} bg={AI_GOLD+"14"}/>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{r.note}</span>
+        </div>)}
+      </Card>
+    </div>}
+    {adminTab==="knowledge"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Internal Knowledge Engine</h3><p style={{margin:"3px 0 0",fontSize:10,color:T.ink3,fontFamily:F.b}}>Enterprise knowledge searched before any prompt reaches a model. Every approved artifact can graduate into this repository.</p></div>
+      {knowledgeAssets.map(k=><div key={k.id} style={{display:"grid",gridTemplateColumns:"1.3fr auto 1fr auto",gap:12,padding:"11px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+        <div style={{fontSize:12,color:T.ink,fontWeight:700}}>{k.title}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{k.sourceRef}</div></div>
+        <Tag label={k.kind} color={T.blue} bg={T.blue+"14"}/>
+        <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>Added by {k.addedBy}</span>
+        <span style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{k.reuseCount} reuses</span>
+      </div>)}
+    </Card>}
+  </div>;
+
+  const ADMIN_TABS=[["providers","Providers"],["routing","Routing"],["guardrails","Guardrails"],["knowledge","Knowledge Engine"],["modes","Modes & Retention"]];
+  const adminTab=ADMIN_TABS.some(([id])=>id===gwTab)?gwTab:"providers";
+  const Administration=()=><div>
+    <SubTabs tabs={ADMIN_TABS} active={adminTab} onChange={setGwTab}/>
+    <GatewayConfig/>
+  </div>;
+  const [pfTab,setPfTab]=useState("registry");
+  const Portfolio=()=><div>
+    <SubTabs tabs={[["registry","Model Registry"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
+    {pfTab==="registry"&&<PageModelRegistry setTab={setTab}/>}
+    {pfTab==="maturity"&&<PageMaturityRadar/>}
+    {pfTab==="usecases"&&<PageUseCases/>}
+  </div>;
   const Gateway=()=><div>
+    {<div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Requests MTD" value={gatewayStats.requestsMtd} sub="All AI interactions governed" color={rc}/>
       <Metric label="Tokens MTD" value={gatewayStats.tokensMtd} sub="Across all providers" color={T.blue}/>
@@ -5820,6 +6267,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
         </tr>)}</tbody>
       </table></div>
     </Card>
+    </div>}
   </div>;
 
   /* ── Governance Academy ────────────────────────────────────── */
@@ -5844,7 +6292,9 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
     {activeModule==="initiatives"&&<Initiatives/>}
     {activeModule==="governance"&&<Governance/>}
     {activeModule==="evidence"&&<EvidenceModule/>}
+    {activeModule==="portfolio"&&<Portfolio/>}
     {activeModule==="gateway"&&<Gateway/>}
+    {activeModule==="admin"&&<Administration/>}
     {activeModule==="academy"&&<Academy/>}
   </div>;
 }
@@ -5860,6 +6310,8 @@ const LOGIN_PROFILES = [
   {id:"cio",label:"CIO",role:"cio",target:"home",accent:"#06B6D4",title:"CIO AI Portfolio Control",subtitle:"AI systems portfolio, implementation roadmap, platform controls, data readiness and enterprise adoption.",email:"marcus.chen@veriszone.ai",kpis:[["47","AI assets"],["12","Roadmap items"],["79%","Controls"]]},
   {id:"cdpo",label:"CDPO",role:"cdpo",target:"home",accent:"#14B8A6",title:"CDPO Privacy Oversight",subtitle:"DPIAs, GDPR Article 22, data processing controls, consent evidence and regulatory response readiness.",email:"elena.rossi@veriszone.ai",kpis:[["11","DPIAs"],["83%","GDPR"],["4","Deadlines"]]},
   {id:"cgo",label:"CGO",role:"cgo",target:"home",accent:"#F59E0B",title:"CGO Governance Office",subtitle:"Policy lifecycle, framework mapping, approvals, escalations and assurance reporting for leadership.",email:"rafael.torres@veriszone.ai",kpis:[["24","Policies"],["61%","ISO 42001 A"],["9","Reports"]]},
+  {id:"employee",label:"Employee",role:"employee",target:"workbench",accent:"#2BA88A",title:"Employee AI Workbench",subtitle:"One governed workbench for every AI interaction - approved models, enterprise knowledge and automatic compliance, faster than any public chat.",email:"jamie.park@veriszone.ai",kpis:[["84","Prompts governed"],["11.5h","Time saved"],["0","Data leaks"]]},
+  {id:"manager",label:"Manager",role:"manager",target:"aiusage",accent:"#0EA5E9",title:"Manager AI Adoption View",subtitle:"Team adoption, value and compliance without reading private prompts - aggregates only, by policy.",email:"riley.chen@veriszone.ai",kpis:[["64%","Team adoption"],["92%","Compliance"],["3","Blocked events"]]},
   {id:"aicentral",label:"AI Central",role:"caio",target:"aicentral",mode:"aicentral",accent:AI_GOLD,title:"AI Central Standalone",subtitle:"Dedicated command center for AI initiatives, guardrails, lifecycle workflow, CXO alignment and value tracking.",email:"ai.central@veriszone.ai",kpis:[["4","Initiatives"],["3","High risk"],["79%","Guardrails"]]}
 ];
 
@@ -5892,7 +6344,8 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   };
   const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
   const executiveProfiles=LOGIN_PROFILES.filter(p=>EXECUTIVE_ROLE_IDS.includes(p.role));
-  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
+  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral","employee","manager"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
+  const employeeProfiles=LOGIN_PROFILES.filter(p=>["employee","manager"].includes(p.id));
   const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
   const enterDemoLink=()=>onEnter(demoProfile);
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
@@ -5974,6 +6427,9 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
               <optgroup label="Governance workspaces">
                 {governanceProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
               </optgroup>
+              <optgroup label="Employee workspace">
+                {employeeProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
+              </optgroup>
               {aiCentralProfile&&<optgroup label="Execution and assurance">
                 <option value={aiCentralProfile.id}>{aiCentralProfile.label} - Standalone command center</option>
               </optgroup>}
@@ -6002,6 +6458,461 @@ function ProfileInput({label,value,type="text",onChange}) {
     <input type={type} value={value||""} onChange={e=>onChange(e.target.value)} style={{width:"100%",background:T.s3,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px",color:T.ink,fontFamily:F.b,fontSize:12,outline:"none"}} />
   </label>;
 }
+
+/* ── Employee Workspace: AI Workbench ─────────────────────────────
+   The employee-facing surface of the Enterprise AI Gateway. Consumes the
+   same canonical gateway objects the AI Central module monitors and the
+   admin tabs configure. Demo Center is seeded; real tenants start clean. */
+
+const WB_CLASSIFICATIONS=["Public","Internal","Confidential","Restricted"];
+
+/* Demo policy engine: inspect a prompt against the configured detectors. */
+function wbInspectPrompt(text){
+  if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
+    return {action:"Blocked",detector:"Credentials & API Keys",masked:text};
+  const cardRe=/\b(?:\d[ -]?){13,16}\b/g, emailRe=/[\w.+-]+@[\w-]+\.[\w.]+/g;
+  if(cardRe.test(text)||emailRe.test(text))
+    return {action:"Masked",detector:/(?:\d[ -]?){13,16}/.test(text)?"PCI / Card Data":"PII Detection",
+      masked:text.replace(/\b(?:\d[ -]?){13,16}\b/g,"[MASKED-CARD]").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[MASKED-EMAIL]")};
+  return null;
+}
+
+/* Internal Knowledge Engine: pick enrichment assets for a prompt. */
+function wbEnrichFor(text){
+  const t=text.toLowerCase(), picks=[];
+  if(/risk/.test(t))picks.push("Enterprise AI Risk Library","ISO 42001 Control Checklist");
+  if(/agent|architect|design|build/.test(t))picks.push("AI Reference Architecture Standard","Approved Prompt Library");
+  if(/proposal|sales|deck|present|draft/.test(t))picks.push("Approved Prompt Library","Pilot-to-Scale Playbook");
+  if(/privacy|dpia|gdpr|consent/.test(t))picks.push("DPIA / Privacy Assessment Template");
+  if(/policy|compliance/.test(t))picks.push("Responsible GenAI Use Policy");
+  if(!picks.length)picks.push("Responsible GenAI Use Policy","Approved Prompt Library");
+  return [...new Set(picks)].slice(0,4);
+}
+
+function PageWorkbench({role,sessionMode,showToast}){
+  const seeded=sessionMode==="demo";
+  const U=USER_PROFILES[role==="manager"?"manager":"employee"]||USER_PROFILES.employee;
+  const unit=U.department||"Engineering";
+  const route=gatewayRouting.find(r=>r.scope.toLowerCase().startsWith(unit.split(" ")[0].toLowerCase()))||gatewayRouting[1];
+  const provider=gatewayProviders.find(p=>p.id===route.providerId)||gatewayProviders[0];
+  const [convos,setConvos]=useState(seeded?demoConversations:[]);
+  const [hydrated,setHydrated]=useState(false);
+  const [selId,setSelId]=useState(seeded?demoConversations[0].id:null);
+  const [input,setInput]=useState("");
+  const [phase,setPhase]=useState(null); /* {convId, stageIdx} while the gateway "works" */
+  const [typed,setTyped]=useState(null); /* {convId, text} during the streaming reveal */
+  const timers=useRef([]);
+  useEffect(()=>()=>{timers.current.forEach(t=>clearTimeout(t));},[]);
+  useEffect(()=>{
+    try{const saved=JSON.parse(localStorage.getItem("vz-wb-convos")||"[]");
+      if(Array.isArray(saved)&&saved.length){setConvos(prev=>[...saved.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);if(!seeded)setSelId(saved[0].id);}
+    }catch{/* ignore */}
+    setHydrated(true);
+  },[seeded]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    try{localStorage.setItem("vz-wb-convos",JSON.stringify(convos.filter(c=>!demoConversations.some(d=>d.id===c.id))));}catch{/* ignore */}
+  },[convos,hydrated]);
+  const sel=convos.find(c=>c.id===selId)||null;
+  const recordEvidence=(conv)=>{
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Workbench artifact: ${conv.title}`,initiative:acInitiatives.find(i=>i.id===conv.initiativeId)?.name||"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:U.name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+  };
+  /* The chat window is always available: the first message of a clean
+     workspace creates its governed conversation automatically. The reply
+     streams in after visible policy/knowledge/routing stages. */
+  const send=()=>{
+    const text=input.trim();
+    if(!text||phase||typed)return;
+    const base=sel||{
+      id:`cv-${Math.random().toString(36).slice(2,8)}`,
+      title:text.length>44?text.slice(0,44)+"...":text,
+      unit,project:"Unassigned",initiativeId:null,providerId:provider.id,model:provider.models[0]||"Default",
+      classification:"Internal",created:"Today",lastActivity:"Just now",riskScore:8,policyDecision:"No activity yet",
+      evidenceLinks:0,retention:"90 days",messages:[],
+    };
+    const guard=wbInspectPrompt(text);
+    const stamp=`m${Math.random().toString(36).slice(2,8)}`;
+    const blocked=guard&&guard.action==="Blocked";
+    const shown=blocked?"[Prompt blocked before leaving the enterprise boundary]":(guard?guard.masked:text);
+    const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null};
+    const withUser={...base,lastActivity:"Just now",messages:[...base.messages,userMsg],
+      riskScore:blocked?Math.min(95,base.riskScore+20):base.riskScore,
+      policyDecision:blocked?"Blocked by policy":base.policyDecision};
+    setConvos(cs=>[withUser,...cs.filter(c=>c.id!==base.id)]);
+    setSelId(base.id);
+    setInput("");
+    const enriched=blocked?[]:wbEnrichFor(text);
+    const artifact=!blocked&&/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
+    const reply=blocked
+      ?`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`
+      :`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
+    const commit=finalText=>{
+      setConvos(cs=>cs.map(c=>c.id!==base.id?c:{...c,lastActivity:"Just now",
+        evidenceLinks:c.evidenceLinks+(artifact?1:0),
+        policyDecision:blocked?"Blocked by policy":guard?"Allowed with masking":"Allowed with enrichment",
+        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:finalText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null}]}));
+      setTyped(null);setPhase(null);
+      if(blocked)showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
+      else if(artifact){recordEvidence(base);showToast&&showToast("Evidence recorded in Trust & Evidence");}
+      else if(guard)showToast&&showToast(`${guard.detector}: content masked`);
+    };
+    /* staged gateway work, then a streaming reveal */
+    const stages=blocked?1:3;
+    setPhase({convId:base.id,stageIdx:0});
+    for(let i=1;i<stages;i++)timers.current.push(setTimeout(()=>setPhase({convId:base.id,stageIdx:i}),i*620));
+    timers.current.push(setTimeout(()=>{
+      setPhase(null);
+      let pos=0;
+      const step=()=>{
+        pos=Math.min(reply.length,pos+3);
+        setTyped({convId:base.id,text:reply.slice(0,pos)});
+        if(pos<reply.length)timers.current.push(setTimeout(step,16));
+        else timers.current.push(setTimeout(()=>commit(reply),140));
+      };
+      step();
+    },stages*620+180));
+  };
+  const gaColor=a=>a==="Blocked"?T.red:a==="Masked"?T.amber:a==="Justification required"?T.blue:T.green;
+  const clsColor=c=>c==="Restricted"?T.red:c==="Confidential"?T.amber:T.blue;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="AI Workbench" sub={`Every interaction is governed by the Enterprise AI Gateway - ${unit} routes to ${provider.name}. Enterprise knowledge enriches every prompt; sensitive data never leaves the boundary.`}/>
+    <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
+      {/* Conversations */}
+      <Card style={{padding:0,overflow:"hidden"}}>
+        <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{margin:0,fontSize:13,color:T.ink,fontWeight:800,fontFamily:F.h}}>Conversations</h3>
+          <button onClick={()=>{setSelId(null);setInput("");}} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>New</button>
+        </div>
+        {convos.length===0&&<div style={{padding:"18px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet - this workspace is clean. Type your first message on the right to start a governed conversation.</div>}
+        <div style={{maxHeight:520,overflowY:"auto"}}>
+          {convos.map(c=><button key={c.id} onClick={()=>setSelId(c.id)} style={{display:"block",width:"100%",textAlign:"left",background:c.id===selId?AI_GOLD+"10":"transparent",border:"none",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${c.id===selId?AI_GOLD:"transparent"}`,padding:"11px 13px",cursor:"pointer"}}>
+            <div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.35}}>{c.title}</div>
+            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{c.unit}</span>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{gatewayProviders.find(p=>p.id===c.providerId)?.name||c.providerId}</span>
+              <span style={{marginLeft:"auto",fontSize:9,fontFamily:F.m,color:c.riskScore>=40?T.amber:T.green}}>{c.riskScore}</span>
+            </div>
+          </button>)}
+        </div>
+      </Card>
+      {/* Chat - always available */}
+      <Card style={{padding:0,overflow:"hidden",display:"flex",flexDirection:"column",minHeight:560}}>
+        <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.h}}>{sel?sel.title:"New conversation"}</div>
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{sel?`${sel.unit} · ${sel.project} · Retention ${sel.retention} · ${sel.policyDecision}`:`${unit} · Your first message starts a governed conversation`}</div>
+          </div>
+          <Tag label={sel?sel.classification:"Internal"} color={clsColor(sel?sel.classification:"Internal")} bg={clsColor(sel?sel.classification:"Internal")+"14"}/>
+          <Tag label={`${route.scope} → ${provider.name}`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"16px",display:"grid",gap:12,alignContent:"start"}}>
+          {(!sel||sel.messages.length===0)&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,maxWidth:560}}>
+            Ask anything. Before your prompt reaches {provider.name}, the Gateway checks policy, searches enterprise knowledge and attaches your project context. Sensitive data is masked or blocked at the boundary - try including an email address to see it work.
+          </div>}
+          {sel&&sel.messages.map(m=><div key={m.id} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"78%"}}>
+            <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:12,padding:"11px 14px"}}>
+              <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{m.text}</div>
+              {m.guardrail&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:gaColor(m.guardrail.action)}}/>
+                <span style={{fontSize:9,fontWeight:800,color:gaColor(m.guardrail.action),fontFamily:F.m}}>{m.guardrail.action} · {m.guardrail.detector}</span>
+              </div>}
+              {m.enrichedWith&&m.enrichedWith.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`}}>
+                <span style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",alignSelf:"center"}}>Enriched with</span>
+                {m.enrichedWith.map(k=><span key={k} style={{fontSize:9,color:AI_GOLD,background:AI_GOLD+"10",border:`1px solid ${AI_GOLD}30`,borderRadius:5,padding:"2px 7px",fontFamily:F.b,fontWeight:700}}>{k}</span>)}
+              </div>}
+            </div>
+          </div>)}
+          {phase&&sel&&phase.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
+            <div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:12,padding:"11px 14px",display:"flex",gap:10,alignItems:"center"}}>
+              <span style={{display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</span>
+              <span style={{fontSize:11,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{["Checking policy at the boundary...","Searching enterprise knowledge...",`Routing to ${provider.name}...`][phase.stageIdx]||"Working..."}</span>
+            </div>
+          </div>}
+          {typed&&sel&&typed.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
+            <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"11px 14px"}}>
+              <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{typed.text}<span style={{display:"inline-block",width:7,height:13,background:AI_GOLD,marginLeft:2,verticalAlign:"text-bottom",animation:"pulse 1s infinite"}}/></div>
+            </div>
+          </div>}
+        </div>
+        <div style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`,display:"flex",gap:9}}>
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={`Message ${provider.name} through the Gateway...`} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
+          <button onClick={send} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Send</button>
+        </div>
+      </Card>
+    </div>
+  </div>;
+}
+
+/* ── My AI Ideas: bottom-up intake ────────────────────────────────
+   Employees submit AI ideas that route into the existing intake funnel
+   (AI Opportunity Intake -> AI Central "New Ideas"). One funnel - this is
+   the employee-side entry, not a parallel pipeline. */
+
+const IDEA_JOURNEY=["Submitted","Under review","Accepted","In AI Central intake"];
+const DEMO_IDEAS=[
+  {id:"idea-1",title:"Auto-summarise support handovers",problem:"Shift handovers lose context between support tiers; agents re-read full tickets.",benefit:"Save ~40 min per agent per day",category:"GenAI Copilot",unit:"Engineering",status:"In AI Central intake",date:"2026-07-08"},
+  {id:"idea-2",title:"Contract clause pre-checker",problem:"Legal reviews start from scratch on standard clauses.",benefit:"Cut first-pass review time 30%",category:"Decision Support",unit:"Engineering",status:"Under review",date:"2026-07-15"},
+  {id:"idea-3",title:"Meeting action extractor",problem:"Action items from meetings get lost across tools.",benefit:"Fewer dropped follow-ups",category:"Process Automation",unit:"Engineering",status:"Submitted",date:"2026-07-19"},
+];
+
+function PageMyIdeas({role,sessionMode,showToast}){
+  const seeded=sessionMode==="demo";
+  const U=USER_PROFILES[role==="manager"?"manager":"employee"]||USER_PROFILES.employee;
+  const [ideas,setIdeas]=useState(seeded?DEMO_IDEAS:[]);
+  const [hydrated,setHydrated]=useState(false);
+  const [draft,setDraft]=useState({title:"",problem:"",benefit:"",category:"GenAI Copilot"});
+  useEffect(()=>{
+    try{const saved=JSON.parse(localStorage.getItem("vz-my-ideas")||"[]");
+      if(Array.isArray(saved)&&saved.length)setIdeas(prev=>[...saved.filter(s=>!prev.some(p=>p.id===s.id)),...prev]);
+    }catch{/* ignore */}
+    setHydrated(true);
+  },[]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    try{localStorage.setItem("vz-my-ideas",JSON.stringify(ideas.filter(i=>!DEMO_IDEAS.some(d=>d.id===i.id))));}catch{/* ignore */}
+  },[ideas,hydrated]);
+  const submit=()=>{
+    if(!draft.title.trim()||!draft.problem.trim()){showToast&&showToast("Add a title and the problem it solves","error");return;}
+    const rec={id:`idea-${Math.random().toString(36).slice(2,8)}`,title:draft.title.trim(),problem:draft.problem.trim(),benefit:draft.benefit.trim()||"To be assessed",category:draft.category,unit:U.department||"Engineering",status:"Submitted",date:"Today"};
+    setIdeas([rec,...ideas]);
+    setDraft({title:"",problem:"",benefit:"",category:"GenAI Copilot"});
+    showToast&&showToast("Idea submitted - routed to AI Opportunity Intake");
+  };
+  const stColor=st=>st==="In AI Central intake"?AI_GOLD:st==="Accepted"?T.green:st==="Under review"?T.blue:T.ink3;
+  const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="My AI Ideas" sub="Bottom-up innovation: submit AI ideas from your daily work. Accepted ideas enter AI Opportunity Intake and become governed initiatives in AI Central."/>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(300px,.9fr) 1.1fr",gap:14,alignItems:"start"}}>
+      <Card style={{padding:18}}>
+        <Tag label="SUBMIT AN IDEA" color={AI_GOLD} bg={AI_GOLD_L}/>
+        <h3 style={{fontSize:15,color:T.ink,fontWeight:800,fontFamily:F.h,margin:"10px 0 4px"}}>What could AI do better in your work?</h3>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 14px"}}>You know the friction best. Every idea is reviewed; accepted ideas follow the governed lifecycle from day one.</p>
+        <div style={{display:"grid",gap:10}}>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Idea title</span>
+            <input value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})} placeholder="e.g. Auto-draft weekly status reports" style={fieldStyle}/>
+          </label>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>What problem does it solve?</span>
+            <textarea value={draft.problem} onChange={e=>setDraft({...draft,problem:e.target.value})} rows={3} placeholder="Describe the friction in your daily work..." style={{...fieldStyle,resize:"vertical"}}/>
+          </label>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Expected benefit</span>
+            <input value={draft.benefit} onChange={e=>setDraft({...draft,benefit:e.target.value})} placeholder="e.g. Save 2 hours per week per person" style={fieldStyle}/>
+          </label>
+          <label style={{display:"grid",gap:5}}>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
+            <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
+              {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow"].map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <button onClick={submit} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 14px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Submit idea</button>
+        </div>
+      </Card>
+      <div style={{display:"grid",gap:10,alignContent:"start"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{fontSize:14,color:T.ink,fontWeight:800,fontFamily:F.h,margin:0}}>My submitted ideas</h3>
+          <Tag label={`${ideas.length} ideas`} color={AI_GOLD} bg={AI_GOLD+"16"}/>
+        </div>
+        {ideas.length===0&&<Card style={{padding:22}}><p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>No ideas yet. Your first submission starts your innovation record - accepted ideas are credited to you through the whole lifecycle.</p></Card>}
+        {ideas.map(i=>{
+          const stepIdx=IDEA_JOURNEY.indexOf(i.status==="Accepted"?"Accepted":i.status);
+          return <Card key={i.id} style={{padding:15}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:8,flexWrap:"wrap"}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{i.title}</div>
+                <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{i.problem}</div>
+              </div>
+              <Tag label={i.status} color={stColor(i.status)} bg={stColor(i.status)+"16"}/>
+            </div>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:9,color:T.ink4,fontFamily:F.b,marginBottom:11}}>
+              <span>{i.category}</span><span>{i.unit}</span><span>Benefit: {i.benefit}</span><span>{i.date}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:0}}>
+              {IDEA_JOURNEY.map((step,si)=><div key={step} style={{display:"flex",alignItems:"center",flex:si<IDEA_JOURNEY.length-1?1:"0 0 auto"}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <span style={{width:10,height:10,borderRadius:"50%",background:si<=stepIdx?AI_GOLD:T.s4,border:`2px solid ${si<=stepIdx?AI_GOLD:T.border}`,boxShadow:si===stepIdx?`0 0 10px ${AI_GOLD}66`:"none"}}/>
+                  <span style={{fontSize:8,color:si<=stepIdx?AI_GOLD:T.ink4,fontFamily:F.m,fontWeight:800,whiteSpace:"nowrap"}}>{step}</span>
+                </div>
+                {si<IDEA_JOURNEY.length-1&&<div style={{flex:1,height:2,background:si<stepIdx?AI_GOLD+"70":T.border,margin:"0 6px 14px"}}/>}
+              </div>)}
+            </div>
+          </Card>;
+        })}
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── My AI Dashboard (employee) + Manager adoption view ───────── */
+function PageAIUsage({role,sessionMode}){
+  const seeded=sessionMode==="demo";
+  const u=seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0};
+  const isManager=role==="manager";
+  const tiles=[
+    ["Time saved",`${u.timeSavedHrs}h`,"This month",T.green],
+    ["Successful prompts",u.prompts,"Through the Gateway",AI_GOLD],
+    ["Prompt success rate",u.successRate+"%","First-answer usefulness",T.teal],
+    ["Knowledge reuse",u.knowledgeReuse+"%","Answers enriched internally",T.blue],
+    ["Warnings",u.warnings,"Policy warnings received",T.amber],
+    ["Blocked",u.blocked,"Nothing left the boundary",T.red],
+  ];
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title={isManager?"Team AI Adoption":"My AI Dashboard"} sub={isManager?"Team adoption, value and compliance - private prompts are never shown. Content review requires explicit permission granted by policy.":"Your governed AI activity - productivity, safety and learning in one place."}/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+      {tiles.map(([l,v,sub,c])=><Card key={l} style={{padding:14}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,marginBottom:3}}>{v}</div>
+        <div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{sub}</div>
+      </Card>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Top AI skills</h3>
+        {(u.topSkills.length?u.topSkills:["No activity yet"]).map((s,i)=><div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{s}</span>
+          {u.topSkills.length>0&&<Bar value={[86,74,63][i]||50} color={AI_GOLD} />}
+        </div>)}
+        <div style={{marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:6}}><span>Learning progress</span><span style={{fontFamily:F.m}}>{u.learningProgress}%</span></div>
+          <Bar value={u.learningProgress} color={T.teal}/>
+        </div>
+      </Card>
+      <Card style={{padding:16}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Preferred models</h3>
+        {(u.preferredModels.length?u.preferredModels:["No usage yet"]).map(m=><div key={m} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background:AI_GOLD}}/>
+          <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{m}</span>
+        </div>)}
+        <p style={{fontSize:10,color:T.ink4,fontFamily:F.b,lineHeight:1.6,margin:"12px 0 0"}}>Model choice is routed by the Gateway from your business unit policy - you always get an approved model without thinking about it.</p>
+      </Card>
+    </div>
+    {isManager&&<Card style={{padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:0}}>Team view</h3>
+        <Tag label="Prompt content review: disabled by policy" color={T.ink3} bg={T.s3}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:13}}>
+        {[["Team adoption",seeded?"64%":"--",T.teal],["Business value",seeded?"$1.2M":"--",AI_GOLD],["Compliance score",seeded?"92%":"--",T.green],["High-risk activity",seeded?"1":"--",T.amber],["Blocked events",seeded?"3":"--",T.red],["Training gap",seeded?"People unit":"--",T.blue]].map(([l,v,c])=><div key={l} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+          <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:7}}>{l}</div>
+          <div style={{fontSize:17,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+        </div>)}
+      </div>
+      <h4 style={{fontSize:12,color:T.ink,margin:"0 0 8px"}}>Model utilization</h4>
+      {gatewayProviders.slice(0,5).map(p=><div key={p.id} style={{display:"grid",gridTemplateColumns:"140px 1fr 44px",gap:10,alignItems:"center",marginBottom:7}}>
+        <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{p.name}</span>
+        <Bar value={seeded?p.routedShare*2:0} color={AI_GOLD}/>
+        <span style={{fontSize:9,color:T.ink3,fontFamily:F.m,textAlign:"right"}}>{seeded?p.routedShare+"%":"--"}</span>
+      </div>)}
+    </Card>}
+  </div>;
+}
+
+
+/* ── Decisions: one queue for everything awaiting the executive ────
+   Merges executive decisions, pending scale/retire gates and the HITL
+   queue. One Decision surface - the HITL engine is embedded, not cloned. */
+function PageDecisions({role,setTab,setAiCentralView,showToast}){
+  const goto=link=>{
+    if(!link)return;
+    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
+    else if(link.tab){setTab&&setTab(link.tab);}
+  };
+  const K=KPI[role]||KPI.caio;
+  const execCount=(EXEC_DECISIONS[role]||EXEC_DECISIONS.caio).length;
+  const gates=acInitiatives.filter(i=>{
+    const rec=feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK);
+    return rec==="Scale"||rec==="Retire";
+  });
+  const counts=[
+    ["Executive decisions",execCount,AI_GOLD],
+    ["HITL approvals",K.hitl,T.violet],
+    ["Scale / retire gates",gates.length,T.blue],
+    ["Exceptions expiring","2",T.amber],
+  ];
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Decisions" sub="Everything waiting for you in one place - approvals, HITL, exceptions, escalations and scale or retire gates. Every decision generates audit evidence."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+      {counts.map(([l,v,c])=><Card key={l} style={{padding:14}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c}}><CountUp value={v}/></div>
+      </Card>)}
+    </div>
+    <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
+    <Card style={{padding:16,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Scale / retire gates</h3>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Recommended by the feedback engine - recorded in AI Central</span>
+      </div>
+      <div style={{display:"grid",gap:8}}>
+        {gates.map(i=>{
+          const rec=feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK);
+          const c=decisionColorOf(rec,T);
+          return <div key={i.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+            <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>{i.unit} · readiness {Math.round((i.guardrail+i.adoption+i.valueScore)/3)}%</div></div>
+            <Tag label={`Recommend: ${rec}`} color={c} bg={c+"16"}/>
+            <button onClick={()=>goto({ac:"initiatives"})} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record decision →</button>
+          </div>;
+        })}
+      </div>
+    </Card>
+    <PageHITL role={role} showToast={showToast} onCountChange={()=>{}}/>
+  </div>;
+}
+
+/* ── Knowledge: one intelligent repository ─────────────────────────
+   Merges the knowledge engine assets with the platform's knowledge
+   surfaces (templates, playbooks, checklists, academy, kits). One search;
+   the original renderers stay as contextual destinations. */
+function PageKnowledge({role,setTab,showToast}){
+  const [q,setQ]=useState("");
+  const [kind,setKind]=useState("All");
+  const surfaces=[
+    {title:"Document Templates",kind:"Template",desc:"AI-native governance templates mapped to the CAIO Implementation Kit.",ref:"Templates library",action:()=>setTab("templates")},
+    {title:"Active Playbooks",kind:"Playbook",desc:"Role-assigned runbooks for governance and pilot readiness.",ref:"Playbook library",action:()=>setTab("playbook")},
+    {title:"ISO & Regulatory Checklists",kind:"Framework",desc:"ISO 42001, ISO 27001 and regulatory control checklists.",ref:"Checklists",action:()=>setTab("checklists")},
+    {title:"Governance Academy",kind:"Learning",desc:"Role learning paths whose completion becomes audit evidence.",ref:"Academy",action:()=>setTab("academy")},
+    {title:"ISO 42001 Implementation Kit",kind:"Framework",desc:"PDCA 4-phase, 15-step AIMS implementation tracker.",ref:"Implementation",action:()=>setTab("impl")},
+    {title:"Compliance Scorecard",kind:"Framework",desc:"Live posture across all regulatory frameworks.",ref:"Compliance",action:()=>setTab("compliance")},
+  ];
+  const rows=[
+    ...surfaces.map(x=>({...x,reuse:null})),
+    ...knowledgeAssets.map(k=>({title:k.title,kind:k.kind,desc:`Added by ${k.addedBy}. Used by the Gateway to enrich prompts before any model call.`,ref:k.sourceRef,reuse:k.reuseCount,action:null})),
+  ];
+  const kinds=["All",...new Set(rows.map(r=>r.kind))];
+  const ql=q.trim().toLowerCase();
+  const filtered=rows.filter(r=>(kind==="All"||r.kind===kind)&&(!ql||`${r.title} ${r.kind} ${r.desc} ${r.ref}`.toLowerCase().includes(ql)));
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Knowledge" sub="One intelligent repository - playbooks, templates, policies, frameworks, lessons learned and learning paths. Everything searchable; everything feeds the AI Gateway's enrichment."/>
+    <Card style={{padding:"14px 16px",marginBottom:14,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search knowledge, frameworks, lessons, templates..." style={{flex:"1 1 260px",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+        {kinds.map(k=><button key={k} onClick={()=>setKind(k)} style={{background:kind===k?AI_GOLD+"20":T.s2,border:`1px solid ${kind===k?AI_GOLD+"55":T.border}`,color:kind===k?AI_GOLD:T.ink3,borderRadius:7,padding:"6px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{k}</button>)}
+      </div>
+      <Tag label={`${filtered.length} items`} color={AI_GOLD} bg={AI_GOLD+"16"}/>
+    </Card>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:10}}>
+      {filtered.map((r,i)=><Card key={r.title} style={{padding:15,animation:`up ${.25+Math.min(i,8)*.04}s ease both`}}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",marginBottom:8}}>
+          <Tag label={r.kind} color={T.blue} bg={T.blue+"14"}/>
+          {r.reuse!=null&&<span style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{r.reuse} reuses</span>}
+        </div>
+        <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:5}}>{r.title}</div>
+        <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:10}}>{r.desc}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.ref}</span>
+          {r.action?<button onClick={r.action} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open →</button>
+          :<button onClick={()=>{showToast&&showToast("Asset available to the Gateway enrichment engine");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 11px",color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>In enrichment</button>}
+        </div>
+      </Card>)}
+    </div>
+  </div>;
+}
+
 
 function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut}) {
   const [selected,setSelected]=useState(sessionMode==="demo"?"demo":role);
@@ -6151,7 +7062,7 @@ export default function VerisZone() {
     setTimeout(()=>setToast(t=>({...t,vis:false})),3000);
   },[]);
 
-  const switchRole=r=>{setRole(r);setTab("home");setHitlCount((HITL[r]||[]).length);};
+  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
     setTab("home");
@@ -6230,6 +7141,7 @@ export default function VerisZone() {
     };
   },[enterApp]);
   const R=ROLES[role],rc=RC(role);
+  const roleHome=(role==="employee"||role==="manager")?"workbench":"home";
   const showSeededData=sessionMode==="demo"||!SEEDED_DEMO_TABS.has(tab);
 
   if(!hasEntered)return <BrandEntryShell theme={theme} onTheme={()=>setTheme(theme==="dark"?"light":"dark")} onEnter={enterApp}/>;
@@ -6248,13 +7160,13 @@ export default function VerisZone() {
         </div>}
         {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
           {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
-          {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
-          {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
+          {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
+          {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
         {isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s3:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1,overflowX:"auto"}}>
           {sessionMode==="demo"
             ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
-            :<button type="button" onClick={()=>setTab("home")} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
+            :<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setTheme(theme==="dark"?"light":"dark")} title="Toggle dark and light mode" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:isMobile?"4px 10px":"6px 13px",color:T.ink2,fontSize:isMobile?10:11,fontWeight:800,fontFamily:F.b,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.05)":"none"}}>{theme==="dark"?"Light":"Dark"}</button>
@@ -6272,21 +7184,21 @@ export default function VerisZone() {
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role}/>}
+        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
-        {showSeededData&&tab==="compliance" &&<PageCompliance role={role}/>}
+        {showSeededData&&tab==="compliance" &&<PageCompliance role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
         {showSeededData&&tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&tab==="aia"        &&<PageAIA        role={role}/>}
         {showSeededData&&tab==="aira"       &&<PageAIRA/>}
-        {showSeededData&&tab==="airt"       &&<PageAIRT/>}
+        {showSeededData&&tab==="airt"       &&<PageAIRT showToast={showToast}/>}
         {showSeededData&&tab==="registry"   &&<PageModelRegistry setTab={setTab}/>}
         {showSeededData&&tab==="maturity"   &&<PageMaturityRadar/>}
         {showSeededData&&tab==="usecases"   &&<PageUseCases/>}
         {showSeededData&&tab==="aiia"       &&<PageAIIA       role={role} setTab={setTab}/>}
         {showSeededData&&tab==="impl"       &&<PageImpl       role={role}/>}
-        {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role}/>}
+        {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
         {showSeededData&&tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="scope"       &&<PageScope          role={role}/>}
         {showSeededData&&tab==="controls"    &&<PageCommonControls  role={role}/>}
@@ -6296,9 +7208,14 @@ export default function VerisZone() {
         {showSeededData&&tab==="gapanalysis" &&<PageGapAnalysis  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
-        {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode}/>}
+        {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
+        {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
+        {showSeededData&&tab==="decisions" &&<PageDecisions role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&tab==="knowledge" &&<PageKnowledge role={role} setTab={setTab} showToast={showToast}/>}
+        {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
-    {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
+    {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
   </div>;
 }

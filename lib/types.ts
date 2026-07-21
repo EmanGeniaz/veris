@@ -3,9 +3,11 @@
 export type ACModuleId =
   | "dashboard"
   | "initiatives"
+  | "portfolio"
   | "governance"
   | "evidence"
   | "gateway"
+  | "admin"
   | "academy";
 
 export type ACLens =
@@ -202,3 +204,71 @@ export type ExecKpiInsight = {
   aiRec: string;
   link: ExecLink;
 };
+
+/* ── Employee Workspace / Enterprise AI Gateway ───────────────── */
+
+export type GatewayAuthStatus = "Connected" | "Pending" | "Error";
+
+export type GatewayRoutingRule = {
+  id: string;
+  scope: string;            /* business unit or risk class */
+  providerId: string;
+  reason: string;
+};
+
+export type GuardrailDetector = {
+  id: string;
+  name: string;
+  action: "Allow" | "Warn" | "Require justification" | "Mask" | "Redact" | "Block" | "Escalate";
+  triggeredMtd: number;
+};
+
+export type DeploymentMode = {
+  id: string;
+  name: string;
+  desc: string;
+  status: "Active" | "Available" | "Planned";
+};
+
+export type KnowledgeAssetKind =
+  | "Policy" | "Framework" | "Template" | "Risk Library" | "Lessons Learned"
+  | "Playbook" | "Evidence" | "Prompt Library" | "Architecture Standard";
+
+export type KnowledgeAsset = {
+  id: string;
+  title: string;
+  kind: KnowledgeAssetKind;
+  sourceRef: string;
+  addedBy: string;
+  reuseCount: number;
+};
+
+export type WorkbenchGuardrailEvent = { action: string; detector: string };
+
+export type WorkbenchMessage = {
+  id: string;
+  from: "user" | "assistant";
+  text: string;
+  enrichedWith?: string[];
+  guardrail?: WorkbenchGuardrailEvent | null;
+};
+
+export type WorkbenchConversation = {
+  id: string;
+  title: string;
+  unit: string;
+  project: string;
+  initiativeId: string | null;
+  providerId: string;
+  model: string;
+  classification: "Public" | "Internal" | "Confidential" | "Restricted";
+  created: string;
+  lastActivity: string;
+  riskScore: number;
+  policyDecision: string;
+  evidenceLinks: number;
+  retention: string;
+  messages: WorkbenchMessage[];
+};
+
+export type GatewayRetentionConfig = { setting: string; value: string; note: string };
