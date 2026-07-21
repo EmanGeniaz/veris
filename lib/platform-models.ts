@@ -1,319 +1,20 @@
 import type {
   ACCxoAlignment,
-  ACFeedbackScores,
+  ExecBriefEntry,
+  ExecDecisionItem,
+  ExecPriorityItem,
+  ExecRecommendationItem,
+  FrameworkPosture,
   ACEvidenceRecord,
+  ACFeedbackScores,
   ACGuardrailGroup,
   ACInitiativeRecord,
   ACPhaseTemplate,
   ACRoleAccess,
-  AIInitiative,
-  AIInitiativeDNA,
-  AuditEvent,
-  ControlActivation,
-  CXOReview,
-  DepartmentPilot,
-  EvidenceConfidenceScore,
   GatewayLogEntry,
   GatewayPolicy,
   GatewayProvider,
-  RBACRole,
-  RiskDriftSignal,
-  ScaleGateDecision,
-  StrategicTask,
 } from "./types";
-
-export const aiInitiatives: AIInitiative[] = [
-  {
-    id: "aii-001",
-    name: "Customer Resolution Copilot",
-    businessUnit: "Customer Operations",
-    proposedDepartment: "Tier 1 Support",
-    executiveSponsor: "COO",
-    businessOwner: "Priya Mehta",
-    technicalOwner: "Marcus Reid",
-    status: "Pilot Running",
-    riskTier: "High",
-    governanceClass: "High Risk",
-    valueHypothesis: "Reduce repeat contacts while preserving human oversight for escalations.",
-    budgetEstimate: 420000,
-    expectedRoi: "18 month payback",
-    createdAt: "2026-06-01",
-  },
-  {
-    id: "aii-002",
-    name: "Finance Close Automation",
-    businessUnit: "Finance",
-    proposedDepartment: "Controllership",
-    executiveSponsor: "CFO",
-    businessOwner: "Elena Rossi",
-    technicalOwner: "Marcus Reid",
-    status: "Scale Gate",
-    riskTier: "Medium",
-    governanceClass: "Limited Risk",
-    valueHypothesis: "Shorten month-end close and improve audit sampling confidence.",
-    budgetEstimate: 310000,
-    expectedRoi: "14 month payback",
-    createdAt: "2026-05-18",
-  },
-];
-
-export const departmentPilots: DepartmentPilot[] = [
-  {
-    id: "pilot-001",
-    initiativeId: "aii-001",
-    department: "Tier 1 Support",
-    wave: 1,
-    status: "Active",
-    adoptionScore: 64,
-    complianceScore: 79,
-    valueScore: 73,
-    riskDrift: 6,
-    inheritedLearningIds: [],
-  },
-  {
-    id: "pilot-002",
-    initiativeId: "aii-002",
-    department: "Controllership",
-    wave: 1,
-    status: "Ready for Scale",
-    adoptionScore: 79,
-    complianceScore: 88,
-    valueScore: 84,
-    riskDrift: -3,
-    inheritedLearningIds: ["lesson-001", "lesson-002"],
-  },
-];
-
-export const cxoReviews: CXOReview[] = [
-  {
-    id: "review-001",
-    initiativeId: "aii-001",
-    reviewerRole: "CIO",
-    reviewType: "Technical Feasibility",
-    status: "Approved",
-    decisionNotes: "Architecture can support a bounded support pilot with approved logging.",
-    dueDate: "2026-06-10",
-  },
-  {
-    id: "review-002",
-    initiativeId: "aii-001",
-    reviewerRole: "CAIO",
-    reviewType: "AI Suitability",
-    status: "Changes Requested",
-    decisionNotes: "Add HITL override policy and prompt injection test evidence before expansion.",
-    dueDate: "2026-06-22",
-  },
-  {
-    id: "review-003",
-    initiativeId: "aii-002",
-    reviewerRole: "CFO",
-    reviewType: "Finance",
-    status: "Approved",
-    decisionNotes: "Value evidence is sufficient for a controlled second-wave rollout.",
-    dueDate: "2026-06-20",
-  },
-];
-
-export const strategicTasks: StrategicTask[] = [
-  {
-    id: "task-001",
-    initiativeId: "aii-001",
-    ownerRole: "CISO",
-    title: "Complete prompt injection evidence pack",
-    status: "In Progress",
-    dueDate: "2026-06-24",
-    evidenceRequired: true,
-  },
-  {
-    id: "task-002",
-    initiativeId: "aii-002",
-    ownerRole: "CFO",
-    title: "Approve second-wave budget release",
-    status: "Open",
-    dueDate: "2026-06-25",
-    evidenceRequired: true,
-  },
-];
-
-export const scaleGateDecisions: ScaleGateDecision[] = [
-  {
-    id: "scale-001",
-    initiativeId: "aii-001",
-    pilotId: "pilot-001",
-    outcome: "Hold",
-    readinessScore: 76,
-    evidenceConfidence: 82,
-    riskDriftScore: 6,
-    valueConfidence: 73,
-    rationale: "Pilot value is promising, but security evidence must close before second wave.",
-    decidedBy: "CAIO",
-    decidedAt: "2026-06-18T09:20:00Z",
-  },
-  {
-    id: "scale-002",
-    initiativeId: "aii-002",
-    pilotId: "pilot-002",
-    outcome: "Scale",
-    readinessScore: 88,
-    evidenceConfidence: 91,
-    riskDriftScore: -3,
-    valueConfidence: 84,
-    rationale: "Controls, adoption, and audit evidence meet scale threshold.",
-    decidedBy: "CFO",
-    decidedAt: "2026-06-18T14:30:00Z",
-  },
-];
-
-export const aiInitiativeDna: AIInitiativeDNA[] = [
-  {
-    initiativeId: "aii-001",
-    useCasePattern: "Customer-facing assistance with human escalation",
-    affectedCxos: ["COO", "CIO", "CAIO", "CISO", "CDPO"],
-    controlFamilies: ["Human oversight", "Security testing", "Data minimization", "Customer transparency"],
-    evidenceRequirements: ["Model card", "Prompt injection results", "HITL approval log", "DPIA summary"],
-    scaleIntent: "Multi Department",
-  },
-  {
-    initiativeId: "aii-002",
-    useCasePattern: "Internal financial process automation",
-    affectedCxos: ["CFO", "CIO", "CAIO", "CGO"],
-    controlFamilies: ["SOX evidence", "Segregation of duties", "Change management", "Audit sampling"],
-    evidenceRequirements: ["Control test results", "Exception log", "Budget approval", "Close-cycle benchmark"],
-    scaleIntent: "Enterprise",
-  },
-];
-
-export const controlActivations: ControlActivation[] = [
-  {
-    id: "activation-001",
-    initiativeId: "aii-001",
-    controlId: "CTRL-SEC-022",
-    trigger: "Customer-facing generative AI",
-    ownerRole: "CISO",
-    status: "Monitoring",
-    evidenceItemIds: ["ev-001", "ev-002"],
-  },
-  {
-    id: "activation-002",
-    initiativeId: "aii-001",
-    controlId: "CTRL-AI-001",
-    trigger: "High-risk human impact workflow",
-    ownerRole: "CAIO",
-    status: "Activated",
-    evidenceItemIds: ["ev-003"],
-  },
-  {
-    id: "activation-003",
-    initiativeId: "aii-002",
-    controlId: "CTRL-AUD-019",
-    trigger: "Financial reporting automation",
-    ownerRole: "CFO",
-    status: "Complete",
-    evidenceItemIds: ["ev-004"],
-  },
-];
-
-export const riskDriftSignals: RiskDriftSignal[] = [
-  {
-    id: "drift-001",
-    initiativeId: "aii-001",
-    pilotId: "pilot-001",
-    signal: "Escalation overrides trending above approved appetite",
-    driftScore: 6,
-    severity: "High",
-    recommendedAction: "Hold expansion until override rationale is reviewed.",
-  },
-  {
-    id: "drift-002",
-    initiativeId: "aii-002",
-    pilotId: "pilot-002",
-    signal: "Risk movement below baseline after second control test",
-    driftScore: -3,
-    severity: "Low",
-    recommendedAction: "Proceed to scale gate review.",
-  },
-];
-
-export const evidenceConfidenceScores: EvidenceConfidenceScore[] = [
-  {
-    initiativeId: "aii-001",
-    pilotId: "pilot-001",
-    completeness: 82,
-    freshness: 78,
-    approverCoverage: 86,
-    confidence: 82,
-  },
-  {
-    initiativeId: "aii-002",
-    pilotId: "pilot-002",
-    completeness: 92,
-    freshness: 88,
-    approverCoverage: 94,
-    confidence: 91,
-  },
-];
-
-export const rbacRoles: RBACRole[] = [
-  {
-    id: "DEMO",
-    name: "Demo Center",
-    permissions: ["view:demo", "view:workspace", "view:aicentral", "export:reports"],
-  },
-  {
-    id: "CAIO",
-    name: "Chief AI Officer",
-    permissions: ["view:workspace", "approve:cxo", "approve:hitl", "view:aicentral", "manage:aicentral", "export:reports"],
-  },
-  {
-    id: "CIO",
-    name: "Chief Information Officer",
-    permissions: ["view:workspace", "approve:cxo", "view:aicentral"],
-  },
-  {
-    id: "CISO",
-    name: "Chief Information Security Officer",
-    permissions: ["view:workspace", "approve:hitl", "view:aicentral"],
-  },
-];
-
-export const auditEvents: AuditEvent[] = [
-  {
-    id: "audit-001",
-    action: "Scale gate outcome set to Hold",
-    actor: "Aisha Patel",
-    timestamp: "2026-06-18T09:20:00Z",
-    object: "Customer Resolution Copilot",
-    entityType: "ScaleGateDecision",
-    entityId: "scale-001",
-    metadata: { outcome: "Hold", readinessScore: 76 },
-  },
-  {
-    id: "audit-002",
-    action: "Board pack export generated",
-    actor: "Elena Rossi",
-    timestamp: "2026-06-18T14:45:00Z",
-    object: "Finance Close Automation",
-    entityType: "BoardPackExport",
-    entityId: "export-001",
-    metadata: { format: "PDF", retentionYears: 7 },
-  },
-];
-
-export const postgresReadyTables = [
-  "organizations",
-  "users",
-  "rbac_roles",
-  "ai_initiatives",
-  "department_pilots",
-  "cxo_reviews",
-  "strategic_tasks",
-  "control_activations",
-  "risk_drift_signals",
-  "evidence_confidence_scores",
-  "scale_gate_decisions",
-  "audit_events",
-  "board_pack_exports",
-] as const;
 
 /* ── AI Central operating layer data ──────────────────────────── */
 
@@ -475,3 +176,193 @@ export const acFeedback: Record<string, ACFeedbackScores> = {
   "ai-003": { user: 86, business: 88, executive: 84, risk: 78, operational: 82, value: 88, adoption: 79 },
   "ai-004": { user: 44, business: 48, executive: 50, risk: 35, operational: 41, value: 58, adoption: 31 },
 };
+
+/* Single source of truth for framework posture - referenced by AI Central
+   Governance and the Executive Workspace Governance Health section. */
+export const AC_FRAMEWORK_POSTURE: FrameworkPosture[] = [
+  { id: "iso42001", name: "ISO 42001", score: 74, sub: "AI management system" },
+  { id: "iso27001", name: "ISO 27001", score: 79, sub: "Information security" },
+  { id: "nist",     name: "NIST AI RMF", score: 71, sub: "Risk management framework" },
+  { id: "euai",     name: "EU AI Act", score: 68, sub: "Regulatory conformity" },
+  { id: "gdpr",     name: "GDPR", score: 83, sub: "Data protection" },
+  { id: "internal", name: "Internal Controls", score: 81, sub: "Enterprise control set" },
+];
+
+/* ── Executive Workspace 4.0 intelligence seeds ───────────────── */
+export const EXEC_BRIEF: Record<string, ExecBriefEntry> = {
+  ceo:{focus:"AI Chief Strategy Officer",headline:"Portfolio is scaling, one initiative needs a board-level call.",
+    body:"Enterprise AI maturity rose to 78/100 as two pilots reached scale-readiness. Finance Close Automation is board-pack ready and projects $1.8M value; Customer Resolution Copilot is held pending CISO evidence. One initiative is trending to retirement on weak adoption. Approving the scale package unlocks an estimated 9% portfolio ROI uplift this quarter.",
+    deltas:[["AI maturity","up","+6"],["Value realized","up","$3.6M"],["Scale-ready pilots","up","2"],["At-risk initiatives","down","1"]]},
+  coo:{focus:"AI Operating Advisor",headline:"Adoption is up but two department rollouts are blocked.",
+    body:"Operating adoption reached 64% across active pilots. Finance is ready for its second wave; Retail Banking is at risk on evidence gaps and People shows high change resistance. Clearing the two blocked tasks would return an estimated 26% productivity gain in the affected units.",
+    deltas:[["Adoption","up","+4"],["Active pilots","flat","4"],["Blocked tasks","up","3"],["Productivity","up","+18%"]]},
+  cfo:{focus:"AI Financial Advisor",headline:"ROI confidence is strong; one business case is under-delivering.",
+    body:"Portfolio ROI confidence is 88% with 6% budget variance. Finance Close Automation is beating its business case (+$1.8M realized vs plan). Credit Decision Assurance is behind on benefits with a 14-month payback slipping. A value-recovery review is recommended before the next investment gate.",
+    deltas:[["ROI confidence","up","88%"],["Budget variance","down","6%"],["Value realized","up","$3.6M"],["Payback","flat","14mo"]]},
+  chro:{focus:"AI Workforce Advisor",headline:"Readiness is improving but one unit is resisting adoption.",
+    body:"Enterprise training completion is 68% and AI literacy 77%. Finance shows low resistance and strong uptake; People (HR) has the lowest adoption at 31% with high resistance. Assigning the targeted change program would lift readiness an estimated 14 points in that unit.",
+    deltas:[["Training","up","68%"],["AI literacy","up","77%"],["Lowest adoption","down","31%"],["Resistance","flat","1 unit"]]},
+  ciso:{focus:"AI Security Operations Advisor",headline:"Security posture improved, but critical evidence is still open.",
+    body:"Enterprise security score rose to 72/100 on patch and MFA progress. The AI Gateway blocked 563 policy violations this month and shadow-AI exposure is contained. Customer Resolution Copilot still lacks prompt-injection evidence, blocking its scale gate. Approving the remediation package reduces projected enterprise risk ~18%.",
+    deltas:[["Security score","up","+8"],["Blocked prompts","up","563"],["Open risks","down","6"],["Critical evidence","up","1 due"]]},
+  caio:{focus:"AI Chief of Staff",headline:"Governance is healthy; two initiatives need a lifecycle decision.",
+    body:"AI governance maturity is 72/100 with 7 HITL approvals pending. Finance Close Automation is scale-ready; Workforce Skills Navigator is trending to retirement on weak feedback and adoption. Two governed scale/retire decisions are waiting on you, and one initiative is blocked on missing Phase artifacts.",
+    deltas:[["Maturity","up","72"],["HITL pending","flat","7"],["Scale-ready","up","1"],["Retire candidates","up","1"]]},
+  cio:{focus:"AI Enterprise Architect",headline:"Platform is stable; integration debt is the next constraint.",
+    body:"IT operations score is 74/100 across 47 AI assets. Model routing through the Gateway is balanced across approved providers. Two initiatives depend on integrations not yet hardened for production. Prioritising the architecture review unblocks the Finance scale wave.",
+    deltas:[["Ops score","up","+5"],["AI assets","flat","47"],["Roadmap items","flat","12"],["Controls","up","79%"]]},
+  cdpo:{focus:"AI Privacy Advisor",headline:"Privacy posture is solid; one DPIA is overdue.",
+    body:"Privacy score is 81/100 with 11 DPIAs tracked. PII redaction in the Gateway triggered 1,284 times this month with no confirmed leakage. Workforce Skills Navigator processes employee data and its fairness/DPIA evidence is incomplete, blocking progression. Completing it clears the privacy gate.",
+    deltas:[["Privacy score","up","81"],["DPIAs","flat","11"],["PII redactions","up","1284"],["Overdue","up","1"]]},
+  cgo:{focus:"AI Growth Advisor",headline:"Governance coverage is up; new AI opportunities are unqualified.",
+    body:"Governance coverage rose 5 points across frameworks. The opportunity pipeline holds several unscored ideas with commercial upside. Qualifying the top two use cases would add an estimated $2.4M to the value forecast while staying inside risk appetite.",
+    deltas:[["Coverage","up","+5"],["Open risks","down","23"],["Pipeline ideas","up","6"],["Forecast upside","up","$2.4M"]]},
+};
+
+export const EXEC_PRIORITIES: Record<string, ExecPriorityItem[]> = {
+  ceo:[
+    {title:"Approve Finance Close Automation scale package",owner:"Maya Chen",priority:"Critical",due:"Today",impact:"$1.8M value unlock",benefit:"9% portfolio ROI uplift",link:{ac:"initiatives"}},
+    {title:"Decide on Workforce Skills Navigator retirement",owner:"Aisha Patel",priority:"High",due:"2 days",impact:"Stops $0.2M sunk spend",benefit:"Frees budget for scale-ready pilots",link:{ac:"initiatives"}},
+    {title:"Review board AI risk pack",owner:"Rafael Torres",priority:"Medium",due:"This week",impact:"Board readiness",benefit:"Auto-compiled from evidence",link:{ac:"evidence"}},
+  ],
+  coo:[
+    {title:"Clear Retail Banking evidence blocker",owner:"Omar Khan",priority:"Critical",due:"Today",impact:"Unblocks second wave",benefit:"26% productivity in unit",link:{ac:"initiatives"}},
+    {title:"Approve department enablement plan",owner:"Priya Mehta",priority:"High",due:"2 days",impact:"Adoption +12%",benefit:"AI can draft the rollout comms",link:{tab:"hitl"}},
+    {title:"Review People change-resistance report",owner:"Hannah Lee",priority:"Medium",due:"This week",impact:"Lowest-adoption unit",benefit:"Targeted learning recommended",link:{tab:"academy"}},
+  ],
+  cfo:[
+    {title:"Approve second-wave budget release",owner:"Elena Rossi",priority:"Critical",due:"Today",impact:"$3.1M program",benefit:"ROI confidence 88%",link:{ac:"initiatives"}},
+    {title:"Order value-recovery review: Credit Decision Assurance",owner:"Omar Khan",priority:"High",due:"3 days",impact:"Payback slipping",benefit:"AI drafts the benefits re-forecast",link:{ac:"initiatives"}},
+    {title:"Sign off benefits realization evidence",owner:"Internal Audit",priority:"Medium",due:"This week",impact:"Audit readiness",benefit:"Evidence auto-captured",link:{ac:"evidence"}},
+  ],
+  chro:[
+    {title:"Assign change program to People unit",owner:"Hannah Lee",priority:"Critical",due:"Today",impact:"Adoption 31% to 45%",benefit:"AI selects the learning path",link:{tab:"academy"}},
+    {title:"Approve AI literacy curriculum update",owner:"L&D",priority:"High",due:"2 days",impact:"Enterprise readiness",benefit:"Completion becomes evidence",link:{tab:"academy"}},
+    {title:"Review resistance sentiment by unit",owner:"People Analytics",priority:"Medium",due:"This week",impact:"Early warning",benefit:"AI flags at-risk teams",link:{ac:"dashboard"}},
+  ],
+  ciso:[
+    {title:"Approve prompt-injection remediation package",owner:"Jordan Sinclair",priority:"Critical",due:"Today",impact:"-18% enterprise risk",benefit:"Unblocks Copilot scale gate",link:{ac:"gateway"}},
+    {title:"Review 14 critical vulnerabilities",owner:"Security Eng",priority:"High",due:"2 days",impact:"3 initiatives affected",benefit:"AI clusters by root cause",link:{ac:"governance"}},
+    {title:"Sign off shadow-AI exposure report",owner:"CISO Office",priority:"Medium",due:"This week",impact:"Gateway coverage",benefit:"Auto-generated from logs",link:{ac:"gateway"}},
+  ],
+  caio:[
+    {title:"Record Finance Close Automation scale decision",owner:"Aisha Patel",priority:"Critical",due:"Today",impact:"Board-pack ready",benefit:"Governed decision + evidence",link:{ac:"initiatives"}},
+    {title:"Decide Workforce Skills Navigator: improve or retire",owner:"Aisha Patel",priority:"High",due:"2 days",impact:"Weak feedback score",benefit:"Feedback engine recommends Retire",link:{ac:"initiatives"}},
+    {title:"Clear 7 HITL approvals",owner:"CAIO Office",priority:"Medium",due:"This week",impact:"Pipeline flow",benefit:"AI pre-summarises each",link:{tab:"hitl"}},
+  ],
+  cio:[
+    {title:"Approve architecture review for Finance wave",owner:"Marcus Reid",priority:"Critical",due:"Today",impact:"Unblocks production",benefit:"AI maps integration gaps",link:{ac:"initiatives"}},
+    {title:"Rationalise model routing policy",owner:"Platform AI",priority:"High",due:"2 days",impact:"Cost + resilience",benefit:"Gateway usage analysed",link:{ac:"gateway"}},
+    {title:"Review platform control coverage",owner:"IT GRC",priority:"Medium",due:"This week",impact:"79% to target",benefit:"Evidence auto-captured",link:{ac:"governance"}},
+  ],
+  cdpo:[
+    {title:"Complete Workforce Navigator DPIA",owner:"Niamh Lynch",priority:"Critical",due:"Today",impact:"Clears privacy gate",benefit:"AI drafts the DPIA from template",link:{ac:"evidence"}},
+    {title:"Review cross-border data flows",owner:"Privacy Office",priority:"High",due:"3 days",impact:"GDPR Art.44",benefit:"AI maps transfers",link:{ac:"governance"}},
+    {title:"Confirm PII redaction thresholds",owner:"Data Protection",priority:"Medium",due:"This week",impact:"Gateway policy",benefit:"1,284 redactions reviewed",link:{ac:"gateway"}},
+  ],
+  cgo:[
+    {title:"Qualify top 2 AI opportunities",owner:"Rafael Torres",priority:"Critical",due:"Today",impact:"+$2.4M forecast",benefit:"AI scores impact/feasibility/risk",link:{ac:"initiatives"}},
+    {title:"Approve responsible-use policy update",owner:"Governance Office",priority:"High",due:"2 days",impact:"+12% compliance",benefit:"Policy drafted from kit",link:{ac:"governance"}},
+    {title:"Review growth value forecast",owner:"Strategy",priority:"Medium",due:"This week",impact:"Commercialization",benefit:"AI trend analysis",link:{ac:"dashboard"}},
+  ],
+};
+
+export const EXEC_RECOMMENDATIONS: Record<string, ExecRecommendationItem[]> = {
+  ceo:[
+    {action:"Scale Finance Close Automation",metric:"Projected ROI",value:"+31%",rationale:"Readiness 88%, evidence 91%, board-pack ready.",link:{ac:"initiatives"}},
+    {action:"Retire Workforce Skills Navigator",metric:"Annual savings",value:"$0.2M",rationale:"Weak multi-stakeholder feedback; adoption 31%.",link:{ac:"initiatives"}},
+    {action:"Rebalance portfolio to scale-ready pilots",metric:"Portfolio ROI",value:"+9%",rationale:"Two pilots at scale gate; capital better deployed.",link:{ac:"dashboard"}},
+  ],
+  coo:[
+    {action:"Fast-track Finance second wave",metric:"Productivity",value:"+26%",rationale:"Adoption 79%, resistance low, evidence ready.",link:{ac:"initiatives"}},
+    {action:"Deploy targeted enablement to People",metric:"Adoption",value:"+14%",rationale:"Lowest-adoption unit with high resistance.",link:{tab:"academy"}},
+    {action:"Automate rollout comms",metric:"Cycle time",value:"-3 days",rationale:"AI can draft and personalise department comms.",link:{ac:"initiatives"}},
+  ],
+  cfo:[
+    {action:"Approve second-wave budget",metric:"ROI confidence",value:"88%",rationale:"Value evidence supports controlled rollout.",link:{ac:"initiatives"}},
+    {action:"Re-forecast Credit Decision Assurance",metric:"Payback",value:"-2mo",rationale:"Benefits behind plan; recover before gate.",link:{ac:"initiatives"}},
+    {action:"Consolidate AI spend via Gateway",metric:"Cost avoidance",value:"$76K/mo",rationale:"Routing and cost guard reduce provider spend.",link:{ac:"gateway"}},
+  ],
+  chro:[
+    {action:"Assign change program to People",metric:"Readiness",value:"+14pts",rationale:"Lowest adoption; targeted learning indicated.",link:{tab:"academy"}},
+    {action:"Roll out AI literacy refresh",metric:"Literacy",value:"+8%",rationale:"Completion becomes governance evidence.",link:{tab:"academy"}},
+    {action:"Monitor resistance signals",metric:"Early warning",value:"2 teams",rationale:"Sentiment trending down in two units.",link:{ac:"dashboard"}},
+  ],
+  ciso:[
+    {action:"Deploy prompt firewall to Copilot",metric:"Risk reduction",value:"22%",rationale:"Closes prompt-injection exposure; unblocks scale.",link:{ac:"gateway"}},
+    {action:"Approve AI procurement policy",metric:"Compliance",value:"+12%",rationale:"Standardises vendor and model controls.",link:{ac:"governance"}},
+    {action:"Expand Gateway logging to all units",metric:"Coverage",value:"+11%",rationale:"Reduces shadow-AI blind spots.",link:{ac:"gateway"}},
+  ],
+  caio:[
+    {action:"Scale Finance Close Automation",metric:"Projected ROI",value:"+31%",rationale:"Governed scale decision ready to record.",link:{ac:"initiatives"}},
+    {action:"Retire Workforce Skills Navigator",metric:"Annual savings",value:"$0.2M",rationale:"Feedback engine recommends retirement.",link:{ac:"initiatives"}},
+    {action:"Auto-generate missing Phase artifacts",metric:"Unblocks",value:"1 initiative",rationale:"Copilot blocked on Design-phase evidence.",link:{ac:"evidence"}},
+  ],
+  cio:[
+    {action:"Harden integrations for Finance wave",metric:"Time to prod",value:"-2 wks",rationale:"Two dependencies not production-ready.",link:{ac:"initiatives"}},
+    {action:"Optimise model routing",metric:"Cost",value:"-14%",rationale:"Shift eligible load to internal models.",link:{ac:"gateway"}},
+    {action:"Lift platform control coverage",metric:"Coverage",value:"79% to 88%",rationale:"Close gaps flagged in governance.",link:{ac:"governance"}},
+  ],
+  cdpo:[
+    {action:"Generate Workforce Navigator DPIA",metric:"Clears gate",value:"1 blocker",rationale:"AI drafts DPIA from approved template.",link:{ac:"evidence"}},
+    {action:"Tighten cross-border transfer controls",metric:"GDPR risk",value:"-1 tier",rationale:"Art.44 mapping incomplete for one flow.",link:{ac:"governance"}},
+    {action:"Tune PII redaction sensitivity",metric:"Leakage risk",value:"-9%",rationale:"1,284 redactions; threshold review due.",link:{ac:"gateway"}},
+  ],
+  cgo:[
+    {action:"Qualify top 2 opportunities",metric:"Forecast",value:"+$2.4M",rationale:"Highest impact/feasibility, within appetite.",link:{ac:"initiatives"}},
+    {action:"Approve responsible-use policy",metric:"Compliance",value:"+12%",rationale:"Unlocks GenAI adoption across units.",link:{ac:"governance"}},
+    {action:"Commercialise Finance Copilot pattern",metric:"New value",value:"$1.1M",rationale:"Proven pattern reusable in Procurement.",link:{ac:"initiatives"}},
+  ],
+};
+
+export const EXEC_DECISIONS: Record<string, ExecDecisionItem[]> = {
+  ceo:[
+    {title:"Scale Finance Close Automation to Procurement",context:"Pilot met scale threshold; board pack ready.",impact:"$1.8M value, 88% readiness",risk:"Medium",aiRec:"Approve",evidence:"Scale gate + evidence ledger",link:{ac:"initiatives"}},
+    {title:"Retire Workforce Skills Navigator",context:"Weak feedback and adoption after assessment.",impact:"Stops $0.2M spend",risk:"Low",aiRec:"Retire with reason",evidence:"Feedback engine + risk review",link:{ac:"initiatives"}},
+  ],
+  coo:[
+    {title:"Release Retail Banking second wave",context:"Blocked on evidence; value case strong.",impact:"26% productivity",risk:"Medium",aiRec:"Approve after blocker clears",evidence:"Pilot control room",link:{ac:"initiatives"}},
+    {title:"Approve People enablement budget",context:"Lowest adoption unit needs change support.",impact:"Adoption +14%",risk:"Low",aiRec:"Approve",evidence:"Academy readiness",link:{tab:"academy"}},
+  ],
+  cfo:[
+    {title:"Release second-wave investment",context:"Finance program value evidence sufficient.",impact:"$3.1M program",risk:"Low",aiRec:"Approve",evidence:"Benefits realization pack",link:{ac:"initiatives"}},
+    {title:"Hold Credit Decision Assurance funding",context:"Benefits behind plan; payback slipping.",impact:"Protects ROI",risk:"Medium",aiRec:"Request changes",evidence:"Value re-forecast",link:{ac:"initiatives"}},
+  ],
+  chro:[
+    {title:"Approve People change program",context:"Highest resistance, lowest adoption.",impact:"Readiness +14pts",risk:"Low",aiRec:"Approve",evidence:"Learning completion records",link:{tab:"academy"}},
+    {title:"Mandate AI literacy for high-risk roles",context:"Roles exposed to AI decisions need baseline.",impact:"Compliance evidence",risk:"Low",aiRec:"Approve",evidence:"Governance Academy",link:{tab:"academy"}},
+  ],
+  ciso:[
+    {title:"Approve prompt-injection remediation",context:"Copilot blocked on security evidence.",impact:"-18% enterprise risk",risk:"High",aiRec:"Approve",evidence:"Gateway logs + test results",link:{ac:"gateway"}},
+    {title:"Restrict two frontier models",context:"Vendor risk review pending on Gemini/OpenAI.",impact:"Reduces exposure",risk:"Medium",aiRec:"Restrict pending review",evidence:"Vendor risk assessment",link:{ac:"gateway"}},
+  ],
+  caio:[
+    {title:"Record Finance scale decision",context:"Governed scale decision ready.",impact:"Unlocks next wave",risk:"Medium",aiRec:"Approve to scale",evidence:"Scale gate captured",link:{ac:"initiatives"}},
+    {title:"Retire Workforce Skills Navigator",context:"Feedback engine recommends retirement.",impact:"$0.2M saved",risk:"Low",aiRec:"Retire with reason",evidence:"Feedback + governed decision",link:{ac:"initiatives"}},
+  ],
+  cio:[
+    {title:"Approve architecture review",context:"Finance wave depends on hardened integrations.",impact:"Unblocks production",risk:"Medium",aiRec:"Approve",evidence:"Architecture record",link:{ac:"initiatives"}},
+    {title:"Approve model-routing policy change",context:"Shift eligible load to internal models.",impact:"-14% cost",risk:"Low",aiRec:"Approve",evidence:"Gateway analytics",link:{ac:"gateway"}},
+  ],
+  cdpo:[
+    {title:"Approve Workforce Navigator DPIA",context:"Employee-data processing needs sign-off.",impact:"Clears privacy gate",risk:"Medium",aiRec:"Approve after DPIA",evidence:"DPIA + fairness workbook",link:{ac:"evidence"}},
+    {title:"Approve cross-border transfer controls",context:"One flow lacks Art.44 mapping.",impact:"GDPR alignment",risk:"Medium",aiRec:"Request changes",evidence:"Transfer impact assessment",link:{ac:"governance"}},
+  ],
+  cgo:[
+    {title:"Approve top opportunity for intake",context:"Highest scored idea, within appetite.",impact:"+$2.4M forecast",risk:"Low",aiRec:"Approve",evidence:"Use-case scoring",link:{ac:"initiatives"}},
+    {title:"Approve responsible-use policy",context:"Enables governed GenAI adoption.",impact:"+12% compliance",risk:"Low",aiRec:"Approve",evidence:"Policy pack",link:{ac:"governance"}},
+  ],
+};
+
+export const ASSISTANT_NUDGES: Record<string, string[]> = {
+  ceo:["2 governed decisions are waiting for you.","Finance Close Automation is ready to scale (ROI +31%).","One initiative is trending to retirement - review before the board meeting."],
+  coo:["Retail Banking is blocked on evidence - clearing it unlocks the second wave.","People has the lowest AI adoption in the org.","I can draft the department rollout comms for you."],
+  cfo:["Second-wave budget release is pending your approval.","Credit Decision Assurance is behind on benefits - want a re-forecast?","AI spend can be reduced ~$76K/mo via the Gateway."],
+  chro:["People unit adoption is 31% - a change program is recommended.","Assigning targeted learning could lift readiness 14 points.","3 learning paths are ready to auto-assign."],
+  ciso:["Customer Resolution Copilot is missing prompt-injection evidence.","14 critical vulnerabilities span 3 initiatives.","The Gateway blocked 563 policy violations this month."],
+  caio:["2 initiatives need a scale/retire decision.","7 HITL approvals are pending - I can pre-summarise each.","Copilot cannot advance to Build - missing Design artifacts."],
+  cio:["Finance scale wave is blocked on integration hardening.","Model routing can be optimised for -14% cost.","Platform control coverage is 79% against target."],
+  cdpo:["Workforce Navigator DPIA is overdue - I can draft it.","One cross-border flow lacks Art.44 mapping.","PII redaction threshold review is due."],
+  cgo:["2 high-value opportunities are unqualified in the pipeline.","Qualifying them adds ~$2.4M to the forecast.","The responsible-use policy update is ready to approve."],
+};
+
