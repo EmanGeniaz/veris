@@ -4848,16 +4848,16 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const Header=()=><div style={{background:"linear-gradient(135deg,"+T.s2+", "+T.s1+")",border:"1px solid "+T.border,borderRadius:16,padding:"20px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
     <div style={{position:"absolute",right:-60,top:-80,width:220,height:220,borderRadius:"50%",background:rc+"16",filter:"blur(24px)"}}/>
     <div style={{display:"flex",justifyContent:"space-between",gap:20,alignItems:"flex-start",position:"relative",flexWrap:"wrap"}}>
-      <div style={{display:"flex",gap:18,alignItems:"flex-start",minWidth:0}}>
-        <AICentralBrand theme={theme} width={102} style={{flexShrink:0,minWidth:260}}/>
+      <div style={{display:"flex",gap:16,alignItems:"flex-start",minWidth:0}}>
+        <AICentralLogo compact width={52} style={{flexShrink:0,marginTop:2,boxShadow:`0 14px 30px ${AI_GOLD}22`}}/>
         <div style={{minWidth:0}}>
-          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:9,flexWrap:"wrap"}}>
             <Tag label="AI CENTRAL" color={AI_GOLD} bg={AI_GOLD_L}/>
             <Tag label={`Viewing as ${R.label}`} color={RC(role)} bg={RC(role)+"16"}/>
             <Tag label={`${access.lens} lens`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
           </div>
-          <h2 style={{fontSize:28,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
-          <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,maxWidth:780,margin:"8px 0 0",fontFamily:F.b}}>{access.focus}. One platform, one source of truth - every role sees its own perspective.</p>
+          <h2 style={{fontSize:28,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
+          <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,maxWidth:780,margin:"7px 0 0",fontFamily:F.b}}>{access.focus}. One platform, one source of truth - every role sees its own perspective.</p>
         </div>
       </div>
       <button onClick={()=>{setTab("hitl");showToast&&showToast("Opening HITL approvals from AI Central");}} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"10px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,whiteSpace:"nowrap",boxShadow:"0 14px 34px "+AI_GOLD+"22",cursor:"pointer"}}>Review Approvals</button>
