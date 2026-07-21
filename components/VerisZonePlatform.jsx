@@ -1778,7 +1778,7 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
     [`Residual risk ${gate.i.risk}; stakeholder risk score ${gate.f.risk}/100`,gate.i.risk!=="Critical"&&gate.f.risk>=60],
     [`Adoption ${gate.i.adoption}% (threshold 70%)`,gate.i.adoption>=70],
     [`Business value score ${gate.i.valueScore}%`,gate.i.valueScore>=75],
-    [`Evidence complete through Phase ${gate.i.phaseIndex} (${AC_PHASES[gate.i.phaseIndex-1]?.name||"Discover"})`,gate.i.phaseIndex>=3],
+    [`Evidence complete through ${AC_PHASES[gate.i.phaseIndex]?.name||"Opportunity"} (phase ${gate.i.phaseIndex+1}/${AC_PHASES.length})`,gate.i.phaseIndex>=8],
   ]:[];
   /* Grounded responder: answers reference the role's priorities, nudges and
      modules - never invented content. External reasoning stays out of scope. */
@@ -1916,7 +1916,7 @@ function ExecMyInitiatives({role,goAC}){
       return <div key={i.id} onClick={()=>goAC("initiatives")} style={{display:"grid",gridTemplateColumns:"1.3fr 90px 110px 70px 70px 110px 120px",padding:"10px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:idx%2===0?T.s1:T.bg,cursor:"pointer"}}>
         <div style={{minWidth:0}}><div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{i.unit} · {i.businessOwner}</div></div>
         <div style={{display:"flex",alignItems:"center",gap:6}}><Ring score={health} color={hc} size={28}/><span style={{fontSize:10,fontFamily:F.m,color:hc,fontWeight:800}}>{health}</span></div>
-        <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{AC_PHASES[i.phaseIndex]?.name}</div><div style={{fontSize:8,color:T.ink4,fontFamily:F.m}}>{i.phaseIndex+1}/8</div></div>
+        <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{AC_PHASES[i.phaseIndex]?.name}</div><div style={{fontSize:8,color:T.ink4,fontFamily:F.m}}>{i.phaseIndex+1}/{AC_PHASES.length}</div></div>
         <span style={{fontSize:10,color:T.green,fontFamily:F.m,fontWeight:700}}>{i.roi}</span>
         <PTag p={i.risk}/>
         <span style={{fontSize:10,color:T.ink2,fontFamily:F.m}}>{i.actual} / {i.expected}</span>
@@ -5794,7 +5794,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
           <td style={{padding:"13px 12px"}}><STag s={i.status}/></td>
           <td style={{padding:"13px 12px"}}><PTag p={i.risk}/></td>
           <td style={{padding:"13px 12px",color:T.green,fontFamily:F.m}}>{i.actual} / {i.expected}</td>
-          <td style={{padding:"13px 12px",minWidth:120}}><div style={{fontSize:10,color:T.ink2,fontFamily:F.m,marginBottom:4}}>{AC_PHASES[i.phaseIndex]?.name} - {i.phaseIndex+1}/8</div><Bar value={phaseProgress(i)} color={rc}/></td>
+          <td style={{padding:"13px 12px",minWidth:120}}><div style={{fontSize:10,color:T.ink2,fontFamily:F.m,marginBottom:4}}>{AC_PHASES[i.phaseIndex]?.name} - {i.phaseIndex+1}/{AC_PHASES.length}</div><Bar value={phaseProgress(i)} color={rc}/></td>
           <td style={{padding:"13px 12px",minWidth:110}}><Bar value={i.guardrail} color={i.guardrail>80?T.green:i.guardrail>70?T.amber:T.red}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>{i.guardrail}%</div></td>
         </tr>)}</tbody>
       </table></div>
@@ -5875,7 +5875,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
             <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 8px"}}>Overall progress</h3>
             <div style={{fontSize:24,fontWeight:800,color:rc,fontFamily:F.h,marginBottom:8}}>{phaseProgress(selected)}%</div>
             <Bar value={phaseProgress(selected)} color={rc}/>
-            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of 8 - {AC_PHASES[selected.phaseIndex]?.name}</div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[selected.phaseIndex]?.name}</div>
           </Card>
         </div>
       </div>
