@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   AlertTriangle,
@@ -162,6 +163,19 @@ select option{background:${T.s3};color:${T.ink};}
 @keyframes aiLoginTitle{0%,100%{opacity:.9;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
 @keyframes aiLoginTagline{0%,100%{opacity:.72;letter-spacing:.1em}50%{opacity:1;letter-spacing:.16em}}
 .ai-login-mark svg *{transform-box:fill-box}
+.vz-nav-btn{position:relative;transition:background .18s ease,color .18s ease,transform .18s ease;}
+.vz-nav-btn:hover{transform:translateX(2px);}
+.vz-nav-btn.vz-dark:hover{background:rgba(148,163,184,.08);}
+.vz-nav-btn.vz-light:hover{background:rgba(11,78,162,.06);}
+.vz-nav-btn:hover .vz-nav-ico{opacity:1;}
+.vz-profile-btn{transition:background .18s ease;}
+.vz-profile-btn.vz-dark:hover{background:rgba(148,163,184,.08);}
+.vz-profile-btn.vz-light:hover{background:rgba(11,78,162,.05);}
+.vz-side-nav{scrollbar-gutter:stable;}
+.vz-side-nav::-webkit-scrollbar{width:4px;}
+.vz-side-nav::-webkit-scrollbar-thumb{background:rgba(99,107,138,.35);border-radius:8px;}
+@keyframes vzBadgePulse{0%,100%{box-shadow:0 0 0 0 rgba(200,132,42,.45)}50%{box-shadow:0 0 0 5px rgba(200,132,42,0)}}
+@keyframes vzNavIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 `;
 
 
@@ -1306,6 +1320,8 @@ function LoginAICentralBrand({theme,width=104,style={}}) {
   </div>;
 }
 
+const SIDEBAR_W = 236;
+
 function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,theme,profiles,sessionMode}) {
   const rc=RC(role), R=ROLES[role];
   const profileKey=sessionMode==="demo"?"demo":sessionMode==="aicentral"?"aicentral":role;
@@ -1315,59 +1331,78 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isAICentral=tab==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
   const roleNavSections=EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
+  const themeClass=theme==="light"?"vz-light":"vz-dark";
+  const spring={type:"spring",stiffness:420,damping:38};
+  let navIdx=0;
   const renderNavButton=(item)=>{
     const isA=tab===item.id;
     const badge=item.id==="hitl"&&hitlCount>0;
-    return <button key={item.id} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:8,marginBottom:2,background:isA?(theme==="light"?T.blueL:rc+"18"):"transparent",border:isA?`1px solid ${theme==="light"?T.border:T.blue+"30"}`:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",transition:"all .12s",cursor:"pointer"}}>
-      <span style={{width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0}}><Glyph name={item.label} color={isA?rc:T.ink3} size={14}/></span>
-      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
-      {badge&&<span style={{position:"absolute",right:6,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m}}>{hitlCount}</span>}
+    const delay=Math.min(navIdx++*0.018,0.28);
+    return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
+      {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`,boxShadow:theme==="light"?"none":`inset 0 0 20px ${rc}0D`}}/>}
+      {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
+      <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?rc:T.ink3} size={14}/></span>
+      <span style={{position:"relative",zIndex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
+      {badge&&<span style={{position:"absolute",right:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{hitlCount}</span>}
     </button>;
   };
-  const sectionLabelStyle={fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,padding:"12px 9px 6px"};
+  const renderSectionHeader=(title)=>(
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"14px 10px 7px"}}>
+      <span style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,whiteSpace:"nowrap"}}>{title}</span>
+      <span aria-hidden style={{flex:1,height:1,background:`linear-gradient(90deg,${T.border},transparent)`}}/>
+    </div>
+  );
   return <>
     {/* Overlay on mobile */}
     {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
-    <div style={{width:200,background:theme==="light"?"#D9E1EA":T.s1,borderRight:`1px solid ${theme==="light"?T.borderC:T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:theme==="light"?"12px 0 34px rgba(17,24,39,.08)":"none"}}>
-      <div style={{padding:"12px 12px",borderBottom:`1px solid ${theme==="light"?T.borderC:T.border}`,display:"flex",alignItems:"center",gap:9,minHeight:62}}>
-        <BrandLogo theme={theme} width={160} style={{objectPosition:"left center"}}/>
-        {isMobile&&<button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,fontSize:18,padding:4}}>X</button>}
+    <div style={{width:SIDEBAR_W,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg,${T.s1} 0%,#0B0E15 100%)`,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:theme==="light"?"12px 0 34px rgba(17,24,39,.06)":"14px 0 40px rgba(0,0,0,.35)"}}>
+      <div style={{padding:"14px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:9,minHeight:64}}>
+        <BrandLogo theme={theme} width={168} style={{objectPosition:"left center"}}/>
+        {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,padding:6,cursor:"pointer",display:"flex"}}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+        </button>}
       </div>
-      <nav style={{flex:1,padding:"8px 6px",overflowY:"auto"}}>
-        {isAICentral&&<div style={{padding:"6px 8px 10px",borderBottom:`1px solid ${T.border}`,marginBottom:8}}>
+      <nav className="vz-side-nav" style={{flex:1,padding:"10px 9px",overflowY:"auto"}}>
+        {isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
           <AICentralBrand theme={theme} width={42} compact style={{marginBottom:8}}/>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Standalone AI operating center for downstream pilot execution, guardrails, evidence and scale readiness.</div>
         </div>}
         {isAICentral&&AI_CENTRAL_NAV.map((item,idx)=>{
           const isA=aiCentralView===item.id;
-          return <button key={item.id} onClick={()=>{setAiCentralView(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:8,padding:"8px 9px",borderRadius:7,marginBottom:3,background:isA?AI_GOLD+"18":"transparent",border:isA?`1px solid ${AI_GOLD}45`:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",transition:"all .12s"}}>
-            <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0}}>{idx+1}</span>
-            <span style={{minWidth:0}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:T.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
+          return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setAiCentralView(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+            {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
+            {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
+            <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
+            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:T.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
           </button>;
         })}
         {!isAICentral&&roleNavSections.map(section=>{
           const items=section.items.map(id=>navById[id]).filter(Boolean);
           return <div key={section.title} style={{marginBottom:4}}>
-            <div style={sectionLabelStyle}>{section.title}</div>
+            {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
           </div>;
         })}
         {!isAICentral&&role==="caio"&&CAIO_NAV_SECTIONS.map(section=>{
           const items=section.items.map(item=>typeof item==="string"?navById[item]:item).filter(Boolean);
           return <div key={section.title} style={{marginBottom:4}}>
-            <div style={sectionLabelStyle}>{section.title}</div>
+            {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
           </div>;
         })}
       </nav>
-      <a href="/profile" onClick={(e)=>{e.preventDefault();setTab("profile");if(isMobile)onClose();}} style={{cursor:"pointer",width:"100%",padding:"12px",border:0,borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,background:theme==="light"?"#D1DBE7":T.bg,textAlign:"left",textDecoration:"none"}}>
-        <div style={{width:34,height:34,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${theme==="light"?T.blue:AI_GOLD})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:`0 12px 28px ${rc}30`}}>
+      <a href="/profile" className={`vz-profile-btn ${themeClass}`} onClick={(e)=>{e.preventDefault();setTab("profile");if(isMobile)onClose();}} style={{cursor:"pointer",width:"100%",padding:"13px 14px",border:0,borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,background:"transparent",textAlign:"left",textDecoration:"none"}}>
+      <div style={{position:"relative",flexShrink:0}}>
+        <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${theme==="light"?T.blue:AI_GOLD})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 12px 28px ${rc}30`}}>
           <span style={{color:"#fff",fontSize:11,fontWeight:900,fontFamily:F.b,letterSpacing:0}}>{initials}</span>
         </div>
-        <div style={{overflow:"hidden"}}>
+        <span style={{position:"absolute",right:-1,bottom:-1,width:9,height:9,borderRadius:"50%",background:T.green,border:`2px solid ${theme==="light"?"#FFFFFF":T.bg}`}}/>
+      </div>
+        <div style={{overflow:"hidden",flex:1}}>
           <div style={{fontSize:12,fontWeight:900,color:T.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:F.b}}>{cleanText(U.name||R.name)}</div>
-          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{cleanText(U.email||`${R.label} Workspace`)}</div>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)}</div>
         </div>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,color:T.ink4}}><path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </a>
     </div>
   </>;
@@ -5078,23 +5113,23 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
       <div style={{position:"absolute",width:16,height:16,borderRadius:"50%",background:profile.accent,boxShadow:`0 0 44px ${profile.accent}`,left:"36%",top:"17%",animation:"vzDrift 6s ease-in-out infinite"}}/>
       {theme==="dark"&&<div style={{position:"absolute",width:"80%",height:180,background:`linear-gradient(90deg, transparent, ${profile.accent}18, transparent)`,left:"10%",top:"44%",filter:"blur(18px)",animation:"vzSweep 8s ease-in-out infinite"}}/>}
     </div>
-    <div style={{padding:"clamp(112px,16vh,152px) clamp(24px,5vw,72px) 40px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:"100vh",position:"relative",zIndex:1}}>
+    <div style={{padding:"clamp(28px,5vh,52px) clamp(24px,5vw,72px) 28px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:"100vh",position:"relative",zIndex:1}}>
       <div>
-        <button type="button" onClick={enterProfile} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${T.border}`,background:T.s2,borderRadius:999,padding:"7px 11px",fontSize:11,fontWeight:800,fontFamily:F.b,color:T.ink3,marginBottom:20,cursor:"pointer"}}>
+        <button type="button" onClick={enterProfile} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${T.border}`,background:T.s2,borderRadius:999,padding:"7px 11px",fontSize:11,fontWeight:800,fontFamily:F.b,color:T.ink3,marginBottom:10,cursor:"pointer"}}>
           <span style={{width:7,height:7,borderRadius:"50%",background:profile.accent,boxShadow:`0 0 18px ${profile.accent}`}}/>
           {profile.label} access profile
         </button>
         <div style={{fontSize:"clamp(28px,3.3vw,38px)",fontWeight:900,fontFamily:F.h,color:T.ink,letterSpacing:"-0.01em",lineHeight:1.1,margin:"0 0 10px",maxWidth:720}}>{profile.title}</div>
-        <p style={{fontSize:13,lineHeight:1.6,color:T.ink3,fontFamily:F.b,maxWidth:760,margin:"0 0 20px"}}>{profile.subtitle}</p>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10,maxWidth:760,marginBottom:24}}>
-          {profile.kpis.map(([v,l,s])=><div key={l} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:14,boxShadow:T.shadow}}>
+        <p style={{fontSize:13,lineHeight:1.6,color:T.ink3,fontFamily:F.b,maxWidth:760,margin:"0 0 14px"}}>{profile.subtitle}</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10,maxWidth:760,marginBottom:16}}>
+          {profile.kpis.map(([v,l,s])=><div key={l} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",boxShadow:T.shadow}}>
             <div style={{fontSize:24,fontWeight:900,fontFamily:F.h,color:T.ink,marginBottom:3}}>{v}</div>
             <div style={{fontSize:11,fontWeight:800,fontFamily:F.b,color:T.ink2,marginBottom:5}}>{l}</div>
             <div style={{fontSize:10,fontFamily:F.m,color:profile.accent}}>{s}</div>
           </div>)}
         </div>
-        <div style={{maxWidth:760,margin:"0 0 22px",padding:"20px 22px",background:theme==="light"?"rgba(255,255,255,.86)":`linear-gradient(145deg, ${T.card}, ${T.s1})`,border:`1px solid ${theme==="light"?T.border:AI_GOLD+"30"}`,borderRadius:16,boxShadow:T.shadow}}>
-          <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap",marginBottom:18}}>
+        <div style={{maxWidth:760,margin:"0 0 12px",padding:"14px 18px",background:theme==="light"?"rgba(255,255,255,.86)":`linear-gradient(145deg, ${T.card}, ${T.s1})`,border:`1px solid ${theme==="light"?T.border:AI_GOLD+"30"}`,borderRadius:16,boxShadow:T.shadow}}>
+          <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap",marginBottom:13}}>
             <div style={{animation:"loginBrandRise .75s cubic-bezier(.2,.8,.2,1) both, loginBrandFloat 5.8s ease-in-out 1s infinite, loginBrandBreathe 4.2s ease-in-out 1s infinite"}}>
               <LoginAICentralBrand theme={theme} width={theme==="light"?90:102} style={{flexShrink:0}}/>
             </div>
@@ -5103,19 +5138,19 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
               <p style={{fontSize:12,lineHeight:1.55,color:T.ink3,fontFamily:F.b,margin:0,animation:"loginBrandRise .7s cubic-bezier(.2,.8,.2,1) .12s both, loginTextBreathe 5.6s ease-in-out 1.4s infinite"}}>Scattered pilots, controls, approvals, evidence, and risks converge into one governed operating stream.</p>
             </div>
           </div>
-          <div style={{height:1,background:`linear-gradient(90deg, ${AI_GOLD}50, ${T.border}, transparent)`,marginBottom:18}}/>
-          <div style={{fontSize:11,fontWeight:900,fontFamily:F.b,color:theme==="light"?T.blue:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.16em",marginBottom:9}}>Enterprise AI Transformation Control Plane</div>
-          <h1 style={{fontSize:"clamp(30px,3.9vw,48px)",lineHeight:1.04,letterSpacing:0,fontWeight:400,fontFamily:F.e,margin:"0 0 14px",maxWidth:760}}>Pilot AI safely. Scale only when evidence says yes.</h1>
+          <div style={{height:1,background:`linear-gradient(90deg, ${AI_GOLD}50, ${T.border}, transparent)`,marginBottom:13}}/>
+          <div style={{fontSize:11,fontWeight:900,fontFamily:F.b,color:theme==="light"?T.blue:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.16em",marginBottom:8}}>Enterprise AI Transformation Control Plane</div>
+          <h1 style={{fontSize:"clamp(30px,3.9vw,48px)",lineHeight:1.04,letterSpacing:0,fontWeight:400,fontFamily:F.e,margin:"0 0 10px",maxWidth:760}}>Pilot AI safely. Scale only when evidence says yes.</h1>
           <p style={{fontSize:14,lineHeight:1.7,color:T.ink2,fontFamily:F.b,maxWidth:720,margin:0}}>VerisZone lets CXOs plan AI department by department, then hands execution to AI Central where AI Spine monitors risk drift, value, adoption, controls, evidence, and scale readiness.</p>
         </div>
-        <div style={{maxWidth:760,margin:"0 0 22px"}}>
-          <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.14em",margin:"0 0 9px"}}>Platform capabilities</div>
+        <div style={{maxWidth:760,margin:"0 0 12px"}}>
+          <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.14em",margin:"0 0 8px"}}>Platform capabilities</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10}}>
             {[
               ["CXO Platform","Strategy, budget, ownership and scale intent"],
               ["AI Central","Pilot execution, guardrails and assurance"],
               ["AI Spine","Risk drift, evidence confidence and scale gates"]
-            ].map(([title,body],idx)=><div key={title} style={{background:theme==="light"?"rgba(255,255,255,.78)":T.card,border:`1px solid ${idx===0?AI_GOLD+"45":T.border}`,borderRadius:12,padding:"13px 14px",boxShadow:T.shadow}}>
+            ].map(([title,body],idx)=><div key={title} style={{background:theme==="light"?"rgba(255,255,255,.78)":T.card,border:`1px solid ${idx===0?AI_GOLD+"45":T.border}`,borderRadius:12,padding:"11px 13px",boxShadow:T.shadow}}>
               <div style={{fontSize:12,fontWeight:900,fontFamily:F.b,color:idx===0?AI_GOLD:T.ink,marginBottom:5}}>{title}</div>
               <div style={{fontSize:11,lineHeight:1.55,fontFamily:F.b,color:T.ink3}}>{body}</div>
             </div>)}
@@ -5127,16 +5162,16 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
       </div>
     </div>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"32px clamp(20px,4vw,60px)",borderLeft:`1px solid ${T.border}`,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg, ${T.s1}F2, ${T.bg}F8)`,position:"relative",zIndex:1}}>
-      <form onSubmit={enterProfile} style={{width:"100%",maxWidth:420,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:28,boxShadow:T.shadow,pointerEvents:"auto"}}>
-        <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minHeight:theme==="light"?122:132,marginBottom:24}}>
+      <form onSubmit={enterProfile} style={{width:"100%",maxWidth:420,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"22px 24px",boxShadow:T.shadow,pointerEvents:"auto"}}>
+        <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minHeight:theme==="light"?96:104,marginBottom:16}}>
           <div style={{animation:"loginBrandRise .8s cubic-bezier(.2,.8,.2,1) both, loginBrandFloat 6.4s ease-in-out 1.1s infinite, loginBrandBreathe 4.6s ease-in-out 1s infinite"}}>
-            <BrandLogo theme={theme} width={240} style={{width:"min(240px,62vw)",margin:"0 auto",animation:"loginMarkGlow 5.2s ease-in-out 1.2s infinite"}}/>
+            <BrandLogo theme={theme} width={200} style={{width:"min(200px,62vw)",margin:"0 auto",animation:"loginMarkGlow 5.2s ease-in-out 1.2s infinite"}}/>
           </div>
           <button type="button" onClick={onTheme} style={{position:"absolute",top:0,right:0,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"7px 11px",color:T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{theme==="dark"?"Light":"Dark"}</button>
         </div>
         <div style={{fontSize:24,fontWeight:400,fontFamily:F.e,marginBottom:6}}>Secure control-plane sign in</div>
-        <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:16}}>Use Demo Center for seeded sales storytelling. Subscribed CXO and AI Central workspaces open clean, ready for customer-owned data.</div>
-        <div style={{display:"grid",gap:10,marginBottom:16}}>
+        <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:13}}>Use Demo Center for seeded sales storytelling. Subscribed CXO and AI Central workspaces open clean, ready for customer-owned data.</div>
+        <div style={{display:"grid",gap:9,marginBottom:13}}>
           <label style={{display:"grid",gap:6}}>
             <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Workspace</span>
             <select aria-label="Workspace" value={selected} onChange={e=>setSelected(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
@@ -5160,7 +5195,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
         {loginError&&<div style={{fontSize:11,lineHeight:1.5,color:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{loginError}</div>}
         <a href={`#workspace-${profile.id}`} onClick={enterProfileLink} style={{display:"block",textDecoration:"none",textAlign:"center",width:"100%",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:"pointer"}}>Enter {profile.label} Workspace</a>
         {selected!=="demo"&&<a href="#workspace-demo" onClick={enterDemoLink} style={{display:"block",textDecoration:"none",textAlign:"center",width:"100%",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Demo Center</a>}
-        <div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${T.border}`,display:"grid",gap:8,fontSize:11,color:T.ink3,fontFamily:F.b}}>
+        <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"grid",gap:7,fontSize:11,color:T.ink3,fontFamily:F.b}}>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>SSO</span><strong style={{color:T.green}}>Ready</strong></div>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Evidence retention</span><strong style={{color:T.ink}}>7 years</strong></div>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Region</span><strong style={{color:T.ink}}>EU / US</strong></div>
@@ -5412,14 +5447,14 @@ export default function VerisZone() {
     <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} theme={theme} sessionMode={sessionMode} profiles={userProfiles}/>
 
     {/* Main */}
-    <div style={{marginLeft:isMobile?0:200,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+    <div style={{marginLeft:isMobile?0:SIDEBAR_W,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
       {/* Top bar */}
       <div style={{background:theme==="light"?T.s2:T.s1,borderBottom:`1px solid ${T.border}`,height:56,display:"flex",alignItems:"center",padding:"0 16px",position:"sticky",top:0,zIndex:100,gap:12,boxShadow:theme==="light"?"0 1px 0 rgba(148,163,184,.22), 0 10px 24px rgba(17,24,39,.035)":"none"}}>
         {isMobile&&<button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",color:T.ink3,fontSize:11,fontWeight:800,padding:"4px 6px",flexShrink:0}}>Menu</button>}
         {isMobile&&<div style={{display:"flex",alignItems:"center",gap:7,flex:"0 0 auto"}}>
           <BrandLogo theme={theme} width={120}/>
         </div>}
-        {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:"calc(100vw - 360px)",overflowX:"auto",overflowY:"hidden"}}>
+        {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
           {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
           {sessionMode!=="demo"&&<button type="button" onClick={()=>setTab("home")} title={`Return to ${R.label} workspace`} style={{background:tab!=="aicentral"?rc+"18":T.s2,border:`1px solid ${tab!=="aicentral"?rc+"45":T.border}`,borderRadius:8,padding:"5px 14px",color:tab!=="aicentral"?rc:T.ink2,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
