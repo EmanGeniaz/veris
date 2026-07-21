@@ -1237,6 +1237,17 @@ function glyphIconFor(value) {
   return Sparkles;
 }
 
+/* Downloads generated text content as a real file. */
+function vzDownload(filename,text){
+  try{
+    const blob=new Blob([text],{type:"text/markdown"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;a.click();
+    URL.revokeObjectURL(url);
+  }catch{/* download unavailable in this environment */}
+}
+
 /* Animates the first number in a value string from zero on mount. */
 function CountUp({value,duration=900}){
   const str=String(value??"");
@@ -2659,7 +2670,8 @@ function PageStrategy({role,setTab}) {
 }
 
 /* Section */
-function PagePlaybook({role}) {
+function PagePlaybook({role,setTab,showToast}) {
+  const [executed,setExecuted]=useState({});
   const rc=RC(role), rcL=RCL(role), tasks=PLAYBOOK[role]||[];
   const [selIdx,setSelIdx]=useState(0);
   const [runbook,setRunbook]=useState(null); // full runbook modal
@@ -2739,7 +2751,16 @@ function PagePlaybook({role}) {
 
         <div style={{display:"flex",gap:10}}>
           <button onClick={()=>setRunbook(null)} style={{flex:1,background:T.s2,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>Back</button>
-          <button style={{flex:2,background:rc,color:"#fff",border:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>Execute Runbook</button>
+          <button onClick={()=>{
+            if(rb.hitl){setTab&&setTab(role==="caio"?"decisions":"hitl");return;}
+            setExecuted({...executed,[rb.id||rb.title]:true});
+            try{
+              const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+              list.unshift({item:`Runbook executed: ${rb.title}`,initiative:rb.fw||"Governance Playbook",scope:"Organization",control:"Playbook execution",risk:"Operational",owner:rb.owner||"Playbook owner",status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+              localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+            }catch{/* ignore */}
+            showToast&&showToast("Runbook executed - evidence recorded");
+          }} style={{flex:2,background:executed[rb.id||rb.title]?T.s2:rc,color:executed[rb.id||rb.title]?T.green:"#fff",border:executed[rb.id||rb.title]?`1px solid ${T.green}40`:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>{executed[rb.id||rb.title]?"Executed - Evidence Recorded":rb.hitl?"Review in HITL Queue →":"Execute Runbook"}</button>
         </div>
       </div>
     );
@@ -2794,7 +2815,13 @@ function PagePlaybook({role}) {
   </div>;
 }
 /* Section */
-function PageCompliance({role}) {
+function PageCompliance({role,setTab,setAiCentralView}) {
+  const [openStd,setOpenStd]=useState(null);
+  const goto=link=>{
+    if(!link)return;
+    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
+    else if(link.tab){setTab&&setTab(link.tab);}
+  };
   const rc=RC(role);
   const standards=STANDARDS_MAP[role]||[];
   const roleKpis=ROLE_KPIS[role]||[];
@@ -2805,7 +2832,7 @@ function PageCompliance({role}) {
       {standards.map((s,i)=>{
         const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
         const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
-        return <Card key={s.std} style={{padding:18,animation:`up ${.3+i*.08}s ease both`}}>
+        return <Card key={s.std} onClick={()=>setOpenStd(openStd===s.std?null:s.std)} style={{padding:18,animation:`up ${.3+i*.08}s ease both`,cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
             <div>
               <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink,marginBottom:6}}>{s.std}</h3>
@@ -2817,6 +2844,9 @@ function PageCompliance({role}) {
           <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
             <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
             <span style={{fontSize:10,fontWeight:700,fontFamily:F.m,color:col}}>{status}</span>
+          </div>
+          {openStd===s.std&&<div style={{marginTop:4}}><KpiInsightPanel label={s.std} status={status==="Strong"||status==="Good"?"Good":"Alert"} role={role} goto={goto}/></div>}
+          <div style={{display:"none"}}>
           </div>
         </Card>;
       })}
@@ -3128,8 +3158,22 @@ function PageAIRA() {
 }
 
 /* Section */
-function PageAIRT() {
+function PageAIRT({showToast}) {
   const [sel,setSel]=useState(AIRT[0]);
+  const [bumped,setBumped]=useState({});
+  const effStatus=t=>bumped[t.id]||t.status;
+  const advance=()=>{
+    const cur=effStatus(sel);
+    const next=cur==="Planned"?"In Progress":cur==="In Progress"?"Complete":"Complete";
+    if(cur==="Complete")return;
+    setBumped({...bumped,[sel.id]:next});
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      list.unshift({item:`Treatment update: ${sel.system} -> ${next}`,initiative:sel.system,scope:"Project",control:"AIRT - ISO 42001 C.8.3",risk:sel.risk,owner:sel.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+    showToast&&showToast(`Treatment plan updated: ${next} - evidence recorded`);
+  };
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="AI Risk Treatment Register (AIRT)" sub="ISO 42001 Clause 8.3"/>
     <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
@@ -3146,7 +3190,7 @@ function PageAIRT() {
             <STag s={t.treatment}/>
             <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{t.owner}</span>
             <span style={{fontSize:9,fontFamily:F.m,color:T.ink3}}>{t.deadline}</span>
-            <STag s={t.status}/>
+            <STag s={effStatus(t)}/>
           </div>)}
         </div>
       </div>
@@ -3159,11 +3203,11 @@ function PageAIRT() {
         <div style={{padding:16}}>
           <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Treatment Action</div>
           <p style={{fontSize:11,color:T.ink2,lineHeight:1.7,fontFamily:F.b,marginBottom:14,padding:"10px 12px",background:T.s3,borderRadius:7,borderLeft:`3px solid ${T.violet}`}}>{sel.action}</p>
-          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",sel.status],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",effStatus(sel)],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
             <span style={{fontSize:10,color:T.ink,fontFamily:F.m}}>{v}</span>
           </div>)}
-          <button style={{width:"100%",marginTop:13,background:T.violet,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Update Treatment Plan</button>
+          <button onClick={advance} disabled={effStatus(sel)==="Complete"} style={{width:"100%",marginTop:13,background:effStatus(sel)==="Complete"?T.s3:T.violet,color:effStatus(sel)==="Complete"?T.green:"#fff",border:effStatus(sel)==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b,cursor:effStatus(sel)==="Complete"?"default":"pointer"}}>{effStatus(sel)==="Complete"?"Treatment Complete - Evidence Recorded":effStatus(sel)==="Planned"?"Start Treatment (mark In Progress)":"Mark Treatment Complete"}</button>
         </div>
       </Card>}
     </div>
@@ -3171,7 +3215,8 @@ function PageAIRT() {
 }
 
 /* Section */
-function PageRoadmap({role}) {
+function PageRoadmap({role,setTab,setAiCentralView}) {
+  const gotoAC=m=>{setAiCentralView&&setAiCentralView(m);setTab&&setTab("aicentral");};
   const rc=RC(role), rcL=RCL(role), qs=ROADMAP[role]||ROADMAP.caio||[];
   const nexts={
     ceo:[{a:"Review two scale-gate decisions with the board pack",w:"Scale recommendations affect regulated departments and require executive sponsorship before AI Central opens the next wave.",i:"High"},{a:"Confirm enterprise AI risk appetite for Q3",w:"Risk drift alerts are active on three pilots. The CEO view should align value ambition with acceptable exposure.",i:"High"},{a:"Approve maturity propagation targets",w:"Each successful pilot should raise the enterprise maturity map before broader rollout.",i:"Medium"}],
@@ -3217,7 +3262,10 @@ function PageRoadmap({role}) {
         <div style={{flex:1}}>
           <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{ns.a}</div>
           <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:6}}>{ns.w}</div>
-          <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
+            <button onClick={()=>gotoAC(/risk|dpia|violation|assessment/i.test(ns.a+ns.w)?"governance":/evidence|docs|report|pack/i.test(ns.a+ns.w)?"evidence":"initiatives")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>Act in AI Central →</button>
+          </div>
         </div>
       </div>)}
     </Card>
@@ -3572,11 +3620,12 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
 }
 
 /* Section */
-function PageReports({role,sessionMode,setTab,setAiCentralView}) {
+function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), rcL=RCL(role), K=KPI[role]||KPI.caio;
   const standards=STANDARDS_MAP[role]||[];
   const roleKpis=ROLE_KPIS[role]||[];
   const [rowOpen,setRowOpen]=useState(null);
+  const [ranNow,setRanNow]=useState({});
   const goto=link=>{
     if(!link)return;
     if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
@@ -3685,7 +3734,7 @@ function PageReports({role,sessionMode,setTab,setAiCentralView}) {
           <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{r.freq} {r.next}</span>
         </div>
         <Tag label={r.fmt} color={rc} bg={rcL+"80"}/>
-        <button style={{fontSize:10,color:rc,fontWeight:600,background:rcL+"60",border:`1px solid ${rc}35`,borderRadius:6,padding:"5px 11px",fontFamily:F.b}}>Run Now</button>
+        <button onClick={()=>{setRanNow({...ranNow,[r.name]:true});showToast&&showToast(`${r.name} generated - available in exports`);}} style={{fontSize:10,color:ranNow[r.name]?T.green:rc,fontWeight:600,background:ranNow[r.name]?T.greenL:rcL+"60",border:`1px solid ${ranNow[r.name]?T.green+"40":rc+"35"}`,borderRadius:6,padding:"5px 11px",fontFamily:F.b,cursor:"pointer"}}>{ranNow[r.name]?"Ran just now":"Run Now"}</button>
       </div>)}
     </Card>
   </div>;
@@ -3728,7 +3777,7 @@ function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
           <div style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:5}}>Featured path</div>
           <h3 style={{fontFamily:F.h,fontSize:16,fontWeight:900,color:T.ink,margin:"0 0 5px"}}>{featured.title}</h3>
           <p style={{fontFamily:F.b,fontSize:10,lineHeight:1.55,color:T.ink3,margin:"0 0 10px"}}>{featured.desc}</p>
-          <button type="button" onClick={()=>showToast(`${featured.framework} video placeholder opened`)} style={{background:rc,border:"none",borderRadius:9,padding:"9px 12px",color:"#fff",fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>Preview lesson</button>
+          <button type="button" onClick={()=>showToast("Video lessons ship with the production media library - module outline is available now","error")} style={{background:rc,border:"none",borderRadius:9,padding:"9px 12px",color:"#fff",fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>Preview lesson</button>
         </div>
       </div>
     </Card>
@@ -4800,8 +4849,8 @@ function PageTrustCenter({role, showToast}) {
           <Tag label={q.status} color={T.green} bg={T.greenL}/>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>showToast("AI auto-completing questionnaire...")} style={{flex:1,background:rc,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>AI Complete</button>
-          <button onClick={()=>showToast("Downloading questionnaire...")} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
+          <button onClick={()=>showToast("Auto-complete requires the production AI Gateway connection - available after go-live","error")} style={{flex:1,background:rc,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>AI Complete</button>
+          <button onClick={()=>{vzDownload("veriszone-security-questionnaire.md",`# Security Questionnaire (generated demo)\n\nGenerated from the VerisZone Trust Center.\n\nFramework posture:\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}% (${f.sub})`).join("\n")}\n`);showToast("Questionnaire downloaded");}} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
         </div>
       </Card>)}
     </div>}
@@ -4810,7 +4859,7 @@ function PageTrustCenter({role, showToast}) {
       {D.policies.map((p,i)=><div key={i} style={{padding:"12px 16px",borderBottom:i<D.policies.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"flex",alignItems:"center",gap:12}}>
         <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{p.name}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>v{p.version} {p.updated}</span></div>
         <Tag label="Public" color={T.green} bg={T.greenL}/>
-        <button onClick={()=>showToast("Downloading policy")} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:6,padding:"5px 11px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
+        <button onClick={()=>{vzDownload("veriszone-policy.md","# Policy document (generated demo)\n\nExported from the VerisZone Trust Center policy library.\n");showToast("Policy downloaded");}} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:6,padding:"5px 11px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
       </div>)}
     </Card>}
     {tab==="copilot"&&<Card style={{padding:20}}>
@@ -4829,7 +4878,7 @@ function PageTrustCenter({role, showToast}) {
       {aiResponse&&<div style={{background:T.s3,borderRadius:8,padding:"14px 16px",borderLeft:"3px solid "+rc,animation:"up .3s ease"}}>
         <div style={{fontSize:9,fontWeight:700,color:rc,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>AI Trust Response</div>
         <p style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.8,margin:0,whiteSpace:"pre-wrap"}}>{aiResponse}</p>
-        <button onClick={()=>showToast("Copied to clipboard")} style={{marginTop:10,background:T.s4,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 12px",fontSize:10,fontFamily:F.b}}>Copy Response</button>
+        <button onClick={()=>{try{navigator.clipboard&&navigator.clipboard.writeText(aiResponse);}catch{}showToast("Response copied to clipboard");}} style={{marginTop:10,background:T.s4,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 12px",fontSize:10,fontFamily:F.b}}>Copy Response</button>
       </div>}
     </Card>}
   </div>;
@@ -5012,7 +5061,7 @@ function PageISO27001({role,showToast}){
         <Tag label={p.status} color={sc} bg={sc+"18"}/><span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{p.owner}</span>
         <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{p.reviewed}</span>
         <Tag label={p.risk} color={p.risk==="High"?T.red:p.risk==="Medium"?T.amber:T.green} bg={p.risk==="High"?T.redL:p.risk==="Medium"?T.amberL:T.greenL}/>
-        <button onClick={()=>showToast("Policy editor opening...")} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Edit</button>
+        <button onClick={()=>showToast("Policy editing arrives with the production document service - view-only in this workspace","error")} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Edit</button>
       </div>;})}
     </Card>}
     {activeTab==="evidence"&&<Card style={{overflow:"hidden"}}>
@@ -5024,7 +5073,7 @@ function PageISO27001({role,showToast}){
         <div><div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{e.name}</div><div style={{display:"flex",gap:6}}><Tag label={e.control} color={T.ink4} bg={T.s3}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{e.type} - {e.size}</span></div></div>
         <Tag label={e.status} color={sc} bg={sc+"18"}/><span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{e.owner}</span>
         <span style={{fontSize:9,color:sc,fontFamily:F.m,fontWeight:600}}>Exp: {e.expires}</span>
-        <button onClick={()=>showToast("Evidence viewer opening...")} style={{background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>View</button>
+        <button onClick={()=>showToast("Full evidence viewer arrives with production file storage - records are listed in Trust & Evidence","error")} style={{background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>View</button>
       </div>;})}
     </Card>}
     {activeTab==="audit"&&<Card style={{overflow:"hidden"}}>
@@ -5177,7 +5226,7 @@ function PageIntegrations({role,showToast}){
           <div style={{flex:1}}><div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.title}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{t.type} {t.created}</span></div>
           <Tag label={t.priority} color={t.priority==="High"?T.amber:t.priority==="Critical"?T.red:T.blue} bg={t.priority==="High"?T.amberL:t.priority==="Critical"?T.redL:T.blueL}/>
           <Tag label={t.status} color={tsc(t.status)} bg={tsc(t.status)+"18"}/>
-          <button onClick={()=>showToast("Opening in ServiceNow...")} style={{background:T.s3,color:T.ink3,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 9px",fontSize:9,fontFamily:F.b}}>Open </button>
+          <button onClick={()=>showToast("ServiceNow hand-off requires a connected production instance","error")} style={{background:T.s3,color:T.ink3,border:`1px solid ${T.border}`,borderRadius:5,padding:"4px 9px",fontSize:9,fontFamily:F.b}}>Open </button>
         </div>)}
       </Card>
     </div>}
@@ -5192,7 +5241,7 @@ function PageIntegrations({role,showToast}){
             <Tag label={p.status} color={T.amber} bg={T.amberL}/>
           </div>
           <p style={{fontSize:10,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:10}}>Customer trust requests, security questionnaires, compliance evidence sharing from your CRM pipeline.</p>
-          <button onClick={()=>showToast("Opening OAuth flow...")} style={{width:"100%",background:p.color,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Connect {p.name}</button>
+          <button onClick={()=>showToast("Connector authorisation requires production credentials","error")} style={{width:"100%",background:p.color,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Connect {p.name}</button>
         </Card>)}
       </div>
       <Card style={{overflow:"hidden"}}>
@@ -5205,7 +5254,7 @@ function PageIntegrations({role,showToast}){
           <Tag label={r.stage} color={rc} bg={RCL(role)+"80"}/>
           <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Due {r.due}</span>
           <Tag label={r.status} color={sc} bg={sc+"18"}/>
-          <button onClick={()=>showToast("Trust pack opening...")} style={{background:rc+"20",color:rc,border:"1px solid "+rc+"30",borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Respond</button>
+          <button onClick={()=>{vzDownload("veriszone-trust-pack.md",`# VerisZone Trust Pack (generated demo)\n\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}%`).join("\n")}\n`);showToast("Trust pack downloaded");}} style={{background:rc+"20",color:rc,border:"1px solid "+rc+"30",borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>Respond</button>
         </div>;})}
       </Card>
     </div>}
@@ -5213,7 +5262,7 @@ function PageIntegrations({role,showToast}){
       {[{name:"Jira",icon:"?",cat:"Task Management",status:"Available",col:"#0052CC"},{name:"Slack",icon:"?",cat:"Notifications",status:"Available",col:"#4A154B"},{name:"Microsoft 365",icon:"?",cat:"Evidence Collection",status:"Available",col:"#0078D4"},{name:"Google Workspace",icon:"?",cat:"Evidence Collection",status:"Available",col:"#4285F4"},{name:"AWS Security",icon:"?",cat:"Cloud Evidence",status:"Coming Q3",col:"#FF9900"},{name:"Azure Defender",icon:"?",cat:"Cloud Evidence",status:"Coming Q3",col:"#0078D4"},{name:"GitHub",icon:"?",cat:"Dev Security",status:"Coming Q3",col:"#6E5494"},{name:"Qualys",icon:"?",cat:"Vulnerability",status:"Coming Q4",col:"#ED1C24"},{name:"Okta",icon:"?",cat:"IAM Evidence",status:"Coming Q4",col:"#007DC1"},{name:"Crowdstrike",icon:"?",cat:"Endpoint Security",status:"Coming Q4",col:"#E01B2D"},{name:"Tenable",icon:"?",cat:"Vulnerability",status:"Roadmap",col:"#00B4C8"},{name:"Splunk",icon:"?",cat:"SIEM Evidence",status:"Roadmap",col:"#65A637"}].map((p,i)=><Card key={p.name} style={{padding:13,animation:`up ${.3+i*.04}s ease both`}}>
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}><IconBox name={`${p.name} ${p.cat}`} color={p.col} size={13} style={{width:28,height:28,borderRadius:7}}/><div><div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b}}>{p.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{p.cat}</div></div></div>
         <Tag label={p.status} color={p.status==="Available"?T.green:p.status.includes("Q")?T.amber:T.ink3} bg={p.status==="Available"?T.greenL:p.status.includes("Q")?T.amberL:T.ink5}/>
-        {p.status==="Available"&&<button onClick={()=>showToast("Connecting to "+p.name+"...")} style={{width:"100%",marginTop:8,background:rc,color:"#fff",border:"none",borderRadius:6,padding:"6px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Connect</button>}
+        {p.status==="Available"&&<button onClick={()=>showToast(p.name+" connection requires production credentials","error")} style={{width:"100%",marginTop:8,background:rc,color:"#fff",border:"none",borderRadius:6,padding:"6px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Connect</button>}
       </Card>)}
     </div>}
   </div>;
@@ -7004,21 +7053,21 @@ export default function VerisZone() {
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role}/>}
+        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
-        {showSeededData&&tab==="compliance" &&<PageCompliance role={role}/>}
+        {showSeededData&&tab==="compliance" &&<PageCompliance role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
         {showSeededData&&tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&tab==="aia"        &&<PageAIA        role={role}/>}
         {showSeededData&&tab==="aira"       &&<PageAIRA/>}
-        {showSeededData&&tab==="airt"       &&<PageAIRT/>}
+        {showSeededData&&tab==="airt"       &&<PageAIRT showToast={showToast}/>}
         {showSeededData&&tab==="registry"   &&<PageModelRegistry setTab={setTab}/>}
         {showSeededData&&tab==="maturity"   &&<PageMaturityRadar/>}
         {showSeededData&&tab==="usecases"   &&<PageUseCases/>}
         {showSeededData&&tab==="aiia"       &&<PageAIIA       role={role} setTab={setTab}/>}
         {showSeededData&&tab==="impl"       &&<PageImpl       role={role}/>}
-        {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role}/>}
+        {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
         {showSeededData&&tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="scope"       &&<PageScope          role={role}/>}
         {showSeededData&&tab==="controls"    &&<PageCommonControls  role={role}/>}
@@ -7028,7 +7077,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="gapanalysis" &&<PageGapAnalysis  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
-        {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView}/>}
+        {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&tab==="decisions" &&<PageDecisions role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
