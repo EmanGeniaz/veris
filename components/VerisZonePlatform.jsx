@@ -248,7 +248,7 @@ const NAV = [
   {id:"strategy",  icon:"G", label:"Strategy"},
   {id:"playbook",  icon:"P", label:"Playbook"},
   {id:"academy",   icon:"V", label:"Governance Academy"},
-  {id:"compliance",icon:"C", label:"Compliance"},
+  {id:"compliance",icon:"C", label:"Compliance & Standards"},
   {id:"checklists",icon:"I", label:"ISO Checklists"},
   {id:"hitl",      icon:"H", label:"HITL Queue"},
   {id:"aia",       icon:"A", label:"AI Impact (AIA)"},
@@ -279,29 +279,24 @@ const CAIO_EXTRA_NAV = [
   {id:"usecases",icon:"U", label:"Use Case Pipeline"},
 ];
 
-const NAV_SECTIONS = [
-  {title:"Command Center", items:["home","aicentral"]},
-  {title:"CXO Platform", items:["onboard","intake","strategy","aia","aiia","hitl"]},
-  {title:"Governance Library", items:["playbook","academy","templates","checklists","compliance","impl","roadmap"]},
-  {title:"Risk & Controls", items:["riskcenter","controls","scope","gapanalysis","aigov"]},
-  {title:"Enterprise Assurance", items:["iso27001","trustcenter","servicenow","reports"]},
+/* FINAL platform sidebar - seven surfaces, nothing else. Every other
+   page is a contextual destination underneath one of these owners. */
+const PLATFORM_NAV_SECTIONS = [
+  {title:"Platform", items:["home","aicentral","playbook","compliance","riskcenter","reports","academy"]},
 ];
 
-const EXECUTIVE_NAV_SECTIONS = [
-  {title:"Executive Workspace", items:["home","aicentral","intake","strategy","hitl"]},
-  {title:"Transformation Oversight", items:["riskcenter","roadmap","academy","reports"]},
-];
-
-const CAIO_NAV_SECTIONS = [
-  {title:"AI Portfolio", items:["registry","maturity","usecases"]},
-  {title:"Risk Center", items:["riskcenter"]},
-];
-
-/* CAIO outcome navigation: business outcomes only - capabilities surface
-   contextually inside AI Central, Decisions and Knowledge. */
-const CAIO_OUTCOME_SECTIONS = [
-  {title:"Executive Workspace", items:["home","aicentral","riskcenter","decisions","knowledge","reports"]},
-];
+/* Which surface owns each contextual page - keeps the owning sidebar
+   item highlighted while the user drills into contextual destinations. */
+const OWNER_SURFACE = {
+  onboard:"aicentral", intake:"aicentral", strategy:"aicentral", roadmap:"aicentral",
+  registry:"aicentral", maturity:"aicentral", usecases:"aicentral", servicenow:"aicentral",
+  aia:"playbook", aiia:"playbook",
+  checklists:"compliance", impl:"compliance", templates:"compliance", iso27001:"compliance",
+  scope:"compliance", controls:"compliance", trustcenter:"compliance", gapanalysis:"compliance",
+  aigov:"compliance", knowledge:"compliance",
+  aira:"riskcenter", airt:"riskcenter",
+  hitl:"home", decisions:"home",
+};
 
 const EMPLOYEE_NAV_SECTIONS = [
   {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
@@ -1407,13 +1402,13 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
-  const roleNavSections=role==="caio"?CAIO_OUTCOME_SECTIONS:(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
+  const roleNavSections=(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
   const renderNavButton=(item)=>{
-    const isA=tab===item.id;
-    const badge=item.id==="hitl"&&hitlCount>0;
+    const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
+    const badge=item.id==="home"&&hitlCount>0;
     const delay=Math.min(navIdx++*0.018,0.28);
     return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
       {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`,boxShadow:theme==="light"?"none":`inset 0 0 20px ${rc}0D`}}/>}
@@ -1455,13 +1450,6 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         })}
         {!isAICentral&&roleNavSections.map(section=>{
           const items=section.items.map(id=>navById[id]).filter(Boolean);
-          return <div key={section.title} style={{marginBottom:4}}>
-            {renderSectionHeader(section.title)}
-            {items.map(renderNavButton)}
-          </div>;
-        })}
-        {false&&role==="caio"&&CAIO_NAV_SECTIONS.map(section=>{
-          const items=section.items.map(item=>typeof item==="string"?navById[item]:item).filter(Boolean);
           return <div key={section.title} style={{marginBottom:4}}>
             {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
