@@ -44,3 +44,13 @@ until then the demo entry flow is unchanged.
    `<role>@veriszone.demo` / `veriszone-demo` (rotate in production).
 4. When signed in, evidence, decisions and ideas are stamped with the
    user's identity and scoped to the user's tenant.
+
+## Phase 3 - Live AI Gateway
+
+Set `ANTHROPIC_API_KEY` in Vercel (optionally `VZ_GATEWAY_MODEL`,
+default claude-sonnet-5). The Workbench then routes prompts through
+`/api/gateway/chat`: credential prompts are blocked and PII masked
+server-side before any model call, internal enterprise knowledge is
+retrieved first, and every answer declares its source (Hybrid when
+grounded internally, External otherwise). Without the key, the
+simulated demo path continues unchanged.

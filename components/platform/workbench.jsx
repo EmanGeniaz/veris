@@ -99,14 +99,24 @@ export function PageWorkbench({role,sessionMode,showToast}){
     const stages=blocked?1:3;
     setPhase({convId:base.id,stageIdx:0});
     for(let i=1;i<stages;i++)timers.current.push(setTimeout(()=>setPhase({convId:base.id,stageIdx:i}),i*620));
-    timers.current.push(setTimeout(()=>{
+    timers.current.push(setTimeout(async()=>{
+      /* Live gateway when configured; the simulated reply otherwise. */
+      let live=null;
+      if(!blocked){
+        try{
+          const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:guard?guard.masked:text})});
+          const d=await res.json();
+          if(d&&d.enabled&&!d.blocked&&d.text)live=`${d.text}\n\n— Source: ${d.source} · routed via the enterprise gateway${d.masked?" · sensitive data masked at the boundary":""}`;
+        }catch{/* gateway unreachable - simulated path continues */}
+      }
+      const finalReply=live||reply;
       setPhase(null);
       let pos=0;
       const step=()=>{
-        pos=Math.min(reply.length,pos+3);
-        setTyped({convId:base.id,text:reply.slice(0,pos)});
-        if(pos<reply.length)timers.current.push(setTimeout(step,16));
-        else timers.current.push(setTimeout(()=>commit(reply),140));
+        pos=Math.min(finalReply.length,pos+3);
+        setTyped({convId:base.id,text:finalReply.slice(0,pos)});
+        if(pos<finalReply.length)timers.current.push(setTimeout(step,16));
+        else timers.current.push(setTimeout(()=>commit(finalReply),140));
       };
       step();
     },stages*620+180));
