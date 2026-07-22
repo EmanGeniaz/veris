@@ -1,6 +1,7 @@
 /* Demo-tenant seed: the mock data layer is the seed, exactly as the
    platform ships it. Clean tenants get only the tenant row. */
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../auth";
 import { acInitiatives, acFeedback, acAssessments, riskRegister, kriRegister, knowledgeAssets } from "../lib/platform-models";
 
 const prisma = new PrismaClient();
@@ -57,7 +58,16 @@ async function main() {
         sourceRef: a.sourceRef, reuseCount: a.reuseCount ?? 0 },
     });
   }
-  console.log("Seeded demo tenant:", tenant.id);
+  const roles = ["ceo","cfo","cio","coo","caio","ciso","chro","cdpo","cgo","employee","manager"];
+  for (const role of roles) {
+    await prisma.user.upsert({
+      where: { email: `${role}@veriszone.demo` },
+      update: {},
+      create: { tenantId: tenant.id, email: `${role}@veriszone.demo`, name: role.toUpperCase() + " Demo", role,
+        passwordHash: hashPassword("veriszone-demo", "vzdemo") },
+    });
+  }
+  console.log("Seeded demo tenant + role users:", tenant.id);
 }
 
 main().finally(() => prisma.$disconnect());

@@ -32,7 +32,8 @@ model User {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   email     String   @unique
   name      String
-  role      String   // ceo|cfo|cio|coo|caio|ciso|chro|cdpo|cgo|employee|manager
+  role      String
+  passwordHash String?   // ceo|cfo|cio|coo|caio|ciso|chro|cdpo|cgo|employee|manager
   createdAt DateTime @default(now())
 }
 
