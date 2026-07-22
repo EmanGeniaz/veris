@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth, authConfigured } from "@/auth";
+import { auditAppend } from "@/lib/audit";
 
 const STORES = new Set(["evidence", "decisions", "ideas"]);
 
@@ -54,6 +55,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
   if (!prisma) return NextResponse.json({ enabled: false });
   try {
     const { tenantId: tid, identity } = await sessionCtx(prisma);
+    if (store === "decisions" && authConfigured()) {
+      const session = await auth();
+      const role = (session?.user as { role?: string } | undefined)?.role;
+      if (!role || ["employee", "manager"].includes(role)) {
+        return NextResponse.json({ enabled: true, ok: false, error: "decision writes require an executive role" }, { status: 403 });
+      }
+    }
     const b = await req.json();
     if (identity) {
       b.owner = identity.name; b.decidedBy = identity.name; b.submitter = identity.name;
@@ -76,6 +84,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
         unit: String(b.unit ?? ""), submitter: String(b.submitter ?? ""), stage: String(b.stage ?? "Submitted"),
       }});
     }
+    await auditAppend(prisma, tid, "create", store, String(b.item ?? b.title ?? b.decision ?? "").slice(0, 300), identity?.email ?? "demo-anonymous").catch(() => {});
     return NextResponse.json({ enabled: true, ok: true });
   } catch {
     return NextResponse.json({ enabled: false });

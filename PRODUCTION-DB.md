@@ -53,3 +53,13 @@ server-side before any model call, internal enterprise knowledge is
 retrieved first, and every answer declares its source (Hybrid when
 grounded internally, External otherwise). Without the key, the
 simulated demo path continues unchanged.
+
+## Phase 4 - Compliance-grade operations
+
+- Every persisted mutation appends to a hash-chained AuditLog
+  (sha256 over the previous hash + record) - tampering with history
+  breaks the chain. New table: re-run /api/admin/setup once (re-add
+  VZ_SETUP_TOKEN temporarily) or run `npx prisma db push`.
+- Decision writes require an executive role once auth is active.
+- Native Excel exports: /api/export/risks.xlsx and
+  /api/export/portfolio.xlsx (also buttons under Reports).
