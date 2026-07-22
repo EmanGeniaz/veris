@@ -63,3 +63,15 @@ simulated demo path continues unchanged.
 - Decision writes require an executive role once auth is active.
 - Native Excel exports: /api/export/risks.xlsx and
   /api/export/portfolio.xlsx (also buttons under Reports).
+
+## Phase 5 - Tenant onboarding
+
+- Set `VZ_ONBOARD_TOKEN` in Vercel. The sign-in page gains
+  "Create a new workspace": organization name, slug, seeded-demo or
+  clean mode, plus the token. POST /api/admin/tenants does the same
+  programmatically; GET lists workspaces.
+- Per-tenant domains: point `acme.veriszone.com` (wildcard DNS +
+  Vercel domain) at the project and API traffic on that host resolves
+  the `acme` workspace automatically; unknown hosts fall back to demo.
+- Each workspace seeds role users `role@<slug>.veriszone.demo`
+  (rotate the seeded password); clean workspaces start with no content.

@@ -9,7 +9,7 @@ import { auditAppend } from "@/lib/audit";
 
 const STORES = new Set(["evidence", "decisions", "ideas"]);
 
-async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>) {
+async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>, reqHost?: string | null) {
   let identity: { name: string; email: string } | null = null;
   let tenantId: string | null = null;
   if (authConfigured()) {
@@ -21,8 +21,16 @@ async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>) {
     }
   }
   if (!tenantId) {
+    /* Per-tenant domains: acme.veriszone.com resolves the acme workspace;
+       unknown or console/www hosts fall back to the demo tenant. */
+    const host = (reqHost || "").split(":")[0];
+    const label = host.split(".")[0];
+    let slug = "demo";
+    if (label && !["console", "www", "localhost", "veriszone", "veris"].includes(label)) {
+      if (await prisma.tenant.findUnique({ where: { slug: label } })) slug = label;
+    }
     const t = await prisma.tenant.upsert({
-      where: { slug: "demo" },
+      where: { slug },
       update: {},
       create: { slug: "demo", name: "VerisZone Demo Center", mode: "demo" },
     });
@@ -37,7 +45,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
   const prisma = db();
   if (!prisma) return NextResponse.json({ enabled: false });
   try {
-    const { tenantId: tid } = await sessionCtx(prisma);
+    const { tenantId: tid } = await sessionCtx(prisma, _req.headers.get("x-forwarded-host") || _req.headers.get("host"));
     const rows =
       store === "evidence" ? await prisma.evidence.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "decisions" ? await prisma.decision.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
@@ -54,7 +62,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
   const prisma = db();
   if (!prisma) return NextResponse.json({ enabled: false });
   try {
-    const { tenantId: tid, identity } = await sessionCtx(prisma);
+    const { tenantId: tid, identity } = await sessionCtx(prisma, req.headers.get("x-forwarded-host") || req.headers.get("host"));
     if (store === "decisions" && authConfigured()) {
       const session = await auth();
       const role = (session?.user as { role?: string } | undefined)?.role;
