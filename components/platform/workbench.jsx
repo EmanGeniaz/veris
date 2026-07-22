@@ -1,5 +1,6 @@
 "use client";
 
+import { readBus, pushBus } from "@/lib/bus";
 import { Library, Scale, Workflow } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { acInitiatives, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
@@ -53,11 +54,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
   },[convos,hydrated]);
   const sel=convos.find(c=>c.id===selId)||null;
   const recordEvidence=(conv)=>{
-    try{
-      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-      list.unshift({item:`Workbench artifact: ${conv.title}`,initiative:acInitiatives.find(i=>i.id===conv.initiativeId)?.name||"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:U.name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});
-      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-    }catch{/* ignore */}
+    pushBus("vz-gw-evidence",{item:`Workbench artifact: ${conv.title}`,initiative:acInitiatives.find(i=>i.id===conv.initiativeId)?.name||"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:U.name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"})
   };
   /* The chat window is always available: the first message of a clean
      workspace creates its governed conversation automatically. The reply
@@ -210,6 +207,7 @@ export function PageMyIdeas({role,sessionMode,showToast}){
     if(!draft.title.trim()||!draft.problem.trim()){showToast&&showToast("Add a title and the problem it solves","error");return;}
     const rec={id:`idea-${Math.random().toString(36).slice(2,8)}`,title:draft.title.trim(),problem:draft.problem.trim(),benefit:draft.benefit.trim()||"To be assessed",category:draft.category,unit:U.department||"Engineering",status:"Submitted",date:"Today"};
     setIdeas([rec,...ideas]);
+    try{fetch("/api/bus/ideas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:rec.title,problem:rec.problem||rec.desc||"",unit:rec.unit||"",submitter:rec.by||rec.submitter||"Employee",stage:rec.stage||"Submitted"})}).catch(()=>{});}catch{/* fallback mode */}
     setDraft({title:"",problem:"",benefit:"",category:"GenAI Copilot"});
     showToast&&showToast("Idea submitted - routed to AI Opportunity Intake");
   };

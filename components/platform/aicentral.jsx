@@ -1,5 +1,6 @@
 "use client";
 
+import { readBus, pushBus } from "@/lib/bus";
 import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
@@ -400,7 +401,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
   const [hydrated,setHydrated]=useState(false);
   const selected=items.find(i=>i.id===selectedId)||items[0];
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
-  const gwEvidence=(typeof window!=="undefined")?(()=>{try{return JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");}catch{return [];}})():[];
+  const gwEvidence=(typeof window!=="undefined")?(()=>{try{return readBus("vz-gw-evidence");}catch{return [];}})():[];
   const evidenceRows=[...gwEvidence,...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
   /* Persistence: created initiatives, governed decisions and feedback survive reload. */
   useEffect(()=>{
@@ -573,11 +574,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
     const rec={outcome,reason:reason||null,rationale:rationale||"",decidedBy:R.label,at:"just now"};
     setDecisions({...decisions,[selected.id]:rec});
     setItems(items.map(i=>i.id===selected.id?{...i,lifecycle:outcome==="Scale"?"Scaling":"Retired",status:outcome==="Scale"?"Scaling":"Retired",blockedBy:null}:i));
-    try{
-      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-      list.unshift({item:`Governed decision: ${outcome} - ${selected.name}`,initiative:selected.name,scope:"Project",control:"Scale gate",risk:reason||"Executive decision",owner:R.label,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-    }catch{/* ignore */}
+    pushBus("vz-gw-evidence",{item:`Governed decision: ${outcome} - ${selected.name}`,initiative:selected.name,scope:"Project",control:"Scale gate",risk:reason||"Executive decision",owner:R.label,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"})
     showToast&&showToast(outcome==="Scale"?"Governed decision recorded: approved to scale":"Governed decision recorded: initiative retired");
     setRetireDraft({reason:RETIREMENT_REASONS[0],rationale:""});
   };

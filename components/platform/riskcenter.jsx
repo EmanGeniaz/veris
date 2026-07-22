@@ -1,5 +1,6 @@
 "use client";
 
+import { readBus, pushBus } from "@/lib/bus";
 import { Map } from "lucide-react";
 import { useState } from "react";
 import { acInitiatives, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments } from "@/lib/platform-models";
@@ -90,12 +91,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     if(cur==="Complete")return;
     const next=cur==="Planned"?"In Progress":"Complete";
     setBumped(prev=>({...prev,[r.id]:next}));
-    try{
-      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-      const ini=initOf(r);
-      list.unshift({item:`Treatment update: ${r.id} ${r.title} -> ${next}`,initiative:ini?ini.name:r.unit,scope:ini?"Project":"Enterprise",control:`Risk Center - ISO 42001 C.8.3 (${r.controls.join(", ")})`,risk:r.category,owner:r.treatment.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-    }catch{/* ignore */}
+    const ini=initOf(r);
+    pushBus("vz-gw-evidence",{item:`Treatment update: ${r.id} ${r.title} -> ${next}`,initiative:ini?ini.name:r.unit,scope:ini?"Project":"Enterprise",control:`Risk Center - ISO 42001 C.8.3 (${r.controls.join(", ")})`,risk:r.category,owner:r.treatment.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
     showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
   };
   const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;

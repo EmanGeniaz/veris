@@ -1,0 +1,179 @@
+// VerisZone persistence layer. The schema mirrors lib/types.ts - the
+// mock data layer remains the demo tenant's seed.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  name        String
+  mode        String       @default("clean") // "demo" | "clean"
+  createdAt   DateTime     @default(now())
+  users       User[]
+  initiatives Initiative[]
+  risks       Risk[]
+  kris        Kri[]
+  evidence    Evidence[]
+  decisions   Decision[]
+  ideas       Idea[]
+  convos      Conversation[]
+  assets      KnowledgeAsset[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  email     String   @unique
+  name      String
+  role      String   // ceo|cfo|cio|coo|caio|ciso|chro|cdpo|cgo|employee|manager
+  createdAt DateTime @default(now())
+}
+
+model Initiative {
+  id                String   @id
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  name              String
+  unit              String
+  category          String
+  lifecycle         String
+  businessOwner     String
+  technicalOwner    String
+  sponsor           String
+  champion          String
+  cxo               String
+  status            String
+  priority          String
+  risk              String
+  expected          String
+  actual            String
+  stage             String
+  guardrail         Int
+  adoption          Int
+  valueScore        Int
+  roi               String
+  savings           String
+  revenue           String
+  productivity      String
+  training          String
+  resistance        String
+  phaseIndex        Int
+  phaseArtifactsDone Int
+  blockedBy         String?
+  policies          Json     // string[]
+  controls          Json     // string[]
+  audits            Json     // string[]
+  risksList         Json     // string[]
+  feedback          Json?    // ACFeedbackScores
+  assessments       Json?    // EngineOutcome[]
+  updatedAt         DateTime @updatedAt
+  riskRecords       Risk[]
+}
+
+model Risk {
+  id           String      @id
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  initiativeId String?
+  initiative   Initiative? @relation(fields: [initiativeId], references: [id])
+  title        String
+  system       String
+  category     String
+  unit         String
+  execOwner    String
+  riskOwner    String
+  likelihood   Int
+  impact       Int
+  residual     Int
+  level        String
+  status       String
+  frameworks   Json   // string[]
+  controls     Json   // string[]
+  kris         Json   // string[]
+  desc         String
+  treatment    Json   // RiskTreatmentPlan
+  aiRecommendation String
+  updatedAt    DateTime @updatedAt
+}
+
+model Kri {
+  id           String  @id
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  name         String
+  value        Float
+  unit         String
+  threshold    Float
+  direction    String
+  trend        String
+  initiativeId String?
+  framework    String
+}
+
+model Evidence {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  item       String
+  initiative String
+  scope      String
+  control    String
+  risk       String
+  owner      String
+  status     String
+  approval   String
+  version    String
+  createdAt  DateTime @default(now())
+}
+
+model Decision {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  initiativeId String
+  decision   String   // Scale | Retire | Continue | Improve
+  rationale  String
+  decidedBy  String
+  createdAt  DateTime @default(now())
+}
+
+model Idea {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  title     String
+  problem   String
+  unit      String
+  submitter String
+  stage     String   // Submitted | Review | AI Central intake | ...
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userEmail String
+  title     String
+  messages  Json     // WorkbenchMessage[]
+  updatedAt DateTime @updatedAt
+}
+
+model KnowledgeAsset {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  title     String
+  kind      String
+  addedBy   String
+  sourceRef String
+  reuseCount Int     @default(0)
+  createdAt DateTime @default(now())
+}

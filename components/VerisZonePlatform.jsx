@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS } from "./platform/core";
 
 import dynamic from "next/dynamic";
+import { hydrateBus } from "@/lib/bus";
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
 const PageHome=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHome),{ssr:false,loading:vzLoading});
@@ -449,6 +450,7 @@ export default function VerisZone() {
   const [aiCentralView,setAiCentralView]=useState("dashboard");
   const [hasEntered,setHasEntered]=useState(false);
   const [sessionMode,setSessionMode]=useState("demo");
+  useEffect(()=>{hydrateBus();},[]);
   const [userProfiles,setUserProfiles]=useState(()=>{
     if(typeof window==="undefined")return USER_PROFILES;
     try{
