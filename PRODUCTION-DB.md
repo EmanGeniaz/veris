@@ -10,13 +10,12 @@ hydrate back on entry - no code changes needed.
 1. Vercel dashboard → your `veris` project → **Storage** → Create → **Postgres**.
 2. Connect it to the project. Vercel injects `DATABASE_URL` automatically
    (use the `POSTGRES_PRISMA_URL` value as `DATABASE_URL` if prompted).
-3. Push the schema and seed the demo tenant (from a machine with the repo):
-   ```bash
-   DATABASE_URL="<your-connection-string>" npx prisma db push
-   DATABASE_URL="<your-connection-string>" npm run db:seed
-   ```
-   (`prisma/init.sql` contains the equivalent raw SQL if you prefer to run it directly.)
-4. Redeploy. The `/api/bus/*` routes detect the database and switch on.
+3. Set `VZ_SETUP_TOKEN` in Vercel env vars (any random string) and redeploy.
+4. Visit `https://<your-domain>/api/admin/setup?token=<that string>` once.
+   It creates the tables and seeds the demo tenant - no local CLI needed.
+   (Alternative for CLI users: `npx prisma db push` + `npm run db:seed`.)
+5. Remove or rotate `VZ_SETUP_TOKEN` afterwards. The `/api/bus/*` routes
+   detect the database and switch on automatically.
 
 ## What persists today
 - Evidence records (`/api/bus/evidence`) - treatment updates, runbook executions, phase artifacts
