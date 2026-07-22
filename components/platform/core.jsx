@@ -1224,12 +1224,12 @@ export function Ring({score,color,size=58}) {
   </svg>;
 }
 
-export function Card({children, style={}, glow}) {
+export function Card({children, style={}, glow, onClick, title}) {
   const light=T.bg==="#F7F8FA";
   const shadow=light
     ? "0 1px 2px rgba(17,24,39,.04), 0 12px 28px rgba(11,78,162,.06)"
     : "0 1px 3px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2)";
-  return <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:glow?`0 0 28px ${glow}15`:shadow,...style}}>{children}</div>;
+  return <div onClick={onClick} title={title} role={onClick?"button":undefined} tabIndex={onClick?0:undefined} onKeyDown={onClick?(e=>{if(e.key==="Enter")onClick(e);}):undefined} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:glow?`0 0 28px ${glow}15`:shadow,cursor:onClick?"pointer":undefined,...style}}>{children}</div>;
 }
 
 export function SHead({title, sub}) {
