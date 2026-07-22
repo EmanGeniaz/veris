@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { PageAISpine } from "./spine";
+import { RiskAssessmentCascade } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
 
 export function PageModelRegistry({setTab}) {
@@ -671,7 +672,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
         <Ring score={selected.guardrail} color={selected.guardrail>80?T.green:T.amber} size={76}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
-        {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["Executive sponsor",selected.sponsor],["AI champion",selected.champion],["CXO sponsors",selected.cxo],["Status",selected.status],["Lifecycle",selected.lifecycle],["Linked policies",selected.policies.join(", ")||"None yet"],["Linked controls",selected.controls.join(", ")||"None yet"],["Linked risks",selected.risks.join(", ")||"None yet"],["Audits",selected.audits.join(", ")||"None yet"],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/8)`]].map(([l,v])=><div key={l} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",marginBottom:5}}>{l}</div><div style={{fontSize:12,color:T.ink2,lineHeight:1.35}}>{v}</div></div>)}
+        {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["Executive sponsor",selected.sponsor],["AI champion",selected.champion],["CXO sponsors",selected.cxo],["Status",selected.status],["Lifecycle",selected.lifecycle],["Linked policies",selected.policies.join(", ")||"None yet"],["Linked controls",selected.controls.join(", ")||"None yet"],["Linked risks",selected.risks.join(", ")||"None yet"],["Audits",selected.audits.join(", ")||"None yet"],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/${AC_PHASES.length})`]].map(([l,v])=><div key={l} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",marginBottom:5}}>{l}</div><div style={{fontSize:12,color:T.ink2,lineHeight:1.35}}>{v}</div></div>)}
       </div>
       <h4 style={{color:T.ink,margin:"0 0 10px",fontSize:14}}>Risk, control, audit and corrective action mapping</h4>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
@@ -1003,6 +1004,172 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
     </Card>;
   };
 
+  /* ── AI Initiative Workspace: Mission Control ─────────────────
+     Six tabs, one business object. Everything below derives from the
+     selected initiative record and its linked register, feedback,
+     assessment and evidence data. */
+  const wsRisks=riskRegister.filter(r=>r.initiativeId===selected.id);
+  const wsFb=feedback[selected.id]||DEFAULT_FEEDBACK;
+  const wsRec=feedbackDecision(wsFb);
+  const wsRecC=decisionColorOf(wsRec,T);
+  const wsHealth=Math.round((selected.guardrail+selected.adoption+selected.valueScore)/3);
+  const wsRiskScore=wsRisks.length?Math.max(...wsRisks.map(r=>r.residual)):0;
+  const wsEvidence=phaseProgress(selected);
+  const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+  const wsRoiPct=Math.min(100,Math.round((money(selected.actual)/(money(selected.expected)||1))*100));
+  const wsPhase=AC_PHASES[selected.phaseIndex];
+  const wsMissing=wsPhase?wsPhase.deliverables.slice(selected.phaseArtifactsDone):[];
+  const wsApprovalsLeft=wsMissing.filter(d=>/approval|decision|sign-off/i.test(d));
+  const wsCrit=wsRisks.filter(r=>r.level==="Critical"||r.level==="High");
+  const wsRemainingPhases=AC_PHASES.length-selected.phaseIndex;
+  const wsNextAction=selected.blockedBy?`Resolve the blocker: ${selected.blockedBy}`:wsMissing.length?`Complete "${wsMissing[0]}" in ${wsPhase.name}`:`Advance to ${AC_PHASES[selected.phaseIndex+1]?.name||"the scale gate"}`;
+  const wsConfidence=Math.min(98,Math.round((wsEvidence+selected.guardrail)/2));
+  const wsBriefing=()=>{
+    const L=["# Executive Briefing - "+selected.name,"",`${selected.unit} · ${selected.category} · Sponsor ${selected.sponsor}`,"",
+      "## Where it stands",`- Phase: ${selected.phaseIndex+1}/${AC_PHASES.length} (${wsPhase?.name}) - ${wsEvidence}% evidence complete`,
+      `- Overall health ${wsHealth}/100 · governance ${selected.guardrail}% · adoption ${selected.adoption}% · business value ${selected.valueScore}%`,
+      `- Risk: ${selected.risk} inherent; worst residual ${wsRiskScore}/25 across ${wsRisks.length} registered risks`,
+      `- Value: ${selected.actual} realized of ${selected.expected} expected (${wsRoiPct}%) · ROI ${selected.roi}`,"",
+      "## Blockers & approvals",selected.blockedBy?`- BLOCKED: ${selected.blockedBy}`:"- No open blockers",
+      ...wsApprovalsLeft.map(a=>`- Approval outstanding: ${a}`),"",
+      "## Top risks",...wsRisks.slice(0,4).map(r=>`- ${r.id} ${r.title} (${r.level}) - treatment ${r.treatment.status}`),"",
+      "## Recommendation",`- Veris Intelligence recommends: **${wsRec}** (confidence ${wsConfidence}%)`,
+      `- Next action: ${wsNextAction}`,
+      `- Estimated completion: ~${wsRemainingPhases*3} weeks at current cadence (${wsRemainingPhases} phases remaining)`];
+    vzDownload(`briefing-${selected.id}.md`,L.join("\n"));
+    showToast&&showToast("Executive briefing generated from live initiative data");
+  };
+  const MissionHeader=()=>{
+    const stats=[
+      ["Phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,wsPhase?.name,T.blue,"journey"],
+      ["Health",wsHealth,"guardrail + adoption + value",wsHealth>=80?T.green:wsHealth>=60?T.amber:T.red,"overview"],
+      ["Governance",`${selected.guardrail}%`,"control coverage",selected.guardrail>=80?T.green:T.amber,"governance"],
+      ["Risk",wsRiskScore?`${wsRiskScore}/25`:"none","worst residual",wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green,"risk"],
+      ["Evidence",`${wsEvidence}%`,"lifecycle completion",wsEvidence>=70?T.green:T.amber,"evidence"],
+      ["ROI",`${wsRoiPct}%`,`${selected.actual} of ${selected.expected}`,AI_GOLD,"overview"],
+      ["Value",`${selected.valueScore}%`,"business value score",T.violet,"overview"],
+    ];
+    return <Card style={{padding:"14px 16px",marginBottom:12,border:`1px solid ${wsRecC}35`}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
+        {stats.map(([l,v,sub,c,tabTo])=><button key={l} onClick={()=>setInitTab(tabTo)} title={`Open ${tabTo}`} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px",cursor:"pointer",textAlign:"left"}}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>{l}</div>
+          <div style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.b,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
+        </button>)}
+        <button onClick={()=>setInitTab("insights")} style={{background:wsRecC+"12",border:`1px solid ${wsRecC}45`,borderRadius:9,padding:"9px 11px",cursor:"pointer",textAlign:"left"}}>
+          <div style={{fontSize:8.5,color:wsRecC,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Recommendation</div>
+          <div style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:wsRecC}}>{wsRec}</div>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.b,marginTop:2}}>confidence {wsConfidence}%</div>
+        </button>
+      </div>
+    </Card>;
+  };
+  const InitJourney=()=><div>
+    <Card style={{padding:16,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Mission timeline</h3>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>~{wsRemainingPhases*3} weeks to completion at current cadence · {wsRemainingPhases} phases remaining</span>
+      </div>
+      <div style={{display:"flex",gap:0,alignItems:"flex-start",flexWrap:"wrap",marginBottom:14}}>
+        {AC_PHASES.map((ph,idx)=>{
+          const state=idx<selected.phaseIndex?"done":idx===selected.phaseIndex?"active":"next";
+          const c=state==="done"?T.green:state==="active"?AI_GOLD:T.ink4;
+          return <div key={ph.id} style={{display:"flex",alignItems:"center"}}>
+            <div style={{textAlign:"center",width:74}}>
+              <div style={{width:state==="active"?26:18,height:state==="active"?26:18,borderRadius:"50%",margin:"0 auto",background:state==="done"?T.green:state==="active"?AI_GOLD+"22":"transparent",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:state==="active"?10:8,fontWeight:900,color:state==="done"?"#fff":c,boxShadow:state==="active"?`0 0 16px ${AI_GOLD}55`:"none"}}>{state==="done"?"✓":idx+1}</div>
+              <div style={{fontSize:8,color:state==="active"?AI_GOLD:T.ink4,fontFamily:F.m,fontWeight:state==="active"?900:600,marginTop:4}}>{ph.name}</div>
+            </div>
+            {idx<AC_PHASES.length-1&&<div style={{width:10,height:2,background:idx<selected.phaseIndex?T.green:T.border,marginTop:-12}}/>}
+          </div>;
+        })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
+        <div style={{background:selected.blockedBy?T.redL:T.s2,border:`1px solid ${selected.blockedBy?T.red+"40":T.border}`,borderRadius:9,padding:"11px 13px"}}>
+          <div style={{fontSize:8.5,fontWeight:900,color:selected.blockedBy?T.red:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>Current blockers</div>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{selected.blockedBy||"None - the phase gate is clear."}</div>
+        </div>
+        <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px"}}>
+          <div style={{fontSize:8.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>Remaining approvals</div>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{wsApprovalsLeft.length?wsApprovalsLeft.join(" · "):"None in this phase."}</div>
+        </div>
+        <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px"}}>
+          <div style={{fontSize:8.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>Missing evidence ({wsMissing.length})</div>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{wsMissing.length?wsMissing.join(" · "):"Phase artifacts complete."}</div>
+        </div>
+        <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px"}}>
+          <div style={{fontSize:8.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>Critical risks</div>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{wsCrit.length?wsCrit.map(r=>r.id).join(", ")+" - open the Risk tab":"None above appetite."}</div>
+        </div>
+      </div>
+      <button onClick={()=>{if(selected.blockedBy)setInitTab("risk");else setInitTab("evidence");}} style={{marginTop:12,background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"10px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Next action: {wsNextAction} →</button>
+    </Card>
+    <Implementation/>
+  </div>;
+  const InitEvidenceTimeline=()=><div>
+    <Card style={{padding:"13px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div>
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>Audit readiness</div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:wsEvidence>=70?T.green:T.amber}}>{wsEvidence}%</div>
+      </div>
+      <div style={{flex:"1 1 260px"}}><Bar value={wsEvidence} color={wsEvidence>=70?T.green:T.amber}/></div>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Evidence completeness across the lifecycle - missing artifacts highlighted below</span>
+    </Card>
+    <div style={{display:"grid",gap:8,marginBottom:12}}>
+      {AC_PHASES.map((ph,idx)=>{
+        const state=idx<selected.phaseIndex?"done":idx===selected.phaseIndex?"active":"next";
+        if(state==="next"&&idx>selected.phaseIndex+1)return null;
+        const doneCount=state==="done"?ph.deliverables.length:state==="active"?selected.phaseArtifactsDone:0;
+        const c=state==="done"?T.green:state==="active"?AI_GOLD:T.ink4;
+        return <Card key={ph.id} style={{padding:"12px 15px",borderLeft:`3px solid ${c}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{idx+1}. {ph.name}</span>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{doneCount}/{ph.deliverables.length} artifacts · owner {ph.raci.responsible}</span>
+          </div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            {ph.deliverables.map((d,di)=>{
+              const has=di<doneCount;
+              return <button key={d} onClick={()=>{if(has){setView("evidence");}else{setInitTab("journey");}}} title={has?"Open in Trust & Evidence":"Missing - complete in the Journey"} style={{background:has?T.green+"12":T.red+"0d",border:`1px solid ${has?T.green+"40":T.red+"35"}`,borderRadius:6,padding:"3px 9px",color:has?T.green:T.red,fontSize:9.5,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{has?"✓":"!"} {d}</button>;
+            })}
+          </div>
+        </Card>;
+      })}
+    </div>
+    <InitEvidence/>
+  </div>;
+  const InitInsights=()=><div>
+    <Card style={{padding:16,marginBottom:12,border:`1px solid ${wsRecC}40`}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}`,animation:"pulse 2.4s infinite"}}/>
+          <span style={{fontSize:9,fontWeight:900,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",fontFamily:F.m}}>Veris Intelligence · Executive Advisor</span>
+        </div>
+        <button onClick={wsBriefing} style={{background:AI_GOLD,border:"none",borderRadius:8,padding:"9px 14px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Generate Executive Briefing ↓</button>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}}>
+        <Tag label={`Recommend: ${wsRec}`} color={wsRecC} bg={wsRecC+"16"}/>
+        <Tag label={`Confidence ${wsConfidence}%`} color={T.blue} bg={T.blue+"14"}/>
+        <span style={{fontSize:9,color:T.green,fontFamily:F.m,fontWeight:900}}>SOURCE: INTERNAL - initiative record, register, feedback engine, phase evidence</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:10}}>
+        {[["Reason",`Stakeholder feedback averages ${Math.round(Object.values(wsFb).reduce((a,b)=>a+b,0)/7)}/100 with risk scored ${wsFb.risk}/100; governance ${selected.guardrail}% and adoption ${selected.adoption}% ${wsRec==="Scale"?"clear":"do not yet clear"} the gate thresholds.`],
+          ["Supporting evidence",`${wsEvidence}% lifecycle evidence complete through ${wsPhase?.name}; controls ${selected.controls.join(", ")}; policies ${selected.policies.join(", ")}.`],
+          ["Business value",`${selected.actual} realized of ${selected.expected} expected (${wsRoiPct}%). ROI ${selected.roi}, productivity ${selected.productivity}.`],
+          ["Risk impact",wsRisks.length?`${wsRisks.length} registered risks; worst residual ${wsRiskScore}/25 (${wsRisks[0].id}). ${wsCrit.length?wsCrit.length+" above appetite.":"All within appetite."}`:"No registered risks."],
+          ["Expected outcome",wsRec==="Scale"?`Expansion unlocks the remaining ${(money(selected.expected)-money(selected.actual)).toFixed(1)}M of expected value.`:wsRec==="Retire"?"Retirement frees budget and removes unrewarded risk exposure.":`Continuing the current phase protects ${selected.expected} of expected value while gaps close.`],
+          ["Decision required",wsRec==="Scale"||wsRec==="Retire"?`Record the ${wsRec} decision below - it will mint an audit-grade decision record.`:"No gate decision required yet - clear the next action in the Journey."],
+        ].map(([l,v])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+          <div style={{fontSize:8.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>{l}</div>
+          <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>{v}</div>
+        </div>)}
+      </div>
+    </Card>
+    <PageAISpine mode="scalegate" setTab={setTab} focus={selected}/>
+    <div style={{marginTop:12}}><DecisionPanel/></div>
+    <div style={{marginTop:12}}><FeedbackPanel/></div>
+    <div style={{marginTop:12}}><InitLessons/></div>
+  </div>;
+  const WS_LEGACY={implementation:"journey",risks:"risk",controls:"governance",approvals:"governance",pilot:"journey",roi:"overview",adoption:"overview",feedback:"insights",lessons:"insights",decision:"insights"};
+  const wsTab=WS_LEGACY[initTab]||initTab;
   const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
       <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; Portfolio</button>
@@ -1014,19 +1181,14 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
         <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
       </div>
     </div>
-    <SubTabs tabs={[["overview","Overview"],["implementation","Implementation"],["risks","Risks"],["evidence","Evidence"],["controls","Controls"],["approvals","Approvals"],["pilot","Monitoring"],["roi","ROI"],["adoption","Adoption"],["feedback","Feedback"],["lessons","Lessons"],["decision","Scale / Retire"]]} active={initTab} onChange={setInitTab}/>
-    {initTab==="overview"&&<div><Overview/><div style={{marginTop:14}}><PageAISpine mode="dna" setTab={setTab} focus={selected}/></div></div>}
-    {initTab==="implementation"&&<Implementation/>}
-    {initTab==="risks"&&<InitRisks/>}
-    {initTab==="evidence"&&<InitEvidence/>}
-    {initTab==="controls"&&<InitControls/>}
-    {initTab==="approvals"&&<InitApprovals/>}
-    {initTab==="pilot"&&<PilotExecution/>}
-    {initTab==="roi"&&<InitROI/>}
-    {initTab==="adoption"&&<InitAdoption/>}
-    {initTab==="feedback"&&<FeedbackPanel/>}
-    {initTab==="lessons"&&<InitLessons/>}
-    {initTab==="decision"&&<div><PageAISpine mode="scalegate" setTab={setTab} focus={selected}/><div style={{marginTop:14}}><DecisionPanel/></div></div>}
+    <MissionHeader/>
+    <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["governance","Governance"],["risk","Risk"],["evidence","Evidence"],["insights","Insights"]]} active={wsTab} onChange={setInitTab}/>
+    {wsTab==="overview"&&<div><Overview/><div style={{marginTop:14}}><InitROI/></div><div style={{marginTop:14}}><InitAdoption/></div><div style={{marginTop:14}}><PageAISpine mode="dna" setTab={setTab} focus={selected}/></div></div>}
+    {wsTab==="journey"&&<InitJourney/>}
+    {wsTab==="governance"&&<div><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
+    {wsTab==="risk"&&<div><InitRisks/><div style={{marginTop:12}}><PilotExecution/></div></div>}
+    {wsTab==="evidence"&&<InitEvidenceTimeline/>}
+    {wsTab==="insights"&&<InitInsights/>}
   </div>;
 
   /* ── AI Governance ─────────────────────────────────────────── */
