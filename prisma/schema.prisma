@@ -178,3 +178,15 @@ model KnowledgeAsset {
   reuseCount Int     @default(0)
   createdAt DateTime @default(now())
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  action    String
+  entity    String
+  detail    String
+  actor     String
+  prevHash  String
+  hash      String
+  createdAt DateTime @default(now())
+}

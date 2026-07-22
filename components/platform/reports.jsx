@@ -59,7 +59,7 @@ export function ReportsGenerator({showToast}){
       {fws.map(f2=><button key={f2} onClick={()=>setFwF(f2)} style={chip(fwF===f2)}>{f2}</button>)}
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
-      {[["Executive Board Pack","Markdown - portfolio, risks, KRIs",boardPack],["Audit Pack","Markdown - posture, register, evidence",auditPack],["Risk Register","CSV - full treatment detail",riskCsv],["AI Portfolio","CSV - lifecycle and value",portfolioCsv]].map(([t2,d,fn])=>
+      {[["Executive Board Pack","Markdown - portfolio, risks, KRIs",boardPack],["Audit Pack","Markdown - posture, register, evidence",auditPack],["Risk Register","CSV - full treatment detail",riskCsv],["AI Portfolio","CSV - lifecycle and value",portfolioCsv],["Risk Register (Excel)","Native XLSX workbook with KRIs",()=>window.open("/api/export/risks.xlsx","_blank")],["AI Portfolio (Excel)","Native XLSX workbook",()=>window.open("/api/export/portfolio.xlsx","_blank")]].map(([t2,d,fn])=>
         <button key={t2} onClick={fn} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"12px 13px",cursor:"pointer",textAlign:"left"}}>
           <div style={{fontSize:11.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b,marginBottom:3}}>{t2} ↓</div>
           <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b}}>{d}</div>
