@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, ASSISTANT_NUDGES, KPI_INSIGHTS, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, demoConversations, employeeUsageSeed, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments, PLAYBOOK_LENS, EXEC_QUICK_ACTIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
 
 /* ── Feedback engine ─────────────────────────────────────────── */
 const FEEDBACK_DIMS = [
@@ -248,7 +248,7 @@ const NAV = [
   {id:"strategy",  icon:"G", label:"Strategy"},
   {id:"playbook",  icon:"P", label:"Playbook"},
   {id:"academy",   icon:"V", label:"Governance Academy"},
-  {id:"compliance",icon:"C", label:"Compliance"},
+  {id:"compliance",icon:"C", label:"Compliance & Standards"},
   {id:"checklists",icon:"I", label:"ISO Checklists"},
   {id:"hitl",      icon:"H", label:"HITL Queue"},
   {id:"aia",       icon:"A", label:"AI Impact (AIA)"},
@@ -263,6 +263,7 @@ const NAV = [
   {id:"gapanalysis",icon:"G",label:"Gap Analysis"},
   {id:"servicenow",icon:"N", label:"ServiceNow / CRM"},
   {id:"aigov",     icon:"V", label:"AI Governance Cube"},
+  {id:"riskcenter",icon:"R", label:"Risk Center"},
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
   {id:"workbench", icon:"W", label:"AI Workbench"},
@@ -273,36 +274,29 @@ const NAV = [
 ];
 
 const CAIO_EXTRA_NAV = [
-  {id:"aira",    icon:"R", label:"Risk Register (AIRA)"},
-  {id:"airt",    icon:"T", label:"Risk Treatment (AIRT)"},
   {id:"registry",icon:"M", label:"AI Model Registry"},
   {id:"maturity",icon:"S", label:"Governance Maturity"},
   {id:"usecases",icon:"U", label:"Use Case Pipeline"},
 ];
 
-const NAV_SECTIONS = [
-  {title:"Command Center", items:["home","aicentral"]},
-  {title:"CXO Platform", items:["onboard","intake","strategy","aia","aiia","hitl"]},
-  {title:"Governance Library", items:["playbook","academy","templates","checklists","compliance","impl","roadmap"]},
-  {title:"Risk & Controls", items:["controls","scope","gapanalysis","aigov"]},
-  {title:"Enterprise Assurance", items:["iso27001","trustcenter","servicenow","reports"]},
+/* FINAL platform sidebar - seven surfaces, nothing else. Every other
+   page is a contextual destination underneath one of these owners. */
+const PLATFORM_NAV_SECTIONS = [
+  {title:"Platform", items:["home","aicentral","playbook","compliance","riskcenter","reports","academy"]},
 ];
 
-const EXECUTIVE_NAV_SECTIONS = [
-  {title:"Executive Workspace", items:["home","aicentral","intake","strategy","hitl"]},
-  {title:"Transformation Oversight", items:["roadmap","academy","reports"]},
-];
-
-const CAIO_NAV_SECTIONS = [
-  {title:"AI Portfolio", items:["registry","maturity","usecases"]},
-  {title:"Risk Treatment", items:["aira","airt"]},
-];
-
-/* CAIO outcome navigation: business outcomes only - capabilities surface
-   contextually inside AI Central, Decisions and Knowledge. */
-const CAIO_OUTCOME_SECTIONS = [
-  {title:"Executive Workspace", items:["home","aicentral","decisions","knowledge","reports"]},
-];
+/* Which surface owns each contextual page - keeps the owning sidebar
+   item highlighted while the user drills into contextual destinations. */
+const OWNER_SURFACE = {
+  onboard:"aicentral", intake:"aicentral", strategy:"aicentral", roadmap:"aicentral",
+  registry:"aicentral", maturity:"aicentral", usecases:"aicentral", servicenow:"aicentral",
+  aia:"riskcenter", aiia:"riskcenter",
+  checklists:"compliance", impl:"compliance", templates:"compliance", iso27001:"compliance",
+  scope:"compliance", controls:"compliance", trustcenter:"compliance", gapanalysis:"compliance",
+  aigov:"compliance", knowledge:"compliance",
+  aira:"riskcenter", airt:"riskcenter",
+  hitl:"home", decisions:"home",
+};
 
 const EMPLOYEE_NAV_SECTIONS = [
   {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
@@ -794,26 +788,6 @@ const STANDARDS_MAP = {
 };
 
 
-
-/* Section */
-const AIRA = [
-  {id:"r1",system:"LLM v2 (Customer Support)",category:"Bias & Fairness",likelihood:4,impact:5,score:20,level:"Critical",owner:"CAIO",clause:"ISO 42001 C.8.2 / EU AI Act Art.9",desc:"Model exhibits differential response quality across demographic groups. Disproportionate impact on non-native English speakers identified in bias testing. EU AI Act Art.9 risk management system must document this."},
-  {id:"r2",system:"Credit Scoring AI",category:"Transparency",likelihood:3,impact:5,score:15,level:"High",owner:"CAIO / Legal",clause:"EU AI Act Art.13 / GDPR Art.22",desc:"Decision logic opaque to affected individuals. Art.22 requires meaningful explanation for automated decisions with legal effect. Model cards incomplete."},
-  {id:"r3",system:"HR Recruitment AI",category:"Regulatory Compliance",likelihood:4,impact:4,score:16,level:"High",owner:"HR / CAIO",clause:"EU AI Act Annex III / ISO 42001 C.8.4",desc:"Potential EU AI Act High-Risk classification as employment-related AI. Conformity assessment may be required. ISO 42001 Clause 8.4 design documentation incomplete."},
-  {id:"r4",system:"Fraud Detection Model",category:"Data Privacy",likelihood:2,impact:4,score:8,level:"Medium",owner:"CISO",clause:"ISO 42001 C.7.2 / GDPR Art.5",desc:"Training dataset contains unmasked PII. ISO 42001 Clause 7.2 data resource requirements (provenance, bias identification) not fully documented."},
-  {id:"r5",system:"Document Summarisation AI",category:"Hallucination Risk",likelihood:3,impact:3,score:9,level:"Medium",owner:"Product",clause:"ISO 42001 C.9.1",desc:"Model produces confident incorrect summaries. ISO 42001 Clause 9.1 monitoring not yet tracking hallucination rate. Risk of decisions made on AI-fabricated content."},
-  {id:"r6",system:"Predictive Maintenance AI",category:"Safety",likelihood:2,impact:5,score:10,level:"Medium",owner:"Engineering",clause:"EU AI Act Annex III / ISO 42001 C.8.5",desc:"Incorrect predictions could cause equipment failure and physical harm. Potential High-Risk classification under EU AI Act Annex III. ISO 42001 C.8.5 kill-switch not implemented."},
-];
-
-/* Section */
-const AIRT = [
-  {id:"t1",riskId:"r1",system:"LLM v2",risk:"Bias & Fairness",treatment:"Mitigate",action:"Deploy continuous bias monitoring with automated alerts. Retrain on balanced dataset. Add fairness guardrails pre-go-live. ISO 42001 C.9.1 monitoring framework to track daily.",owner:"CAIO",deadline:"May 15",status:"In Progress",priority:"Critical"},
-  {id:"t2",riskId:"r2",system:"Credit Scoring AI",risk:"Transparency",treatment:"Mitigate",action:"Implement SHAP explainability layer. Generate automated Art.22 decision explanations. Legal to draft disclosure template. ISO 42001 model card to be updated.",owner:"CAIO / Legal",deadline:"May 30",status:"Planned",priority:"High"},
-  {id:"t3",riskId:"r3",system:"HR Recruitment AI",risk:"Regulatory",treatment:"Transfer",action:"Engage EU AI Act consultant for conformity assessment. Suspend system pending classification outcome. ISO 42001 C.8.4documentation to be completed.",owner:"HR / Legal",deadline:"Jun 15",status:"Planned",priority:"High"},
-  {id:"t4",riskId:"r4",system:"Fraud Detection",risk:"Data Privacy",treatment:"Mitigate",action:"Anonymise training dataset using differential privacy. Re-validate performance post-anonymisation. Update ISO 42001 C.7.2 data documentation.",owner:"CISO / ML Eng",deadline:"Jun 1",status:"In Progress",priority:"Medium"},
-  {id:"t5",riskId:"r5",system:"Document AI",risk:"Hallucination",treatment:"Accept",action:"Mandatory human review for all AI summaries in legal/financial contexts. Display confidence score to users. ISO 42001 C.9.1 hallucination rate tracking added.",owner:"Product",deadline:"May 20",status:"Complete",priority:"Medium"},
-  {id:"t6",riskId:"r6",system:"Predictive Maintenance",risk:"Safety",treatment:"Mitigate",action:"Add hard safety threshold override. Implement fail-safe mode for critical equipment. ISO 42001 C.8.5 kill-switch deployed.",owner:"Engineering",deadline:"Jun 30",status:"Planned",priority:"Medium"},
-];
 
 /* Section */
 const AIA_DATA = [
@@ -1428,13 +1402,13 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
-  const roleNavSections=role==="caio"?CAIO_OUTCOME_SECTIONS:(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:EXECUTIVE_ROLE_IDS.includes(role)?EXECUTIVE_NAV_SECTIONS:NAV_SECTIONS;
+  const roleNavSections=(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
   const renderNavButton=(item)=>{
-    const isA=tab===item.id;
-    const badge=item.id==="hitl"&&hitlCount>0;
+    const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
+    const badge=item.id==="home"&&hitlCount>0;
     const delay=Math.min(navIdx++*0.018,0.28);
     return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
       {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`,boxShadow:theme==="light"?"none":`inset 0 0 20px ${rc}0D`}}/>}
@@ -1476,13 +1450,6 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         })}
         {!isAICentral&&roleNavSections.map(section=>{
           const items=section.items.map(id=>navById[id]).filter(Boolean);
-          return <div key={section.title} style={{marginBottom:4}}>
-            {renderSectionHeader(section.title)}
-            {items.map(renderNavButton)}
-          </div>;
-        })}
-        {false&&role==="caio"&&CAIO_NAV_SECTIONS.map(section=>{
-          const items=section.items.map(item=>typeof item==="string"?navById[item]:item).filter(Boolean);
           return <div key={section.title} style={{marginBottom:4}}>
             {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
@@ -1799,20 +1766,27 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
     [`Residual risk ${gate.i.risk}; stakeholder risk score ${gate.f.risk}/100`,gate.i.risk!=="Critical"&&gate.f.risk>=60],
     [`Adoption ${gate.i.adoption}% (threshold 70%)`,gate.i.adoption>=70],
     [`Business value score ${gate.i.valueScore}%`,gate.i.valueScore>=75],
-    [`Evidence complete through Phase ${gate.i.phaseIndex} (${AC_PHASES[gate.i.phaseIndex-1]?.name||"Discover"})`,gate.i.phaseIndex>=3],
+    [`Evidence complete through ${AC_PHASES[gate.i.phaseIndex]?.name||"Opportunity"} (phase ${gate.i.phaseIndex+1}/${AC_PHASES.length})`,gate.i.phaseIndex>=8],
   ]:[];
   /* Grounded responder: answers reference the role's priorities, nudges and
      modules - never invented content. External reasoning stays out of scope. */
   const answer=text=>{
     const t=text.toLowerCase();
     const p0=priorities[0];
-    if(/risk/.test(t))return {text:`From your ${focus} view, the top risk-related item is "${p0.title}" (${p0.impact}). I can take you straight to it.`,link:p0.link,label:"Open it"};
-    if(/approve|decision|pending/.test(t))return {text:`You have ${priorities.length} priority actions today. The most urgent: "${p0.title}", due ${p0.due.toLowerCase()}.`,link:p0.link,label:"Go to decision"};
-    if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence"};
-    if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas"};
-    if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy"};
-    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`};
-    return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority"};
+    if(/what is|explain|define/.test(t)){
+      const topic=/iso\s*42001/.test(t)?"ISO 42001 is the international AI management system standard: it defines how an organization governs AI across lifecycle, risk, evidence and continuous improvement. Your posture against it lives in Compliance & Standards."
+        :/eu ai act/.test(t)?"The EU AI Act is the European regulation classifying AI systems by risk tier. High-risk systems require conformity assessment, human oversight and technical documentation. Your affected systems are tracked in the Risk Center."
+        :/nist/.test(t)?"NIST AI RMF is the US voluntary framework for AI risk: Govern, Map, Measure, Manage. Your KRIs map to it in the Risk Center."
+        :null;
+      if(topic)return {text:topic,src:"Hybrid",srcNote:"General knowledge + your internal posture"};
+    }
+    if(/risk/.test(t)){const worst=[...riskRegister].sort((a,b)=>(b.likelihood*b.impact)-(a.likelihood*a.impact))[0];return {text:`The register holds ${riskRegister.length} risks; the most severe is ${worst.id} "${worst.title}" (${worst.level}, ${worst.system}), treatment ${worst.treatment.status.toLowerCase()} with ${worst.treatment.owner}.`,link:{tab:"riskcenter"},label:"Open Risk Center",src:"Internal",srcNote:"Risk Center register"};}
+    if(/approve|decision|pending/.test(t))return {text:`You have ${priorities.length} priority actions today. The most urgent: "${p0.title}", due ${p0.due.toLowerCase()}.`,link:p0.link,label:"Go to decision",src:"Internal",srcNote:"Your priority queue"};
+    if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence",src:"Internal",srcNote:"Trust & Evidence repository"};
+    if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas",src:"Internal",srcNote:"Idea pipeline"};
+    if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy",src:"Internal",srcNote:"Governance Academy records"};
+    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`,src:"Internal",srcNote:"Platform knowledge"};
+    return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority",src:"Internal",srcNote:"Your priorities and nudges"};
   };
   const ask=()=>{
     const t=q.trim();
@@ -1886,6 +1860,11 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
             {chat.map((m,i)=><div key={i} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"92%"}}>
               <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:10,padding:"8px 11px"}}>
                 <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{m.text}</div>
+                {m.from!=="user"&&m.src&&<div style={{marginTop:5,display:"inline-flex",alignItems:"center",gap:5}} title={m.srcNote||""}>
+                  <span style={{width:6,height:6,borderRadius:"50%",background:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber}}/>
+                  <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber,textTransform:"uppercase",letterSpacing:"0.06em"}}>Source: {m.src}</span>
+                  {m.srcNote&&<span style={{fontSize:8.5,color:T.ink4,fontFamily:F.b}}>· {m.srcNote}</span>}
+                </div>}
                 {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
               </div>
             </div>)}
@@ -1937,7 +1916,7 @@ function ExecMyInitiatives({role,goAC}){
       return <div key={i.id} onClick={()=>goAC("initiatives")} style={{display:"grid",gridTemplateColumns:"1.3fr 90px 110px 70px 70px 110px 120px",padding:"10px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:idx%2===0?T.s1:T.bg,cursor:"pointer"}}>
         <div style={{minWidth:0}}><div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{i.unit} · {i.businessOwner}</div></div>
         <div style={{display:"flex",alignItems:"center",gap:6}}><Ring score={health} color={hc} size={28}/><span style={{fontSize:10,fontFamily:F.m,color:hc,fontWeight:800}}>{health}</span></div>
-        <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{AC_PHASES[i.phaseIndex]?.name}</div><div style={{fontSize:8,color:T.ink4,fontFamily:F.m}}>{i.phaseIndex+1}/8</div></div>
+        <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{AC_PHASES[i.phaseIndex]?.name}</div><div style={{fontSize:8,color:T.ink4,fontFamily:F.m}}>{i.phaseIndex+1}/{AC_PHASES.length}</div></div>
         <span style={{fontSize:10,color:T.green,fontFamily:F.m,fontWeight:700}}>{i.roi}</span>
         <PTag p={i.risk}/>
         <span style={{fontSize:10,color:T.ink2,fontFamily:F.m}}>{i.actual} / {i.expected}</span>
@@ -2102,6 +2081,84 @@ function ExecSection({title,hint,defaultOpen=false,children}){
 }
 
 /* Section */
+/* Quick actions - every action lands on a real surface. */
+function ExecQuickActions({role,setTab,setAiCentralView}){
+  const acts=EXEC_QUICK_ACTIONS[role]||EXEC_QUICK_ACTIONS.caio;
+  return <Card style={{padding:16,marginBottom:12}}>
+    <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>Quick actions</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:8}}>
+      {acts.map(a=><button key={a.label} onClick={()=>{if(a.ac&&setAiCentralView)setAiCentralView(a.ac);setTab(a.tab);}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",cursor:"pointer",textAlign:"left",fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.label} →</button>)}
+    </div>
+  </Card>;
+}
+
+/* Recent changes - seeded lens events merged with the live evidence bus. */
+function ExecRecentChanges({role,setTab,setAiCentralView}){
+  const seeded=EXEC_RECENT_CHANGES[role]||EXEC_RECENT_CHANGES.caio;
+  let live=[];
+  try{
+    if(typeof window!=="undefined")live=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]").slice(0,2).map(e=>({what:e.item,initiative:e.initiative,when:e.time,kind:"evidence"}));
+  }catch{/* ignore */}
+  const rows=[...live,...seeded].slice(0,5);
+  const kindColor={evidence:AI_GOLD,decision:T.green,risk:T.red,deployment:T.blue,learning:T.violet};
+  return <Card style={{padding:16,marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+      <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Recent changes</div>
+      <button onClick={()=>{setAiCentralView&&setAiCentralView("evidence");setTab("aicentral");}} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Evidence trail →</button>
+    </div>
+    <div style={{display:"grid",gap:7}}>
+      {rows.map((r,i)=><div key={`${r.what}-${i}`} style={{display:"flex",gap:10,alignItems:"flex-start",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px"}}>
+        <span style={{width:7,height:7,borderRadius:"50%",background:kindColor[r.kind]||T.ink4,marginTop:4,flexShrink:0}}/>
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:600,lineHeight:1.45}}>{r.what}</div>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{r.initiative} · {r.when}</div>
+        </div>
+      </div>)}
+    </div>
+  </Card>;
+}
+
+/* Critical risks and business-unit heat, straight from the Risk Center
+   register - every number drills back to its origin. */
+function ExecRiskPulse({setTab}){
+  const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  const top=[...riskRegister].sort((a,b)=>(b.likelihood*b.impact)-(a.likelihood*a.impact)).slice(0,4);
+  const units=[...new Set(riskRegister.map(r=>r.unit))].map(u=>{
+    const rs=riskRegister.filter(r=>r.unit===u);
+    const worst=rs.some(r=>r.level==="Critical")?"Critical":rs.some(r=>r.level==="High")?"High":rs.some(r=>r.level==="Medium")?"Medium":"Low";
+    return {u,n:rs.length,worst};
+  }).sort((a,b)=>b.n-a.n);
+  return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
+    <Card style={{padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Critical risks right now</div>
+        <button onClick={()=>setTab("riskcenter")} style={{background:"transparent",border:"none",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risk Center →</button>
+      </div>
+      <div style={{display:"grid",gap:7}}>
+        {top.map(r=><button key={r.id} onClick={()=>setTab("riskcenter")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+          <span style={{minWidth:0}}><span style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700,display:"block"}}>{r.title}</span><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.system} · exec {r.execOwner} · treatment {r.treatment.status.toLowerCase()}</span></span>
+          <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
+        </button>)}
+      </div>
+    </Card>
+    <Card style={{padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Business unit heatmap</div>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{riskRegister.length} risks on register</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
+        {units.map(x=><button key={x.u} onClick={()=>setTab("riskcenter")} title="Open in Risk Center" style={{background:lvC(x.worst)+"10",border:`1px solid ${lvC(x.worst)}35`,borderRadius:9,padding:"11px 12px",cursor:"pointer",textAlign:"left"}}>
+          <div style={{fontSize:10.5,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4}}>{x.u}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:lvC(x.worst)}}>{x.n}</span>
+            <Tag label={x.worst} color={lvC(x.worst)} bg={lvC(x.worst)+"18"}/>
+          </div>
+        </button>)}
+      </div>
+    </Card>
+  </div>;
+}
+
 function PageHome({role,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), K=KPI[role]||KPI.caio;
   const metrics=DOMAIN_METRICS[role]||[];
@@ -2165,6 +2222,11 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
           </div>
         </Card>
       </div>
+      <ExecRiskPulse setTab={setTab}/>
+      <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
+      <ExecRecommendations role={role} goto={goto}/>
+      <ExecQuickActions role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
+      <ExecRecentChanges role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
       <ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/>
     </div>;
   }
@@ -2194,10 +2256,13 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
     <ExecBrief role={role} goAC={goAC}/>
     <ExecPriorities role={role} goto={goto}/>
     <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
+    <ExecRiskPulse setTab={setTab}/>
     <ExecRecommendations role={role} goto={goto}/>
     <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
     <ExecSection title="Enterprise Risk Center" hint="Exposure, mitigation and AI recommendations"><ExecRiskCenter role={role} goAC={goAC}/></ExecSection>
     <ExecSection title="Value Center" hint="Realized value, ROI and target achievement"><ExecValueCenter role={role} goAC={goAC}/></ExecSection>
+    <ExecQuickActions role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
+    <ExecRecentChanges role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
     <ExecSection title="Governance Health" hint="Controls, evidence, audit readiness and frameworks"><ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/></ExecSection>
 
     {/* Enterprise AI Transformation Control Plane */}
@@ -2340,7 +2405,7 @@ function PageHome({role,setTab,setAiCentralView,showToast}) {
           {label:"HITL Queue",tab:"hitl",color:T.amber,badge:"HQ"},
           {label:"Playbook",tab:"playbook",color:rc,badge:"PB"},
           {label:"ISO Checklists",tab:"checklists",color:T.teal,badge:"ISO"},
-          {label:"AI Risk (AIRA)",tab:role==="caio"?"aira":"aia",color:T.red,badge:"AR"},
+          {label:"Risk Center",tab:role==="caio"?"riskcenter":"aia",color:T.red,badge:"RC"},
           {label:role==="caio"?"Model Registry":"Templates",tab:role==="caio"?"registry":"templates",color:T.violet,badge:role==="caio"?"MR":"TP"},
           {label:role==="caio"?"Use Case Pipeline":"Roadmap",tab:role==="caio"?"usecases":"roadmap",color:T.green,badge:role==="caio"?"UC":"RM"},
         ].map(q=><button key={q.label} onClick={()=>setTab(q.tab)}
@@ -2699,7 +2764,180 @@ function PageStrategy({role,setTab}) {
 }
 
 /* Section */
-function PagePlaybook({role,setTab,showToast}) {
+/* ── Playbook: the execution workspace ─────────────────────────────
+   Open a project and the Playbook shows its objectives, business case,
+   the 13-phase lifecycle with tasks, owners, artifacts and evidence,
+   the policies and controls it inherits, its risks, blockers, lessons
+   from previous projects and the AI's next-step recommendation.
+   The lifecycle itself is owned by AI Central - this is its execution
+   surface, never a second implementation engine. */
+function PagePlaybook({role,setTab,setAiCentralView,showToast}){
+  const rc=RC(role);
+  const [selId,setSelId]=useState(acInitiatives[0].id);
+  const [pTab,setPTab]=useState("workspace");
+  const ini=acInitiatives.find(i=>i.id===selId)||acInitiatives[0];
+  const [activePhase,setActivePhase]=useState(ini.phaseIndex);
+  useEffect(()=>{setActivePhase(ini.phaseIndex);},[selId,ini.phaseIndex]);
+  const risks=riskRegister.filter(r=>r.initiativeId===ini.id);
+  const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  const phaseDone=idx=>idx<ini.phaseIndex?100:idx>ini.phaseIndex?0:Math.round((ini.phaseArtifactsDone/(AC_PHASES[idx].deliverables.length||1))*100);
+  const overall=Math.round(((ini.phaseIndex+(ini.phaseArtifactsDone/(AC_PHASES[ini.phaseIndex]?.deliverables.length||1)))/AC_PHASES.length)*100);
+  const ph=AC_PHASES[activePhase];
+  const phC=activePhase<ini.phaseIndex?T.green:activePhase===ini.phaseIndex?AI_GOLD:T.ink4;
+  const lessons=acInitiatives.filter(i=>i.id!==ini.id).map(i=>({
+    from:i.name,unit:i.unit,
+    text:i.adoption>=70?`Reached ${i.adoption}% adoption - champion-led enablement (${i.training}% trained) moved resistance from ${i.resistance} early.`
+      :i.blockedBy?`Currently blocked by "${i.blockedBy}" - sequence that artifact earlier than this project did.`
+      :`Holding at ${i.adoption}% adoption with ${i.resistance.toLowerCase()} resistance - invest in training before pilot exit.`,
+  })).slice(0,3);
+  const gotoAC=view=>{setAiCentralView&&setAiCentralView(view);setTab&&setTab("aicentral");};
+  const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
+  const owners=[["Business sponsor",ini.sponsor],["Executive owner",(ini.cxo||"CAIO").split(",")[0]],["Technical owner",ini.technicalOwner],["Business owner",ini.businessOwner],["Risk owner",risks[0]?risks[0].execOwner:"CAIO"],["AI champion",ini.champion]];
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Playbook" sub="The execution workspace. Pick a project - objectives, business case, phases, tasks, owners, evidence, risks and lessons assemble themselves from AI Central's lifecycle."/>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+      {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={chip(selId===i.id,rc)}>{i.name}</button>)}
+      <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+        {[["workspace","Execution Workspace"],["runbooks","Governance Runbooks"]].map(([id,l])=><button key={id} onClick={()=>setPTab(id)} style={chip(pTab===id,AI_GOLD)}>{l}</button>)}
+      </div>
+    </div>
+    {pTab==="runbooks"&&<PlaybookRunbooks role={role} setTab={setTab} showToast={showToast}/>}
+    {pTab==="workspace"&&<>
+    <Card style={{padding:18,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",gap:14,flexWrap:"wrap",alignItems:"flex-start"}}>
+        <div style={{minWidth:240,flex:1}}>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}><STag s={ini.lifecycle}/><PTag p={ini.priority}/><Tag label={`${ini.risk} risk`} color={lvC(ini.risk)} bg={lvC(ini.risk)+"16"}/></div>
+          <h2 style={{fontFamily:F.h,fontSize:20,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>{ini.name}</h2>
+          <div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{ini.unit} · {ini.category} · Objective: {ini.stage}</div>
+        </div>
+        <div style={{minWidth:200,flex:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>Implementation completion</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{overall}%</span>
+          </div>
+          <Bar value={overall} color={AI_GOLD}/>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:5}}>Phase {ini.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[ini.phaseIndex]?.name} · {ini.phaseArtifactsDone}/{AC_PHASES[ini.phaseIndex]?.deliverables.length} artifacts</div>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginTop:14}}>
+        {owners.map(([l,v])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px"}}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{v}</div>
+        </div>)}
+      </div>
+      {ini.blockedBy&&<div style={{marginTop:12,background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+        <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Current blocker:</strong> {ini.blockedBy}</span>
+        <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginLeft:"auto",background:T.red+"14",border:`1px solid ${T.red}40`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Trace in Risk Center →</button>
+      </div>}
+    </Card>
+    {(()=>{const L=PLAYBOOK_LENS[role]||PLAYBOOK_LENS.caio;const g=activePhase<=4?L.phaseGuidance.early:activePhase<=8?L.phaseGuidance.mid:L.phaseGuidance.late;
+      return <Card style={{padding:"13px 16px",marginBottom:12,border:`1px solid ${rc}35`,background:`linear-gradient(135deg,${rc}0d,${T.s1})`}}>
+        <div style={{display:"flex",gap:10,alignItems:"baseline",flexWrap:"wrap"}}>
+          <span style={{fontSize:10,fontWeight:900,color:rc,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em"}}>{L.title}</span>
+          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{L.angle}</span>
+        </div>
+        <p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6,margin:"7px 0 0"}}>{g}</p>
+      </Card>;})()}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+      {[["Expected value",ini.expected,AI_GOLD],["Realized to date",ini.actual,T.green],["ROI",ini.roi,T.blue],["Productivity",ini.productivity,T.violet],["Adoption",`${ini.adoption}%`,T.amber],["Business value score",`${ini.valueScore}%`,T.green]].map(([l,v,c])=>
+        <Card key={l} onClick={()=>gotoAC("initiatives")} title="Open in AI Central" style={{padding:13,cursor:"pointer"}}>
+          <div style={{fontSize:8.5,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:900,fontFamily:F.m,marginBottom:6}}>{l}</div>
+          <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+        </Card>)}
+    </div>
+    <Card style={{padding:16,marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Implementation phases</h3>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Lifecycle owned by AI Central · every phase generates artifacts, evidence and approvals</span>
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14}}>
+        {AC_PHASES.map((p2,idx)=>{
+          const c=idx<ini.phaseIndex?T.green:idx===ini.phaseIndex?AI_GOLD:T.ink4;
+          const active=activePhase===idx;
+          return <button key={p2.id} onClick={()=>setActivePhase(idx)} style={{display:"flex",alignItems:"center",gap:5,background:active?c+"1c":T.s2,border:`1px solid ${active?c+"55":T.border}`,borderRadius:7,padding:"5px 9px",cursor:"pointer"}}>
+            <span style={{width:14,height:14,borderRadius:"50%",background:idx<ini.phaseIndex?T.green:"transparent",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#fff",fontWeight:900}}>{idx<ini.phaseIndex?"✓":""}</span>
+            <span style={{fontSize:9.5,fontWeight:800,fontFamily:F.b,color:active?c:T.ink3}}>{idx+1}. {p2.name}</span>
+          </button>;
+        })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:14}}>
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div style={{fontSize:13,fontWeight:800,color:phC,fontFamily:F.b}}>{ph.name} - {phaseDone(activePhase)}% complete</div>
+            <Tag label={activePhase<ini.phaseIndex?"Complete":activePhase===ini.phaseIndex?"In progress":"Not started"} color={phC} bg={phC+"16"}/>
+          </div>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>{ph.objective}</p>
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Tasks & deliverables</div>
+          <div style={{display:"grid",gap:6}}>
+            {ph.deliverables.map((d,di)=>{
+              const done=activePhase<ini.phaseIndex||(activePhase===ini.phaseIndex&&di<ini.phaseArtifactsDone);
+              const isApproval=/approval|decision|sign-off/i.test(d);
+              return <div key={d} style={{display:"flex",gap:9,alignItems:"center",background:T.s2,border:`1px solid ${done?T.green+"35":T.border}`,borderRadius:8,padding:"8px 11px"}}>
+                <span style={{width:15,height:15,borderRadius:4,background:done?T.green:"transparent",border:`2px solid ${done?T.green:T.ink4}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:900,flexShrink:0}}>{done?"✓":""}</span>
+                <span style={{fontSize:11,color:done?T.ink:T.ink2,fontFamily:F.b,fontWeight:done?700:500,flex:1}}>{d}</span>
+                {isApproval&&<Tag label="Approval gate" color={T.amber} bg={T.amberL}/>}
+                {done?<button onClick={()=>gotoAC("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Evidence →</button>
+                :<span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Pending</span>}
+              </div>;
+            })}
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Responsibilities (RACI)</div>
+          <div style={{display:"grid",gap:6,marginBottom:12}}>
+            {[["Responsible",ph.raci.responsible,T.blue],["Accountable",ph.raci.accountable,AI_GOLD],["Consulted",ph.raci.consulted,T.violet],["Informed",ph.raci.informed,T.ink3]].map(([l,v,c])=>
+              <div key={l} style={{display:"flex",justifyContent:"space-between",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px"}}>
+                <span style={{fontSize:10,color:c,fontFamily:F.b,fontWeight:800}}>{l}</span>
+                <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:600}}>{v}</span>
+              </div>)}
+          </div>
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Inherited policies & controls</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
+            {ini.policies.map(pl=><Tag key={pl} label={pl} color={T.violet} bg={T.violet+"12"}/>)}
+            {ini.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.blue+"12",border:`1px solid ${T.blue}40`,borderRadius:6,padding:"2px 8px",color:T.blue,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
+          </div>
+          {activePhase===4&&<div style={{background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+            <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Governance-phase assessments</div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:7}}>The VerisZone engine cascade (AiOA → AiIA → AiRA → AiSA → AiPA → AiCA → AiGA → AiRT) runs automatically for this initiative.</div>
+            <button onClick={()=>setTab&&setTab("aiia")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open the assessment cascade →</button>
+          </div>}
+          <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Project risks - Risk Center register</div>
+          <div style={{display:"grid",gap:6}}>
+            {risks.slice(0,3).map(r=><button key={r.id} onClick={()=>setTab&&setTab("riskcenter")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:600}}>{r.id} · {r.title}</span>
+              <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
+            </button>)}
+            {risks.length===0&&<span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>No risks registered for this project.</span>}
+          </div>
+        </div>
+      </div>
+    </Card>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>AI recommendation for this project</div>
+        <p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.7,margin:"0 0 10px"}}>
+          {ini.blockedBy
+            ?`Progression to ${AC_PHASES[ini.phaseIndex+1]?.name||"the next phase"} is blocked: ${ini.blockedBy}. Resolve this artifact first - it gates ${ini.expected} of expected value. `
+            :`No blockers. Complete the remaining ${AC_PHASES[ini.phaseIndex].deliverables.length-ini.phaseArtifactsDone} artifact(s) in ${AC_PHASES[ini.phaseIndex].name} to advance. `}
+          {risks.find(r=>r.aiRecommendation)?risks.find(r=>r.aiRecommendation).aiRecommendation:""}
+        </p>
+        <button onClick={()=>gotoAC("initiatives")} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Act in AI Central →</button>
+      </Card>
+      <Card style={{padding:16}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Lessons from previous projects</div>
+        <div style={{display:"grid",gap:7}}>
+          {lessons.map(l=><div key={l.from} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px"}}>
+            <div style={{fontSize:10,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:2}}>{l.from} <span style={{color:T.ink4,fontWeight:500}}>· {l.unit}</span></div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55}}>{l.text}</div>
+          </div>)}
+        </div>
+      </Card>
+    </div>
+    </>}
+  </div>;
+}
+
+function PlaybookRunbooks({role,setTab,showToast}) {
   const [executed,setExecuted]=useState({});
   const rc=RC(role), rcL=RCL(role), tasks=PLAYBOOK[role]||[];
   const [selIdx,setSelIdx]=useState(0);
@@ -2844,7 +3082,7 @@ function PagePlaybook({role,setTab,showToast}) {
   </div>;
 }
 /* Section */
-function PageCompliance({role,setTab,setAiCentralView}) {
+function CompliancePosture({role,setTab,setAiCentralView}) {
   const [openStd,setOpenStd]=useState(null);
   const goto=link=>{
     if(!link)return;
@@ -2906,6 +3144,40 @@ function PageCompliance({role,setTab,setAiCentralView}) {
 }
 
 /* Section */
+/* ── Compliance & Standards: one surface for every framework, control,
+   template, checklist and trust artifact. One control, many frameworks -
+   owned here, referenced everywhere else. */
+function PageComplianceStandards({role,tab,setTab,setAiCentralView,showToast}){
+  const LEGACY={compliance:"posture",checklists:"checklists",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",templates:"templates",controls:"controls",trustcenter:"trust",knowledge:"search"};
+  const FW_LEGACY={impl:"impl",iso27001:"iso27001",scope:"scope",gapanalysis:"gap",aigov:"cube"};
+  const [cTab,setCTab]=useState(LEGACY[tab]||"posture");
+  const [fw,setFw]=useState(FW_LEGACY[tab]||"impl");
+  const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["templates","Templates"],["checklists","Checklists"],["trust","Trust Center"]];
+  const FWS=[["impl","ISO 42001 Implementation"],["iso27001","ISO 27001 Workspace"],["scope","ISMS Scope"],["gap","Gap Analysis"],["cube","Framework Compare"]];
+  const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
+  return <div style={{animation:"up .3s ease"}}>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+      {TABS.map(([id,label])=><button key={id} onClick={()=>setCTab(id)} style={chip(cTab===id,T.blue)}>{label}</button>)}
+    </div>
+    {cTab==="posture"&&<CompliancePosture role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
+    {cTab==="search"&&<PageKnowledge role={role} setTab={setTab} showToast={showToast}/>}
+    {cTab==="frameworks"&&<div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+        {FWS.map(([id,label])=><button key={id} onClick={()=>setFw(id)} style={chip(fw===id,AI_GOLD)}>{label}</button>)}
+      </div>
+      {fw==="impl"&&<PageImpl role={role}/>}
+      {fw==="iso27001"&&<PageISO27001 role={role} showToast={showToast}/>}
+      {fw==="scope"&&<PageScope role={role}/>}
+      {fw==="gap"&&<PageGapAnalysis role={role} showToast={showToast}/>}
+      {fw==="cube"&&<PageAIGovCube role={role} setTab={setTab}/>}
+    </div>}
+    {cTab==="controls"&&<PageCommonControls role={role}/>}
+    {cTab==="templates"&&<PageTemplates role={role} showToast={showToast}/>}
+    {cTab==="checklists"&&<PageChecklists role={role} showToast={showToast}/>}
+    {cTab==="trust"&&<PageTrustCenter role={role} showToast={showToast}/>}
+  </div>;
+}
+
 function PageChecklists({role,showToast}) {
   const rc=RC(role);
   const available=CHECKLISTS_MAP[role]||[{key:"iso42001",label:"ISO 42001",data:ISO42001_CHECKLIST}];
@@ -3023,227 +3295,311 @@ function PageHITL({role,showToast,onCountChange}) {
 }
 
 /* Section */
-function PageAIA({role}) {
-  const rc=RC(role);
-  const [selId,setSelId]=useState(AIA_DATA[0].id);
-  const sel=AIA_DATA.find(a=>a.id===selId)||AIA_DATA[0];
-  const levelColor=l=>l==="High"?T.red:l==="Medium"?T.amber:T.green;
-  const levelBg=l=>l==="High"?T.redL:l==="Medium"?T.amberL:T.greenL;
-  const overallColor=r=>r==="Unacceptable"?T.red:r==="High"?T.amber:r==="Medium"?T.blue:T.green;
-  return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Impact Assessment (AIA)" sub="Structured 6-part assessment per ISO 42001 C.8.2 and EU AI Act Art.9. Based on your uploaded AIA template."/>
-    <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-      {AIA_DATA.map(a=><button key={a.id} onClick={()=>setSelId(a.id)} style={{background:selId===a.id?rc:T.s2,color:selId===a.id?"#fff":T.ink3,border:`1px solid ${selId===a.id?rc:T.border}`,borderRadius:6,padding:"6px 14px",fontSize:10,fontWeight:600,fontFamily:F.b,transition:"all .15s"}}>{a.system}</button>)}
-    </div>
-    {/* Header */}
-    <Card style={{overflow:"hidden",marginBottom:12,boxShadow:`0 0 24px ${overallColor(sel.overallRisk)}10`}}>
-      <div style={{background:`linear-gradient(135deg,${overallColor(sel.overallRisk)}20,${T.s2})`,borderBottom:`1px solid ${overallColor(sel.overallRisk)}30`,padding:"15px 18px"}}>
-        <div style={{display:"flex",gap:7,marginBottom:9,flexWrap:"wrap"}}>
-          <Tag label={sel.overallRisk==="Unacceptable"?"Unacceptable Risk":sel.overallRisk+" Risk"} color={overallColor(sel.overallRisk)} bg={overallColor(sel.overallRisk)+"20"}/>
-          <Tag label={sel.decision} color={sel.decision==="Rejected"?T.red:sel.decision==="Approved"?T.green:T.amber} bg={sel.decision==="Rejected"?T.redL:sel.decision==="Approved"?T.greenL:T.amberL}/>
-          <Tag label={sel.clause} color={T.ink3} bg={T.ink5}/>
-        </div>
-        <h2 style={{fontFamily:F.h,fontSize:18,fontWeight:700,color:T.ink,marginBottom:4}}>{sel.system}</h2>
-        <p style={{fontSize:11,color:T.ink3,fontFamily:F.m}}>{sel.vendor} - {sel.dept} - {sel.date}</p>
-      </div>
-      <div style={{padding:"12px 18px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:0}}>
-        {[["Owner",sel.owner,T.ink2],["Status",sel.status,rc],["Decision Type",sel.decisionType,T.ink2]].map(([l,v,c])=><div key={l} style={{padding:"6px 12px",borderRight:l!=="Decision Type"?`1px solid ${T.border}`:"none"}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>{l}</div>
-          <div style={{fontSize:11,fontWeight:600,color:c,fontFamily:F.b}}>{v}</div>
-        </div>)}
-      </div>
+/* The VerisZone governance engine cascade - proprietary engines that
+   run automatically for every AI initiative. Users see outcomes; the
+   engines power dashboards, assessments and recommendations. */
+function RiskAssessmentCascade({setTab,setAiCentralView}){
+  const [selId,setSelId]=useState(acInitiatives[0].id);
+  const ini=acInitiatives.find(i=>i.id===selId)||acInitiatives[0];
+  const outcomes=acAssessments[selId]||[];
+  const stC=st=>st==="Complete"?T.green:st==="In Progress"?T.amber:T.ink4;
+  const drillTo=d=>{
+    if(d.surface==="compliance")setTab&&setTab("compliance");
+    else if(d.surface==="aicentral"){setAiCentralView&&setAiCentralView("governance");setTab&&setTab("aicentral");}
+    /* riskcenter drills stay on this surface - the register/treatments tabs hold the detail */
+  };
+  return <div>
+    <Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>Initiative</span>
+      {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={{background:selId===i.id?AI_GOLD+"20":T.s2,border:`1px solid ${selId===i.id?AI_GOLD+"55":T.border}`,color:selId===i.id?AI_GOLD:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{i.name}</button>)}
+      <span style={{marginLeft:"auto",fontSize:9,color:T.ink4,fontFamily:F.m}}>VerisZone proprietary governance engines · run automatically per initiative</span>
     </Card>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:12}}>
-      {/* Part 1: System Profile */}
-      <Card style={{padding:16}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 1 - System Profile</div>
-        {[["Status",sel.status],["Decision Type",sel.decisionType],["Lifespan",sel.lifespan]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.04em"}}>{l}</span>
-          <span style={{fontSize:11,color:T.ink,fontFamily:F.b}}>{v}</span>
-        </div>)}
-      </Card>
-      {/* Part 2: Data Audit */}
-      <Card style={{padding:16}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 2 - Data Audit</div>
-        {[["PII Processed",sel.data.pii],["Sensitive Categories",sel.data.sensitive],["Data Provenance Verified",sel.data.provenance],["Bias Check Done",sel.data.biasCheck],["Data Minimisation",sel.data.minimization]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`,alignItems:"center"}}>
-          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.04em"}}>{l}</span>
-          <Tag label={v?"Yes":"No"} color={v?T.amber:T.green} bg={v?T.amberL:T.greenL}/>
-        </div>)}
-      </Card>
-      {/* Part 3: Rights Impact */}
-      <Card style={{padding:16,gridColumn:"1/-1"}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:12}}>Part 3 - Fundamental Rights Impact (FRIA)</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:10}}>
-          {sel.rightsImpact.map((r,i)=><div key={i} style={{background:T.s3,border:`1px solid ${levelColor(r.level)}25`,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${levelColor(r.level)}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b}}>{r.right}</span>
-              <Tag label={r.level} color={levelColor(r.level)} bg={levelBg(r.level)}/>
+    <div style={{display:"grid",gap:8}}>
+      {AI_GOV_ENGINES.map((e,idx)=>{
+        const o=outcomes.find(x=>x.engine===e.code);
+        if(!o)return null;
+        const c=stC(o.status);
+        const scoreCol=o.score>=80?T.green:o.score>=60?T.amber:T.red;
+        return <div key={e.code}>
+          <Card style={{padding:"13px 15px",border:`1px solid ${c}30`}}>
+            <div style={{display:"grid",gridTemplateColumns:"64px 1.2fr 2fr auto",gap:14,alignItems:"center"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:13,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{e.code}</div>
+                <div style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:scoreCol,marginTop:3}}>{o.score}</div>
+              </div>
+              <div>
+                <div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{e.name}</div>
+                <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:2}}>{e.question}</div>
+                <div style={{marginTop:5,display:"flex",gap:6,alignItems:"center"}}><STag s={o.status}/><span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>Owner: {e.owner}</span></div>
+              </div>
+              <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>{o.outcome}</div>
+              <button onClick={()=>drillTo(o.drill)} title={o.drill.hint} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 11px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{o.drill.hint} →</button>
             </div>
-            <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{r.desc}</p>
-          </div>)}
-        </div>
-      </Card>
-      {/* Part 4: Technical */}
-      <Card style={{padding:16}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 4 - Technical Reliability</div>
-        {sel.technical.map((t,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"8px 0",borderBottom:i<sel.technical.length-1?`1px solid ${T.border}`:"none"}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.dim}</div>
-            <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{t.metric}</span>
-          </div>
-          <Tag label={t.pass?"Pass":"Fail"} color={t.pass?T.green:T.red} bg={t.pass?T.greenL:T.redL}/>
-        </div>)}
-      </Card>
-      {/* Part 5: Controls */}
-      <Card style={{padding:16}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>Part 5 - Governance Controls</div>
-        {sel.controls.map((c,i)=><div key={i} style={{padding:"8px 0",borderBottom:i<sel.controls.length-1?`1px solid ${T.border}`:"none"}}>
-          <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{c.measure}</div>
-          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55,margin:0}}>{c.detail}</p>
-        </div>)}
-      </Card>
-      {/* Part 6: Decision */}
-      <Card style={{padding:16,border:`1px solid ${overallColor(sel.overallRisk)}30`}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:F.m,marginBottom:12}}>Part 6 - Final Determination</div>
-        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-          <Tag label={`Overall Risk: ${sel.overallRisk}`} color={overallColor(sel.overallRisk)} bg={overallColor(sel.overallRisk)+"15"}/>
-          <Tag label={sel.decision} color={sel.decision==="Rejected"?T.red:sel.decision==="Approved"?T.green:T.amber} bg={sel.decision==="Rejected"?T.redL:sel.decision==="Approved"?T.greenL:T.amberL}/>
-        </div>
-        {sel.decision==="Rejected"&&<div style={{background:T.redL,border:`1px solid ${T.red}30`,borderRadius:7,padding:"10px 12px",marginBottom:12}}>
-          <p style={{fontSize:11,color:T.red,fontFamily:F.b,margin:0,lineHeight:1.6}}>This system was rejected. Risk to fundamental rights is too high to proceed. Refer to Part 3 FRIA for details.</p>
-        </div>}
-        {sel.decision==="Approved with Conditions"&&<div style={{background:T.amberL,border:`1px solid ${T.amber}30`,borderRadius:7,padding:"10px 12px",marginBottom:12}}>
-          <p style={{fontSize:11,color:T.amber,fontFamily:F.b,margin:0,lineHeight:1.6}}>Conditional approval. All Part 5 mitigations must be active before deployment proceeds.</p>
-        </div>}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-          {[["AI System Owner",sel.owner],["Legal / DPO","Pending"],["Chief AI Officer","Aisha Patel"]].map(([role2,name])=><div key={role2} style={{background:T.s3,borderRadius:7,padding:"9px 10px",border:`1px solid ${T.border}`}}>
-            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>{role2}</div>
-            <div style={{fontSize:11,color:T.ink,fontFamily:F.b,marginBottom:4}}>{name}</div>
-            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Signature pending</div>
-          </div>)}
-        </div>
-      </Card>
+          </Card>
+          {idx<AI_GOV_ENGINES.length-1&&<div style={{textAlign:"center",fontSize:11,color:T.ink4,lineHeight:1,padding:"2px 0"}}>↓</div>}
+        </div>;
+      })}
     </div>
+    {ini.blockedBy&&<div style={{marginTop:10,background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Cascade blocker:</strong> {ini.blockedBy}</div>}
   </div>;
 }
 
-/* Section */
-function PageAIRA() {
-  const [sel,setSel]=useState(AIRA[0]);
-  const rColor=s=>s==="Critical"?T.red:s==="High"?T.amber:s==="Medium"?T.blue:T.green;
+/* ── Risk Center: system of record for every AI risk ──────────────
+   Owned once, viewed many times - the initiative Risks tab, dashboards
+   and reports render filtered views of this register. Every risk drills
+   back to its initiative, executive, controls, frameworks and treatment. */
+function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
+  const RC_LEGACY={riskcenter:"register",aira:"register",airt:"treatments",aia:"assessments",aiia:"assessments"};
+  const [rcTab,setRcTab]=useState(RC_LEGACY[tab]||"register");
+  const [dimBy,setDimBy]=useState("Enterprise");
+  const [dimVal,setDimVal]=useState("All");
+  const [sel,setSel]=useState(riskRegister[0]);
+  const [cell,setCell]=useState(null);
+  const [bumped,setBumped]=useState({});
+  const lvColor=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  const initOf=r=>r.initiativeId?acInitiatives.find(i=>i.id===r.initiativeId):null;
+  const openInitiative=()=>{setAiCentralView&&setAiCentralView("initiatives");setTab&&setTab("aicentral");};
+  const FW_FAMILIES=["ISO 42001","ISO 27001","EU AI Act","GDPR","NIST AI RMF","SOX","OWASP"];
+  const dimValues=dimBy==="Business Unit"?[...new Set(riskRegister.map(r=>r.unit))]
+    :dimBy==="Project"?acInitiatives.filter(i=>riskRegister.some(r=>r.initiativeId===i.id)).map(i=>i.name)
+    :dimBy==="Executive"?[...new Set(riskRegister.map(r=>r.execOwner))]
+    :dimBy==="Model"?[...new Set(riskRegister.map(r=>r.system))]
+    :dimBy==="Framework"?FW_FAMILIES.filter(fw=>riskRegister.some(r=>r.frameworks.some(f=>f.startsWith(fw))))
+    :[];
+  const matchDim=r=>{
+    if(dimBy==="Enterprise"||dimVal==="All")return true;
+    if(dimBy==="Business Unit")return r.unit===dimVal;
+    if(dimBy==="Project"){const ini=initOf(r);return (ini&&ini.name)===dimVal;}
+    if(dimBy==="Executive")return r.execOwner===dimVal;
+    if(dimBy==="Model")return r.system===dimVal;
+    if(dimBy==="Framework")return r.frameworks.some(f=>f.startsWith(dimVal));
+    return true;
+  };
+  const rows=riskRegister.filter(matchDim);
+  const effT=r=>bumped[r.id]||r.treatment.status;
+  const advance=r=>{
+    const cur=effT(r);
+    if(cur==="Complete")return;
+    const next=cur==="Planned"?"In Progress":"Complete";
+    setBumped(prev=>({...prev,[r.id]:next}));
+    try{
+      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
+      const ini=initOf(r);
+      list.unshift({item:`Treatment update: ${r.id} ${r.title} -> ${next}`,initiative:ini?ini.name:r.unit,scope:ini?"Project":"Enterprise",control:`Risk Center - ISO 42001 C.8.3 (${r.controls.join(", ")})`,risk:r.category,owner:r.treatment.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
+    }catch{/* ignore */}
+    showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
+  };
+  const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;
+  const openCritHigh=riskRegister.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
+  const inProg=riskRegister.filter(r=>effT(r)==="In Progress").length;
+  const breaching=kriRegister.filter(kriBreach).length;
+  const kpis=[
+    ["Risks on register",riskRegister.length,T.blue,"register"],
+    ["Critical / high open",openCritHigh,T.red,"heatmap"],
+    ["Treatments in progress",inProg,T.violet,"treatments"],
+    ["KRIs breaching",breaching,T.amber,"kris"],
+  ];
+  const TABS=[["register","Risk Register"],["assessments","Assessments"],["heatmap","Heat Map"],["treatments","Treatments"],["residual","Residual & Trends"],["kris","KRIs"],["drift","Risk Drift"]];
+  const Dots=({n,color})=><div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(x=><div key={x} style={{width:7,height:7,borderRadius:2,background:x<=n?color:T.border}}/>)}</div>;
+  const detail=sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${lvColor(sel.level)}10`,animation:"fade .25s ease"}}>
+    <div style={{background:`linear-gradient(135deg,${lvColor(sel.level)}18,${T.s3})`,borderBottom:`1px solid ${lvColor(sel.level)}30`,padding:"14px 16px"}}>
+      <div style={{display:"flex",gap:7,alignItems:"center"}}><Tag label={sel.level} color={lvColor(sel.level)} bg={lvColor(sel.level)+"20"}/><STag s={sel.status}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:"auto"}}>{sel.id}</span></div>
+      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.title}</h3>
+      <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:3}}>{sel.system}</p>
+    </div>
+    <div style={{padding:16}}>
+      <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:12}}>{sel.desc}</p>
+      {[["Category",sel.category],["Business unit",sel.unit],["Executive owner",sel.execOwner],["Risk owner",sel.riskOwner],["Inherent score",`${sel.likelihood*sel.impact}/25`],["Residual score",`${sel.residual}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
+        <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:170}}>{v}</span>
+      </div>)}
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"11px 0 0"}}>
+        {sel.frameworks.map(f=><Tag key={f} label={f} color={T.blue} bg={T.blue+"14"}/>)}
+        {sel.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.violet+"14",border:`1px solid ${T.violet}40`,borderRadius:6,padding:"2px 8px",color:T.violet,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
+      </div>
+      <div style={{marginTop:13,background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${T.violet}`}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Treatment - {sel.treatment.strategy} · {sel.treatment.owner} · due {sel.treatment.deadline}</div>
+        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.treatment.action}</p>
+      </div>
+      <div style={{marginTop:10,background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px"}}>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>AI recommendation</div>
+        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.aiRecommendation}</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:initOf(sel)?"1fr 1fr":"1fr",gap:8,marginTop:12}}>
+        <button onClick={()=>{setRcTab("treatments");}} style={{background:T.violet,border:"none",borderRadius:7,padding:"9px",color:"#fff",fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{effT(sel)==="Complete"?"Treatment complete":"Manage treatment"}</button>
+        {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open initiative →</button>}
+      </div>
+    </div>
+  </Card>;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Risk Assessment Register (AIRA)" sub="ISO 42001 Clause 8.2"/>
-    <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
+    <SHead title="Risk Center" sub="The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+      {kpis.map(([l,v,c,t])=><Card key={l} onClick={()=>setRcTab(t)} style={{padding:14,cursor:"pointer"}}>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c}}><CountUp value={v}/></div>
+      </Card>)}
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+      {TABS.map(([id,label])=><button key={id} onClick={()=>setRcTab(id)} style={{background:rcTab===id?T.red+"18":T.s2,border:`1px solid ${rcTab===id?T.red+"50":T.border}`,color:rcTab===id?T.red:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
+    </div>
+    {(rcTab==="register"||rcTab==="heatmap")&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>View by</span>
+      {["Enterprise","Business Unit","Project","Executive","Model","Framework"].map(d=><button key={d} onClick={()=>{setDimBy(d);setDimVal("All");}} style={{background:dimBy===d?T.blue+"18":T.s2,border:`1px solid ${dimBy===d?T.blue+"50":T.border}`,color:dimBy===d?T.blue:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{d}</button>)}
+      {dimValues.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",borderLeft:`1px solid ${T.border}`,paddingLeft:10}}>
+        {["All",...dimValues].map(v=><button key={v} onClick={()=>setDimVal(v)} style={{background:dimVal===v?AI_GOLD+"20":T.s2,border:`1px solid ${dimVal===v?AI_GOLD+"55":T.border}`,color:dimVal===v?AI_GOLD:T.ink3,borderRadius:7,padding:"4px 9px",fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{v}</button>)}
+      </div>}
+      <Tag label={`${rows.length} risks`} color={T.red} bg={T.red+"14"}/>
+    </Card>}
+    {rcTab==="register"&&<div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
       <div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 60px 60px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["AI System","Category","L","I","Score"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+          {["Risk","Initiative / Unit","L","I","Residual"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
         </div>
         <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-          {AIRA.map((r,i)=>{
-            const rc2=rColor(r.level);
-            return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<AIRA.length-1?`1px solid ${T.border}`:"none",background:sel?.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===r.id?`3px solid ${rc2}`:"3px solid transparent",transition:"all .15s"}}>
+          {rows.map((r,i)=>{
+            const c=lvColor(r.level);const ini=initOf(r);
+            return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",background:sel&&sel.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel&&sel.id===r.id?`3px solid ${c}`:"3px solid transparent",transition:"all .15s"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.system}</div>
-                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.owner}</span>
+                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
+                <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.id} · {r.riskOwner}</span>
               </div>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.category}</span>
-              <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(n=><div key={n} style={{width:7,height:7,borderRadius:2,background:n<=r.likelihood?T.amber:T.border}}/>)}</div>
-              <div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(n=><div key={n} style={{width:7,height:7,borderRadius:2,background:n<=r.impact?rc2:T.border}}/>)}</div>
+              <div>
+                <div style={{fontSize:10,color:ini?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:ini?800:500}}>{ini?ini.name:r.unit}</div>
+                <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{ini?"Initiative":"Enterprise"} · Exec: {r.execOwner}</span>
+              </div>
+              <Dots n={r.likelihood} color={T.amber}/>
+              <Dots n={r.impact} color={c}/>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:rc2}}>{r.score}</span>
-                <Tag label={r.level} color={rc2} bg={rc2+"18"}/>
+                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:c}}>{r.residual}</span>
+                <Tag label={r.level} color={c} bg={c+"18"}/>
               </div>
             </div>;
           })}
         </div>
       </div>
-      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${rColor(sel.level)}10`,animation:"fade .25s ease"}}>
-        <div style={{background:`linear-gradient(135deg,${rColor(sel.level)}18,${T.s3})`,borderBottom:`1px solid ${rColor(sel.level)}30`,padding:"14px 16px"}}>
-          <Tag label={sel.level} color={rColor(sel.level)} bg={rColor(sel.level)+"20"}/>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.system}</h3>
+      {detail}
+    </div>}
+    {rcTab==="heatmap"&&<div style={{display:"grid",gridTemplateColumns:"minmax(0,420px) 1fr",gap:14}}>
+      <Card style={{padding:16}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>Inherent risk heat map</h3>
+        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Click a cell to see the risks behind it. Rows are impact, columns likelihood.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
+          {[5,4,3,2,1].map(imp=>[1,2,3,4,5].map(lik=>{
+            const cellRisks=rows.filter(r=>r.likelihood===lik&&r.impact===imp);
+            const sc=lik*imp;
+            const bg=sc>=16?T.red:sc>=10?T.amber:sc>=5?T.blue:T.green;
+            const active=cell&&cell.l===lik&&cell.i===imp;
+            return <button key={`${imp}-${lik}`} onClick={()=>setCell(active?null:{l:lik,i:imp})} style={{height:52,borderRadius:6,background:active?bg:bg+(cellRisks.length?"45":"18"),border:active?`2px solid ${bg}`:`1px solid ${bg}30`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:900,fontFamily:F.m,color:active?"#fff":cellRisks.length?T.ink:"transparent"}}>{cellRisks.length||0}</button>;
+          }))}
         </div>
-        <div style={{padding:16}}>
-          <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:14}}>{sel.desc}</p>
-          {[["ISO/Regulatory Reference",sel.clause],["Risk Category",sel.category],["Owner",sel.owner],["Likelihood",`${sel.likelihood}/5`],["Impact",`${sel.impact}/5`],["Risk Score",`${sel.score}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-            <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:160}}>{v}</span>
-          </div>)}
-          {/* Heatmap */}
-          <div style={{marginTop:14}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Risk Heatmap</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
-              {[5,4,3,2,1].map(impact=>[1,2,3,4,5].map(likelihood=>{
-                const s=likelihood*impact;
-                const isThis=likelihood===sel.likelihood&&impact===sel.impact;
-                const bg=s>=16?T.red:s>=10?T.amber:s>=5?T.blue:T.green;
-                return <div key={`${impact}-${likelihood}`} style={{height:18,borderRadius:3,background:isThis?bg:bg+"25",border:isThis?`2px solid ${bg}`:"none",transition:"all .15s"}}/>;
-              }))}
-            </div>
-          </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>← lower likelihood</span>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>higher likelihood →</span>
         </div>
-      </Card>}
-    </div>
-  </div>;
-}
-
-/* Section */
-function PageAIRT({showToast}) {
-  const [sel,setSel]=useState(AIRT[0]);
-  const [bumped,setBumped]=useState({});
-  const effStatus=t=>bumped[t.id]||t.status;
-  const advance=()=>{
-    const cur=effStatus(sel);
-    const next=cur==="Planned"?"In Progress":cur==="In Progress"?"Complete":"Complete";
-    if(cur==="Complete")return;
-    setBumped({...bumped,[sel.id]:next});
-    try{
-      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-      list.unshift({item:`Treatment update: ${sel.system} -> ${next}`,initiative:sel.system,scope:"Project",control:"AIRT - ISO 42001 C.8.3",risk:sel.risk,owner:sel.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-    }catch{/* ignore */}
-    showToast&&showToast(`Treatment plan updated: ${next} - evidence recorded`);
-  };
-  return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Risk Treatment Register (AIRT)" sub="ISO 42001 Clause 8.3"/>
-    <div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
-      <div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 90px 100px 90px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["AI System","Treatment","Owner","Deadline","Status"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+      </Card>
+      <Card style={{padding:16}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>{cell?`Risks at likelihood ${cell.l} × impact ${cell.i}`:"All risks in view"}</h3>
+        <div style={{display:"grid",gap:8}}>
+          {(cell?rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i):rows).map(r=>{
+            const c=lvColor(r.level);const ini=initOf(r);
+            return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+              <div><div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r.title}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{ini?ini.name:r.unit} · {r.category}</div></div>
+              <Tag label={r.level} color={c} bg={c+"16"}/>
+              <button onClick={()=>{setSel(r);setRcTab("register");}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 10px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open →</button>
+            </div>;
+          })}
+          {cell&&rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i).length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No risks sit in this cell - the register has nothing at this likelihood and impact.</div>}
         </div>
-        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-          {AIRT.map((t,i)=><div key={t.id} onClick={()=>setSel(t)} style={{display:"grid",gridTemplateColumns:"2fr 90px 100px 90px 90px",padding:"10px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<AIRT.length-1?`1px solid ${T.border}`:"none",background:sel?.id===t.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===t.id?`3px solid ${T.violet}`:"3px solid transparent",transition:"all .15s"}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{t.system}</div>
-              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Risk: {t.risk}</span>
-            </div>
-            <STag s={t.treatment}/>
-            <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{t.owner}</span>
-            <span style={{fontSize:9,fontFamily:F.m,color:T.ink3}}>{t.deadline}</span>
-            <STag s={effStatus(t)}/>
-          </div>)}
-        </div>
+      </Card>
+    </div>}
+    {rcTab==="treatments"&&<div>
+      <div style={{display:"grid",gridTemplateColumns:"1.6fr 90px 1fr 90px 110px 150px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
+        {["Risk","Strategy","Owner / deadline","Priority","Status","Action"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
       </div>
-      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 24px ${T.violet}10`,animation:"fade .25s ease"}}>
-        <div style={{background:`linear-gradient(135deg,${T.violetL},${T.s3})`,borderBottom:`1px solid ${T.violet}30`,padding:"14px 16px"}}>
-          <div style={{display:"flex",gap:7,marginBottom:9}}><STag s={sel.treatment}/><PTag p={sel.priority}/></div>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3}}>{sel.system}</h3>
-          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>Risk: {sel.risk}</p>
+      <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+        {riskRegister.map((r,i)=>{
+          const st=effT(r);
+          return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1.6fr 90px 1fr 90px 110px 150px",padding:"10px 12px",alignItems:"center",borderBottom:i<riskRegister.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.id} · {r.system}</span>
+            </div>
+            <STag s={r.treatment.strategy}/>
+            <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.treatment.owner}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>due {r.treatment.deadline}</span></div>
+            <PTag p={r.treatment.priority}/>
+            <STag s={st}/>
+            <button onClick={()=>advance(r)} disabled={st==="Complete"} style={{background:st==="Complete"?T.s3:T.violet,color:st==="Complete"?T.green:"#fff",border:st==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"7px 8px",fontSize:9.5,fontWeight:700,fontFamily:F.b,cursor:st==="Complete"?"default":"pointer"}}>{st==="Complete"?"Evidence recorded":st==="Planned"?"Start treatment":"Mark complete"}</button>
+          </div>;
+        })}
+      </div>
+    </div>}
+    {rcTab==="assessments"&&<RiskAssessmentCascade setTab={setTab} setAiCentralView={setAiCentralView}/>}
+    {rcTab==="residual"&&<div>
+      <Card style={{padding:16,marginBottom:12}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>Inherent vs residual by initiative</h3>
+        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>How far treatment has driven each initiative's exposure down. Click a row to open its risks.</p>
+        <div style={{display:"grid",gap:10}}>
+          {acInitiatives.map(i=>{
+            const rs=riskRegister.filter(r=>r.initiativeId===i.id);
+            if(!rs.length)return null;
+            const inh=Math.max(...rs.map(r=>r.likelihood*r.impact));
+            const res=Math.max(...rs.map(r=>r.residual));
+            return <button key={i.id} onClick={()=>{setDimBy("Project");setDimVal(i.name);setRcTab("register");}} style={{display:"grid",gridTemplateColumns:"180px 1fr 1fr 90px",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name}</span>
+              <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>INHERENT {inh}/25</div><Bar value={inh*4} color={T.red}/></div>
+              <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>RESIDUAL {res}/25</div><Bar value={res*4} color={res<=6?T.green:T.amber}/></div>
+              <Tag label={`-${inh-res} pts`} color={T.green} bg={T.greenL}/>
+            </button>;
+          })}
         </div>
-        <div style={{padding:16}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Treatment Action</div>
-          <p style={{fontSize:11,color:T.ink2,lineHeight:1.7,fontFamily:F.b,marginBottom:14,padding:"10px 12px",background:T.s3,borderRadius:7,borderLeft:`3px solid ${T.violet}`}}>{sel.action}</p>
-          {[["Owner",sel.owner],["Deadline",sel.deadline],["Status",effStatus(sel)],["Priority",sel.priority]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-            <span style={{fontSize:10,color:T.ink,fontFamily:F.m}}>{v}</span>
-          </div>)}
-          <button onClick={advance} disabled={effStatus(sel)==="Complete"} style={{width:"100%",marginTop:13,background:effStatus(sel)==="Complete"?T.s3:T.violet,color:effStatus(sel)==="Complete"?T.green:"#fff",border:effStatus(sel)==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b,cursor:effStatus(sel)==="Complete"?"default":"pointer"}}>{effStatus(sel)==="Complete"?"Treatment Complete - Evidence Recorded":effStatus(sel)==="Planned"?"Start Treatment (mark In Progress)":"Mark Treatment Complete"}</button>
+      </Card>
+      <Card style={{padding:16}}>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>Control effectiveness</h3>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:8}}>
+          {[...new Set(riskRegister.flatMap(r=>r.controls))].map(c=>{
+            const linked=riskRegister.filter(r=>r.controls.includes(c));
+            const done=linked.filter(r=>r.treatment.status==="Complete").length;
+            const eff=Math.round((done/linked.length)*100);
+            const col=eff>=70?T.green:eff>=40?T.amber:T.red;
+            return <button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontSize:10.5,fontWeight:800,color:T.ink,fontFamily:F.m}}>{c}</span>
+                <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:col}}>{eff}%</span>
+              </div>
+              <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginBottom:5}}>Covers {linked.map(r=>r.id).join(", ")} · {done}/{linked.length} treatments complete</div>
+              <Bar value={eff} color={col}/>
+            </button>;
+          })}
         </div>
-      </Card>}
-    </div>
+      </Card>
+    </div>}
+    {rcTab==="kris"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:10}}>
+      {kriRegister.map(k=>{
+        const breach=kriBreach(k);
+        const c=breach?T.red:T.green;
+        const ini=k.initiativeId?acInitiatives.find(i=>i.id===k.initiativeId):null;
+        const linked=riskRegister.filter(r=>r.kris.includes(k.id));
+        return <Card key={k.id} style={{padding:15,border:`1px solid ${c}30`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <Tag label={breach?"Breaching":"Within appetite"} color={c} bg={c+"16"}/>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{k.id} · trend {k.trend}</span>
+          </div>
+          <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{k.name}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:8}}>
+            <span style={{fontSize:24,fontWeight:900,fontFamily:F.m,color:c}}>{k.value}</span>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.unit} · threshold {k.direction==="above"?"≤":"≥"} {k.threshold}</span>
+          </div>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginBottom:10}}>Protects {k.framework}{linked.length>0&&` · watches ${linked.map(r=>r.id).join(", ")}`}</div>
+          {ini?<button onClick={openInitiative} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ini.name} →</button>
+          :<Tag label="Enterprise-level" color={T.blue} bg={T.blue+"14"}/>}
+        </Card>;
+      })}
+    </div>}
+    {rcTab==="drift"&&<PageAISpine mode="riskdrift" setTab={setTab}/>}
   </div>;
 }
 
-/* Section */
 function PageRoadmap({role,setTab,setAiCentralView}) {
   const gotoAC=m=>{setAiCentralView&&setAiCentralView(m);setTab&&setTab("aicentral");};
   const rc=RC(role), rcL=RCL(role), qs=ROADMAP[role]||ROADMAP.caio||[];
@@ -3649,6 +4005,72 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
 }
 
 /* Section */
+/* Generated reports - never built by hand. Filters scope what goes
+   into each generated pack; every download is real content derived
+   from the live registers. */
+function ReportsGenerator({showToast}){
+  const [bu,setBu]=useState("All");
+  const [fwF,setFwF]=useState("All");
+  const units=["All",...new Set(acInitiatives.map(i=>i.unit))];
+  const fws=["All","ISO 42001","ISO 27001","EU AI Act","GDPR","NIST AI RMF","SOX"];
+  const inis=acInitiatives.filter(i=>bu==="All"||i.unit===bu);
+  const risks=riskRegister.filter(r=>(bu==="All"||r.unit===bu)&&(fwF==="All"||r.frameworks.some(f=>f.startsWith(fwF))));
+  const chip=(active)=>({background:active?AI_GOLD+"20":T.s2,border:`1px solid ${active?AI_GOLD+"55":T.border}`,color:active?AI_GOLD:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"});
+  const boardPack=()=>{
+    const lines=["# Executive Board Pack - AI Portfolio","",`Scope: ${bu==="All"?"Enterprise":bu}${fwF==="All"?"":" · "+fwF}`,"","## Portfolio",""];
+    inis.forEach(i=>lines.push(`- **${i.name}** (${i.unit}) - ${i.lifecycle}, phase ${i.phaseIndex+1}/${AC_PHASES.length} ${AC_PHASES[i.phaseIndex]?.name}. Expected ${i.expected}, realized ${i.actual}, ROI ${i.roi}, adoption ${i.adoption}%.${i.blockedBy?" BLOCKED: "+i.blockedBy:""}`));
+    lines.push("","## Top risks","");
+    risks.slice(0,8).forEach(r=>lines.push(`- ${r.id} ${r.title} (${r.level}) - ${r.system}. Exec owner ${r.execOwner}. Treatment ${r.treatment.strategy}: ${r.treatment.status}.`));
+    lines.push("","## KRIs","");
+    kriRegister.forEach(k=>lines.push(`- ${k.name}: ${k.value} ${k.unit} (threshold ${k.threshold}, trend ${k.trend})`));
+    vzDownload(`board-pack-${bu==="All"?"enterprise":bu.toLowerCase().replace(/\s+/g,"-")}.md`,lines.join("\n"));
+    showToast&&showToast("Board pack generated from live portfolio and register data");
+  };
+  const auditPack=()=>{
+    const lines=["# Audit Pack - AI Governance","",`Scope: ${bu==="All"?"Enterprise":bu}${fwF==="All"?"":" · "+fwF}`,"","## Framework posture",""];
+    AC_FRAMEWORK_POSTURE.forEach(f=>lines.push(`- ${f.fw}: ${f.score}% (${f.state})`));
+    lines.push("","## Risk register extract","");
+    risks.forEach(r=>lines.push(`- ${r.id} | ${r.title} | ${r.level} | L${r.likelihood}xI${r.impact} residual ${r.residual} | controls ${r.controls.join("; ")} | frameworks ${r.frameworks.join("; ")}`));
+    lines.push("","## Lifecycle evidence","");
+    inis.forEach(i=>lines.push(`- ${i.name}: ${i.phaseArtifactsDone}/${AC_PHASES[i.phaseIndex]?.deliverables.length} artifacts complete in ${AC_PHASES[i.phaseIndex]?.name}; controls ${i.controls.join(", ")}`));
+    vzDownload(`audit-pack-${fwF==="All"?"all-frameworks":fwF.toLowerCase().replace(/\s+/g,"-")}.md`,lines.join("\n"));
+    showToast&&showToast("Audit pack generated - posture, register and evidence extract");
+  };
+  const riskCsv=()=>{
+    const head="id,title,system,category,initiative,unit,execOwner,riskOwner,likelihood,impact,residual,level,status,strategy,treatmentStatus,frameworks,controls";
+    const rows=risks.map(r=>[r.id,r.title,r.system,r.category,r.initiativeId||"",r.unit,r.execOwner,r.riskOwner,r.likelihood,r.impact,r.residual,r.level,r.status,r.treatment.strategy,r.treatment.status,r.frameworks.join("; "),r.controls.join("; ")].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(","));
+    vzDownload("risk-register.csv",[head,...rows].join("\n"));
+    showToast&&showToast(`Risk register exported - ${rows.length} records`);
+  };
+  const portfolioCsv=()=>{
+    const head="id,name,unit,category,lifecycle,phase,expected,actual,roi,adoption,valueScore,guardrail,blockedBy";
+    const rows=inis.map(i=>[i.id,i.name,i.unit,i.category,i.lifecycle,AC_PHASES[i.phaseIndex]?.name,i.expected,i.actual,i.roi,i.adoption,i.valueScore,i.guardrail,i.blockedBy||""].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(","));
+    vzDownload("ai-portfolio.csv",[head,...rows].join("\n"));
+    showToast&&showToast(`Portfolio exported - ${rows.length} initiatives`);
+  };
+  return <Card style={{padding:16,marginBottom:14,border:`1px solid ${AI_GOLD}30`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
+      <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Generated reports</h3>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Nothing built by hand - packs assemble from the live registers · {inis.length} initiatives, {risks.length} risks in scope</span>
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",alignSelf:"center"}}>Business unit</span>
+      {units.map(u=><button key={u} onClick={()=>setBu(u)} style={chip(bu===u)}>{u}</button>)}
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",alignSelf:"center"}}>Framework</span>
+      {fws.map(f2=><button key={f2} onClick={()=>setFwF(f2)} style={chip(fwF===f2)}>{f2}</button>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
+      {[["Executive Board Pack","Markdown - portfolio, risks, KRIs",boardPack],["Audit Pack","Markdown - posture, register, evidence",auditPack],["Risk Register","CSV - full treatment detail",riskCsv],["AI Portfolio","CSV - lifecycle and value",portfolioCsv]].map(([t2,d,fn])=>
+        <button key={t2} onClick={fn} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"12px 13px",cursor:"pointer",textAlign:"left"}}>
+          <div style={{fontSize:11.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b,marginBottom:3}}>{t2} ↓</div>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b}}>{d}</div>
+        </button>)}
+    </div>
+  </Card>;
+}
+
 function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}) {
   const rc=RC(role), rcL=RCL(role), K=KPI[role]||KPI.caio;
   const standards=STANDARDS_MAP[role]||[];
@@ -3663,7 +4085,8 @@ function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}) {
   const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
   const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Reports& Analytics" sub="Executive-ready compliance reporting and operational metrics."/>
+    <SHead title="Reports & Analytics" sub="Generated, filterable, executive-ready. Every number traces to the register or lifecycle that produced it."/>
+    <ReportsGenerator showToast={showToast}/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:16}}>
       {[{label:"Overall Compliance",value:`${K.compliance}%`,sub:`+${K.cTrend}% vs last month`,color:rc},
         {label:K.domainLabel,value:`${K.score}/100`,sub:K.scoreLabel,color:rc},
@@ -3785,7 +4208,33 @@ function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
     ["Avg. quiz score",seeded?"86%":"--",T.blue],
   ];
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Governance Academy" sub={`${R.label} learning path for AI governance, pilot readiness, approvals and audit evidence.`}/>
+    <SHead title="Governance Academy" sub={`${R.label} learning path for AI governance, pilot readiness, approvals and audit evidence. The Academy measures maturity - completion updates the Governance Score.`}/>
+    <Card style={{padding:16,marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Governance maturity - who understands AI</h3>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Learning completion feeds the Governance Score in AI Central</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:12}}>
+        {acCxoAlignment.slice(0,6).map(x=>{
+          const c=x.score>=80?T.green:x.score>=70?T.blue:T.amber;
+          return <div key={x.role} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+              <span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{x.role}</span>
+              <span style={{fontSize:14,fontWeight:900,fontFamily:F.m,color:c}}>{x.score}</span>
+            </div>
+            <Bar value={x.score} color={c}/>
+          </div>;
+        })}
+      </div>
+      <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Learning required - recommended from live project data</div>
+      <div style={{display:"grid",gap:7}}>
+        {acInitiatives.filter(i=>parseInt(i.training,10)<70).map(i=><div key={i.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+          <div><div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.unit} team - {i.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Only {i.training} trained · resistance {i.resistance.toLowerCase()} · adoption {i.adoption}% - training gap is holding value back</div></div>
+          <Tag label={`${i.training} trained`} color={T.amber} bg={T.amberL}/>
+          <button onClick={()=>showToast&&showToast(`Learning path assigned to the ${i.unit} team - completion will lift the governance score`)} style={{background:rc+"14",border:`1px solid ${rc}40`,borderRadius:7,padding:"6px 11px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Assign path</button>
+        </div>)}
+      </div>
+    </Card>
     <Card style={{padding:18,marginBottom:14,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${rc}35`}}>
       <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.15fr) minmax(260px,.85fr)",gap:16,alignItems:"stretch"}}>
         <div>
@@ -3949,286 +4398,6 @@ const AIIA_PHASES = [
     ],
     outputs:["Go/No-Go decision record","Residual risk acceptance form","Signed approval documentation","Post-deployment monitoring plan"],
     isoRef:"ISO 42001 Clause 9.1, 9.3 / Annex A.5.3 / EU AI Act Art.9(9), 27",
-  },
-];
-
-function PageAIIA({role, setTab}) {
-  const rc = RC(role), rcL = RCL(role);
-  const [activePhase, setActivePhase] = useState(1);
-  const [activeCat, setActiveCat] = useState(0);
-  const [view, setView] = useState("phases"); // "phases" | "categories"
-  const phase = AIIA_PHASES.find(p => p.id === activePhase);
-
-  return (
-    <div style={{animation:"up .3s ease"}}>
-      <SHead
-        title="AI System Impact Assessment (AIIA)"
-        sub="ISO 42001 Annex A Control A.5"
-      />
-
-      {/* View toggle */}
-      <div style={{display:"flex",gap:8,marginBottom:20}}>
-        {[{id:"phases",label:"Phases"},{id:"categories",label:"Risk Categories"}].map(v =>
-          <button key={v.id} onClick={()=>setView(v.id)} style={{
-            background:view===v.id?rc:T.s2, color:view===v.id?"#fff":T.ink3,
-            border:`1px solid ${view===v.id?rc:T.border}`, borderRadius:7,
-            padding:"7px 16px", fontSize:11, fontWeight:600, fontFamily:F.b
-          }}>{v.label}</button>
-        )}
-      </div>
-
-      {view === "phases" && <>
-        {/* Phase selector timeline */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:6,marginBottom:18}}>
-          {AIIA_PHASES.map((p,i) => {
-            const isAct = activePhase === p.id;
-            return (
-              <button key={p.id} onClick={()=>setActivePhase(p.id)} style={{
-                background: isAct ? p.color+"20" : T.s2,
-                border:`1px solid ${isAct ? p.color+"60" : T.border}`,
-                borderRadius:9, padding:"10px 8px", cursor:"pointer",
-                textAlign:"center", transition:"all .18s",
-                boxShadow: isAct ? `0 0 16px ${p.color}20` : "none"
-              }}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:7}}><Glyph name={p.name} color={isAct?p.color:T.ink3} size={18}/></div>
-                <div style={{fontSize:9,fontWeight:700,color:isAct?p.color:T.ink3,
-                  fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",lineHeight:1.3}}>
-                  Phase {p.id}
-                </div>
-                <div style={{fontSize:9,color:isAct?T.ink2:T.ink4,fontFamily:F.b,marginTop:2,lineHeight:1.3}}>
-                  {p.name.split(" ").slice(0,2).join(" ")}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Connector bar */}
-        <div style={{display:"flex",alignItems:"center",marginBottom:20,gap:0}}>
-          {AIIA_PHASES.map((p,i) => <>
-            <div key={p.id} style={{
-              width:28, height:28, borderRadius:"50%", flexShrink:0,
-              background: activePhase >= p.id ? p.color : T.s3,
-              border:`2px solid ${activePhase >= p.id ? p.color : T.border}`,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              transition:"all .3s", boxShadow: activePhase === p.id ? `0 0 12px ${p.color}50` : "none"
-            }}>
-              <span style={{fontSize:10,fontWeight:800,color:activePhase>=p.id?"#fff":T.ink4,fontFamily:F.m}}>{p.id}</span>
-            </div>
-            {i < AIIA_PHASES.length-1 && (
-              <div key={`line-${i}`} style={{
-                flex:1, height:2,
-                background: activePhase > p.id ? `linear-gradient(90deg,${p.color},${AIIA_PHASES[i+1].color})` : T.border,
-                transition:"background .4s"
-              }}/>
-            )}
-          </>)}
-        </div>
-
-        {/* Phase detail */}
-        {phase && (
-          <div style={{animation:"fade .25s ease"}}>
-            <div style={{
-              background:`linear-gradient(135deg,${phase.color}18,${T.s2})`,
-              border:`1px solid ${phase.color}40`,
-              borderRadius:12, padding:"20px 22px", marginBottom:16,
-              boxShadow:`0 0 32px ${phase.color}10`
-            }}>
-              <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:14}}>
-                <IconBox name={phase.name} color={phase.color} size={18} style={{width:40,height:40,borderRadius:10}}/>
-                <div style={{flex:1}}>
-                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
-                    <Tag label={`Phase ${phase.id}`} color={phase.color} bg={phase.color+"20"}/>
-                    <Tag label={phase.subtitle} color={T.ink3} bg={T.s3}/>
-                    <Tag label={phase.clause} color={T.ink4} bg={T.s3}/>
-                  </div>
-                  <h2 style={{fontFamily:F.h,fontSize:20,fontWeight:700,color:T.ink,marginBottom:6}}>
-                    {phase.name}
-                  </h2>
-                  <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>{phase.desc}</p>
-                </div>
-              </div>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:14}}>
-              {/* Steps */}
-              <div>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {phase.steps.map((step,i) => (
-                    <div key={i} style={{
-                      background:T.s1, border:`1px solid ${T.border}`,
-                      borderLeft:`3px solid ${phase.color}`,
-                      borderRadius:9, padding:"14px 16px",
-                      animation:`up ${.3+i*.07}s ease both`
-                    }}>
-                      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-                        <div style={{
-                          width:22,height:22,borderRadius:6,flexShrink:0,
-                          background:phase.color+"25",
-                          border:`1.5px solid ${phase.color}50`,
-                          display:"flex",alignItems:"center",justifyContent:"center"
-                        }}>
-                          <span style={{fontSize:10,fontWeight:800,color:phase.color,fontFamily:F.m}}>{i+1}</span>
-                        </div>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:5}}>
-                            {step.title}
-                          </div>
-                          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,margin:0}}>
-                            {step.detail}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sidebar: outputs + ISO ref */}
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                <Card style={{padding:16}}>
-                  <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",
-                    letterSpacing:"0.08em",fontFamily:F.m,marginBottom:12}}>Phase Outputs</div>
-                  {phase.outputs.map((o,i) => (
-                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",
-                      marginBottom:i<phase.outputs.length-1?9:0}}>
-                      <div style={{width:5,height:5,borderRadius:"50%",background:phase.color,
-                        marginTop:5,flexShrink:0}}/>
-                      <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{o}</span>
-                    </div>
-                  ))}
-                </Card>
-                <Card style={{padding:16, border:`1px solid ${phase.color}30`}}>
-                  <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",
-                    letterSpacing:"0.08em",fontFamily:F.m,marginBottom:10}}>ISO Reference</div>
-                  <p style={{fontSize:11,color:phase.color,fontFamily:F.m,lineHeight:1.7,margin:0}}>
-                    {phase.isoRef}
-                  </p>
-                </Card>
-                <div style={{display:"flex",gap:8}}>
-                  <button
-                    disabled={activePhase===1}
-                    onClick={()=>setActivePhase(p=>Math.max(1,p-1))}
-                    style={{flex:1,background:T.s2,color:T.ink3,border:`1px solid ${T.border}`,
-                      borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b,
-                      opacity:activePhase===1?.4:1}}>
-                  </button>
-                  <button
-                    disabled={activePhase===6}
-                    onClick={()=>setActivePhase(p=>Math.min(6,p+1))}
-                    style={{flex:1,background:phase.color,color:"#fff",border:"none",
-                      borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b,
-                      opacity:activePhase===6?.4:1}}>
-                    Next</button>
-                </div>
-                {activePhase===6&&(
-                  <button onClick={()=>setTab("hitl")} style={{
-                    width:"100%",background:T.green,color:"#fff",border:"none",
-                    borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b
-                  }}>Submit to HITL</button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </>}
-
-      {view === "categories" && (
-        <div>
-          <p style={{fontSize:12,color:T.ink3,fontFamily:F.b,marginBottom:16,lineHeight:1.7}}>
-            Seven risk categories from ISO 42001 training material for Step 3 of the AIIA process. Use during Phase 3: Impact Identification.
-          </p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:10}}>
-            {AIIA_RISK_CATEGORIES.map((cat,i) => (
-              <Card key={cat.cat} style={{
-                overflow:"hidden", animation:`up ${.3+i*.05}s ease both`,
-                border:`1px solid ${cat.color}25`,
-                cursor:"pointer", transition:"border-color .18s",
-                borderLeft:`3px solid ${cat.color}`
-              }}
-                onClick={()=>setActiveCat(activeCat===i?-1:i)}
-              >
-                <div style={{padding:"13px 15px",display:"flex",alignItems:"center",gap:10}}>
-                  <IconBox name={cat.cat} color={cat.color} size={17} style={{width:34,height:34}}/>
-                  <div style={{flex:1}}>
-                    <h3 style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>
-                      {cat.cat}
-                    </h3>
-                    <span style={{fontSize:10,color:cat.color,fontFamily:F.m}}>
-                      {cat.items.length} threat vectors
-                    </span>
-                  </div>
-                  <span style={{color:T.ink4,transform:activeCat===i?"rotate(90deg)":"none",
-                    transition:"transform .2s",fontSize:14}}>{">"}</span>
-                </div>
-                {activeCat===i&&(
-                  <div style={{padding:"0 15px 14px",borderTop:`1px solid ${T.border}`,animation:"up .2s ease"}}>
-                    {cat.items.map((item,j) => (
-                      <div key={j} style={{display:"flex",gap:8,marginTop:9,alignItems:"flex-start"}}>
-                        <div style={{width:4,height:4,borderRadius:"50%",background:cat.color,
-                          marginTop:5,flexShrink:0}}/>
-                        <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* Section */
-const IMPL_PHASES = [
-  {
-    id:"plan", label:"Phase 1", subtitle:"Understanding & Preparation",
-    color:"#4B7BF5", icon:"?", status:"complete",
-    clause:"ISO 42001 Clauses 4 & 6",
-    desc:"Establish the foundation: leadership buy-in, team formation, scope definition, gap analysis, and objectives.",
-    steps:[
-      {n:1, title:"Get Leadership Buy-in & Commit Resources", status:"complete", owner:"CEO / Board", clause:"C.5.1", deliverable:"Formal commitment from senior leadership, approved budget approved.and resource allocation", detail:"Present business case: legal risk of non-compliance (EU AI Act fines can be material; document quantified exposure in the business case."},
-      {n:2, title:"Form Cross-functional AIMS Team", status:"complete", owner:"CAIO", clause:"C.5.3", deliverable:"Team structure with defined roles, RACI matrix", detail:"Appoint project lead and assemble representatives from legal, compliance, data science, IT, product management, HR, and ethics. ISO 42001 requires diverse cross-functional governance structure (Clause 5.3)."},
-      {n:3, title:"Define AIMS Scope (Clause 4.3)", status:"complete", owner:"AIMS Team", clause:"C.4.3", deliverable:"Documented scope statement specifying AI systems, roles, and boundaries", detail:"Identify all AI systems in scope. Define organisational units and locations covered. Specify AI roles: provider, producer, deployer, or partner. Consider starting with a pilot focusing on highest-risk applications."},
-      {n:4, title:"Conduct Gap Analysis & Risk Assessment", status:"active", owner:"GRC + CAIO", clause:"C.6.1", deliverable:"Gap analysis report, AI risk register, implementation roadmap", detail:"Benchmark current AI practices against all ISO 42001 clauses. Perform comprehensive AI risk assessment for bias, security, privacy, ethical risks. Produce prioritised list of improvement areas. Use ISO 42001 Checklist tab for gap tracking."},
-      {n:5, title:"Define AI Objectives& Policies (C.5 & C.6)", status:"active", owner:"CAIO + Legal", clause:"C.5.2, C.6.2", deliverable:"AI policy document, objectives and metrics log, risk/opportunity treatment plan", detail:"Establish AI policy per C.5.2 requirements: purpose, scope, guiding principles, prohibited uses, ethical guidelines. Set measurable AIMS objectives aligned to business goals. Define how risks and opportunities identified in Step 4 will be addressed."},
-    ]
-  },
-  {
-    id:"do", label:"Phase 2", subtitle:"Implementation",
-    color:"#9061F9", icon:"?", status:"active",
-    clause:"ISO 42001 Clauses 7 & 8",
-    desc:"Implement the AIMS: documentation, Annex A controls, training, awareness, and operational processes.",
-    steps:[
-      {n:6, title:"Develop AIMS Documentation (Clause 7)", status:"active", owner:"AIMS Team + Legal", clause:"C.7.5", deliverable:"Complete AIMS documentation suite including Statement of Applicability (SoA)", detail:"Create all mandatory documented information: AI policies, procedures, ethical guidelines, AIA methodologies, risk assessment records, and treatment plans. Produce SoA detailing which Annex A controls are included/excluded and why."},
-      {n:7, title:"Implement Annex A Controls", status:"active", owner:"Engineering + CAIO", clause:"Annex A", deliverable:"Evidence of controls: bias test results, data provenance logs, AIA reports", detail:"Core implementation: data governance, technical robustness, transparency, human oversight, and monitoring controls."},
-      {n:8, title:"Training & Awareness Programme (Clause 7)", status:"pending", owner:"HR + CAIO", clause:"C.7.2, C.7.3", deliverable:"Training materials, attendance records, competency evidence", detail:"Roll out tailored training for all relevant staff: AI developers, managers, end-users, and compliance teams. Cover AIMS policies, AI risk categories, ethical obligations, and individual responsibilities. ISO 42001 C.7.2 requires documented evidence of competence."},
-    ]
-  },
-  {
-    id:"check", label:"Phase 3", subtitle:"Monitoring & Evaluation",
-    color:"#E8A020", icon:"?", status:"pending",
-    clause:"ISO 42001 Clause 9",
-    desc:"Evaluate AIMS performance through KPIs, internal audits, and management review.",
-    steps:[
-      {n:9, title:"Monitor, Measure & Analyse AIMS Performance", status:"pending", owner:"AI Governance Lead", clause:"C.9.1", deliverable:"Performance monitoring reports, anomaly logs, incident reports", detail:"Define and track KPIs for AIMS effectiveness: bias metric drift, incident frequency, control compliance rate, HITL approval volumes. Log anomalies and system changes. ISO 42001 C.9.1 requires documented evaluation of what, when, how, and by whom monitoring is conducted."},
-      {n:10, title:"Conduct Internal Audit", status:"pending", owner:"Internal Audit / GRC", clause:"C.9.2", deliverable:"Internal audit report with non-conformities and improvement opportunities", detail:"Designated internal team or external consultant verifies AIMS compliance with all ISO 42001 requirements. Auditors must be selected for objectivity and impartiality (C.9.2). Audit findings documented and reported to relevant management."},
-      {n:11, title:"Perform Management Review", status:"pending", owner:"CAIO + C-Suite", clause:"C.9.3", deliverable:"Management review minutes with decisions and actions documented", detail:"AIMS team presents monitoring results, audit findings, AI system performance, and stakeholder feedback to top management. Review must assess AIMS suitability, adequacy, and effectiveness. Outputs include decisions on improvement opportunities and AIMS changes."},
-    ]
-  },
-  {
-    id:"act", label:"Phase 4", subtitle:"Improvement & Certification",
-    color:"#1FB864", icon:"?", status:"pending",
-    clause:"ISO 42001 Clause 10",
-    desc:"Address non-conformities, achieve certification, and embed continual improvement into operations.",
-    steps:[
-      {n:12, title:"Implement Corrective Actions (Clause 10)", status:"pending", owner:"AIMS Team", clause:"C.10.1", deliverable:"Corrective action plans, evidence of resolution", detail:"Address all non-conformities identified during internal audit and management review. Perform root cause analysis. Implement corrective actions, verify effectiveness, and update documentation. ISO 42001 C.10.1 requires documented nonconformity management."},
-      {n:13, title:"Engage Accredited Certification Body", status:"pending", owner:"CAIO + Procurement", clause:"External", deliverable:"Signed agreement with accredited certification body", detail:"Select an accredited ISO 42001 certification body (check IAF/UKAS accreditation). Provide AIMS documentation for Stage 1 review. Agree audit timeline, scope, and format. Budget typical timeline: 3-6 months"},
-      {n:14, title:"External Certification Audit", status:"pending", owner:"All Teams", clause:"ISO 42001 Cert", deliverable:"ISO 42001 certificate upon successful audit completion", detail:"Stage 1: documentation review. Stage 2: operational effectiveness audit."},
-      {n:15, title:"Surveillance & Continual Improvement", status:"pending", owner:"CAIO + AIMS Team", clause:"C.10.2", deliverable:"Annual surveillance audit records, updated policies and controls", detail:"AIMS becomes an integral part of operations. Annual surveillance audits required. Triennial recertification audit. Continually update policies, risk assessments, and controls as AI landscape, regulations (EU AI Act enforcement Aug 2026), and organisational context evolve."},
-    ]
   },
 ];
 
@@ -5720,7 +5889,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
           <td style={{padding:"13px 12px"}}><STag s={i.status}/></td>
           <td style={{padding:"13px 12px"}}><PTag p={i.risk}/></td>
           <td style={{padding:"13px 12px",color:T.green,fontFamily:F.m}}>{i.actual} / {i.expected}</td>
-          <td style={{padding:"13px 12px",minWidth:120}}><div style={{fontSize:10,color:T.ink2,fontFamily:F.m,marginBottom:4}}>{AC_PHASES[i.phaseIndex]?.name} - {i.phaseIndex+1}/8</div><Bar value={phaseProgress(i)} color={rc}/></td>
+          <td style={{padding:"13px 12px",minWidth:120}}><div style={{fontSize:10,color:T.ink2,fontFamily:F.m,marginBottom:4}}>{AC_PHASES[i.phaseIndex]?.name} - {i.phaseIndex+1}/{AC_PHASES.length}</div><Bar value={phaseProgress(i)} color={rc}/></td>
           <td style={{padding:"13px 12px",minWidth:110}}><Bar value={i.guardrail} color={i.guardrail>80?T.green:i.guardrail>70?T.amber:T.red}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>{i.guardrail}%</div></td>
         </tr>)}</tbody>
       </table></div>
@@ -5801,7 +5970,7 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
             <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 8px"}}>Overall progress</h3>
             <div style={{fontSize:24,fontWeight:800,color:rc,fontFamily:F.h,marginBottom:8}}>{phaseProgress(selected)}%</div>
             <Bar value={phaseProgress(selected)} color={rc}/>
-            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of 8 - {AC_PHASES[selected.phaseIndex]?.name}</div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[selected.phaseIndex]?.name}</div>
           </Card>
         </div>
       </div>
@@ -5967,20 +6136,24 @@ function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
 
   /* ── Initiative context tabs: derived views over the initiative's own
         data. Risks are owned here and aggregated by Risk Center. ── */
-  const InitRisks=()=><Card style={{padding:16}}>
+  const InitRisks=()=>{
+    const rows=riskRegister.filter(r=>r.initiativeId===selected.id);
+    const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+    return <Card style={{padding:16}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risk register</h3>
-      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Owned by this initiative - aggregated in Risk Center</span>
+      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risks - a view of the Risk Center register</h3>
+      <button onClick={()=>setTab&&setTab("riskcenter")} style={{background:T.red+"14",border:`1px solid ${T.red}40`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Risk Center →</button>
     </div>
     <div style={{display:"grid",gap:8}}>
-      {selected.risks.map(r=><div key={r} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
-        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Owner: {selected.businessOwner} · Exposure: {selected.expected} · Mitigation: {selected.controls[0]||"unassigned"}</div></div>
-        <PTag p={selected.risk}/>
-        <Tag label={`${selected.guardrail}% controls`} color={selected.guardrail>=80?T.green:T.amber} bg={(selected.guardrail>=80?T.green:T.amber)+"14"}/>
+      {rows.map(r=><div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r.id} · {r.title}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Risk owner: {r.riskOwner} · Treatment: {r.treatment.strategy} ({r.treatment.status}) · Controls: {r.controls.join(", ")}</div></div>
+        <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
+        <Tag label={`Residual ${r.residual}/25`} color={r.residual<=6?T.green:T.amber} bg={(r.residual<=6?T.green:T.amber)+"14"}/>
       </div>)}
+      {rows.length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No risks registered for this initiative yet - raise one in the Risk Center.</div>}
       {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Open blocker:</strong> {selected.blockedBy}</div>}
     </div>
-  </Card>;
+  </Card>;};
   const InitEvidence=()=>{
     const rows=evidenceRows.filter(e=>e.initiative===selected.name);
     return <Card style={{padding:0,overflow:"hidden"}}>
@@ -7184,35 +7357,22 @@ export default function VerisZone() {
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} showToast={showToast}/>}
+        {showSeededData&&tab==="playbook"   &&<PagePlaybook   role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
-        {showSeededData&&tab==="compliance" &&<PageCompliance role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
-        {showSeededData&&tab==="checklists" &&<PageChecklists role={role} showToast={showToast}/>}
+        {showSeededData&&["compliance","checklists","impl","templates","iso27001","scope","controls","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
-        {showSeededData&&tab==="aia"        &&<PageAIA        role={role}/>}
-        {showSeededData&&tab==="aira"       &&<PageAIRA/>}
-        {showSeededData&&tab==="airt"       &&<PageAIRT showToast={showToast}/>}
+        {showSeededData&&["riskcenter","aira","airt","aia","aiia"].includes(tab)&&<PageRiskCenter key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="registry"   &&<PageModelRegistry setTab={setTab}/>}
         {showSeededData&&tab==="maturity"   &&<PageMaturityRadar/>}
         {showSeededData&&tab==="usecases"   &&<PageUseCases/>}
-        {showSeededData&&tab==="aiia"       &&<PageAIIA       role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="impl"       &&<PageImpl       role={role}/>}
         {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
-        {showSeededData&&tab==="templates"  &&<PageTemplates  role={role} showToast={showToast}/>}
-        {showSeededData&&tab==="scope"       &&<PageScope          role={role}/>}
-        {showSeededData&&tab==="controls"    &&<PageCommonControls  role={role}/>}
-        {showSeededData&&tab==="trustcenter" &&<PageTrustCenter     role={role} showToast={showToast}/>}
-        {showSeededData&&tab==="iso27001"    &&<PageISO27001    role={role} showToast={showToast}/>}
-        {showSeededData&&tab==="aigov"      &&<PageAIGovCube   role={role} setTab={setTab}/>}
-        {showSeededData&&tab==="gapanalysis" &&<PageGapAnalysis  role={role} showToast={showToast}/>}
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&tab==="decisions" &&<PageDecisions role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&tab==="knowledge" &&<PageKnowledge role={role} setTab={setTab} showToast={showToast}/>}
         {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
