@@ -322,6 +322,61 @@ export function PageIntegrations({role,showToast}){
 }
 
 /* Section */
+/* Organization and business-unit view of the portfolio - the same
+   initiative records rolled up per unit, drilling into the lifecycle. */
+function PortfolioUnits({setView}){
+  const [openUnit,setOpenUnit]=useState(null);
+  const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+  const units=[...new Set(acInitiatives.map(i=>i.unit))].map(u=>{
+    const inis=acInitiatives.filter(i=>i.unit===u);
+    const risks=riskRegister.filter(r=>r.unit===u);
+    const worst=risks.some(r=>r.level==="Critical")?"Critical":risks.some(r=>r.level==="High")?"High":risks.length?"Medium":"Low";
+    return {u,inis,risks,worst,
+      expected:inis.reduce((a,i)=>a+money(i.expected),0),
+      actual:inis.reduce((a,i)=>a+money(i.actual),0),
+      adoption:Math.round(inis.reduce((a,i)=>a+i.adoption,0)/inis.length),
+      guardrail:Math.round(inis.reduce((a,i)=>a+i.guardrail,0)/inis.length)};
+  }).sort((a,b)=>b.expected-a.expected);
+  const org={n:acInitiatives.length,expected:units.reduce((a,x)=>a+x.expected,0),actual:units.reduce((a,x)=>a+x.actual,0),
+    adoption:Math.round(acInitiatives.reduce((a,i)=>a+i.adoption,0)/acInitiatives.length),risks:riskRegister.length};
+  const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
+  return <div style={{animation:"up .3s ease"}}>
+    <Card style={{padding:16,marginBottom:12,border:`1px solid ${AI_GOLD}30`}}>
+      <div style={{fontSize:9,fontWeight:900,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",fontFamily:F.m,marginBottom:10}}>Organization view</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+        {[["AI initiatives",org.n,T.blue],["Expected value",`$${org.expected.toFixed(1)}M`,AI_GOLD],["Realized value",`$${org.actual.toFixed(1)}M`,T.green],["Avg adoption",`${org.adoption}%`,T.violet],["Risks on register",org.risks,T.red]].map(([l,v,c])=>
+          <div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px"}}>
+            <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>{l}</div>
+            <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+          </div>)}
+      </div>
+    </Card>
+    <div style={{display:"grid",gap:10}}>
+      {units.map(x=><Card key={x.u} style={{padding:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1.2fr repeat(4,minmax(90px,1fr)) auto",gap:12,alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b}}>{x.u}</div>
+            <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{x.inis.length} initiative{x.inis.length>1?"s":""} · {x.risks.length} risk{x.risks.length===1?"":"s"}</div>
+          </div>
+          <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>VALUE</div><span style={{fontSize:13,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>${x.actual.toFixed(1)}M / ${x.expected.toFixed(1)}M</span></div>
+          <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>ADOPTION {x.adoption}%</div><Bar value={x.adoption} color={x.adoption>=70?T.green:T.amber}/></div>
+          <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>GUARDRAILS {x.guardrail}%</div><Bar value={x.guardrail} color={x.guardrail>=80?T.green:T.amber}/></div>
+          <Tag label={`${x.worst} risk`} color={lvC(x.worst)} bg={lvC(x.worst)+"16"}/>
+          <button onClick={()=>setOpenUnit(openUnit===x.u?null:x.u)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 11px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{openUnit===x.u?"Hide":"Initiatives"} {openUnit===x.u?"▲":"▼"}</button>
+        </div>
+        {openUnit===x.u&&<div style={{display:"grid",gap:6,marginTop:12,paddingTop:12,borderTop:`1px solid ${T.border}`}}>
+          {x.inis.map(i=><div key={i.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px"}}>
+            <div><div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{i.category} · phase {i.phaseIndex+1}/{AC_PHASES.length} {AC_PHASES[i.phaseIndex]?.name}</div></div>
+            <STag s={i.lifecycle}/>
+            <Tag label={`${i.roi} ROI`} color={T.green} bg={T.greenL}/>
+            <button onClick={()=>setView&&setView("initiatives")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open lifecycle →</button>
+          </div>)}
+        </div>}
+      </Card>)}
+    </div>
+  </div>;
+}
+
 export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
   const rc=AI_GOLD;
   const access=acAccessFor(role);
@@ -1097,9 +1152,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
     <SubTabs tabs={ADMIN_TABS} active={adminTab} onChange={setGwTab}/>
     <GatewayConfig/>
   </div>;
-  const [pfTab,setPfTab]=useState("registry");
+  const [pfTab,setPfTab]=useState("units");
   const Portfolio=()=><div>
-    <SubTabs tabs={[["registry","Model Registry"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
+    <SubTabs tabs={[["units","Business Units"],["registry","Model Registry"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
+    {pfTab==="units"&&<PortfolioUnits setView={setView}/>}
     {pfTab==="registry"&&<PageModelRegistry setTab={setTab}/>}
     {pfTab==="maturity"&&<PageMaturityRadar/>}
     {pfTab==="usecases"&&<PageUseCases/>}
