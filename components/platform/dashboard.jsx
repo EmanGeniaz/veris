@@ -5,8 +5,21 @@ import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, KPI_INSIGHTS, riskRegister, EXEC_QUICK_ACTIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
 import { DEFAULT_FEEDBACK, feedbackDecision, decisionColorOf, T, RC, RCL, ROLES, AI_GOLD, AI_ROLLOUT_PROGRAMS, AI_SPINE_SIGNALS, HITL, KPI, ROLE_KPIS, DOMAIN_METRICS, STANDARDS_MAP, ONBOARD, ROADMAP, PILLARS, F, CountUp, Tag, PTag, Spinner, Bar, Ring, Card, SHead, priColor, execHealthOf, execMoney, execInitiativesFor, KpiInsightPanel } from "./core";
 
-export function ExecBrief({role,goAC}){
+export function ExecBrief({role,goAC,goto}){
   const b=EXEC_BRIEF[role]||EXEC_BRIEF.caio;
+  /* Every number drills to the surface that owns it. */
+  const drillFor=label=>{
+    const l=label.toLowerCase();
+    if(/risk|blocked|incident|vuln|leak/.test(l))return {link:{tab:"riskcenter"},hint:"Open Risk Center"};
+    if(/maturity|readiness|training|learning|adoption|resistance/.test(l))return {link:{tab:"academy"},hint:"Open Governance Academy"};
+    if(/value|roi|revenue|saving|spend|budget|cost|payback/.test(l))return {link:{ac:"portfolio"},hint:"Open portfolio value in AI Central"};
+    if(/pilot|scale|initiative|decision|hitl|approval|retire/.test(l))return {link:{ac:"initiatives"},hint:"Open initiatives in AI Central"};
+    return {link:{ac:"dashboard"},hint:"Open AI Central"};
+  };
+  const open=link=>{
+    if(goto)return goto(link);
+    if(link.ac&&goAC)return goAC(link.ac);
+  };
   return <Card style={{padding:16,marginBottom:12,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${AI_GOLD}30`}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:10,flexWrap:"wrap"}}>
       <div style={{display:"flex",alignItems:"center",gap:9}}>
@@ -18,10 +31,11 @@ export function ExecBrief({role,goAC}){
     <h2 style={{fontFamily:F.h,fontSize:18,fontWeight:900,color:T.ink,margin:"0 0 8px",lineHeight:1.3}}>{b.headline}</h2>
     <p style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.75,margin:"0 0 14px",maxWidth:900}}>{b.body}</p>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
-      {b.deltas.map(([label,dir,val])=>{const c=dir==="up"?T.green:dir==="down"?T.amber:T.ink3;return <div key={label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+      {b.deltas.map(([label,dir,val])=>{const c=dir==="up"?T.green:dir==="down"?T.amber:T.ink3;const d=drillFor(label);return <button key={label} onClick={()=>open(d.link)} title={d.hint} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px",cursor:"pointer",textAlign:"left",transition:"border-color .15s"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor=AI_GOLD+"55"} onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
         <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}><CountUp value={val}/></span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></div>
-      </div>;})}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}><span style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:T.ink}}><CountUp value={val}/></span><span style={{fontSize:10,fontFamily:F.m,color:c}}>{dir==="up"?"▲":dir==="down"?"▼":"–"}</span></span><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>→</span></div>
+      </button>;})}
     </div>
   </Card>;
 }
@@ -395,7 +409,7 @@ export function PageHome({role,setTab,setAiCentralView,showToast}) {
         <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,letterSpacing:0,marginBottom:4}}>{greet}, {R.name.split(" ")[0]}</h1>
         <p style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{R.title} - {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
       </div>
-      <ExecBrief role={role} goAC={goAC}/>
+      <ExecBrief role={role} goAC={goAC} goto={goto}/>
       <ExecPriorities role={role} goto={goto}/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
         <Card onClick={()=>setTab("decisions")} style={{padding:18,cursor:"pointer",border:`1px solid ${AI_GOLD}35`}}>
@@ -447,7 +461,7 @@ export function PageHome({role,setTab,setAiCentralView,showToast}) {
     </div>
 
     {/* Executive Workspace 4.0 intelligence layer */}
-    <ExecBrief role={role} goAC={goAC}/>
+    <ExecBrief role={role} goAC={goAC} goto={goto}/>
     <ExecPriorities role={role} goto={goto}/>
     <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
     <ExecRiskPulse setTab={setTab}/>
