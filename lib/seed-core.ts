@@ -4,14 +4,19 @@ import type { PrismaClient } from "@prisma/client";
 import { acInitiatives, acFeedback, acAssessments, riskRegister, kriRegister, knowledgeAssets } from "./platform-models";
 import { hashPassword } from "../auth";
 
-export async function seedDemo(prisma: PrismaClient) {
+export type TenantSpec = { slug?: string; name?: string; mode?: "demo" | "clean" };
+
+export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
+  const slug = spec.slug || "demo";
+  const name = spec.name || "VerisZone Demo Center";
+  const mode = spec.mode || "demo";
 
   const tenant = await prisma.tenant.upsert({
-    where: { slug: "demo" },
+    where: { slug },
     update: {},
-    create: { slug: "demo", name: "VerisZone Demo Center", mode: "demo" },
+    create: { slug, name, mode },
   });
-  for (const i of acInitiatives) {
+  if (mode === "demo") for (const i of acInitiatives) {
     await prisma.initiative.upsert({
       where: { id: i.id },
       update: {},
@@ -29,7 +34,7 @@ export async function seedDemo(prisma: PrismaClient) {
       },
     });
   }
-  for (const r of riskRegister) {
+  if (mode === "demo") for (const r of riskRegister) {
     await prisma.risk.upsert({
       where: { id: r.id },
       update: {},
@@ -42,7 +47,7 @@ export async function seedDemo(prisma: PrismaClient) {
       },
     });
   }
-  for (const k of kriRegister) {
+  if (mode === "demo") for (const k of kriRegister) {
     await prisma.kri.upsert({
       where: { id: k.id },
       update: {},
@@ -51,7 +56,7 @@ export async function seedDemo(prisma: PrismaClient) {
         initiativeId: k.initiativeId, framework: k.framework },
     });
   }
-  for (const a of knowledgeAssets) {
+  if (mode === "demo") for (const a of knowledgeAssets) {
     await prisma.knowledgeAsset.create({
       data: { tenantId: tenant.id, title: a.title, kind: a.kind, addedBy: a.addedBy,
         sourceRef: a.sourceRef, reuseCount: a.reuseCount ?? 0 },
@@ -60,9 +65,9 @@ export async function seedDemo(prisma: PrismaClient) {
   const roles = ["ceo","cfo","cio","coo","caio","ciso","chro","cdpo","cgo","employee","manager"];
   for (const role of roles) {
     await prisma.user.upsert({
-      where: { email: `${role}@veriszone.demo` },
+      where: { email: `${role}@${slug}.veriszone.demo` },
       update: {},
-      create: { tenantId: tenant.id, email: `${role}@veriszone.demo`, name: role.toUpperCase() + " Demo", role,
+      create: { tenantId: tenant.id, email: `${role}@${slug}.veriszone.demo`, name: role.toUpperCase() + " Demo", role,
         passwordHash: hashPassword("veriszone-demo", "vzdemo") },
     });
   }

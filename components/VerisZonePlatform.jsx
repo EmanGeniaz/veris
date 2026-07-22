@@ -195,6 +195,9 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
 
 /* Section */
 function BrandEntryShell({theme,onTheme,onEnter}) {
+  const [obOpen,setObOpen]=useState(false);
+  const [ob,setOb]=useState({name:"",slug:"",mode:"clean",token:""});
+  const [obMsg,setObMsg]=useState("");
   Object.assign(T, theme==="light"?LIGHT_T:DARK_T);
   const [selected,setSelected]=useState("demo");
   const [email,setEmail]=useState("");
@@ -325,6 +328,25 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Evidence retention</span><strong style={{color:T.ink}}>7 years</strong></div>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Region</span><strong style={{color:T.ink}}>EU / US</strong></div>
         </div>
+        <button type="button" onClick={()=>setObOpen(!obOpen)} style={{marginTop:10,background:"transparent",border:"none",color:T.blue,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>{obOpen?"Hide workspace creation":"Create a new workspace →"}</button>
+        {obOpen&&<div style={{marginTop:10,display:"grid",gap:7,borderTop:`1px solid ${T.border}`,paddingTop:12}}>
+          <input value={ob.name} onChange={e=>setOb({...ob,name:e.target.value})} placeholder="Organization name" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+          <input value={ob.slug} onChange={e=>setOb({...ob,slug:e.target.value})} placeholder="Workspace slug (e.g. acme)" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+          <select value={ob.mode} onChange={e=>setOb({...ob,mode:e.target.value})} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}>
+            <option value="clean">Clean workspace (production)</option>
+            <option value="demo">Seeded demo workspace</option>
+          </select>
+          <input value={ob.token} onChange={e=>setOb({...ob,token:e.target.value})} placeholder="Onboarding token" type="password" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+          <button type="button" onClick={async()=>{
+            setObMsg("Creating...");
+            try{
+              const res=await fetch("/api/admin/tenants",{method:"POST",headers:{"Content-Type":"application/json","x-onboard-token":ob.token},body:JSON.stringify(ob)});
+              const d=await res.json();
+              setObMsg(d.ok?`Workspace "${d.slug}" created (${d.mode}). Sign in: ${d.signIn}`:`Could not create: ${d.error}`);
+            }catch{setObMsg("Workspace creation needs the production database and onboarding token.");}
+          }} style={{background:T.blue,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Create workspace</button>
+          {obMsg&&<div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{obMsg}</div>}
+        </div>}
       </form>
     </div>
   </div>;
