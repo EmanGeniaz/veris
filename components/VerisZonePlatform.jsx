@@ -1401,6 +1401,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const initials=(U.name||R.name).split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
+  const acOnly=sessionMode==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
   const roleNavSections=(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
@@ -1435,7 +1436,14 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         </button>}
       </div>
       <nav className="vz-side-nav" style={{flex:1,padding:"10px 9px",overflowY:"auto"}}>
-        {isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
+        {!acOnly&&roleNavSections.map(section=>{
+          const items=section.items.map(id=>navById[id]).filter(Boolean);
+          return <div key={section.title} style={{marginBottom:4}}>
+            {renderSectionHeader(section.title)}
+            {items.map(renderNavButton)}
+          </div>;
+        })}
+        {isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10,marginTop:acOnly?0:8}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
         </div>}
@@ -1447,13 +1455,6 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
             <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:T.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
           </button>;
-        })}
-        {!isAICentral&&roleNavSections.map(section=>{
-          const items=section.items.map(id=>navById[id]).filter(Boolean);
-          return <div key={section.title} style={{marginBottom:4}}>
-            {renderSectionHeader(section.title)}
-            {items.map(renderNavButton)}
-          </div>;
         })}
       </nav>
       <a href="/profile" className={`vz-profile-btn ${themeClass}`} onClick={(e)=>{e.preventDefault();setTab("profile");if(isMobile)onClose();}} style={{cursor:"pointer",width:"100%",padding:"13px 14px",border:0,borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,background:"transparent",textAlign:"left",textDecoration:"none"}}>
@@ -1785,7 +1786,7 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
     if(/evidence|audit/.test(t))return {text:"Evidence is captured automatically - phase artifacts, gateway decisions and your approvals all land in Trust & Evidence with an audit trail.",link:{ac:"evidence"},label:"Open Trust & Evidence",src:"Internal",srcNote:"Trust & Evidence repository"};
     if(/idea/.test(t))return {text:"Bottom-up ideas are welcome - submit one and track it from Submitted to AI Central intake.",link:{tab:"myideas"},label:"Open My AI Ideas",src:"Internal",srcNote:"Idea pipeline"};
     if(/train|learn|academy/.test(t))return {text:"Learning completion becomes governance evidence. I can open the Governance Academy with your role's path.",link:{tab:"academy"},label:"Open Academy",src:"Internal",srcNote:"Governance Academy records"};
-    if(/help|what can|who are/.test(t))return {text:`I am your AI Chief of Staff. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`,src:"Internal",srcNote:"Platform knowledge"};
+    if(/help|what can|who are/.test(t))return {text:`I am Veris Intelligence, your Executive Advisor. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`,src:"Internal",srcNote:"Platform knowledge"};
     return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority",src:"Internal",srcNote:"Your priorities and nudges"};
   };
   const ask=()=>{
@@ -1801,12 +1802,12 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
   return <>
     {!open&&<button onClick={()=>setOpen(true)} title="AI Executive Assistant" style={{position:"fixed",bottom:22,right:22,zIndex:9000,display:"flex",alignItems:"center",gap:9,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:`1px solid ${AI_GOLD_B}`,borderRadius:999,padding:isMobile?"10px 14px":"12px 18px",fontSize:12,fontWeight:900,fontFamily:F.b,boxShadow:`0 16px 40px ${AI_GOLD}44`,cursor:"pointer"}}>
       <span style={{width:8,height:8,borderRadius:"50%",background:"#111",boxShadow:"0 0 0 3px rgba(17,17,17,.18)",animation:"pulse 2s infinite"}}/>
-      AI Chief of Staff
+      Veris Intelligence
     </button>}
     {open&&<div style={{position:"fixed",bottom:22,right:22,zIndex:9000,width:isMobile?"calc(100vw - 32px)":360,maxHeight:"78vh",display:"flex",flexDirection:"column",background:T.card,border:`1px solid ${AI_GOLD}45`,borderRadius:16,boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden",animation:"up .25s ease"}}>
       <div style={{padding:"13px 15px",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(135deg,${T.s2},${T.s1})`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:"#111",fontFamily:F.h}}>AI</span></div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>AI Chief of Staff</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{focus} · {R.label} · {pageLabel}</div></div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>Veris Intelligence</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>Executive Advisor · {R.label} · {pageLabel}</div></div>
         <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:T.ink3,cursor:"pointer",padding:4,display:"flex"}}><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg></button>
       </div>
       <div style={{padding:"13px 15px",overflowY:"auto",display:"grid",gap:12}}>
@@ -1876,7 +1877,7 @@ function ExecAssistant({role,goto,showToast,isMobile,tab}){
         </div>
       </div>
       <div style={{padding:"10px 13px",borderTop:`1px solid ${T.border}`,display:"flex",gap:7,background:T.s1}}>
-        <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder="Ask your Chief of Staff..." style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+        <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder="Ask your Executive Advisor..." style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
         <button onClick={ask} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:8,padding:"9px 13px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Ask</button>
       </div>
     </div>}
@@ -2550,7 +2551,7 @@ function PageOpportunityIntake({role,setTab,showToast}) {
         </div>
         <div style={{display:"flex",gap:8,marginTop:14}}>
           <button onClick={submit} style={{background:rc,border:"none",borderRadius:9,padding:"10px 14px",color:"#fff",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create CXO strategy review</button>
-          <button onClick={()=>showToast("CXO strategy review created. AI Central execution is available from its separate login.")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:9,padding:"10px 14px",color:AI_GOLD,fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Prepare AI Central handoff</button>
+          <button onClick={()=>showToast("Strategy hand-off packs arrive with the production workflow service - record the decision in AI Central instead","error")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:9,padding:"10px 14px",color:AI_GOLD,fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Prepare AI Central handoff</button>
         </div>
       </Card>
       <div style={{display:"grid",gap:12}}>
@@ -5394,7 +5395,7 @@ function PageIntegrations({role,showToast}){
           </div>
           <div style={{display:"flex",gap:10,alignItems:"center"}}>
             <Tag label="Not Connected" color={T.amber} bg={T.amberL}/>
-            <button onClick={()=>showToast("Opening OAuth setup...")} style={{background:rc,color:"#fff",border:"none",borderRadius:7,padding:"7px 16px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Connect</button>
+            <button onClick={()=>showToast("OAuth connection requires production identity credentials - unavailable in this workspace","error")} style={{background:rc,color:"#fff",border:"none",borderRadius:7,padding:"7px 16px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Connect</button>
           </div>
         </div>
         <div style={{background:T.s3,borderRadius:8,padding:"11px 14px"}}>
