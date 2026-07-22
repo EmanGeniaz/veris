@@ -1,5 +1,6 @@
 "use client";
 
+import { readBus, pushBus } from "@/lib/bus";
 import { Map, Scale, Target, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, KPI_INSIGHTS, riskRegister, EXEC_QUICK_ACTIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
@@ -71,11 +72,7 @@ export function ExecDecisionCenter({role,goto,showToast}){
   const [done,setDone]=useState({});
   const act=(i,label,d)=>{
     setDone({...done,[i]:label});
-    try{
-      const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-      list.unshift({item:`Executive decision: ${d.title} - ${label}`,initiative:d.title,scope:"Organization",control:"Decision Center",risk:d.risk+" risk decision",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-      localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-    }catch{/* ignore */}
+    pushBus("vz-gw-evidence",{item:`Executive decision: ${d.title} - ${label}`,initiative:d.title,scope:"Organization",control:"Decision Center",risk:d.risk+" risk decision",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"})
     showToast&&showToast(`${label} recorded - audit evidence generated`);
   };
   const rColor=r=>r==="High"?T.red:r==="Medium"?T.amber:T.green;
@@ -305,7 +302,7 @@ export function ExecRecentChanges({role,setTab,setAiCentralView}){
   const seeded=EXEC_RECENT_CHANGES[role]||EXEC_RECENT_CHANGES.caio;
   let live=[];
   try{
-    if(typeof window!=="undefined")live=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]").slice(0,2).map(e=>({what:e.item,initiative:e.initiative,when:e.time,kind:"evidence"}));
+    if(typeof window!=="undefined")live=readBus("vz-gw-evidence").slice(0,2).map(e=>({what:e.item,initiative:e.initiative,when:e.time,kind:"evidence"}));
   }catch{/* ignore */}
   const rows=[...live,...seeded].slice(0,5);
   const kindColor={evidence:AI_GOLD,decision:T.green,risk:T.red,deployment:T.blue,learning:T.violet};

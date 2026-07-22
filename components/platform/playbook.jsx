@@ -1,5 +1,6 @@
 "use client";
 
+import { readBus, pushBus } from "@/lib/bus";
 import { useState, useEffect } from "react";
 import { AC_PHASES, acInitiatives, riskRegister, PLAYBOOK_LENS } from "@/lib/platform-models";
 import { T, RC, RCL, AI_GOLD, PLAYBOOK, HITL, F, Tag, PTag, STag, Bar, Card, SHead } from "./core";
@@ -254,11 +255,7 @@ export function PlaybookRunbooks({role,setTab,showToast}) {
           <button onClick={()=>{
             if(rb.hitl){setTab&&setTab(role==="caio"?"decisions":"hitl");return;}
             setExecuted({...executed,[rb.id||rb.title]:true});
-            try{
-              const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");
-              list.unshift({item:`Runbook executed: ${rb.title}`,initiative:rb.fw||"Governance Playbook",scope:"Organization",control:"Playbook execution",risk:"Operational",owner:rb.owner||"Playbook owner",status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-              localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));
-            }catch{/* ignore */}
+            pushBus("vz-gw-evidence",{item:`Runbook executed: ${rb.title}`,initiative:rb.fw||"Governance Playbook",scope:"Organization",control:"Playbook execution",risk:"Operational",owner:rb.owner||"Playbook owner",status:"Complete",approval:"Recorded",version:"v1",time:"Just now"})
             showToast&&showToast("Runbook executed - evidence recorded");
           }} style={{flex:2,background:executed[rb.id||rb.title]?T.s2:rc,color:executed[rb.id||rb.title]?T.green:"#fff",border:executed[rb.id||rb.title]?`1px solid ${T.green}40`:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>{executed[rb.id||rb.title]?"Executed - Evidence Recorded":rb.hitl?"Review in HITL Queue →":"Execute Runbook"}</button>
         </div>

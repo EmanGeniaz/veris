@@ -1,5 +1,6 @@
 "use client";
 
+import { readBus, pushBus } from "@/lib/bus";
 import { Map, Scale } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, ASSISTANT_NUDGES, riskRegister } from "@/lib/platform-models";
@@ -14,7 +15,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const pageLabel=(NAV.find(n=>n.id===tab)||{}).label||(tab==="aicentral"?"AI Central":tab==="home"?"Dashboard":"Workspace");
   const isWorkbench=tab==="workbench";
   const artifactActions=["Generate AIRA","Generate AI Impact Assessment","Generate Risk Register","Create Evidence Folder","Recommend Controls"];
-  const runArtifact=a=>{try{const list=JSON.parse(localStorage.getItem("vz-gw-evidence")||"[]");list.unshift({item:`${a} (assistant-generated)`,initiative:"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));}catch{}showToast&&showToast(`${a}: draft created and recorded in Trust & Evidence`);};
+  const runArtifact=a=>{try{const list=readBus("vz-gw-evidence");list.unshift({item:`${a} (assistant-generated)`,initiative:"Employee Workspace",scope:"Project",control:"Gateway policy engine",risk:"Prompt governance",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Auto-captured",version:"v1",time:"Just now"});localStorage.setItem("vz-gw-evidence",JSON.stringify(list.slice(0,40)));}catch{}showToast&&showToast(`${a}: draft created and recorded in Trust & Evidence`);};
   const [open,setOpen]=useState(false);
   const R=ROLES[role]||ROLES.caio;
   const nudges=ASSISTANT_NUDGES[role]||ASSISTANT_NUDGES.caio;
