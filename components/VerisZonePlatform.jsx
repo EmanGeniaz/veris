@@ -116,13 +116,26 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
     const badge=item.id==="home"&&hitlCount>0;
     const delay=Math.min(navIdx++*0.018,0.28);
-    return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
+    const btn=<button key="btn" className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
       {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`,boxShadow:theme==="light"?"none":`inset 0 0 20px ${rc}0D`}}/>}
       {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
       <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?rc:T.ink3} size={14}/></span>
       <span style={{position:"relative",zIndex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
       {badge&&<span style={{position:"absolute",right:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{hitlCount}</span>}
     </button>;
+    if(!(item.id==="aicentral"&&isAICentral&&!acOnly))return <div key={item.id}>{btn}</div>;
+    /* AI Central modules nest under their owning surface - one sidebar, contextual depth. */
+    return <div key={item.id}>
+      {btn}
+      <div style={{margin:"2px 0 6px 14px",paddingLeft:12,borderLeft:`1px solid ${T.border}`}}>
+        {AI_CENTRAL_NAV.filter(m=>m.id!=="academy"&&acAccessFor(role).modules.includes(m.id)).map(m=>{
+          const on=aiCentralView===m.id;
+          return <button key={m.id} onClick={()=>{setAiCentralView(m.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"14":"transparent",border:`1px solid ${on?AI_GOLD+"3d":"transparent"}`,color:on?AI_GOLD:T.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:"pointer"}}>
+            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.id==="dashboard"?"Overview":m.label}</span>
+          </button>;
+        })}
+      </div>
+    </div>;
   };
   const renderSectionHeader=(title)=>(
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"14px 10px 7px"}}>
@@ -148,11 +161,11 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {items.map(renderNavButton)}
           </div>;
         })}
-        {isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10,marginTop:acOnly?0:8}}>
+        {acOnly&&isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
         </div>}
-        {isAICentral&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
+        {acOnly&&isAICentral&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
           const isA=aiCentralView===item.id;
           return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setAiCentralView(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
