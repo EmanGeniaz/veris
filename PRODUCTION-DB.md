@@ -31,3 +31,16 @@ hydrate back on entry - no code changes needed.
 ## Next (Phase 2b)
 Auth.js sign-in with SSO, per-user identity on every record, and
 multi-tenant separation beyond the demo tenant.
+
+## Phase 2b - Authentication
+
+Auth activates when both a database and `AUTH_SECRET` are configured;
+until then the demo entry flow is unchanged.
+
+1. Set `AUTH_SECRET` in Vercel (generate with `npx auth secret`).
+2. Optional SSO: set `AUTH_MICROSOFT_ENTRA_ID_ID/_SECRET/_ISSUER` or
+   `AUTH_GOOGLE_ID/_SECRET`. Providers appear automatically.
+3. Credentials sign-in works against seeded users:
+   `<role>@veriszone.demo` / `veriszone-demo` (rotate in production).
+4. When signed in, evidence, decisions and ideas are stamped with the
+   user's identity and scoped to the user's tenant.

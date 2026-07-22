@@ -7,8 +7,8 @@ import { acInitiatives, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments
 import { T, AI_GOLD, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 import { PageAISpine } from "./spine";
 
-export function RiskAssessmentCascade({setTab,setAiCentralView}){
-  const [selId,setSelId]=useState(acInitiatives[0].id);
+export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
+  const [selId,setSelId]=useState(fixed||acInitiatives[0].id);
   const ini=acInitiatives.find(i=>i.id===selId)||acInitiatives[0];
   const outcomes=acAssessments[selId]||[];
   const stC=st=>st==="Complete"?T.green:st==="In Progress"?T.amber:T.ink4;
@@ -18,11 +18,11 @@ export function RiskAssessmentCascade({setTab,setAiCentralView}){
     /* riskcenter drills stay on this surface - the register/treatments tabs hold the detail */
   };
   return <div>
-    <Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+    {!fixed&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>Initiative</span>
       {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={{background:selId===i.id?AI_GOLD+"20":T.s2,border:`1px solid ${selId===i.id?AI_GOLD+"55":T.border}`,color:selId===i.id?AI_GOLD:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{i.name}</button>)}
       <span style={{marginLeft:"auto",fontSize:9,color:T.ink4,fontFamily:F.m}}>VerisZone proprietary governance engines · run automatically per initiative</span>
-    </Card>
+    </Card>}
     <div style={{display:"grid",gap:8}}>
       {AI_GOV_ENGINES.map((e,idx)=>{
         const o=outcomes.find(x=>x.engine===e.code);
