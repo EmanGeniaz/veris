@@ -238,7 +238,7 @@ export const EXEC_BRIEF: Record<string, ExecBriefEntry> = {
   ciso:{focus:"AI Security Operations Advisor",headline:"Security posture improved, but critical evidence is still open.",
     body:"Enterprise security score rose to 72/100 on patch and MFA progress. The AI Gateway blocked 563 policy violations this month and shadow-AI exposure is contained. Customer Resolution Copilot still lacks prompt-injection evidence, blocking its scale gate. Approving the remediation package reduces projected enterprise risk ~18%.",
     deltas:[["Security score","up","+8"],["Blocked prompts","up","563"],["Open risks","down","6"],["Critical evidence","up","1 due"]]},
-  caio:{focus:"AI Chief of Staff",headline:"Governance is healthy; two initiatives need a lifecycle decision.",
+  caio:{focus:"Veris Intelligence",headline:"Governance is healthy; two initiatives need a lifecycle decision.",
     body:"AI governance maturity is 72/100 with 7 HITL approvals pending. Finance Close Automation is scale-ready; Workforce Skills Navigator is trending to retirement on weak feedback and adoption. Two governed scale/retire decisions are waiting on you, and one initiative is blocked on missing Phase artifacts.",
     deltas:[["Maturity","up","72"],["HITL pending","flat","7"],["Scale-ready","up","1"],["Retire candidates","up","1"]]},
   cio:{focus:"AI Enterprise Architect",headline:"Platform is stable; integration debt is the next constraint.",
