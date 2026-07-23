@@ -3,7 +3,8 @@
 import { Scale, Settings } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS } from "./platform/core";
+import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES } from "./platform/core";
+import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
 import dynamic from "next/dynamic";
 import { hydrateBus } from "@/lib/bus";
@@ -131,7 +132,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
       <div style={{margin:"2px 0 6px 14px",paddingLeft:12,borderLeft:`1px solid ${T.border}`}}>
         {AI_CENTRAL_NAV.filter(m=>m.id!=="academy"&&acAccessFor(role).modules.includes(m.id)).map(m=>{
           const on=aiCentralView===m.id;
-          return <button key={m.id} onClick={()=>{setAiCentralView(m.id);onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"14":"transparent",border:`1px solid ${on?AI_GOLD+"3d":"transparent"}`,color:on?AI_GOLD:T.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:"pointer"}}>
+          return <button key={m.id} onClick={()=>{if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"14":"transparent",border:`1px solid ${on?AI_GOLD+"3d":"transparent"}`,color:on?AI_GOLD:T.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:"pointer"}}>
             <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.id==="dashboard"?"Overview":m.label}</span>
           </button>;
         })}
@@ -168,7 +169,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         </div>}
         {acOnly&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
           const isA=aiCentralView===item.id;
-          return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setAiCentralView(item.id);setTab("aicentral");onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+          return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
@@ -469,6 +470,10 @@ export default function VerisZone() {
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [isMobile,setIsMobile]=useState(()=>typeof window!=="undefined"&&window.innerWidth<768);
   const [theme,setTheme]=useState("dark");
+  /* Universal search + cross-module deep-open: any enterprise object is
+     reachable from anywhere; selecting an initiative opens its workspace. */
+  const [searchQ,setSearchQ]=useState("");
+  const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
   /* Bumped on every AI Central left-nav click so the module resets to its root view,
      even when the target module is already active (e.g. leaving an initiative workspace). */
@@ -516,7 +521,9 @@ export default function VerisZone() {
     showToast._t=setTimeout(()=>setToast(t=>({...t,vis:false})),3000);
   },[]);
 
-  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":"home");setHitlCount((HITL[r]||[]).length);};
+  /* Switching role inside AI Central keeps the initiative open - only the
+     executive perspective changes. Elsewhere it opens that role's home. */
+  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
     setTab("home");
@@ -613,20 +620,47 @@ export default function VerisZone() {
           <BrandLogo theme={theme} width={120}/>
         </div>}
         {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
-          {sessionMode==="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Back to the ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to {R.label} Workspace</button>}
-          {sessionMode==="demo"&&tab!=="aicentral"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
+          {/* Role switching stays available inside AI Central: the initiative
+              is constant, only the executive perspective changes. */}
+          {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
           {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
           {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
         {isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s3:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1,overflowX:"auto"}}>
-          {sessionMode==="demo"&&tab==="aicentral"
-            ?<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:rc+"20",border:`1px solid ${rc}40`,borderRadius:5,padding:"3px 6px",color:rc,fontSize:9,fontWeight:800,fontFamily:F.b}}>&#8592; {R.label} Workspace</button>
-            :sessionMode==="demo"
-            ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
+          {sessionMode==="demo"
+            ?Object.values(ROLES).map(r2=>{const active=role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
             :<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          {!isMobile&&showSeededData&&<div style={{position:"relative"}}>
+            <input aria-label="Universal search" placeholder="Search everything..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
+            {searchQ.trim().length>1&&(()=>{
+              const q=searchQ.trim().toLowerCase();
+              const openIni=(id,label)=>({label,go:()=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}});
+              const idx=[
+                ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} \u00b7 ${i.lifecycle}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}})),
+                ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} \u00b7 ${m.vendor}`,go:()=>{setAiCentralView("models");setTab("aicentral");}})),
+                ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} \u00b7 ${r.system}`,go:()=>setTab("riskcenter")})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Compliance & Standards",go:()=>setTab("compliance")})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.controls))].map(c=>({type:"Control",label:c,sub:"Control Library",go:()=>setTab("controls")})),
+                ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} \u00b7 ${i.name}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}}))),
+                ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>setTab("knowledge")})),
+                ...TEMPLATES.map(t2=>({type:"Template",label:t2.name,sub:t2.cat,go:()=>setTab("templates")})),
+                {type:"Approvals",label:"Executive decision queue",sub:"Approvals, HITL and gates",go:()=>setTab("decisions")},
+              ].filter(e=>`${e.label} ${e.sub} ${e.type}`.toLowerCase().includes(q)).slice(0,9);
+              return <div style={{position:"absolute",top:38,right:0,width:340,maxHeight:420,overflowY:"auto",background:T.card,border:`1px solid ${AI_GOLD}35`,borderRadius:12,boxShadow:"0 24px 60px rgba(0,0,0,.5)",zIndex:300,padding:6}}>
+                {idx.length===0&&<div style={{padding:"12px 14px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No matching enterprise objects.</div>}
+                {idx.map((e,i2)=><button key={i2} onClick={()=>{setSearchQ("");e.go();}} style={{width:"100%",display:"flex",gap:9,alignItems:"center",background:"transparent",border:"none",borderRadius:8,padding:"8px 10px",cursor:"pointer",textAlign:"left"}}>
+                  <span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.08em",width:64,flexShrink:0}}>{e.type}</span>
+                  <span style={{minWidth:0,flex:1}}>
+                    <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.label}</span>
+                    <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:1}}>{e.sub}</span>
+                  </span>
+                </button>)}
+              </div>;
+            })()}
+          </div>}
           <button onClick={()=>setTheme(theme==="dark"?"light":"dark")} title="Toggle dark and light mode" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:isMobile?"4px 10px":"6px 13px",color:T.ink2,fontSize:isMobile?10:11,fontWeight:800,fontFamily:F.b,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.05)":"none"}}>{theme==="dark"?"Light":"Dark"}</button>
           {hitlCount>0&&<button onClick={()=>setTab("decisions")} style={{display:"flex",alignItems:"center",gap:6,background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:20,padding:"4px 10px"}}>
             <div style={{width:5,height:5,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/>
@@ -645,7 +679,7 @@ export default function VerisZone() {
         {showSeededData&&["playbook","templates","checklists"].includes(tab)&&<PagePlaybook key={tab} tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
         {showSeededData&&["compliance","impl","iso27001","scope","controls","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} navNonce={acNavNonce} theme={theme} sessionMode={sessionMode}/>}
+        {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} navNonce={acNavNonce} initToOpen={initToOpen} onInitOpened={()=>setInitToOpen(null)} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&["riskcenter","aira","airt","aia","aiia"].includes(tab)&&<PageRiskCenter key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="registry"   &&<PageModelRegistry setTab={setTab}/>}

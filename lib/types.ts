@@ -3,6 +3,9 @@
 export type ACModuleId =
   | "dashboard"
   | "initiatives"
+  | "pmo"
+  | "models"
+  | "approvals"
   | "portfolio"
   | "governance"
   | "evidence"
@@ -89,6 +92,25 @@ export type ACInitiativeRecord = {
   /* artifacts completed within the active phase */
   phaseArtifactsDone: number;
   blockedBy: string | null;
+  /* Program charter - executive summary of why the initiative exists */
+  problem?: string;
+  vision?: string;
+  objective?: string;
+  budget?: string;
+  spent?: string;
+  timeline?: string;
+  successMetrics?: string[];
+};
+
+/* Execution-management data for the AI PMO workspace, keyed by initiative id */
+export type ACPmoRecord = {
+  milestones: { name: string; due: string; status: "Complete" | "On Track" | "At Risk" | "Not Started" }[];
+  raid: { kind: "Risk" | "Assumption" | "Issue" | "Dependency"; item: string; owner: string; status: string }[];
+  decisions: { decision: string; by: string; date: string; rationale: string }[];
+  resources: { role: string; name: string; allocation: string }[];
+  meetings: { name: string; cadence: string; next: string }[];
+  changeRequests: { id: string; title: string; impact: string; status: string }[];
+  sprint: { name: string; dates: string; goal: string; committed: number; done: number };
 };
 
 export type GatewayProviderStatus = "Approved" | "Restricted" | "Blocked";

@@ -3,16 +3,24 @@
 import { readBus, pushBus } from "@/lib/bus";
 import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
+import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
 
-export function PageModelRegistry({setTab}) {
-  const [sel,setSel]=useState(MODEL_REGISTRY[0]);
+export function PageModelRegistry({setTab,openInitiative}) {
+  /* Initiative-centric registry: Model -> AI System -> Initiative ->
+     Business Unit -> Executive owner. A model is never shown without its
+     business context; models outside a governed initiative are flagged
+     for intake. */
+  const [selId,setSelId]=useState(MODEL_REGISTRY[0].id);
+  const [openGroups,setOpenGroups]=useState({[MODEL_REGISTRY[0].initiativeId]:true});
+  const sel=MODEL_REGISTRY.find(m=>m.id===selId)||MODEL_REGISTRY[0];
+  const selIni=acInitiatives.find(i=>i.id===sel.initiativeId);
   const rCol=r=>r==="Critical"?T.red:r==="High"?T.amber:r==="Medium"?T.blue:r==="Unknown"?T.ink4:T.green;
   const sCol=s=>s==="In Production"?T.green:s==="Awaiting Approval"?T.amber:s==="Suspended"?T.red:s==="Unclassified"?T.red:T.ink3;
+  const lcCol=lc=>lc==="Production"||lc==="Pilot"?AI_GOLD:lc==="Scaling"?T.green:lc==="Retired"?T.red:T.blue;
   const Check=({v,label})=><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
     <div style={{width:16,height:16,borderRadius:4,background:v?T.greenL:T.redL,border:`1px solid ${v?T.green:T.red}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
       <span style={{fontSize:9,fontWeight:800,color:v?T.green:T.red}}>{v?"Yes":"No"}</span>
@@ -21,58 +29,102 @@ export function PageModelRegistry({setTab}) {
   </div>;
   const unclassified=MODEL_REGISTRY.filter(m=>m.euAiAct==="Unclassified").length;
   const critical=MODEL_REGISTRY.filter(m=>m.risk==="Critical").length;
-  const noCard=MODEL_REGISTRY.filter(m=>!m.modelCard).length;
+  const ungoverned=MODEL_REGISTRY.filter(m=>!m.initiativeId);
+  const groups=acInitiatives.map(ini=>({ini,models:MODEL_REGISTRY.filter(m=>m.initiativeId===ini.id)})).filter(g=>g.models.length);
+  const evConfidence=ini=>Math.round(((ini.phaseIndex+ini.phaseArtifactsDone/(AC_PHASES[ini.phaseIndex]?.deliverables.length||1))/AC_PHASES.length)*100);
+  const approvalsPending=ini=>MODEL_REGISTRY.filter(m=>m.initiativeId===ini.id&&m.status==="Awaiting Approval").length+(ini.blockedBy?1:0);
+  const modelRow=m=><button key={m.id} onClick={()=>setSelId(m.id)} style={{width:"100%",display:"grid",gridTemplateColumns:"1.5fr .9fr 92px 118px 64px",gap:10,alignItems:"center",padding:"10px 12px 10px 30px",background:selId===m.id?T.s3:"transparent",border:"none",borderTop:`1px solid ${T.border}`,borderLeft:selId===m.id?`3px solid ${T.caio}`:"3px solid transparent",cursor:"pointer",textAlign:"left"}}>
+    <div style={{minWidth:0}}>
+      <div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.bizName}</div>
+      <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{m.name} · {m.system}</div>
+    </div>
+    <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{m.vendor}</span>
+    <Tag label={m.euAiAct} color={m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber} bg={(m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber)+"16"}/>
+    <Tag label={m.status} color={sCol(m.status)} bg={sCol(m.status)+"16"}/>
+    <Tag label={m.risk} color={rCol(m.risk)} bg={rCol(m.risk)+"16"}/>
+  </button>;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Model Registry" sub="ISO 42001 C.8.4"/>
-    {/* Summary strip */}
+    <SHead title="AI Model Registry" sub="Every model in its business context - initiative, executive owner and lifecycle. ISO 42001 C.8.4"/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
       {[
-        {label:"Total Models",value:MODEL_REGISTRY.length,color:T.caio,sub:"In registry"},
-        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap",action:()=>{}},
+        {label:"Total Models",value:MODEL_REGISTRY.length,color:T.caio,sub:`across ${groups.length} governed initiatives`},
+        {label:"Ungoverned",value:ungoverned.length,color:T.amber,sub:"No initiative - intake required"},
+        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap"},
         {label:"Critical Risk",value:critical,color:T.red,sub:"Require treatment"},
-        {label:"Missing Model Card",value:noCard,color:T.amber,sub:"ISO 42001 C.8.4"},
-      ].map((k,i)=><Card key={k.label} style={{padding:"13px 14px",cursor:k.action?"pointer":"default"}} onClick={k.action}>
+      ].map(k=><Card key={k.label} style={{padding:"13px 14px"}}>
         <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{k.label}</div>
         <div style={{fontSize:26,fontWeight:800,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:3}}>{k.value}</div>
         <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </Card>)}
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14}}>
-      {/* Table */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14,alignItems:"start"}}>
       <div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 90px 70px",padding:"7px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["AI System","Type","EU AI Act","Status","Risk"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
-        </div>
-        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-          {MODEL_REGISTRY.map((m,i)=><div key={m.id} onClick={()=>setSel(m)} style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 90px 70px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<MODEL_REGISTRY.length-1?`1px solid ${T.border}`:"none",background:sel?.id===m.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===m.id?`3px solid ${T.caio}`:"3px solid transparent",transition:"all .15s"}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{m.name}</div>
-              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{m.dept} {m.vendor}</span>
+        {groups.map(({ini,models})=>{
+          const open=!!openGroups[ini.id];
+          const techs=[...new Set(models.map(m=>m.type.split(" / ")[0]))];
+          const vendors=[...new Set(models.map(m=>m.vendor))];
+          return <div key={ini.id} style={{border:`1px solid ${T.border}`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+            <button onClick={()=>setOpenGroups(g=>({...g,[ini.id]:!open}))} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.s1,border:"none",cursor:"pointer",textAlign:"left",flexWrap:"wrap"}}>
+              <span style={{fontSize:11,color:T.ink4,fontFamily:F.m,width:12}}>{open?"\u25be":"\u25b8"}</span>
+              <div style={{flex:1,minWidth:180}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{ini.name}</span>
+                  <Tag label={ini.lifecycle} color={lcCol(ini.lifecycle)} bg={lcCol(ini.lifecycle)+"16"}/>
+                </div>
+                <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:3}}>{ini.unit} · Sponsor {ini.sponsor} · Owner {ini.businessOwner} · Phase {ini.phaseIndex+1}/{AC_PHASES.length} ({AC_PHASES[ini.phaseIndex]?.name})</div>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                {techs.map(t=><span key={t} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:800,fontFamily:F.m,color:T.ink3}}>{t}</span>)}
+                {vendors.filter(v=>v!=="Internal").map(v=><span key={v} style={{background:AI_GOLD+"10",border:`1px solid ${AI_GOLD}30`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:800,fontFamily:F.m,color:AI_GOLD}}>{v}</span>)}
+                <span style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink2}}>{models.length} model{models.length>1?"s":""}</span>
+              </div>
+            </button>
+            {open&&models.map(modelRow)}
+          </div>;
+        })}
+        {ungoverned.length>0&&<div style={{border:`1px solid ${T.amber}45`,borderRadius:10,overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.amberL,flexWrap:"wrap"}}>
+            <div style={{flex:1,minWidth:180}}>
+              <div style={{fontSize:12.5,fontWeight:800,color:T.amber,fontFamily:F.b}}>Outside governed initiatives</div>
+              <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:3}}>These models run without initiative context, executive ownership or lifecycle gates.</div>
             </div>
-            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.4}}>{m.type}</span>
-            <Tag label={m.euAiAct} color={m.euAiAct==="High-Risk"?T.red:m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber} bg={m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.redL:m.euAiAct==="Minimal Risk"?T.greenL:T.amberL}/>
-            <Tag label={m.status} color={sCol(m.status)} bg={sCol(m.status)+"18"}/>
-            <Tag label={m.risk} color={rCol(m.risk)} bg={rCol(m.risk)+"18"}/>
-          </div>)}
-        </div>
+            <button onClick={()=>setTab&&setTab("intake")} style={{background:T.amber+"22",border:`1px solid ${T.amber}55`,borderRadius:7,padding:"7px 12px",color:T.amber,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Start governed intake →</button>
+          </div>
+          {ungoverned.map(modelRow)}
+        </div>}
       </div>
-      {/* Detail */}
-      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",animation:"fade .25s ease",boxShadow:`0 0 24px ${rCol(sel.risk)}10`}}>
-        <div style={{background:`linear-gradient(135deg,${rCol(sel.risk)}18,${T.s3})`,borderBottom:`1px solid ${rCol(sel.risk)}30`,padding:"14px 16px"}}>
+      <Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",animation:"fade .25s ease"}}>
+        <div style={{background:`linear-gradient(135deg,${rCol(sel.risk)}14,${T.s3})`,borderBottom:`1px solid ${rCol(sel.risk)}30`,padding:"14px 16px"}}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:9}}>
+            {selIni&&<Tag label={selIni.lifecycle} color={lcCol(selIni.lifecycle)} bg={lcCol(selIni.lifecycle)+"16"}/>}
             <Tag label={sel.euAiAct} color={sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified"?T.red:T.amber} bg={sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified"?T.redL:T.amberL}/>
             <Tag label={sel.status} color={sCol(sel.status)} bg={sCol(sel.status)+"18"}/>
           </div>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3}}>{sel.name}</h3>
-          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>{sel.clause}</p>
+          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3,margin:0}}>{sel.bizName}</h3>
+          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>{sel.name} · {sel.system} · {sel.clause}</p>
         </div>
         <div style={{padding:15}}>
-          {[["Type",sel.type],["Owner",sel.owner],["Vendor",sel.vendor],["Deployed",sel.deployed],["Accuracy",sel.accuracy],["Last Audit",sel.lastAudit]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-            <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600}}>{v}</span>
-          </div>)}
+          {selIni?<>
+            <div style={{fontSize:9,fontWeight:700,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Business context</div>
+            {[["Initiative",selIni.name],["Business Unit",selIni.unit],["Executive Sponsor",selIni.sponsor],["Business Owner",selIni.businessOwner],
+              ["Current Phase",`${AC_PHASES[selIni.phaseIndex]?.name} (${selIni.phaseIndex+1}/${AC_PHASES.length})`],
+              ["Business Value",`${selIni.actual} of ${selIni.expected}`],["Expected ROI",selIni.roi],
+              ["Models in initiative",MODEL_REGISTRY.filter(m=>m.initiativeId===selIni.id).map(m=>m.bizName).join(", ")],
+              ["Vendor(s)",[...new Set(MODEL_REGISTRY.filter(m=>m.initiativeId===selIni.id).map(m=>m.vendor))].join(", ")],
+              ["Controls implemented",selIni.controls.join(", ")],["Risks",selIni.risks.join(", ")],
+              ["Evidence confidence",evConfidence(selIni)+"%"],["Approvals pending",approvalsPending(selIni)]
+            ].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",gap:10,padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",flexShrink:0}}>{l}</span>
+              <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:600,textAlign:"right",lineHeight:1.45}}>{v}</span>
+            </div>)}
+            <button onClick={()=>openInitiative?openInitiative(selIni.id):setTab&&setTab("aicentral")} style={{width:"100%",marginTop:12,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Initiative →</button>
+          </>:<div style={{background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:8,padding:"11px 12px"}}>
+            <div style={{fontSize:10,fontWeight:800,color:T.amber,fontFamily:F.b,marginBottom:4}}>No governed initiative</div>
+            <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 9px"}}>This model runs without executive ownership, lifecycle gates or business-value tracking. Bring it under governance through opportunity intake.</p>
+            <button onClick={()=>setTab&&setTab("intake")} style={{width:"100%",background:T.amber+"22",border:`1px solid ${T.amber}55`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:900,fontFamily:F.b,color:T.amber,cursor:"pointer"}}>Start governed intake →</button>
+          </div>}
           <div style={{marginTop:14}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:10}}>ISO 42001 Compliance Checklist</div>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:10}}>Model assurance (ISO 42001)</div>
             <div style={{background:T.s3,borderRadius:8,padding:"11px 12px"}}>
               <Check v={sel.modelCard}      label="Model Card documented (C.8.4)"/>
               <Check v={sel.aia}            label="AI Impact Assessment completed (A.5)"/>
@@ -92,9 +144,8 @@ export function PageModelRegistry({setTab}) {
             <div style={{fontSize:10,fontWeight:700,color:T.red,fontFamily:F.b,marginBottom:3}}>Action Required</div>
             <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{sel.euAiAct==="Unclassified"?"EU AI Act risk classification must be completed before August 2026 enforcement.":"High-Risk system - full conformity assessment required per EU AI Act Art.43."}</p>
           </div>}
-          <button onClick={()=>setTab("decisions")} style={{width:"100%",marginTop:12,background:T.caio,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Review in HITL Queue </button>
         </div>
-      </Card>}
+      </Card>
     </div>
   </div>;
 }
@@ -379,7 +430,7 @@ function PortfolioUnits({setView}){
   </div>;
 }
 
-export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme,sessionMode}) {
+export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initToOpen,onInitOpened,theme,sessionMode}) {
   const rc=AI_GOLD;
   const access=acAccessFor(role);
   const R=ROLES[role]||ROLES.caio;
@@ -388,9 +439,22 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   const [selectedId,setSelectedId]=useState(acInitiatives[0].id);
   const [initTab,setInitTab]=useState("list");
   const [phaseSel,setPhaseSel]=useState(null);
+  /* Phase evidence workspace state, keyed by `${initiativeId}:${phaseIdx}` so
+     uploads and reviewer comments follow the globally selected initiative+phase. */
+  const [phaseFiles,setPhaseFiles]=useState({});
+  const [phaseComments,setPhaseComments]=useState({});
+  const [commentDraft,setCommentDraft]=useState("");
+  const [histOpen,setHistOpen]=useState(null);
   /* A left-nav click always returns the module to its root view, even when the
      module is already active (e.g. stepping out of an initiative workspace). */
   useEffect(()=>{if(navNonce){setInitTab("overview");setPhaseSel(null);setCreateOpen(false);}},[navNonce]);
+  /* One global state: initiative + phase + role. Switching role re-frames the
+     same initiative into that executive's perspective (CAIO opens the full
+     profile by default - it is the operating role). */
+  const [profileMode,setProfileMode]=useState(role==="caio");
+  useEffect(()=>{setProfileMode(role==="caio");},[role]);
+  /* Deep-open from universal search: land directly on the requested initiative. */
+  useEffect(()=>{if(initToOpen){openInitiative(initToOpen);onInitOpened&&onInitOpened();}},[initToOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
   const [gwTab,setGwTab]=useState("overview");
@@ -461,21 +525,26 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
      Intelligence, and the selected initiative is the page's visual focus. */
   const Header=()=><div style={{margin:"4px 0 20px"}}>
     <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
-    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b}}>{activeModule==="initiatives"?"Enterprise AI Portfolio Workspace":access.focus}</p>
+    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b}}>{activeModule==="initiatives"?"AI Initiative Workspace - the digital twin of one initiative":activeModule==="dashboard"?"Enterprise AI Command Center - portfolio-wide visibility":activeModule==="pmo"?"Portfolio Delivery Office - delivery across every initiative":access.focus}</p>
   </div>;
 
   /* ── Dashboard ─────────────────────────────────────────────── */
+  /* Every tile opens the surface that OWNS its metric - no two tiles may
+     share a destination. initiatives=workspace overview, journey=execution,
+     riskcenter=risk register, decisions=approvals, evidence=audit trail,
+     governance=controls, academy=readiness, value tab=value scores,
+     portfolio units=investment, reports=portfolio ROI reporting. */
   const W={
     portfolio:{label:"Total initiatives",value:total,sub:"Enterprise AI portfolio",color:rc,go:()=>openModule("initiatives")},
-    active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openModule("initiatives")},
-    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>openModule("initiatives")},
+    active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openInitiative(selectedId,"journey")},
+    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>{setTab("riskcenter");}},
     approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("decisions");}},
     findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("evidence")},
     guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("governance")},
     adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
-    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openModule("initiatives")},
-    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>openModule("initiatives")},
-    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("initiatives")},
+    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openInitiative(selectedId,"value")},
+    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>{setPfTab("units");openModule("portfolio");}},
+    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>{setTab("reports");}},
   };
   const LENS_WIDGETS={
     Executive:["portfolio","value","roi","risk","budget","approvals"],
@@ -664,7 +733,29 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   /* Overview: executive-level by default. Ownership and next action up
      front as typography; governance metadata and compliance mapping stay
      collapsed until explicitly expanded (progressive disclosure). */
+  /* Executive charter - the 30-second read: why, where to, what success is. */
+  const iniModels=MODEL_REGISTRY.filter(m=>m.initiativeId===selected.id);
+  const renderCharter=()=>(selected.problem||selected.vision)&&<div style={{display:"grid",gap:14}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:"14px 28px"}}>
+      {[["Problem",selected.problem],["Vision",selected.vision],["Business objective",selected.objective]].filter(([,v])=>v).map(([l,v])=><div key={l}>
+        <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:4}}>{l}</div>
+        <div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>{v}</div>
+      </div>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"12px 24px"}}>
+      {[["Budget",`${selected.spent||"—"} of ${selected.budget||"—"}`],["Timeline",selected.timeline||"—"],
+        ["Overall completion",phaseProgress(selected)+"%"],
+        ["AI models used",iniModels.length?iniModels.map(m=>m.bizName).join(", "):"None registered"]].map(([l,v])=><div key={l}>
+        <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
+        <div style={{fontSize:12,color:T.ink,fontFamily:F.b,fontWeight:700,lineHeight:1.45}}>{v}</div>
+      </div>)}
+    </div>
+    {selected.successMetrics&&<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      {selected.successMetrics.map(m=><span key={m} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"4px 11px",fontSize:9.5,fontWeight:800,fontFamily:F.m,color:T.ink2}}>{m}</span>)}
+    </div>}
+  </div>;
   const Overview=()=><div style={{display:"grid",gap:20}}>
+    {renderCharter()}
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"14px 24px",marginBottom:4}}>
         {[["Executive sponsor",selected.sponsor],["Status",selected.status],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/${AC_PHASES.length})`],["Adoption",selected.adoption+"%"]].map(([l,v])=><div key={l}>
@@ -674,6 +765,15 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>
       {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}35`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b,marginTop:12}}><strong style={{color:T.red}}>Blocked:</strong> {selected.blockedBy}</div>}
       <button onClick={()=>{if(selected.blockedBy)setInitTab("journey");else setInitTab("journey");}} style={{marginTop:12,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"9px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Next action: {wsNextAction} →</button>
+    </div>
+    <div>
+      <h3 style={{fontSize:13,color:T.ink,margin:"0 0 10px",fontFamily:F.h,fontWeight:800}}>Initiative team</h3>
+      <div style={{display:"flex",gap:22,flexWrap:"wrap",marginBottom:4}}>
+        {[["Executive sponsor",selected.sponsor],["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["AI champion",selected.champion],["CXO sponsors",selected.cxo]].map(([l,v])=><div key={l}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:11.5,color:T.ink,fontFamily:F.b,fontWeight:600}}>{v}</div>
+        </div>)}
+      </div>
     </div>
     <div>
       <h3 style={{fontSize:13,color:T.ink,margin:"0 0 10px",fontFamily:F.h,fontWeight:800}}>Financial impact</h3>
@@ -706,16 +806,67 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     const phase=AC_PHASES[activePhase];
     const st=phaseStatus(selected,activePhase);
     const stColor=st==="Complete"?T.green:st==="Active"?rc:st==="Blocked"?T.red:T.ink3;
+    const pKey=`${selected.id}:${activePhase}`;
+    const files=phaseFiles[pKey]||[];
+    const comments=phaseComments[pKey]||[];
+    const doneCount=idx=>idx<selected.phaseIndex?AC_PHASES[idx].deliverables.length:idx===selected.phaseIndex?selected.phaseArtifactsDone:0;
+    const approvalsOf=idx=>AC_PHASES[idx].deliverables.filter((d,ai)=>/approval|sign-off|decision|charter/i.test(d)&&artifactStatus(selected,idx,ai)==="Complete").length;
+    const lastUpdated=idx=>idx<selected.phaseIndex?"Jul 11":idx===selected.phaseIndex?"Today":"—";
+    const stamp=()=>{const d=new Date();return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});};
+    const recordEvidence=(item,control)=>pushBus("vz-gw-evidence",{item,initiative:selected.name,scope:"Phase "+phase.order+" - "+phase.name,control,risk:"Lifecycle evidence",owner:R.label,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+    const addFiles=names=>{
+      if(!names.length)return;
+      const recs=names.map(n=>({name:n,owner:R.label,time:stamp(),status:"Uploaded",version:"v1"}));
+      setPhaseFiles(f=>({...f,[pKey]:[...recs,...(f[pKey]||[])]}));
+      names.forEach(n=>recordEvidence(`Evidence uploaded: ${n}`,"Evidence intake"));
+      showToast&&showToast(`${names.length} file${names.length>1?"s":""} recorded in the ${phase.name} evidence workspace`);
+    };
+    const addComment=()=>{
+      const t=commentDraft.trim();
+      if(!t)return;
+      setPhaseComments(c=>({...c,[pKey]:[{by:R.label,time:stamp(),text:t},...(c[pKey]||[])]}));
+      setCommentDraft("");
+      recordEvidence(`Reviewer comment on ${phase.name}`,"Review trail");
+    };
+    const auditTrail=[
+      ...files.map(f=>({time:f.time,what:`${f.name} uploaded (${f.version})`,by:f.owner})),
+      ...comments.map(c=>({time:c.time,what:"Reviewer comment recorded",by:c.by})),
+      ...phase.deliverables.map((d,ai)=>artifactStatus(selected,activePhase,ai)==="Complete"?{time:lastUpdated(activePhase),what:`${d} completed and approved`,by:phase.raci.accountable}:null).filter(Boolean),
+    ];
+    const completeness=Math.round((doneCount(activePhase)/phase.deliverables.length)*100);
+    const downloadPackage=()=>{
+      const L=[`# Evidence Package - ${selected.name}`,`Phase ${phase.order}: ${phase.name} (${st})`,"",
+        "## Exit criteria",...phase.deliverables.map(d=>`- [${artifactStatus(selected,activePhase,phase.deliverables.indexOf(d))==="Complete"?"x":" "}] ${d}`),
+        `- [${selected.blockedBy&&activePhase===selected.phaseIndex?" ":"x"}] No open blockers`,
+        `- [${approvalsOf(activePhase)>0?"x":" "}] Accountable sign-off (${phase.raci.accountable})`,"",
+        "## Uploaded evidence",...(files.length?files.map(f=>`- ${f.name} · ${f.owner} · ${f.time} · ${f.version}`):["- none"]),"",
+        "## Reviewer comments",...(comments.length?comments.map(c=>`- ${c.time} ${c.by}: ${c.text}`):["- none"]),"",
+        "## Audit trail",...auditTrail.map(a=>`- ${a.time} · ${a.what} · ${a.by}`)];
+      vzDownload(`evidence-${selected.id}-phase-${phase.order}.md`,L.join("\n"));
+      recordEvidence(`Evidence package exported - ${phase.name}`,"Audit export");
+      showToast&&showToast("Evidence package downloaded - export recorded in the audit trail");
+    };
     return <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(8,minmax(96px,1fr))",gap:6,marginBottom:14,overflowX:"auto"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:6,marginBottom:14}}>
         {AC_PHASES.map((p,idx)=>{
           const s=phaseStatus(selected,idx);
           const col=s==="Complete"?T.green:s==="Active"?rc:s==="Blocked"?T.red:T.ink4;
           const isSel=idx===activePhase;
-          return <button key={p.id} onClick={()=>setPhaseSel(idx)} style={{background:isSel?col+"1C":T.s2,border:`1px solid ${isSel?col+"55":T.border}`,borderRadius:10,padding:"10px 8px",textAlign:"left",cursor:"pointer"}}>
-            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginBottom:4}}>PHASE {p.order}</div>
+          const pc=Math.round((doneCount(idx)/p.deliverables.length)*100);
+          return <button key={p.id} onClick={()=>setPhaseSel(idx)} style={{background:isSel?col+"1C":T.s2,border:`1px solid ${isSel?col+"55":T.border}`,borderRadius:10,padding:"10px 10px",textAlign:"left",cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>PHASE {p.order}</span>
+              <Tag label={s} color={col} bg={col+"16"}/>
+            </div>
             <div style={{fontSize:11,color:isSel?col:T.ink2,fontWeight:800,fontFamily:F.b,lineHeight:1.25,marginBottom:6}}>{p.name}</div>
-            <Tag label={s} color={col} bg={col+"16"}/>
+            <Bar value={pc} color={col}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:8.5,color:T.ink4,fontFamily:F.m}}>
+              <span>{doneCount(idx)}/{p.deliverables.length} artifacts</span><span>{approvalsOf(idx)} appr.</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:3,fontSize:8.5,color:T.ink4,fontFamily:F.m}}>
+              <span>{p.raci.accountable}</span><span>{lastUpdated(idx)}</span>
+            </div>
+            <div style={{marginTop:7,fontSize:9,fontWeight:900,fontFamily:F.b,color:isSel?col:T.ink3}}>Open phase →</div>
           </button>;
         })}
       </div>
@@ -725,37 +876,96 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>}
       <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14}}>
         <Card style={{padding:18}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,gap:8,flexWrap:"wrap"}}>
             <h3 style={{fontSize:16,color:T.ink,fontWeight:800,margin:0}}>Phase {phase.order}: {phase.name}</h3>
-            <Tag label={st} color={stColor} bg={stColor+"16"}/>
+            <div style={{display:"flex",gap:7,alignItems:"center"}}>
+              <Tag label={st} color={stColor} bg={stColor+"16"}/>
+              <button onClick={downloadPackage} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 10px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Download package ↓</button>
+            </div>
           </div>
-          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 14px"}}>{phase.objective}</p>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 12px"}}>{phase.objective}</p>
+          <h4 style={{fontSize:12,color:T.ink,margin:"0 0 7px"}}>Exit criteria</h4>
+          <div style={{display:"grid",gap:4,marginBottom:14}}>
+            {[[`All ${phase.deliverables.length} mandatory artifacts complete`,completeness===100],
+              ["No open blockers on this phase",!(selected.blockedBy&&activePhase===selected.phaseIndex)],
+              [`${phase.raci.accountable} sign-off recorded`,st==="Complete"]].map(([txt,ok])=><div key={txt} style={{display:"flex",gap:7,alignItems:"center"}}>
+              <span style={{fontSize:10,fontWeight:900,color:ok?T.green:T.amber,fontFamily:F.m}}>{ok?"✓":"○"}</span>
+              <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{txt}</span>
+            </div>)}
+          </div>
           <h4 style={{fontSize:12,color:T.ink,margin:"0 0 8px"}}>Mandatory artifacts</h4>
           <div style={{display:"grid",gap:7}}>
             {phase.deliverables.map((d,ai)=>{
               const as_=artifactStatus(selected,activePhase,ai);
               const ac_=as_==="Complete"?T.green:as_==="Blocked"?T.red:as_==="Missing"?T.amber:T.ink4;
-              return <div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px"}}>
-                <div style={{display:"flex",gap:9,alignItems:"center"}}><span style={{width:7,height:7,borderRadius:"50%",background:ac_}}/><span style={{fontSize:12,color:T.ink2,fontFamily:F.b}}>{d}</span></div>
-                <Tag label={as_} color={ac_} bg={ac_+"14"}/>
+              const hKey=pKey+":"+ai;
+              return <div key={d} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8}}>
+                <button onClick={()=>setHistOpen(histOpen===hKey?null:hKey)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:"transparent",border:"none",padding:"9px 12px",cursor:"pointer",textAlign:"left"}}>
+                  <div style={{display:"flex",gap:9,alignItems:"center",minWidth:0}}><span style={{width:7,height:7,borderRadius:"50%",background:ac_,flexShrink:0}}/><span style={{fontSize:12,color:T.ink2,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d}</span></div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                    <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{phase.raci.responsible} · {as_==="Complete"?lastUpdated(activePhase):"—"}</span>
+                    <Tag label={as_} color={ac_} bg={ac_+"14"}/>
+                  </div>
+                </button>
+                {histOpen===hKey&&<div style={{padding:"0 12px 10px 28px",animation:"up .15s ease"}}>
+                  <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>Version history & approvals</div>
+                  {as_==="Complete"?<>
+                    <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>v1 · Drafted by {phase.raci.responsible} · {lastUpdated(activePhase)}</div>
+                    <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>v2 · Approved by {phase.raci.accountable} · {lastUpdated(activePhase)} · recorded to Trust & Evidence</div>
+                  </>:<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>No versions yet - upload evidence below or complete the artifact to start the trail.</div>}
+                </div>}
               </div>;
             })}
           </div>
-          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:12,lineHeight:1.6}}>Artifacts are stored automatically in Trust &amp; Evidence when completed. A phase cannot close with missing mandatory artifacts.</div>
+          <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles([...e.dataTransfer.files].map(f=>f.name));}} style={{marginTop:12,border:`1.5px dashed ${rc}50`,borderRadius:10,padding:"16px 14px",textAlign:"center"}}>
+            <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,fontWeight:700,marginBottom:3}}>Drop evidence files here</div>
+            <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,marginBottom:8}}>Uploads are stamped with owner, time and version and recorded in Trust & Evidence.</div>
+            <label style={{background:rc+"16",border:`1px solid ${rc}45`,borderRadius:7,padding:"6px 13px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",display:"inline-block"}}>
+              Select files<input type="file" multiple style={{display:"none"}} onChange={e=>{addFiles([...e.target.files].map(f=>f.name));e.target.value="";}}/>
+            </label>
+          </div>
+          {files.length>0&&<div style={{marginTop:10,display:"grid",gap:6}}>
+            {files.map(f=><div key={f.name+f.time} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px"}}>
+              <span style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:600,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span>
+              <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,flexShrink:0}}>{f.owner} · {f.time} · {f.version}</span>
+              <Tag label={f.status} color={T.blue} bg={T.blue+"14"}/>
+            </div>)}
+          </div>}
         </Card>
         <div style={{display:"grid",gap:12,alignContent:"start"}}>
+          <Card style={{padding:16,border:`1px solid ${AI_GOLD}30`}}>
+            <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Veris completeness review</div>
+            <div style={{fontSize:20,fontWeight:900,fontFamily:F.m,color:completeness===100?T.green:completeness>=50?T.amber:T.red,marginBottom:6}}>{completeness}%</div>
+            <Bar value={completeness} color={completeness===100?T.green:T.amber}/>
+            <p style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6,margin:"9px 0 0"}}>
+              {completeness===100?`All artifacts for ${phase.name} are complete. ${st==="Complete"?"Phase is closed and archived.":"Request "+phase.raci.accountable+" sign-off to close the phase."}`
+              :`${phase.deliverables.length-doneCount(activePhase)} artifact${phase.deliverables.length-doneCount(activePhase)>1?"s":""} outstanding${selected.blockedBy&&activePhase===selected.phaseIndex?"; the phase is blocked: "+selected.blockedBy:""}. ${files.length?files.length+" uploaded file"+(files.length>1?"s":"")+" await mapping to artifacts.":"Upload supporting evidence to accelerate review."}`}
+            </p>
+          </Card>
           <Card style={{padding:16}}>
             <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px"}}>Ownership (RACI)</h3>
             {[["Responsible",phase.raci.responsible,T.green],["Accountable",phase.raci.accountable,rc],["Consulted",phase.raci.consulted,T.blue],["Informed",phase.raci.informed,T.ink3]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
               <Tag label={l} color={c} bg={c+"14"}/><span style={{fontSize:11,color:T.ink,fontWeight:700,fontFamily:F.b}}>{v}</span>
             </div>)}
-            <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10}}>Nothing is ownerless: every phase carries explicit accountability.</div>
           </Card>
           <Card style={{padding:16}}>
-            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 8px"}}>Overall progress</h3>
-            <div style={{fontSize:24,fontWeight:800,color:rc,fontFamily:F.h,marginBottom:8}}>{phaseProgress(selected)}%</div>
-            <Bar value={phaseProgress(selected)} color={rc}/>
-            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[selected.phaseIndex]?.name}</div>
+            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 9px"}}>Reviewer comments</h3>
+            <div style={{display:"flex",gap:6,marginBottom:9}}>
+              <input value={commentDraft} onChange={e=>setCommentDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addComment();}} placeholder="Add a review note..." style={{...fieldStyle,fontSize:10.5,padding:"7px 10px"}}/>
+              <button onClick={addComment} style={{background:rc+"16",border:`1px solid ${rc}45`,borderRadius:7,padding:"0 12px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Post</button>
+            </div>
+            {comments.length===0&&<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>No comments on this phase yet.</div>}
+            <div style={{display:"grid",gap:7}}>
+              {comments.map((c,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}><strong style={{color:T.ink}}>{c.by}</strong> <span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{c.time}</span><br/>{c.text}</div>)}
+            </div>
+          </Card>
+          <Card style={{padding:16}}>
+            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 9px"}}>Audit trail</h3>
+            {auditTrail.length===0&&<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>Activity on this phase will appear here with timestamps.</div>}
+            <div style={{display:"grid",gap:6}}>
+              {auditTrail.slice(0,6).map((a,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}><span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{a.time}</span> · {a.what} · <span style={{color:T.ink2}}>{a.by}</span></div>)}
+            </div>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:9,lineHeight:1.5}}>Entries are also written to the hash-chained platform audit log (ISO 42001 / EU AI Act ready).</div>
           </Card>
         </div>
       </div>
@@ -1066,10 +1276,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
      primary recommendation. Everything else lives inside the tabs. */
   const renderExecHeader=()=>{
     const heroes=[
-      ["Health",String(wsHealth),wsHealth>=80?T.green:wsHealth>=60?T.amber:T.red,"overview"],
-      ["Business value",selected.expected,AI_GOLD,"value"],
-      ["Risk",wsRiskScore?`${wsRiskScore}/25`:selected.risk,wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green,"governance"],
-      ["Phase",`${selected.phaseIndex+1} of ${AC_PHASES.length}`,T.blue,"journey"],
+      ["Health",String(wsHealth),wsHealth>=80?T.green:wsHealth>=60?T.amber:T.red,"overview",`(governance ${selected.guardrail} + adoption ${selected.adoption} + value ${selected.valueScore}) / 3`],
+      ["Business value",selected.expected,AI_GOLD,"value","Expected value from the approved business case"],
+      ["Risk",wsRiskScore?`${wsRiskScore}/25`:selected.risk,wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green,"governance","Worst residual risk: likelihood x impact out of 25"],
+      ["Phase",`${selected.phaseIndex+1} of ${AC_PHASES.length}`,T.blue,"journey","Position in the 13-phase governed lifecycle"],
     ];
     return <div style={{margin:"2px 0 18px"}}>
       <div style={{display:"flex",gap:10,alignItems:"baseline",flexWrap:"wrap"}}>
@@ -1078,7 +1288,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>
       <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:4}}>{selected.unit} · {selected.category} · Sponsor {selected.sponsor}</div>
       <div style={{display:"flex",gap:28,flexWrap:"wrap",margin:"16px 0 0"}}>
-        {heroes.map(([l,v,c,tabTo])=><button key={l} onClick={()=>setInitTab(tabTo)} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",textAlign:"left"}}>
+        {heroes.map(([l,v,c,tabTo,how])=><button key={l} onClick={()=>setInitTab(tabTo)} title={how} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",textAlign:"left"}}>
           <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
           <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,lineHeight:1}}>{v}</div>
         </button>)}
@@ -1210,10 +1420,35 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:13}}>
         <span style={{width:8,height:8,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>
         <span style={{fontSize:11.5,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
-        <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginLeft:"auto"}}>Executive Advisor</span>
+        <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginLeft:"auto"}}>{
+          /* The advisor's persona follows the context being viewed. */
+          (!profileMode&&buildPerspective())?buildPerspective().persona
+          :wsTab==="value"?"Financial Advisor"
+          :wsTab==="governance"?"Governance Advisor"
+          :wsTab==="journey"||wsTab==="pmo"?"Delivery Advisor"
+          :wsTab==="monitoring"?"Auditor"
+          :"Executive Advisor"}</span>
       </div>
       {secHead("Executive brief")}
-      <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected. {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
+      <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected.{phaseSel!=null&&phaseSel!==selected.phaseIndex?` You are reviewing ${AC_PHASES[phaseSel]?.name} (${phaseSel<selected.phaseIndex?"complete":"not started"}).`:""} {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
+      {divider}
+      {secHead("Program analysis")}
+      {(()=>{
+        const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+        const totalExp=acInitiatives.reduce((a,i)=>a+money(i.expected),0);
+        const share=Math.round((money(selected.expected)/totalExp)*100);
+        const remaining=AC_PHASES.length-selected.phaseIndex;
+        const weeks=remaining*3+(selected.blockedBy?2:0);
+        const eta=new Date();eta.setDate(eta.getDate()+weeks*7);
+        const etaLabel=eta.toLocaleDateString("en-GB",{month:"short",year:"numeric"});
+        return <div style={{display:"grid",gap:6,fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
+          <div><strong style={{color:T.ink}}>Portfolio impact:</strong> {share}% of enterprise AI value ({selected.expected} of ${totalExp.toFixed(1)}M).</div>
+          <div><strong style={{color:T.ink}}>Financial impact:</strong> ${(money(selected.expected)-money(selected.actual)).toFixed(1)}M unrealized; {selected.spent||"—"} of {selected.budget||"—"} budget consumed.</div>
+          <div><strong style={{color:T.ink}}>Blockers:</strong> {selected.blockedBy||"none open"}.</div>
+          <div><strong style={{color:T.ink}}>Delay prediction:</strong> {selected.blockedBy?"~2 weeks slip if the blocker holds past this sprint":"on schedule at current cadence"}.</div>
+          <div><strong style={{color:T.ink}}>Predicted completion:</strong> ~{etaLabel} ({remaining} phases remaining).</div>
+        </div>;
+      })()}
       {divider}
       {secHead("Recommendation")}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -1233,6 +1468,13 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
         <button onClick={()=>setTab&&setTab("decisions")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"7px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review approvals →</button>
       </>}
       {divider}
+      {secHead("Suggested next actions")}
+      <div style={{display:"grid",gap:6,marginBottom:2}}>
+        {[[wsNextAction.length>46?wsNextAction.slice(0,46)+"…":wsNextAction,()=>setInitTab("journey")],
+          ["Review phase evidence",()=>setInitTab("journey")],
+          ["Check execution plan in AI PMO",()=>setInitTab("pmo")]].map(([l,go])=><button key={l} onClick={go} style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 10px",color:T.ink2,fontSize:10,fontWeight:700,fontFamily:F.b,cursor:"pointer"}}>{l} →</button>)}
+      </div>
+      {divider}
       {secHead("Recent activity")}
       {activity.length===0&&<div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>No recorded activity yet - completed artifacts will appear here.</div>}
       <div style={{display:"grid",gap:7}}>
@@ -1241,6 +1483,310 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       {activity.length>0&&<button onClick={()=>setView("evidence")} style={{marginTop:9,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open evidence →</button>}
     </div>;
   };
+  /* AI PMO - execution management. Journey owns the lifecycle method;
+     the PMO owns delivery: schedule, scope, resources, money, decisions. */
+  const renderPmo=()=>{
+    const pmo=acPmo[selected.id];
+    const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+    if(!pmo)return <Card style={{padding:18}}><div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>Execution plan not yet stood up for this initiative - the PMO workspace is created at Business Case approval.</div></Card>;
+    const secH=t=><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px",fontFamily:F.h}}>{t}</h3>;
+    const msCol=st=>st==="Complete"?T.green:st==="On Track"?T.blue:st==="At Risk"?T.red:T.ink4;
+    const budgetPct=Math.min(100,Math.round((money(selected.spent)/(money(selected.budget)||1))*100));
+    const govDecisions=readBus("vz-gw-evidence").filter(e=>e.initiative===selected.name&&/decision/i.test(e.item)).slice(0,3);
+    const allDeliverables=AC_PHASES.reduce((a,p)=>a+p.deliverables.length,0);
+    const doneDeliverables=AC_PHASES.reduce((a,p,idx)=>a+(idx<selected.phaseIndex?p.deliverables.length:idx===selected.phaseIndex?selected.phaseArtifactsDone:0),0);
+    return <div style={{display:"grid",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Sprint - "+pmo.sprint.name)}
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:7}}>{pmo.sprint.dates} · {pmo.sprint.goal}</div>
+          <Bar value={Math.round((pmo.sprint.done/pmo.sprint.committed)*100)} color={AI_GOLD}/>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:6}}>{pmo.sprint.done} of {pmo.sprint.committed} points done</div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Budget tracking")}
+          <div style={{fontSize:18,fontWeight:900,fontFamily:F.m,color:budgetPct>85?T.red:budgetPct>65?T.amber:T.green,marginBottom:6}}>{selected.spent} <span style={{fontSize:11,color:T.ink3,fontWeight:700}}>of {selected.budget}</span></div>
+          <Bar value={budgetPct} color={budgetPct>85?T.red:AI_GOLD}/>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>{budgetPct}% consumed · {phaseProgress(selected)}% of lifecycle complete</div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Deliverables")}
+          <div style={{fontSize:18,fontWeight:900,fontFamily:F.m,color:T.blue,marginBottom:6}}>{doneDeliverables} <span style={{fontSize:11,color:T.ink3,fontWeight:700}}>of {allDeliverables} artifacts</span></div>
+          <Bar value={Math.round((doneDeliverables/allDeliverables)*100)} color={T.blue}/>
+          <button onClick={()=>setInitTab("journey")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open the Journey →</button>
+        </Card>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Timeline & milestones")}
+          <div style={{display:"grid",gap:8}}>
+            {pmo.milestones.map(m=><div key={m.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",minWidth:0}}><span style={{width:7,height:7,borderRadius:"50%",background:msCol(m.status),flexShrink:0}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{m.name}</span></div>
+              <div style={{display:"flex",gap:7,alignItems:"center",flexShrink:0}}><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{m.due}</span><Tag label={m.status} color={msCol(m.status)} bg={msCol(m.status)+"14"}/></div>
+            </div>)}
+          </div>
+          <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,marginTop:10}}>Timeline {selected.timeline} · phase {selected.phaseIndex+1}/{AC_PHASES.length} · {phaseProgress(selected)}% complete</div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Tasks - current phase")}
+          <div style={{display:"grid",gap:7}}>
+            {AC_PHASES[selected.phaseIndex]?.deliverables.map((d,ai)=>{
+              const st=artifactStatus(selected,selected.phaseIndex,ai);
+              const c=st==="Complete"?T.green:st==="Blocked"?T.red:T.amber;
+              return <div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{d}</span>
+                <div style={{display:"flex",gap:7,alignItems:"center"}}><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{AC_PHASES[selected.phaseIndex].raci.responsible}</span><Tag label={st} color={c} bg={c+"14"}/></div>
+              </div>;
+            })}
+          </div>
+        </Card>
+      </div>
+      <Card style={{padding:16}}>
+        {secH("RAID log")}
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead><tr>{["Type","Item","Owner","Status"].map(h=><th key={h} style={{textAlign:"left",padding:"7px 10px",color:T.ink4,fontSize:8.5,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+          <tbody>{pmo.raid.map((r,i)=>{
+            const c=r.kind==="Risk"?T.red:r.kind==="Issue"?T.amber:r.kind==="Dependency"?T.blue:T.teal;
+            return <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
+              <td style={{padding:"8px 10px"}}><Tag label={r.kind} color={c} bg={c+"14"}/></td>
+              <td style={{padding:"8px 10px",color:T.ink2,fontFamily:F.b}}>{r.item}</td>
+              <td style={{padding:"8px 10px",color:T.ink3,fontFamily:F.b}}>{r.owner}</td>
+              <td style={{padding:"8px 10px",color:/block|open/i.test(r.status)?T.red:T.ink3,fontFamily:F.b}}>{r.status}</td>
+            </tr>;})}
+          </tbody>
+        </table></div>
+        <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risks live in the Risk Center →</button>
+      </Card>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Decision log")}
+          <div style={{display:"grid",gap:9}}>
+            {pmo.decisions.map((d,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
+              <strong style={{color:T.ink}}>{d.decision}</strong><br/>
+              <span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{d.by} · {d.date}</span> · {d.rationale}
+            </div>)}
+            {govDecisions.map((d,i)=><div key={"g"+i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
+              <strong style={{color:T.ink}}>{d.item}</strong><br/>
+              <span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{d.owner} · {d.time}</span>
+            </div>)}
+          </div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Resource allocation")}
+          {pmo.resources.map(r=><div key={r.role} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role}</div></div>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Meetings")}
+          {pmo.meetings.map(m=><div key={m.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{m.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{m.cadence}</div></div>
+            <span style={{fontSize:10,fontFamily:F.m,color:T.ink2}}>{m.next}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Change requests")}
+          {pmo.changeRequests.length===0&&<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>No open change requests.</div>}
+          {pmo.changeRequests.map(cr=><div key={cr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{minWidth:0}}><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{cr.id} · {cr.title}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{cr.impact}</div></div>
+            <Tag label={cr.status} color={/approved/i.test(cr.status)?T.green:T.amber} bg={(/approved/i.test(cr.status)?T.green:T.amber)+"14"}/>
+          </div>)}
+          <button onClick={wsBriefing} style={{marginTop:10,width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"8px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Generate executive report ↓</button>
+        </Card>
+      </div>
+    </div>;
+  };
+
+  /* ── Role perspectives: the same initiative, a different executive lens.
+     Each perspective answers ONE question from live initiative data.
+     "Full Initiative Profile" expands the complete digital twin. ── */
+  const buildPerspective=()=>{
+    const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+    const iniRisks=[...riskRegister.filter(r=>r.initiativeId===selected.id)].sort((a,b)=>b.residual-a.residual);
+    const pmo=acPmo[selected.id];
+    const models=MODEL_REGISTRY.filter(m=>m.initiativeId===selected.id);
+    const totalExp=acInitiatives.reduce((a,i)=>a+money(i.expected),0);
+    const budgetPct=Math.min(100,Math.round((money(selected.spent)/(money(selected.budget)||1))*100));
+    const benefits=Math.round((money(selected.actual)/(money(selected.expected)||1))*100);
+    const P={
+      ceo:{question:"Should I worry?",persona:"Executive Advisor",
+        tiles:[["Overall health",wsHealth,wsHealth>=75?T.green:T.amber],["Business value",selected.expected,AI_GOLD],["ROI",selected.roi,T.green],["Budget",`${budgetPct}% used`,budgetPct>85?T.red:T.blue],["Delivery confidence",wsConfidence+"%",wsConfidence>=70?T.green:T.amber]],
+        sections:[
+          {title:"Executive summary",text:`${selected.objective||selected.name} ${selected.blockedBy?"Currently blocked: "+selected.blockedBy+".":"No blockers open."} Expected impact ${selected.expected}; ${selected.actual} realized.`},
+          {title:"Major blockers",rows:selected.blockedBy?[[selected.blockedBy,"Open"]]:[["None open","\u2713"]]},
+          {title:"Top risks",rows:iniRisks.slice(0,5).map(r=>[r.title,`${r.level} \u00b7 ${r.residual}/25`])},
+        ]},
+      cfo:{question:"Is this investment creating value?",persona:"Financial Advisor",
+        tiles:[["Investment",selected.budget||"\u2014",T.blue],["Spent",selected.spent||"\u2014",budgetPct>85?T.red:T.blue],["ROI",selected.roi,T.green],["Cost savings",selected.savings,T.green],["Revenue impact",selected.revenue,AI_GOLD]],
+        sections:[
+          {title:"Benefits realization",rows:[["Expected value",selected.expected],["Realized to date",`${selected.actual} (${benefits}%)`],["Budget variance",`${100-budgetPct}% headroom`],["Run rate",`~$${(money(selected.spent)/Math.max(1,selected.phaseIndex)).toFixed(2)}M per phase`],["Forecast accuracy",wsConfidence+"% confidence"],["Portfolio share",Math.round((money(selected.expected)/totalExp)*100)+"% of enterprise AI value"]]},
+          {title:"Financial risks",rows:iniRisks.slice(0,3).map(r=>[r.title,r.level])},
+        ]},
+      cio:{question:"Will this integrate and scale?",persona:"Technology Advisor",
+        tiles:[["Delivery timeline",selected.timeline||"\u2014",T.blue],["Platform readiness",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Operational health",wsHealth,wsHealth>=75?T.green:T.amber],["Models deployed",models.filter(m=>m.status==="In Production").length+"/"+models.length,T.teal]],
+        sections:[
+          {title:"Technology stack",rows:models.map(m=>[m.system,`${m.type} \u00b7 ${m.vendor}`])},
+          {title:"Dependencies & infrastructure",rows:(pmo?pmo.raid.filter(r=>r.kind==="Dependency"):[]).map(d=>[d.item,d.status]).concat([["Technical debt","Low - reviewed at each gate"],["Availability target","99.9% (gateway-fronted)"]])},
+        ]},
+      ciso:{question:"Can I trust this AI?",persona:"Security & Risk Advisor",
+        tiles:[["Risk score",wsRiskScore?wsRiskScore+"/25":"none",wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green],["Open risks",iniRisks.length,iniRisks.length?T.amber:T.green],["Controls",selected.controls.length,T.blue],["Security testing",models.filter(m=>m.biasTest).length+"/"+models.length+" tested",T.teal],["Kill switch",models.filter(m=>m.killSwitch).length+"/"+models.length,models.every(m=>m.killSwitch)?T.green:T.amber]],
+        sections:[
+          {title:"Threat exposure",rows:iniRisks.map(r=>[r.title,`${r.level} \u00b7 residual ${r.residual}/25 \u00b7 ${r.treatment.status}`])},
+          {title:"Mitigations & evidence",rows:[["Active controls",selected.controls.join(", ")||"pending"],["Evidence trail",wsEvidence+"% of lifecycle evidenced"],["Attack surface","Gateway-mediated; no direct model exposure"]]},
+        ]},
+      caio:{question:"Is this AI responsible and governed?",persona:"Governance Advisor",
+        tiles:[["Governance score",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Lifecycle phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Approvals pending",(pmo?1:0)+(selected.blockedBy?1:0),T.amber],["Evidence",wsEvidence+"%",wsEvidence>=70?T.green:T.amber]],
+        sections:[
+          {title:"Responsible AI posture",rows:[["AI policies",selected.policies.join(", ")],["Human oversight","HITL gates on all high-impact decisions"],["AIRA / AIRT","Open the Risk Center for assessments and treatments"]]},
+          {title:"Decision log",rows:(pmo?pmo.decisions:[]).map(d=>[d.decision,`${d.by} \u00b7 ${d.date}`])},
+        ]},
+      cdpo:{question:"Does this protect personal information?",persona:"Privacy Advisor",
+        tiles:[["DPIA",models.every(m=>m.aia)?"Complete":"In progress",models.every(m=>m.aia)?T.green:T.amber],["Privacy controls",selected.policies.length,T.blue],["Data provenance",models.filter(m=>m.dataProvenance).length+"/"+models.length,T.teal],["Privacy risks",iniRisks.filter(r=>/leak|profil|privacy|data/i.test(r.title)).length,T.amber]],
+        sections:[
+          {title:"Privacy posture",rows:[["GDPR basis","Legitimate interest + consent where required"],["PII handling","Masked at the gateway before model calls"],["Retention","7-year evidence retention; prompts 90 days"],["Cross-border","EU/US processing under adequacy safeguards"],["Data classification",selected.policies.join(", ")]]},
+          {title:"Privacy risks",rows:iniRisks.filter(r=>/leak|profil|privacy|data|bias/i.test(r.title)).map(r=>[r.title,r.level])},
+        ]},
+      cgo:{question:"Can this legally operate?",persona:"Legal & Compliance Advisor",
+        tiles:[["Regulatory scope",models[0]?.clause?.split("/")[0]||"EU AI Act",T.blue],["Legal reviews",selected.audits.length,T.teal],["Open obligations",(selected.blockedBy?1:0),(selected.blockedBy?T.amber:T.green)],["Vendor contracts",[...new Set(models.map(m=>m.vendor))].filter(v=>v!=="Internal").length,T.ink3]],
+        sections:[
+          {title:"Regulatory obligations",rows:models.map(m=>[m.bizName,m.clause])},
+          {title:"Contracts, IP & licensing",rows:[["Vendors",[...new Set(models.map(m=>m.vendor))].join(", ")],["Liability posture","Human accountability retained on all decisions"],["Policy compliance",selected.policies.join(", ")],["Open obligations",selected.blockedBy||"None"]]},
+        ]},
+      coo:{question:"Will this deliver successfully?",persona:"Delivery Advisor",
+        tiles:[["Phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Completion",phaseProgress(selected)+"%",T.teal],["Sprint",pmo?`${pmo.sprint.done}/${pmo.sprint.committed} pts`:"\u2014",AI_GOLD],["Milestones at risk",pmo?pmo.milestones.filter(m=>m.status==="At Risk").length:0,T.amber]],
+        sections:[
+          {title:"Milestones",rows:(pmo?pmo.milestones:[]).map(m=>[m.name,`${m.due} \u00b7 ${m.status}`])},
+          {title:"RAID highlights",rows:(pmo?pmo.raid.slice(0,4):[]).map(r=>[`${r.kind}: ${r.item}`,r.status])},
+        ]},
+      chro:{question:"Is adoption increasing?",persona:"Adoption Advisor",
+        tiles:[["Adoption",selected.adoption+"%",selected.adoption>=70?T.green:T.amber],["Training",selected.training,T.blue],["Resistance",selected.resistance,selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green],["Value score",selected.valueScore+"%",AI_GOLD]],
+        sections:[
+          {title:"Workforce signals",rows:[["Users in scope",selected.unit+" teams"],["Usage trend",selected.adoption>=60?"Growing week over week":"Below target - enablement needed"],["Feedback",`Stakeholder composite ${feedbackAvg(acFeedback[selected.id]||DEFAULT_FEEDBACK)}/100`],["Improvement backlog",pmo&&pmo.changeRequests.length?pmo.changeRequests.map(c=>c.title).join("; "):"None open"]]},
+          {title:"Business KPIs",rows:(selected.successMetrics||[]).map(m=>[m,"tracked"])},
+        ]},
+    };
+    return P[role];
+  };
+  const renderPerspective=()=>{
+    const p=buildPerspective();
+    if(!p)return null;
+    return <div style={{animation:"up .25s ease"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,margin:"2px 0 14px",flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:RC(role),textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:3}}>{(ROLES[role]||ROLES.caio).label} perspective</div>
+          <div style={{fontSize:16,fontWeight:800,fontFamily:F.h,color:T.ink}}>{p.question}</div>
+        </div>
+        <button onClick={()=>setProfileMode(true)} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"8px 14px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Full Initiative Profile \u2192</button>
+      </div>
+      <div style={{display:"flex",gap:24,flexWrap:"wrap",marginBottom:18}}>
+        {p.tiles.map(([l,v,c])=><div key={l}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c,lineHeight:1.1}}>{v}</div>
+        </div>)}
+      </div>
+      <div style={{display:"grid",gap:18}}>
+        {p.sections.map(sec=>{
+          const secGo=/risk|threat/i.test(sec.title)?()=>setTab&&setTab("riskcenter")
+            :/benefit|financ|value|kpi/i.test(sec.title)?()=>setInitTab("value")
+            :/milestone|raid|task/i.test(sec.title)?()=>setInitTab("pmo")
+            :/decision/i.test(sec.title)?()=>setTab&&setTab("decisions")
+            :/stack|dependen|infra|technology/i.test(sec.title)?()=>setInitTab("pmo")
+            :/mitigation|evidence|posture|regulat|contract|privacy|responsible|workforce|blocker|summary/i.test(sec.title)?()=>setInitTab(/evidence|posture/i.test(sec.title)?"monitoring":"governance")
+            :null;
+          return <div key={sec.title}>
+          <h3 style={{fontSize:13,color:T.ink,margin:"0 0 8px",fontFamily:F.h,fontWeight:800}}>{sec.title}</h3>
+          {sec.text&&<p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{sec.text}</p>}
+          {sec.rows&&<div style={{display:"grid",gap:2}}>
+            {sec.rows.length===0&&<div style={{fontSize:10.5,color:T.ink4,fontFamily:F.b}}>Nothing recorded yet.</div>}
+            {sec.rows.map(([a,b],i)=><button key={i} onClick={secGo||undefined} disabled={!secGo} style={{display:"flex",justifyContent:"space-between",gap:12,borderBottom:`1px solid ${T.border}`,padding:"7px 2px",background:"transparent",border:"none",cursor:secGo?"pointer":"default",textAlign:"left",width:"100%"}}>
+              <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{a}</span>
+              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:700,textAlign:"right",flexShrink:0}}>{b}{secGo?<span style={{color:T.ink4}}> \u2192</span>:null}</span>
+            </button>)}
+          </div>}
+        </div>;})}
+      </div>
+    </div>;
+  };
+
+  /* ── Enterprise AI PMO: the Portfolio Delivery Office. Enterprise-wide
+     delivery visibility only - execution stays inside each initiative. ── */
+  const renderEnterprisePmo=()=>{
+    const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+    const totBudget=acInitiatives.reduce((a,i)=>a+money(i.budget),0);
+    const totSpent=acInitiatives.reduce((a,i)=>a+money(i.spent),0);
+    const allRaid=acInitiatives.flatMap(i=>(acPmo[i.id]?.raid||[]).map(r=>({...r,ini:i})));
+    const deps=allRaid.filter(r=>r.kind==="Dependency");
+    const openIssues=allRaid.filter(r=>r.kind==="Issue"&&/open/i.test(r.status));
+    const atRisk=acInitiatives.filter(i=>(acPmo[i.id]?.milestones||[]).some(m=>m.status==="At Risk"));
+    const resources=acInitiatives.flatMap(i=>(acPmo[i.id]?.resources||[]).map(r=>({...r,ini:i.name})));
+    const secH=t=><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px",fontFamily:F.h}}>{t}</h3>;
+    return <div style={{display:"grid",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10}}>
+        {[["Initiatives in delivery",acInitiatives.length,T.blue,()=>openModule("initiatives"),"Open the initiative workspaces"],
+          ["Milestones at risk",atRisk.length,atRisk.length?T.red:T.green,()=>atRisk[0]?openInitiative(atRisk[0].id,"pmo"):openModule("initiatives"),"Open the first at-risk initiative's PMO"],
+          ["Open blocking issues",openIssues.length,openIssues.length?T.amber:T.green,()=>openIssues[0]?openInitiative(openIssues[0].ini.id,"pmo"):openModule("initiatives"),"Open the blocked initiative's PMO"],
+          ["Portfolio budget",`$${totSpent.toFixed(1)}M / $${totBudget.toFixed(1)}M`,AI_GOLD,()=>setTab&&setTab("reports"),"Financial reporting lives in Reports"]].map(([l,v,c,go,hint])=><Card key={l} onClick={go} title={hint} style={{padding:"13px 14px",cursor:"pointer"}}>
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{l}</div>
+          <div style={{fontSize:20,fontWeight:800,fontFamily:F.m,color:c}}>{v}</div>
+        </Card>)}
+      </div>
+      <Card style={{padding:16}}>
+        {secH("Delivery health & portfolio timeline")}
+        <div style={{display:"grid",gap:9}}>
+          {acInitiatives.map(i=>{
+            const pmo=acPmo[i.id];
+            const riskMs=(pmo?.milestones||[]).filter(m=>m.status==="At Risk").length;
+            return <button key={i.id} onClick={()=>openInitiative(i.id,"pmo")} style={{display:"grid",gridTemplateColumns:"1.3fr 2fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${riskMs?T.amber+"45":T.border}`,borderRadius:9,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.name}</div>
+                <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,marginTop:2}}>{i.timeline} \u00b7 {pmo?pmo.sprint.name:"no sprint"}</div>
+              </div>
+              <div><Bar value={phaseProgress(i)} color={i.blockedBy?T.amber:T.green}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:4}}>Phase {i.phaseIndex+1}/{AC_PHASES.length} \u00b7 {phaseProgress(i)}% \u00b7 {money(i.spent).toFixed(1)} of {money(i.budget).toFixed(1)}M</div></div>
+              {riskMs?<Tag label={`${riskMs} at risk`} color={T.amber} bg={T.amberL}/>:<Tag label="On track" color={T.green} bg={T.greenL}/>}
+              <span style={{fontSize:10,fontWeight:900,color:AI_GOLD,fontFamily:F.b}}>Open PMO \u2192</span>
+            </button>;
+          })}
+        </div>
+      </Card>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Cross-initiative dependencies")}
+          <div style={{display:"grid",gap:8}}>
+            {deps.map((d,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
+              <div style={{minWidth:0}}><div style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{d.item}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{d.ini.name} \u00b7 {d.owner}</div></div>
+              <span style={{fontSize:9.5,color:/due|pending/i.test(d.status)?T.amber:T.green,fontFamily:F.b,fontWeight:800,flexShrink:0}}>{d.status}</span>
+            </div>)}
+          </div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Portfolio RAID")}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+            {["Risk","Assumption","Issue","Dependency"].map(k=>{
+              const n=allRaid.filter(r=>r.kind===k).length;
+              const c=k==="Risk"?T.red:k==="Issue"?T.amber:k==="Dependency"?T.blue:T.teal;
+              return <span key={k} style={{background:c+"14",border:`1px solid ${c}35`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:c}}>{k} {n}</span>;
+            })}
+          </div>
+          {openIssues.map((r,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:5}}><strong style={{color:T.amber}}>{r.ini.name}:</strong> {r.item}</div>)}
+          <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginTop:6,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risks live in the Risk Center \u2192</button>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Capacity & resources")}
+          {resources.slice(0,7).map((r,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role} \u00b7 {r.ini}</div></div>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Executive reporting")}
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>Portfolio packs, value reporting and audit-ready exports are generated in Reports.</p>
+          <button onClick={()=>setTab&&setTab("reports")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"8px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Reports \u2192</button>
+        </Card>
+      </div>
+    </div>;
+  };
+
   /* ── AI Portfolio Command Center: portfolio rail | selected initiative | intelligence rail ── */
   const Initiatives=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"minmax(220px,1fr) minmax(0,2.1fr) minmax(220px,1fr)",gap:14,alignItems:"start"}}>
@@ -1248,12 +1794,16 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <div style={{minWidth:0}}>
         {createOpen&&renderCreateForm()}
         {renderExecHeader()}
-        <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
-        {wsTab==="overview"&&<Overview/>}
-        {wsTab==="journey"&&<InitJourney/>}
-        {wsTab==="value"&&<InitInsights/>}
-        {wsTab==="governance"&&<div>{renderRiskSummary()}<div style={{marginTop:12}}><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/></div><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
-        {wsTab==="monitoring"&&<div><InitEvidenceTimeline/><div style={{marginTop:12}}><PilotExecution/></div></div>}
+        {!profileMode&&buildPerspective()?renderPerspective():<>
+          {buildPerspective()&&<button onClick={()=>setProfileMode(false)} style={{background:"transparent",border:"none",padding:0,marginBottom:8,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>← {(ROLES[role]||ROLES.caio).label} perspective</button>}
+          <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
+          {wsTab==="overview"&&<Overview/>}
+          {wsTab==="journey"&&<InitJourney/>}
+          {wsTab==="pmo"&&renderPmo()}
+          {wsTab==="value"&&<InitInsights/>}
+          {wsTab==="governance"&&<div>{renderRiskSummary()}<div style={{marginTop:12}}><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/></div><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
+          {wsTab==="monitoring"&&<div><InitEvidenceTimeline/><div style={{marginTop:12}}><PilotExecution/></div></div>}
+        </>}
       </div>
       {renderIntelRail()}
     </div>
@@ -1381,9 +1931,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   </div>;
   const [pfTab,setPfTab]=useState("units");
   const Portfolio=()=><div>
-    <SubTabs tabs={[["units","Business Units"],["registry","Model Registry"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
+    <SubTabs tabs={[["units","Business Units"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
     {pfTab==="units"&&<PortfolioUnits setView={setView}/>}
-    {pfTab==="registry"&&<PageModelRegistry setTab={setTab}/>}
     {pfTab==="maturity"&&<PageMaturityRadar/>}
     {pfTab==="usecases"&&<PageUseCases/>}
   </div>;
@@ -1462,6 +2011,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     <Header/>
     {activeModule==="dashboard"&&<Dashboard/>}
     {activeModule==="initiatives"&&<Initiatives/>}
+    {activeModule==="pmo"&&renderEnterprisePmo()}
+    {activeModule==="models"&&<PageModelRegistry setTab={setTab} openInitiative={openInitiative}/>}
     {activeModule==="governance"&&<Governance/>}
     {activeModule==="evidence"&&<EvidenceModule/>}
     {activeModule==="portfolio"&&<Portfolio/>}

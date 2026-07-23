@@ -300,12 +300,17 @@ export const EMPLOYEE_NAV_SECTIONS = [
   {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
 ];
 
+/* Mode 1 - Enterprise AI Central: portfolio-wide command views only.
+   Mode 2 - the AI Initiative Workspace - opens from any initiative. */
 export const AI_CENTRAL_NAV = [
-  {id:"dashboard", label:"Dashboard", sub:"Executive intelligence"},
-  {id:"initiatives", label:"AI Initiatives", sub:"Lifecycle and delivery"},
+  {id:"dashboard", label:"Portfolio Overview", sub:"Enterprise command center"},
+  {id:"initiatives", label:"AI Initiatives", sub:"Initiative workspaces"},
+  {id:"pmo", label:"AI PMO", sub:"Portfolio delivery office"},
+  {id:"models", label:"AI Models", sub:"Enterprise model registry"},
   {id:"governance", label:"AI Governance", sub:"Controls and compliance"},
   {id:"evidence", label:"Trust & Evidence", sub:"Enterprise evidence"},
-  {id:"portfolio", label:"Portfolio", sub:"Models, maturity, use cases"},
+  {id:"approvals", label:"Approvals", sub:"Executive decision queue"},
+  {id:"portfolio", label:"Portfolio", sub:"Units, maturity, use cases"},
   {id:"gateway", label:"AI Gateway", sub:"Enterprise control plane"},
   {id:"admin", label:"Administration", sub:"Providers, routing, policies"},
   {id:"academy", label:"Governance Academy", sub:"Readiness and learning"},
@@ -313,7 +318,7 @@ export const AI_CENTRAL_NAV = [
 
 /* Pre-consolidation view ids still reachable via old URLs/hashes */
 export const AC_LEGACY_VIEWS = {
-  registry:"initiatives", pilot:"initiatives", detail:"initiatives", lifecycle:"initiatives",
+  registry:"models", pilot:"initiatives", detail:"initiatives", lifecycle:"initiatives",
   dna:"initiatives", scalegate:"initiatives",
   guardrails:"governance", controlmatrix:"governance", riskdrift:"governance", spine:"governance",
   cxo:"dashboard", value:"dashboard", maturitymap:"dashboard",
@@ -1007,14 +1012,14 @@ export const KIT_TEMPLATE_SOURCES = {
 
 /* Section */
 export const MODEL_REGISTRY = [
-  {id:"m1",name:"LLM v2 (Customer Support)",type:"Generative AI / LLM",status:"Awaiting Approval",risk:"High",euAiAct:"High-Risk",owner:"CAIO",dept:"Product",vendor:"Anthropic API",deployed:"Pending",accuracy:"95.2% fairness",drift:"Not deployed",lastAudit:"May 2026",modelCard:true,aia:true,biasTest:true,killSwitch:true,dataProvenance:false,transparency:80,clause:"EU AI Act Art.6/ ISO 42001 C.8.4"},
-  {id:"m2",name:"Credit Scoring AI",type:"Predictive / Classification",status:"In Production",risk:"Critical",euAiAct:"High-Risk",owner:"CISO",dept:"Finance",vendor:"Internal",deployed:"Mar 2025",accuracy:"88.4%",drift:"Low",lastAudit:"Feb 2026",modelCard:false,aia:true,biasTest:false,killSwitch:true,dataProvenance:true,transparency:45,clause:"EU AI Act Art.6/ GDPR Art.22"},
-  {id:"m3",name:"HR Recruitment AI",type:"Classification / Ranking",status:"Suspended",risk:"High",euAiAct:"High-Risk",owner:"HR / CAIO",dept:"Human Resources",vendor:"HireRight AI",deployed:"Jan 2025",accuracy:"Not tested",drift:"Unknown",lastAudit:"Apr 2026",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Annex III / ISO 42001 C.8.4"},
-  {id:"m4",name:"Fraud Detection Model",type:"Anomaly Detection",status:"In Production",risk:"Medium",euAiAct:"Limited Risk",owner:"CISO",dept:"Security",vendor:"Internal",deployed:"Jun 2024",accuracy:"96.1%",drift:"Medium",lastAudit:"Jan 2026",modelCard:true,aia:true,biasTest:true,killSwitch:true,dataProvenance:false,transparency:72,clause:"ISO 42001 C.7.2 / GDPR Art.5"},
-  {id:"m5",name:"Document Summarisation AI",type:"Generative AI / NLP",status:"In Production",risk:"Medium",euAiAct:"Minimal Risk",owner:"Product",dept:"Operations",vendor:"OpenAI API",deployed:"Sep 2024",accuracy:"91.3%",drift:"Low",lastAudit:"Mar 2026",modelCard:true,aia:false,biasTest:false,killSwitch:false,dataProvenance:true,transparency:85,clause:"ISO 42001 C.9.1"},
-  {id:"m6",name:"Predictive Maintenance AI",type:"Predictive / Regression",status:"In Production",risk:"Medium",euAiAct:"High-Risk",owner:"Engineering",dept:"Operations",vendor:"Internal",deployed:"Nov 2024",accuracy:"89.7%",drift:"Low",lastAudit:"Apr 2026",modelCard:true,aia:false,biasTest:false,killSwitch:false,dataProvenance:true,transparency:60,clause:"EU AI Act Annex III / ISO 42001 C.8.5"},
-  {id:"m7",name:"RecoEngine v3",type:"Recommendation System",status:"Unclassified",risk:"Unknown",euAiAct:"Unclassified",owner:"Product",dept:"Marketing",vendor:"Internal",deployed:"Feb 2025",accuracy:"Unknown",drift:"Unknown",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Art.6"},
-  {id:"m8",name:"SentimentAI",type:"NLP / Classification",status:"Unclassified",risk:"Unknown",euAiAct:"Unclassified",owner:"Product",dept:"Marketing",vendor:"Internal",deployed:"Mar 2025",accuracy:"Unknown",drift:"Unknown",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Art.6"},
+  {id:"m1",initiativeId:"ai-001",system:"Customer Resolution Assistant",bizName:"Customer Support Reasoning Model",name:"LLM v2 (Customer Support)",type:"Generative AI / LLM",status:"Awaiting Approval",risk:"High",euAiAct:"High-Risk",owner:"CAIO",dept:"Product",vendor:"Anthropic API",deployed:"Pending",accuracy:"95.2% fairness",drift:"Not deployed",lastAudit:"May 2026",modelCard:true,aia:true,biasTest:true,killSwitch:true,dataProvenance:false,transparency:80,clause:"EU AI Act Art.6/ ISO 42001 C.8.4"},
+  {id:"m2",initiativeId:"ai-002",system:"Credit Decision Engine",bizName:"Credit Risk Scoring Model",name:"Credit Scoring AI",type:"Predictive / Classification",status:"In Production",risk:"Critical",euAiAct:"High-Risk",owner:"CISO",dept:"Finance",vendor:"Internal",deployed:"Mar 2025",accuracy:"88.4%",drift:"Low",lastAudit:"Feb 2026",modelCard:false,aia:true,biasTest:false,killSwitch:true,dataProvenance:true,transparency:45,clause:"EU AI Act Art.6/ GDPR Art.22"},
+  {id:"m3",initiativeId:"ai-004",system:"Talent Intelligence",bizName:"Candidate Screening & Ranking Model",name:"HR Recruitment AI",type:"Classification / Ranking",status:"Suspended",risk:"High",euAiAct:"High-Risk",owner:"HR / CAIO",dept:"Human Resources",vendor:"HireRight AI",deployed:"Jan 2025",accuracy:"Not tested",drift:"Unknown",lastAudit:"Apr 2026",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Annex III / ISO 42001 C.8.4"},
+  {id:"m4",initiativeId:"ai-002",system:"Transaction Integrity Screening",bizName:"Transaction Fraud Detection Model",name:"Fraud Detection Model",type:"Anomaly Detection",status:"In Production",risk:"Medium",euAiAct:"Limited Risk",owner:"CISO",dept:"Security",vendor:"Internal",deployed:"Jun 2024",accuracy:"96.1%",drift:"Medium",lastAudit:"Jan 2026",modelCard:true,aia:true,biasTest:true,killSwitch:true,dataProvenance:false,transparency:72,clause:"ISO 42001 C.7.2 / GDPR Art.5"},
+  {id:"m5",initiativeId:"ai-003",system:"Close Documentation Automation",bizName:"Close Package Summarisation Model",name:"Document Summarisation AI",type:"Generative AI / NLP",status:"In Production",risk:"Medium",euAiAct:"Minimal Risk",owner:"Product",dept:"Operations",vendor:"OpenAI API",deployed:"Sep 2024",accuracy:"91.3%",drift:"Low",lastAudit:"Mar 2026",modelCard:true,aia:false,biasTest:false,killSwitch:false,dataProvenance:true,transparency:85,clause:"ISO 42001 C.9.1"},
+  {id:"m6",initiativeId:null,system:"Plant Reliability Analytics",bizName:"Equipment Failure Prediction Model",name:"Predictive Maintenance AI",type:"Predictive / Regression",status:"In Production",risk:"Medium",euAiAct:"High-Risk",owner:"Engineering",dept:"Operations",vendor:"Internal",deployed:"Nov 2024",accuracy:"89.7%",drift:"Low",lastAudit:"Apr 2026",modelCard:true,aia:false,biasTest:false,killSwitch:false,dataProvenance:true,transparency:60,clause:"EU AI Act Annex III / ISO 42001 C.8.5"},
+  {id:"m7",initiativeId:null,system:"Campaign Personalisation",bizName:"Offer Recommendation Model",name:"RecoEngine v3",type:"Recommendation System",status:"Unclassified",risk:"Unknown",euAiAct:"Unclassified",owner:"Product",dept:"Marketing",vendor:"Internal",deployed:"Feb 2025",accuracy:"Unknown",drift:"Unknown",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Art.6"},
+  {id:"m8",initiativeId:"ai-001",system:"Voice of Customer Analytics",bizName:"Customer Sentiment Classifier",name:"SentimentAI",type:"NLP / Classification",status:"Unclassified",risk:"Unknown",euAiAct:"Unclassified",owner:"Product",dept:"Marketing",vendor:"Internal",deployed:"Mar 2025",accuracy:"Unknown",drift:"Unknown",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,killSwitch:false,dataProvenance:false,transparency:0,clause:"EU AI Act Art.6"},
 ];
 
 /* Section */
