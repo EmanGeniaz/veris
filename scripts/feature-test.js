@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
   await test('Create AI Initiative', async () => {
     await page.locator('nav button', { hasText: 'AI Central' }).first().click(); await page.waitForTimeout(1000);
     await page.getByRole('button', { name: 'AI Initiatives', exact: true }).first().click(); await page.waitForTimeout(800);
-    await page.locator('button:has-text("Create AI Initiative")').first().click(); await page.waitForTimeout(600);
+    await page.locator('button:has-text("New AI Initiative")').first().click(); await page.waitForTimeout(600);
     const labels=[['Initiative name','Feature Test Initiative'],['Business unit','QA Lab'],['Business owner','Test Owner'],['Executive sponsor','Test Sponsor'],['Expected value','$1.0M']];
     for(const [l,v] of labels){ await page.locator(`label:has-text("${l}") input`).first().fill(v); }
     await page.locator('button:has-text("Create")').last().click(); await page.waitForTimeout(1100);
@@ -35,8 +35,8 @@ const { chromium } = require('playwright');
   // ── Insights: feedback edit + decision ──
   await test('Feedback sliders + gate decision visible', async () => {
     await page.getByRole('button', { name: 'AI Initiatives', exact: true }).first().click(); await page.waitForTimeout(700);
-    await page.locator('td:has-text("Finance Close Automation")').first().click(); await page.waitForTimeout(800);
-    await page.getByRole('button', { name: 'Insights', exact: true }).first().click(); await page.waitForTimeout(700);
+    await page.locator('button:has-text("Finance Close Automation")').first().click(); await page.waitForTimeout(800);
+    await page.getByRole('button', { name: 'Value', exact: true }).first().click(); await page.waitForTimeout(700);
     const t = await body();
     if (!/Recommend: (Scale|Continue|Improve|Retire)/.test(t)) throw new Error('no recommendation');
     if (!t.includes('Generate Executive Briefing')) throw new Error('no briefing button');

@@ -117,15 +117,9 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
         </div>
       </div>
     </Card>
-    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.5fr) minmax(0,1fr)",gap:16,alignItems:"start"}}>
-      <div style={{display:"grid",gap:12}}>
-        <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Executive decisions</div>
-        {roleDecisions.map(decideCard)}
-        {gates.map((i,gi)=>{
-          const rec=feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK);
-          return decideCard({id:"gate-"+i.id,title:`${rec} ${i.name}`,risk:i.risk,conf:82,time:"Gate open",clause:`Lifecycle evidence through phase ${i.phaseIndex+1}`,reasoning:`${i.actual} realized of ${i.expected} expected · adoption ${i.adoption}%`,action:`Feedback engine recommends ${rec}`,owner:i.sponsor},"g"+gi);
-        })}
-      </div>
+    {/* Reading order follows the executive constitution:
+        Brief (above) → Snapshot → Attention → Pending decisions → Activity. */}
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1.5fr)",gap:16,alignItems:"start"}}>
       <div style={{display:"grid",gap:12}}>
         <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Enterprise snapshot</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
@@ -154,6 +148,15 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
             </button>;
           })}
         </Card>
+      </div>
+      <div style={{display:"grid",gap:12}}>
+        <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Pending decisions</div>
+        {roleDecisions.map(decideCard)}
+        {gates.map((i,gi)=>{
+          const rec=feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK);
+          return decideCard({id:"gate-"+i.id,title:`${rec} ${i.name}`,risk:i.risk,conf:82,time:"Gate open",clause:`Lifecycle evidence through phase ${i.phaseIndex+1}`,reasoning:`${i.actual} realized of ${i.expected} expected · adoption ${i.adoption}%`,action:`Feedback engine recommends ${rec}`,owner:i.sponsor},"g"+gi);
+        })}
+        
       </div>
     </div>
   </div>;
