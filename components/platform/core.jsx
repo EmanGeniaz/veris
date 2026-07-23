@@ -82,24 +82,24 @@ export const FONTS = `
 /* Section */
 export const T = {
   /* Surfaces */
-  bg:      "#090B10",   /* deep graphite base */
-  s1:      "#0E1117",   /* primary surface */
-  s2:      "#131720",   /* card surface */
-  s3:      "#181D28",   /* elevated card */
-  s4:      "#1D2230",   /* input/table row */
-  s5:      "#222840",   /* hover state */
-  card:    "#0E1117",
+  bg:      "#0F1330",   /* deep indigo base - marketing palette */
+  s1:      "#151A3C",   /* primary surface */
+  s2:      "#1A2048",   /* card surface */
+  s3:      "#202657",   /* elevated card */
+  s4:      "#252C63",   /* input/table row */
+  s5:      "#2B336F",   /* hover state */
+  card:    "#151A3C",
   /* Borders */
-  border:  "#1E2536",   /* primary border  */
-  borderB: "#28304A",   /* medium border */
-  borderC: "#323C58",   /* strong border */
+  border:  "#2A3163",   /* primary border  */
+  borderB: "#363E7A",   /* medium border */
+  borderC: "#454E96",   /* strong border */
   shadow:  "0 1px 3px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2)",
   /* Typography */
   ink:     "#F1F3F9",   /* primary text  */
   ink2:    "#A8B0CC",   /* secondary text */
   ink3:    "#636B8A",   /* muted text */
   ink4:    "#3A4260",   /* very muted */
-  ink5:    "#1E2536",   /* near-invisible */
+  ink5:    "#2A3163",   /* near-invisible */
 /* Section */
   ceo:   "#D6A84F", ceoL:  "#211806",
   coo:   "#0EA5E9", cooL:  "#071926",

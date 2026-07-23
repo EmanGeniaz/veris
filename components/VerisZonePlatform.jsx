@@ -147,7 +147,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   return <>
     {/* Overlay on mobile */}
     {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
-    <div style={{width:SIDEBAR_W,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg,${T.s1} 0%,#0B0E15 100%)`,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:theme==="light"?"12px 0 34px rgba(17,24,39,.06)":"14px 0 40px rgba(0,0,0,.35)"}}>
+    <div style={{width:SIDEBAR_W,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg,${T.s1} 0%,#0C102A 100%)`,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:theme==="light"?"12px 0 34px rgba(17,24,39,.06)":"14px 0 40px rgba(0,0,0,.35)"}}>
       <div style={{padding:"14px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:9,minHeight:64}}>
         <BrandLogo theme={theme} width={168} style={{objectPosition:"left center"}}/>
         {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,padding:6,cursor:"pointer",display:"flex"}}>
