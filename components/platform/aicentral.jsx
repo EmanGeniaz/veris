@@ -1173,7 +1173,22 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   </div>;
   const WS_LEGACY={implementation:"journey",risks:"risk",controls:"governance",approvals:"governance",pilot:"journey",roi:"overview",adoption:"overview",feedback:"insights",lessons:"insights",decision:"insights"};
   const wsTab=WS_LEGACY[initTab]||initTab;
+  const WS_TAB_LABELS={overview:"Overview",journey:"Journey",governance:"Governance",risk:"Risk",evidence:"Evidence",insights:"Insights",scalegate:"Scale Gate"};
+  const Crumbs=()=>{
+    const crumb={background:"transparent",border:"none",padding:0,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.m,letterSpacing:"0.04em",cursor:"pointer"};
+    const sep=<span style={{color:T.ink4,fontSize:10}}>/</span>;
+    return <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+      <button onClick={()=>setTab("home")} style={crumb}>Dashboard</button>{sep}
+      <button onClick={()=>setView("dashboard")} style={crumb}>AI Central</button>{sep}
+      <button onClick={()=>setInitTab("list")} style={crumb}>AI Initiatives</button>{sep}
+      {wsTab==="overview"
+        ?<span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{selected.name}</span>
+        :<><button onClick={()=>setInitTab("overview")} style={crumb}>{selected.name}</button>{sep}
+          <span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{WS_TAB_LABELS[wsTab]||wsTab}</span></>}
+    </div>;
+  };
   const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
+    <Crumbs/>
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
       <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; All initiatives</button>
       <div style={{minWidth:0}}>
