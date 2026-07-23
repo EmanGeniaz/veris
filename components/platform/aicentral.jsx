@@ -465,17 +465,22 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   </div>;
 
   /* ── Dashboard ─────────────────────────────────────────────── */
+  /* Every tile opens the surface that OWNS its metric - no two tiles may
+     share a destination. initiatives=workspace overview, journey=execution,
+     riskcenter=risk register, decisions=approvals, evidence=audit trail,
+     governance=controls, academy=readiness, value tab=value scores,
+     portfolio units=investment, reports=portfolio ROI reporting. */
   const W={
     portfolio:{label:"Total initiatives",value:total,sub:"Enterprise AI portfolio",color:rc,go:()=>openModule("initiatives")},
-    active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openModule("initiatives")},
-    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>openModule("initiatives")},
+    active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openInitiative(selectedId,"journey")},
+    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>{setTab("riskcenter");}},
     approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("decisions");}},
     findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("evidence")},
     guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("governance")},
     adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
-    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openModule("initiatives")},
-    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>openModule("initiatives")},
-    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("initiatives")},
+    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openInitiative(selectedId,"value")},
+    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>{setPfTab("units");openModule("portfolio");}},
+    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>{setTab("reports");}},
   };
   const LENS_WIDGETS={
     Executive:["portfolio","value","roi","risk","budget","approvals"],
