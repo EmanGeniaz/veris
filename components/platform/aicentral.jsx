@@ -9,10 +9,18 @@ import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
 
-export function PageModelRegistry({setTab}) {
-  const [sel,setSel]=useState(MODEL_REGISTRY[0]);
+export function PageModelRegistry({setTab,openInitiative}) {
+  /* Initiative-centric registry: Model -> AI System -> Initiative ->
+     Business Unit -> Executive owner. A model is never shown without its
+     business context; models outside a governed initiative are flagged
+     for intake. */
+  const [selId,setSelId]=useState(MODEL_REGISTRY[0].id);
+  const [openGroups,setOpenGroups]=useState({[MODEL_REGISTRY[0].initiativeId]:true});
+  const sel=MODEL_REGISTRY.find(m=>m.id===selId)||MODEL_REGISTRY[0];
+  const selIni=acInitiatives.find(i=>i.id===sel.initiativeId);
   const rCol=r=>r==="Critical"?T.red:r==="High"?T.amber:r==="Medium"?T.blue:r==="Unknown"?T.ink4:T.green;
   const sCol=s=>s==="In Production"?T.green:s==="Awaiting Approval"?T.amber:s==="Suspended"?T.red:s==="Unclassified"?T.red:T.ink3;
+  const lcCol=lc=>lc==="Production"||lc==="Pilot"?AI_GOLD:lc==="Scaling"?T.green:lc==="Retired"?T.red:T.blue;
   const Check=({v,label})=><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
     <div style={{width:16,height:16,borderRadius:4,background:v?T.greenL:T.redL,border:`1px solid ${v?T.green:T.red}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
       <span style={{fontSize:9,fontWeight:800,color:v?T.green:T.red}}>{v?"Yes":"No"}</span>
@@ -21,58 +29,102 @@ export function PageModelRegistry({setTab}) {
   </div>;
   const unclassified=MODEL_REGISTRY.filter(m=>m.euAiAct==="Unclassified").length;
   const critical=MODEL_REGISTRY.filter(m=>m.risk==="Critical").length;
-  const noCard=MODEL_REGISTRY.filter(m=>!m.modelCard).length;
+  const ungoverned=MODEL_REGISTRY.filter(m=>!m.initiativeId);
+  const groups=acInitiatives.map(ini=>({ini,models:MODEL_REGISTRY.filter(m=>m.initiativeId===ini.id)})).filter(g=>g.models.length);
+  const evConfidence=ini=>Math.round(((ini.phaseIndex+ini.phaseArtifactsDone/(AC_PHASES[ini.phaseIndex]?.deliverables.length||1))/AC_PHASES.length)*100);
+  const approvalsPending=ini=>MODEL_REGISTRY.filter(m=>m.initiativeId===ini.id&&m.status==="Awaiting Approval").length+(ini.blockedBy?1:0);
+  const modelRow=m=><button key={m.id} onClick={()=>setSelId(m.id)} style={{width:"100%",display:"grid",gridTemplateColumns:"1.5fr .9fr 92px 118px 64px",gap:10,alignItems:"center",padding:"10px 12px 10px 30px",background:selId===m.id?T.s3:"transparent",border:"none",borderTop:`1px solid ${T.border}`,borderLeft:selId===m.id?`3px solid ${T.caio}`:"3px solid transparent",cursor:"pointer",textAlign:"left"}}>
+    <div style={{minWidth:0}}>
+      <div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.bizName}</div>
+      <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{m.name} · {m.system}</div>
+    </div>
+    <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{m.vendor}</span>
+    <Tag label={m.euAiAct} color={m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber} bg={(m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber)+"16"}/>
+    <Tag label={m.status} color={sCol(m.status)} bg={sCol(m.status)+"16"}/>
+    <Tag label={m.risk} color={rCol(m.risk)} bg={rCol(m.risk)+"16"}/>
+  </button>;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Model Registry" sub="ISO 42001 C.8.4"/>
-    {/* Summary strip */}
+    <SHead title="AI Model Registry" sub="Every model in its business context - initiative, executive owner and lifecycle. ISO 42001 C.8.4"/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
       {[
-        {label:"Total Models",value:MODEL_REGISTRY.length,color:T.caio,sub:"In registry"},
-        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap",action:()=>{}},
+        {label:"Total Models",value:MODEL_REGISTRY.length,color:T.caio,sub:`across ${groups.length} governed initiatives`},
+        {label:"Ungoverned",value:ungoverned.length,color:T.amber,sub:"No initiative - intake required"},
+        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap"},
         {label:"Critical Risk",value:critical,color:T.red,sub:"Require treatment"},
-        {label:"Missing Model Card",value:noCard,color:T.amber,sub:"ISO 42001 C.8.4"},
-      ].map((k,i)=><Card key={k.label} style={{padding:"13px 14px",cursor:k.action?"pointer":"default"}} onClick={k.action}>
+      ].map(k=><Card key={k.label} style={{padding:"13px 14px"}}>
         <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{k.label}</div>
         <div style={{fontSize:26,fontWeight:800,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:3}}>{k.value}</div>
         <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </Card>)}
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14}}>
-      {/* Table */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14,alignItems:"start"}}>
       <div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 90px 70px",padding:"7px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["AI System","Type","EU AI Act","Status","Risk"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
-        </div>
-        <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-          {MODEL_REGISTRY.map((m,i)=><div key={m.id} onClick={()=>setSel(m)} style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 90px 70px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<MODEL_REGISTRY.length-1?`1px solid ${T.border}`:"none",background:sel?.id===m.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===m.id?`3px solid ${T.caio}`:"3px solid transparent",transition:"all .15s"}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{m.name}</div>
-              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{m.dept} {m.vendor}</span>
+        {groups.map(({ini,models})=>{
+          const open=!!openGroups[ini.id];
+          const techs=[...new Set(models.map(m=>m.type.split(" / ")[0]))];
+          const vendors=[...new Set(models.map(m=>m.vendor))];
+          return <div key={ini.id} style={{border:`1px solid ${T.border}`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+            <button onClick={()=>setOpenGroups(g=>({...g,[ini.id]:!open}))} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.s1,border:"none",cursor:"pointer",textAlign:"left",flexWrap:"wrap"}}>
+              <span style={{fontSize:11,color:T.ink4,fontFamily:F.m,width:12}}>{open?"\u25be":"\u25b8"}</span>
+              <div style={{flex:1,minWidth:180}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{ini.name}</span>
+                  <Tag label={ini.lifecycle} color={lcCol(ini.lifecycle)} bg={lcCol(ini.lifecycle)+"16"}/>
+                </div>
+                <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:3}}>{ini.unit} · Sponsor {ini.sponsor} · Owner {ini.businessOwner} · Phase {ini.phaseIndex+1}/{AC_PHASES.length} ({AC_PHASES[ini.phaseIndex]?.name})</div>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                {techs.map(t=><span key={t} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:800,fontFamily:F.m,color:T.ink3}}>{t}</span>)}
+                {vendors.filter(v=>v!=="Internal").map(v=><span key={v} style={{background:AI_GOLD+"10",border:`1px solid ${AI_GOLD}30`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:800,fontFamily:F.m,color:AI_GOLD}}>{v}</span>)}
+                <span style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink2}}>{models.length} model{models.length>1?"s":""}</span>
+              </div>
+            </button>
+            {open&&models.map(modelRow)}
+          </div>;
+        })}
+        {ungoverned.length>0&&<div style={{border:`1px solid ${T.amber}45`,borderRadius:10,overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.amberL,flexWrap:"wrap"}}>
+            <div style={{flex:1,minWidth:180}}>
+              <div style={{fontSize:12.5,fontWeight:800,color:T.amber,fontFamily:F.b}}>Outside governed initiatives</div>
+              <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:3}}>These models run without initiative context, executive ownership or lifecycle gates.</div>
             </div>
-            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.4}}>{m.type}</span>
-            <Tag label={m.euAiAct} color={m.euAiAct==="High-Risk"?T.red:m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber} bg={m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.redL:m.euAiAct==="Minimal Risk"?T.greenL:T.amberL}/>
-            <Tag label={m.status} color={sCol(m.status)} bg={sCol(m.status)+"18"}/>
-            <Tag label={m.risk} color={rCol(m.risk)} bg={rCol(m.risk)+"18"}/>
-          </div>)}
-        </div>
+            <button onClick={()=>setTab&&setTab("intake")} style={{background:T.amber+"22",border:`1px solid ${T.amber}55`,borderRadius:7,padding:"7px 12px",color:T.amber,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Start governed intake →</button>
+          </div>
+          {ungoverned.map(modelRow)}
+        </div>}
       </div>
-      {/* Detail */}
-      {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",animation:"fade .25s ease",boxShadow:`0 0 24px ${rCol(sel.risk)}10`}}>
-        <div style={{background:`linear-gradient(135deg,${rCol(sel.risk)}18,${T.s3})`,borderBottom:`1px solid ${rCol(sel.risk)}30`,padding:"14px 16px"}}>
+      <Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",animation:"fade .25s ease"}}>
+        <div style={{background:`linear-gradient(135deg,${rCol(sel.risk)}14,${T.s3})`,borderBottom:`1px solid ${rCol(sel.risk)}30`,padding:"14px 16px"}}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:9}}>
+            {selIni&&<Tag label={selIni.lifecycle} color={lcCol(selIni.lifecycle)} bg={lcCol(selIni.lifecycle)+"16"}/>}
             <Tag label={sel.euAiAct} color={sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified"?T.red:T.amber} bg={sel.euAiAct==="High-Risk"||sel.euAiAct==="Unclassified"?T.redL:T.amberL}/>
             <Tag label={sel.status} color={sCol(sel.status)} bg={sCol(sel.status)+"18"}/>
           </div>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3}}>{sel.name}</h3>
-          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>{sel.clause}</p>
+          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,lineHeight:1.3,margin:0}}>{sel.bizName}</h3>
+          <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:4}}>{sel.name} · {sel.system} · {sel.clause}</p>
         </div>
         <div style={{padding:15}}>
-          {[["Type",sel.type],["Owner",sel.owner],["Vendor",sel.vendor],["Deployed",sel.deployed],["Accuracy",sel.accuracy],["Last Audit",sel.lastAudit]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-            <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600}}>{v}</span>
-          </div>)}
+          {selIni?<>
+            <div style={{fontSize:9,fontWeight:700,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Business context</div>
+            {[["Initiative",selIni.name],["Business Unit",selIni.unit],["Executive Sponsor",selIni.sponsor],["Business Owner",selIni.businessOwner],
+              ["Current Phase",`${AC_PHASES[selIni.phaseIndex]?.name} (${selIni.phaseIndex+1}/${AC_PHASES.length})`],
+              ["Business Value",`${selIni.actual} of ${selIni.expected}`],["Expected ROI",selIni.roi],
+              ["Models in initiative",MODEL_REGISTRY.filter(m=>m.initiativeId===selIni.id).map(m=>m.bizName).join(", ")],
+              ["Vendor(s)",[...new Set(MODEL_REGISTRY.filter(m=>m.initiativeId===selIni.id).map(m=>m.vendor))].join(", ")],
+              ["Controls implemented",selIni.controls.join(", ")],["Risks",selIni.risks.join(", ")],
+              ["Evidence confidence",evConfidence(selIni)+"%"],["Approvals pending",approvalsPending(selIni)]
+            ].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",gap:10,padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em",flexShrink:0}}>{l}</span>
+              <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:600,textAlign:"right",lineHeight:1.45}}>{v}</span>
+            </div>)}
+            <button onClick={()=>openInitiative?openInitiative(selIni.id):setTab&&setTab("aicentral")} style={{width:"100%",marginTop:12,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Initiative →</button>
+          </>:<div style={{background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:8,padding:"11px 12px"}}>
+            <div style={{fontSize:10,fontWeight:800,color:T.amber,fontFamily:F.b,marginBottom:4}}>No governed initiative</div>
+            <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 9px"}}>This model runs without executive ownership, lifecycle gates or business-value tracking. Bring it under governance through opportunity intake.</p>
+            <button onClick={()=>setTab&&setTab("intake")} style={{width:"100%",background:T.amber+"22",border:`1px solid ${T.amber}55`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:900,fontFamily:F.b,color:T.amber,cursor:"pointer"}}>Start governed intake →</button>
+          </div>}
           <div style={{marginTop:14}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:10}}>ISO 42001 Compliance Checklist</div>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:10}}>Model assurance (ISO 42001)</div>
             <div style={{background:T.s3,borderRadius:8,padding:"11px 12px"}}>
               <Check v={sel.modelCard}      label="Model Card documented (C.8.4)"/>
               <Check v={sel.aia}            label="AI Impact Assessment completed (A.5)"/>
@@ -92,9 +144,8 @@ export function PageModelRegistry({setTab}) {
             <div style={{fontSize:10,fontWeight:700,color:T.red,fontFamily:F.b,marginBottom:3}}>Action Required</div>
             <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{sel.euAiAct==="Unclassified"?"EU AI Act risk classification must be completed before August 2026 enforcement.":"High-Risk system - full conformity assessment required per EU AI Act Art.43."}</p>
           </div>}
-          <button onClick={()=>setTab("decisions")} style={{width:"100%",marginTop:12,background:T.caio,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Review in HITL Queue </button>
         </div>
-      </Card>}
+      </Card>
     </div>
   </div>;
 }
@@ -1388,7 +1439,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   const Portfolio=()=><div>
     <SubTabs tabs={[["units","Business Units"],["registry","Model Registry"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
     {pfTab==="units"&&<PortfolioUnits setView={setView}/>}
-    {pfTab==="registry"&&<PageModelRegistry setTab={setTab}/>}
+    {pfTab==="registry"&&<PageModelRegistry setTab={setTab} openInitiative={openInitiative}/>}
     {pfTab==="maturity"&&<PageMaturityRadar/>}
     {pfTab==="usecases"&&<PageUseCases/>}
   </div>;
