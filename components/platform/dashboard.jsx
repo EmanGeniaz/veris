@@ -14,8 +14,8 @@ export function ExecBrief({role,goAC,goto}){
     const l=label.toLowerCase();
     if(/risk|blocked|incident|vuln|leak/.test(l))return {link:{tab:"riskcenter"},hint:"Open Risk Center"};
     if(/maturity|readiness|training|learning|adoption|resistance/.test(l))return {link:{tab:"academy"},hint:"Open Governance Academy"};
-    if(/value|roi|revenue|saving|spend|budget|cost|payback/.test(l))return {link:{ac:"portfolio"},hint:"Open portfolio value in AI Central"};
-    if(/pilot|scale|initiative|decision|hitl|approval|retire/.test(l))return {link:{ac:"initiatives"},hint:"Open initiatives in AI Central"};
+    if(/value|roi|revenue|saving|spend|budget|cost|payback/.test(l))return {link:{ac:"portfolio"},hint:"Analyze portfolio value"};
+    if(/pilot|scale|initiative|decision|hitl|approval|retire/.test(l))return {link:{ac:"initiatives"},hint:"Review initiatives"};
     return {link:{ac:"dashboard"},hint:"Open AI Central"};
   };
   const open=link=>{
@@ -99,7 +99,7 @@ export function ExecDecisionCenter({role,goto,showToast}){
           <span style={{display:"inline-flex",alignItems:"center",gap:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:AI_GOLD,animation:"up .45s ease",boxShadow:`0 0 18px ${AI_GOLD}30`}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>Evidence record created → Trust &amp; Evidence
           </span>
-          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button>
+          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
         </div>
         :<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
           {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>act(i,label,d)} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
@@ -126,7 +126,7 @@ export function ExecRecommendations({role,goto}){
           <span style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>{r.metric}</span>
         </div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5,marginBottom:9}}>{r.rationale}</div>
-        <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Act in AI Central →</span>
+        <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Review initiative →</span>
       </button>)}
     </div>
   </Card>;
@@ -137,7 +137,7 @@ export function ExecMyInitiatives({role,goAC}){
   return <Card style={{marginBottom:12,overflow:"hidden"}}>
     <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,margin:0}}>My Initiatives</h3>
-      <button onClick={()=>goAC("initiatives")} style={{fontSize:9,color:AI_GOLD,background:"none",border:"none",fontFamily:F.b,fontWeight:600,cursor:"pointer"}}>Open portfolio in AI Central</button>
+      <button onClick={()=>goAC("initiatives")} style={{fontSize:9,color:AI_GOLD,background:"none",border:"none",fontFamily:F.b,fontWeight:600,cursor:"pointer"}}>Review portfolio</button>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.3fr 90px 110px 70px 70px 110px 120px",padding:"7px 14px",background:T.s4,borderBottom:`1px solid ${T.border}`}}>
       {["Initiative","Health","Phase","ROI","Risk","Value / Budget","Next milestone"].map(h=><span key={h} style={{fontSize:8,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F.m}}>{h}</span>)}
@@ -589,7 +589,7 @@ export function PageStrategy({role,setTab}) {
             <div><div style={{fontSize:11,color:T.ink,fontWeight:900,fontFamily:F.b}}>{p.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>Pilot {p.pilot}; next {p.next}; owner {p.owner}</div></div>
             <Tag label={p.decision} color={p.decision==="Scale"?T.green:p.decision==="Hold"?T.amber:T.red} bg={(p.decision==="Scale"?T.green:p.decision==="Hold"?T.amber:T.red)+"18"}/>
           </div>)}
-          <button onClick={()=>setTab("hitl")} style={{marginTop:10,width:"100%",background:rc+"18",border:`1px solid ${rc}40`,borderRadius:8,padding:"8px 10px",color:rc,fontFamily:F.b,fontSize:10,fontWeight:900,cursor:"pointer"}}>Open CXO approvals</button>
+          <button onClick={()=>setTab("decisions")} style={{marginTop:10,width:"100%",background:rc+"18",border:`1px solid ${rc}40`,borderRadius:8,padding:"8px 10px",color:rc,fontFamily:F.b,fontSize:10,fontWeight:900,cursor:"pointer"}}>Open CXO approvals</button>
         </div>
       </div>
     </Card>
@@ -827,7 +827,7 @@ export function PageRoadmap({role,setTab,setAiCentralView}) {
           <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:6}}>{ns.w}</div>
           <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
             <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
-            <button onClick={()=>gotoAC(/risk|dpia|violation|assessment/i.test(ns.a+ns.w)?"governance":/evidence|docs|report|pack/i.test(ns.a+ns.w)?"evidence":"initiatives")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>Act in AI Central →</button>
+            <button onClick={()=>gotoAC(/risk|dpia|violation|assessment/i.test(ns.a+ns.w)?"governance":/evidence|docs|report|pack/i.test(ns.a+ns.w)?"evidence":"initiatives")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>Review initiative →</button>
           </div>
         </div>
       </div>)}

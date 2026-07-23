@@ -95,39 +95,9 @@ export function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}
         <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
       </Card>)}
     </div>
-    <Card style={{overflow:"hidden",marginBottom:12}}>
-      <div style={{padding:"11px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>Standards & Framework Scorecard</h3>
-      </div>
-      {standards.map((s,i)=>{
-        const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
-        const status=s.score>=85?"Strong":s.score>=70?"Good":s.score>=50?"Developing":s.score>0?"At Risk":"N/A";
-        return <div key={s.std} onClick={()=>setRowOpen(rowOpen===s.std?null:s.std)} title="Show root cause and recommended action" style={{padding:"11px 16px",borderBottom:i<standards.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"grid",gridTemplateColumns:"100px 1fr 1fr 80px",gap:12,alignItems:"center",cursor:"pointer"}}>
-          <span style={{fontSize:11,fontWeight:700,fontFamily:F.m,color:T.ink}}>{s.std}</span>
-          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s.applies}</span>
-          <div><Bar value={s.score} color={rc} delay={i*80}/></div>
-          <Tag label={status} color={col} bg={col+"15"}/>
-          {rowOpen===s.std&&<KpiInsightPanel label={s.std} status={status==="Strong"||status==="Good"?"Good":"Alert"} role={role} goto={goto}/>}
-        </div>;
-      })}
-    </Card>
-    <Card style={{overflow:"hidden",marginBottom:12}}>
-      <div style={{padding:"11px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>{ROLES[role].label} Top KPIs</h3>
-      </div>
-      {roleKpis.slice(0,5).map((k,i)=>{
-        const sc=stColor(k.status);
-        return <div key={i} onClick={()=>setRowOpen(rowOpen===k.kpi?null:k.kpi)} title="Show root cause and recommended action" style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 70px",padding:"10px 16px",alignItems:"center",borderBottom:i<4?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,cursor:"pointer"}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.cat}</span>
-          </div>
-          <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
-          <span style={{fontSize:10,fontWeight:700,color:rc,fontFamily:F.m}}>{k.value}</span>
-          <Tag label={k.status} color={sc} bg={sc+"18"}/>
-          {rowOpen===k.kpi&&<KpiInsightPanel label={k.kpi} status={k.status} role={role} goto={goto}/>}
-        </div>;
-      })}
+    <Card style={{padding:"12px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>Framework posture and KPI detail live with their owners.</span>
+      <span style={{display:"flex",gap:8}}><button onClick={()=>setTab&&setTab("compliance")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 12px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Review compliance posture →</button><button onClick={()=>setTab&&setTab("home")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 12px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Executive KPIs →</button></span>
     </Card>
     <Card style={{overflow:"hidden",marginBottom:12}}>
       <div style={{padding:"11px 16px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>

@@ -1,14 +1,15 @@
 "use client";
 
+import { PageTemplates, PageChecklists } from "./compliance";
 import { readBus, pushBus } from "@/lib/bus";
 import { useState, useEffect } from "react";
 import { AC_PHASES, acInitiatives, riskRegister, PLAYBOOK_LENS } from "@/lib/platform-models";
 import { T, RC, RCL, AI_GOLD, PLAYBOOK, HITL, F, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 
-export function PagePlaybook({role,setTab,setAiCentralView,showToast}){
+export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
   const rc=RC(role);
   const [selId,setSelId]=useState(acInitiatives[0].id);
-  const [pTab,setPTab]=useState("workspace");
+  const [pTab,setPTab]=useState(tab==="templates"?"templates":tab==="checklists"?"checklists":"workspace");
   const ini=acInitiatives.find(i=>i.id===selId)||acInitiatives[0];
   const [activePhase,setActivePhase]=useState(ini.phaseIndex);
   useEffect(()=>{setActivePhase(ini.phaseIndex);},[selId,ini.phaseIndex]);
@@ -30,12 +31,12 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast}){
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="Playbook" sub="The execution workspace. Pick a project - objectives, business case, phases, tasks, owners, evidence, risks and lessons assemble themselves from AI Central's lifecycle."/>
     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-      {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={chip(selId===i.id,rc)}>{i.name}</button>)}
-      <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-        {[["workspace","Execution Workspace"],["runbooks","Governance Runbooks"]].map(([id,l])=><button key={id} onClick={()=>setPTab(id)} style={chip(pTab===id,AI_GOLD)}>{l}</button>)}
-      </div>
+      {[["workspace","The Method"],["runbooks","Governance Runbooks"],["templates","Templates"],["checklists","Checklists"]].map(([id,l])=><button key={id} onClick={()=>setPTab(id)} style={chip(pTab===id,AI_GOLD)}>{l}</button>)}
+      <span style={{marginLeft:"auto",fontSize:9,color:"#636B8A",alignSelf:"center",fontFamily:"inherit"}}>Live execution state lives in each initiative's Journey - this is how we run any initiative.</span>
     </div>
     {pTab==="runbooks"&&<PlaybookRunbooks role={role} setTab={setTab} showToast={showToast}/>}
+    {pTab==="templates"&&<PageTemplates role={role} showToast={showToast}/>}
+    {pTab==="checklists"&&<PageChecklists role={role} showToast={showToast}/>}
     {pTab==="workspace"&&<>
     <Card style={{padding:18,marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",gap:14,flexWrap:"wrap",alignItems:"flex-start"}}>
@@ -74,7 +75,7 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast}){
       </Card>;})()}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
       {[["Expected value",ini.expected,AI_GOLD],["Realized to date",ini.actual,T.green],["ROI",ini.roi,T.blue],["Productivity",ini.productivity,T.violet],["Adoption",`${ini.adoption}%`,T.amber],["Business value score",`${ini.valueScore}%`,T.green]].map(([l,v,c])=>
-        <Card key={l} onClick={()=>gotoAC("initiatives")} title="Open in AI Central" style={{padding:13,cursor:"pointer"}}>
+        <Card key={l} onClick={()=>gotoAC("initiatives")} title="Review initiative" style={{padding:13,cursor:"pointer"}}>
           <div style={{fontSize:8.5,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:900,fontFamily:F.m,marginBottom:6}}>{l}</div>
           <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
         </Card>)}
@@ -155,7 +156,7 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast}){
             :`No blockers. Complete the remaining ${AC_PHASES[ini.phaseIndex].deliverables.length-ini.phaseArtifactsDone} artifact(s) in ${AC_PHASES[ini.phaseIndex].name} to advance. `}
           {risks.find(r=>r.aiRecommendation)?risks.find(r=>r.aiRecommendation).aiRecommendation:""}
         </p>
-        <button onClick={()=>gotoAC("initiatives")} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Act in AI Central →</button>
+        <button onClick={()=>gotoAC("initiatives")} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
       </Card>
       <Card style={{padding:16}}>
         <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Lessons from previous projects</div>
@@ -253,11 +254,11 @@ export function PlaybookRunbooks({role,setTab,showToast}) {
         <div style={{display:"flex",gap:10}}>
           <button onClick={()=>setRunbook(null)} style={{flex:1,background:T.s2,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b}}>Back</button>
           <button onClick={()=>{
-            if(rb.hitl){setTab&&setTab(role==="caio"?"decisions":"hitl");return;}
+            if(rb.hitl){setTab&&setTab("decisions");return;}
             setExecuted({...executed,[rb.id||rb.title]:true});
             pushBus("vz-gw-evidence",{item:`Runbook executed: ${rb.title}`,initiative:rb.fw||"Governance Playbook",scope:"Organization",control:"Playbook execution",risk:"Operational",owner:rb.owner||"Playbook owner",status:"Complete",approval:"Recorded",version:"v1",time:"Just now"})
             showToast&&showToast("Runbook executed - evidence recorded");
-          }} style={{flex:2,background:executed[rb.id||rb.title]?T.s2:rc,color:executed[rb.id||rb.title]?T.green:"#fff",border:executed[rb.id||rb.title]?`1px solid ${T.green}40`:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>{executed[rb.id||rb.title]?"Executed - Evidence Recorded":rb.hitl?"Review in HITL Queue →":"Execute Runbook"}</button>
+          }} style={{flex:2,background:executed[rb.id||rb.title]?T.s2:rc,color:executed[rb.id||rb.title]?T.green:"#fff",border:executed[rb.id||rb.title]?`1px solid ${T.green}40`:"none",borderRadius:8,padding:"11px",fontSize:12,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>{executed[rb.id||rb.title]?"Executed - Evidence Recorded":rb.hitl?"Approve with oversight →":"Execute Runbook"}</button>
         </div>
       </div>
     );

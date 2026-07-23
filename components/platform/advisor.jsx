@@ -98,7 +98,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
               </div>)}
             </div>
             <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>Sources: feedback engine scores · controls {gate.i.controls.join(", ")||"none"} · policies {gate.i.policies.join(", ")||"none"} · phase artifact evidence. Value at stake: {gate.i.expected} expected.</div>
-            <button onClick={()=>{goto({ac:"initiatives"});setOpen(false);}} style={{width:"100%",background:decisionColorOf(gate.rec,T)+"14",border:`1px solid ${decisionColorOf(gate.rec,T)}45`,borderRadius:7,padding:"7px 10px",color:decisionColorOf(gate.rec,T),fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record {gate.rec} decision in AI Central →</button>
+            <button onClick={()=>{goto({ac:"initiatives"});setOpen(false);}} style={{width:"100%",background:decisionColorOf(gate.rec,T)+"14",border:`1px solid ${decisionColorOf(gate.rec,T)}45`,borderRadius:7,padding:"7px 10px",color:decisionColorOf(gate.rec,T),fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record the {gate.rec} decision →</button>
           </div>
         </div>}
         {isWorkbench&&<div>

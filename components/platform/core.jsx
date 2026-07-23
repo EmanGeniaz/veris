@@ -289,7 +289,7 @@ export const OWNER_SURFACE = {
   onboard:"aicentral", intake:"aicentral", strategy:"aicentral", roadmap:"aicentral",
   registry:"aicentral", maturity:"aicentral", usecases:"aicentral", servicenow:"aicentral",
   aia:"riskcenter", aiia:"riskcenter",
-  checklists:"compliance", impl:"compliance", templates:"compliance", iso27001:"compliance",
+  checklists:"playbook", impl:"compliance", templates:"playbook", iso27001:"compliance",
   scope:"compliance", controls:"compliance", trustcenter:"compliance", gapanalysis:"compliance",
   aigov:"compliance", knowledge:"compliance",
   aira:"riskcenter", airt:"riskcenter",
@@ -1291,7 +1291,7 @@ export function KpiInsightPanel({label,status,role,goto}){
     </div>
     <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
       {linked&&<span style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>Linked initiative: <strong style={{color:T.ink2}}>{linked.name}</strong></span>}
-      <button onClick={e=>{e.stopPropagation();goto(d.link);}} style={{marginLeft:"auto",background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"5px 10px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Take action in AI Central →</button>
+      <button onClick={e=>{e.stopPropagation();goto(d.link);}} style={{marginLeft:"auto",background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"5px 10px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Resolve blocker →</button>
       <button onClick={e=>{e.stopPropagation();goto({ac:"evidence"});}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 10px",color:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Evidence →</button>
     </div>
   </div>;
