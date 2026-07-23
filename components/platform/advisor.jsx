@@ -4,7 +4,7 @@ import { readBus, pushBus } from "@/lib/bus";
 import { Map, Scale } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, ASSISTANT_NUDGES, riskRegister } from "@/lib/platform-models";
-import { DEFAULT_FEEDBACK, feedbackDecision, decisionColorOf, T, ROLES, NAV, AI_GOLD, AI_GOLD_B, F, Tag } from "./core";
+import { DEFAULT_FEEDBACK, feedbackDecision, feedbackAvg, decisionColorOf, T, ROLES, NAV, AI_GOLD, AI_GOLD_B, F, Tag } from "./core";
 
 export function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const [chat,setChat]=useState([]);
@@ -102,6 +102,10 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
             <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",marginBottom:8}}>
               <span style={{fontSize:11,fontWeight:900,color:T.ink,fontFamily:F.b}}>{gate.i.name}</span>
               <Tag label={`Recommend: ${gate.rec}`} color={decisionColorOf(gate.rec,T)} bg={decisionColorOf(gate.rec,T)+"16"}/>
+            </div>
+            <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:7}}>
+              <strong style={{color:T.ink}}>Reason:</strong> governance {gate.i.guardrail}%, adoption {gate.i.adoption}%, value score {gate.i.valueScore}% clear the gate thresholds.
+              <span style={{color:T.ink3}}> Confidence {feedbackAvg(gate.f)}%.</span>
             </div>
             <div style={{display:"grid",gap:4,marginBottom:9}}>
               {gateChecks.map(([txt,ok],i)=><div key={i} style={{display:"flex",gap:7,alignItems:"flex-start"}}>

@@ -35,8 +35,8 @@ const { chromium } = require('playwright');
   // ── Insights: feedback edit + decision ──
   await test('Feedback sliders + gate decision visible', async () => {
     await page.getByRole('button', { name: 'AI Initiatives', exact: true }).first().click(); await page.waitForTimeout(700);
-    await page.locator('td:has-text("Finance Close Automation")').first().click(); await page.waitForTimeout(800);
-    await page.getByRole('button', { name: 'Insights', exact: true }).first().click(); await page.waitForTimeout(700);
+    await page.locator('button:has-text("Finance Close Automation")').first().click(); await page.waitForTimeout(800);
+    await page.getByRole('button', { name: 'Value', exact: true }).first().click(); await page.waitForTimeout(700);
     const t = await body();
     if (!/Recommend: (Scale|Continue|Improve|Retire)/.test(t)) throw new Error('no recommendation');
     if (!t.includes('Generate Executive Briefing')) throw new Error('no briefing button');

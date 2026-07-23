@@ -390,11 +390,12 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   const [phaseSel,setPhaseSel]=useState(null);
   /* A left-nav click always returns the module to its root view, even when the
      module is already active (e.g. stepping out of an initiative workspace). */
-  useEffect(()=>{if(navNonce){setInitTab("list");setPhaseSel(null);setCreateOpen(false);}},[navNonce]);
+  useEffect(()=>{if(navNonce){setInitTab("overview");setPhaseSel(null);setCreateOpen(false);}},[navNonce]);
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
   const [gwTab,setGwTab]=useState("overview");
   const [lifecycleFilter,setLifecycleFilter]=useState("All");
+  const [initQuery,setInitQuery]=useState("");
   const [createOpen,setCreateOpen]=useState(false);
   const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
   const [evQuery,setEvQuery]=useState("");
@@ -605,80 +606,68 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   };
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
 
-  const InitiativeList=()=><div>
-    <Card style={{padding:"14px 16px",marginBottom:14}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setLifecycleFilter("All")} style={{background:lifecycleFilter==="All"?rc+"20":T.s2,border:`1px solid ${lifecycleFilter==="All"?rc+"55":T.border}`,color:lifecycleFilter==="All"?rc:T.ink2,borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>All initiatives <span style={{fontFamily:F.m,opacity:.8}}>{items.length}</span></button>
-          <span style={{fontSize:10,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em"}}>Governed lifecycle</span>
-        </div>
-        <button onClick={()=>setCreateOpen(!createOpen)} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"7px 13px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{createOpen?"Close":"Create AI Initiative"}</button>
-      </div>
-      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"stretch"}}>
-        {LIFECYCLE_BANDS.map((band,bi)=><div key={band.band} style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 10px"}}>
-            <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:band.band==="Decide"?AI_GOLD:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7,textAlign:"center"}}>{band.band}</div>
-            <div style={{display:"flex",gap:5}}>
-              {band.cats.map(cat=>{
-                const count=items.filter(i=>i.lifecycle===cat).length;
-                const isA=lifecycleFilter===cat;
-                const c=catColor(cat);
-                return <button key={cat} onClick={()=>setLifecycleFilter(cat)} title={cat==="Retired"?"Governed retirement decision required":cat} style={{background:isA?c+"22":"transparent",border:`1px solid ${isA?c+"66":count?T.border:T.border}`,color:isA?c:count?T.ink2:T.ink4,borderRadius:7,padding:"5px 9px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{cat} <span style={{fontFamily:F.m,opacity:.85}}>{count}</span></button>;
-              })}
+  /* ── Portfolio rail (LEFT pane): the ONLY list of initiatives ── */
+  const railFiltered=filtered.filter(i=>!initQuery.trim()||`${i.name} ${i.unit} ${i.category}`.toLowerCase().includes(initQuery.trim().toLowerCase()));
+  const railUnits=[...new Set(railFiltered.map(i=>i.unit))];
+  const renderPortfolioRail=()=><div style={{display:"grid",gap:10,alignContent:"start"}}>
+    <button onClick={()=>setCreateOpen(!createOpen)} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"9px 13px",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{createOpen?"Close":"Create AI Initiative"}</button>
+    <input aria-label="Search initiatives" placeholder="Search portfolio..." value={initQuery} onChange={e=>setInitQuery(e.target.value)} style={{...fieldStyle,fontSize:11}}/>
+    <select aria-label="Lifecycle filter" value={lifecycleFilter} onChange={e=>setLifecycleFilter(e.target.value)} style={{...fieldStyle,fontSize:11,cursor:"pointer"}}>
+      <option value="All">All lifecycle stages ({items.length})</option>
+      {LIFECYCLE_BANDS.flatMap(b=>b.cats).map(cat=><option key={cat} value={cat}>{cat} ({items.filter(i=>i.lifecycle===cat).length})</option>)}
+    </select>
+    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+      {LIFECYCLE_BANDS.map(band=>{
+        const n=items.filter(i=>band.cats.includes(i.lifecycle)).length;
+        return <span key={band.band} title={band.cats.join(" / ")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"3px 9px",fontSize:9,fontWeight:900,fontFamily:F.m,color:band.band==="Decide"?AI_GOLD:T.ink3,textTransform:"uppercase",letterSpacing:"0.08em"}}>{band.band} {n}</span>;
+      })}
+    </div>
+    {railUnits.map(unit=><div key={unit}>
+      <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",margin:"4px 0 6px"}}>{unit}</div>
+      <div style={{display:"grid",gap:6}}>
+        {railFiltered.filter(i=>i.unit===unit).map(i=>{
+          const isA=selectedId===i.id;
+          return <button key={i.id} onClick={()=>openInitiative(i.id)} style={{textAlign:"left",background:isA?AI_GOLD+"14":T.s2,border:`1px solid ${isA?AI_GOLD+"50":T.border}`,borderRadius:9,padding:"9px 11px",cursor:"pointer"}}>
+            <div style={{display:"flex",gap:7,alignItems:"center"}}>
+              <span style={{width:7,height:7,borderRadius:"50%",background:catColor(i.lifecycle),flexShrink:0}}/>
+              <span style={{fontSize:11,fontWeight:800,fontFamily:F.b,color:isA?AI_GOLD:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.name}</span>
             </div>
-          </div>
-          {bi<LIFECYCLE_BANDS.length-1&&<span aria-hidden style={{color:T.ink4,fontSize:14,fontWeight:900}}>&#8594;</span>}
-        </div>)}
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,marginTop:3}}>{i.lifecycle} · phase {i.phaseIndex+1}/{AC_PHASES.length} · {i.actual}/{i.expected}</div>
+          </button>;
+        })}
       </div>
-      <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10,lineHeight:1.5}}>Plan and deliver move forward through phase gates. <strong style={{color:AI_GOLD}}>Scale or Retire is a governed decision</strong> - an initiative is never retired without a recorded reason (non-performing model, low value, cancelled vision, superseded, or risk).</div>
-    </Card>
-    {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${rc}45`,animation:"up .25s ease"}}>
-      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Create AI Initiative</h3>
-      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every initiative starts in Discover. Mandatory artifacts gate each phase; the record becomes the single source of truth.</p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
-        {[["Initiative name","name"],["Business unit","unit"],["Business owner","businessOwner"],["Executive sponsor","sponsor"],["Expected value","expected"]].map(([l,k])=><label key={k} style={{display:"grid",gap:5}}>
-          <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>
-          <input value={draft[k]} onChange={e=>setDraft({...draft,[k]:e.target.value})} style={fieldStyle}/>
-        </label>)}
-        <label style={{display:"grid",gap:5}}>
-          <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
-          <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
-            {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow","Internal Model"].map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
-        </label>
-      </div>
-      <button onClick={createInitiative} style={{background:rc,border:"none",borderRadius:8,padding:"10px 16px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create initiative</button>
-    </Card>}
-    <Card style={{padding:0,overflow:"hidden"}}>
-      <div style={{padding:"16px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:15,color:T.ink}}>AI Initiative Portfolio</h3><Tag label={`${filtered.length} shown`} color={T.ink3}/></div>
-      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-        <thead><tr>{["Initiative","Business unit","Lifecycle","Owners","Status","Risk","Value","Phase","Guardrails"].map(h=><th key={h} style={{textAlign:"left",padding:"10px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
-        <tbody>{filtered.map(i=><tr key={i.id} onClick={()=>openInitiative(i.id)} style={{cursor:"pointer",borderBottom:"1px solid "+T.border}}>
-          <td style={{padding:"13px 12px",color:T.ink,fontWeight:700}}>{i.name}<div style={{fontSize:10,color:T.ink3,fontWeight:400}}>{i.category}</div></td>
-          <td style={{padding:"13px 12px",color:T.ink2}}>{i.unit}</td>
-          <td style={{padding:"13px 12px"}}><Tag label={i.lifecycle} color={catColor(i.lifecycle)} bg={catColor(i.lifecycle)+"16"}/></td>
-          <td style={{padding:"13px 12px",color:T.ink2}}>{i.businessOwner}<div style={{fontSize:10,color:T.ink3}}>{i.sponsor}</div></td>
-          <td style={{padding:"13px 12px"}}><STag s={i.status}/></td>
-          <td style={{padding:"13px 12px"}}><PTag p={i.risk}/></td>
-          <td style={{padding:"13px 12px",color:T.green,fontFamily:F.m}}>{i.actual} / {i.expected}</td>
-          <td style={{padding:"13px 12px",minWidth:120}}><div style={{fontSize:10,color:T.ink2,fontFamily:F.m,marginBottom:4}}>{AC_PHASES[i.phaseIndex]?.name} - {i.phaseIndex+1}/{AC_PHASES.length}</div><Bar value={phaseProgress(i)} color={rc}/></td>
-          <td style={{padding:"13px 12px",minWidth:110}}><Bar value={i.guardrail} color={i.guardrail>80?T.green:i.guardrail>70?T.amber:T.red}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>{i.guardrail}%</div></td>
-        </tr>)}</tbody>
-      </table></div>
-    </Card>
+    </div>)}
+    {railFiltered.length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No initiatives match - clear the search or filter.</div>}
   </div>;
+  const renderCreateForm=()=><Card style={{padding:18,marginBottom:14,border:`1px solid ${rc}45`,animation:"up .25s ease"}}>
+    <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Create AI Initiative</h3>
+    <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every initiative starts in Discover. Mandatory artifacts gate each phase; the record becomes the single source of truth.</p>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
+      {[["Initiative name","name"],["Business unit","unit"],["Business owner","businessOwner"],["Executive sponsor","sponsor"],["Expected value","expected"]].map(([l,k])=><label key={k} style={{display:"grid",gap:5}}>
+        <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>
+        <input value={draft[k]} onChange={e=>setDraft({...draft,[k]:e.target.value})} style={fieldStyle}/>
+      </label>)}
+      <label style={{display:"grid",gap:5}}>
+        <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
+        <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
+          {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow","Internal Model"].map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+      </label>
+    </div>
+    <button onClick={createInitiative} style={{background:rc,border:"none",borderRadius:8,padding:"10px 16px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create initiative</button>
+  </Card>;
 
-  const Overview=()=><div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
+  const Overview=()=><div style={{display:"grid",gap:14}}>
     <Card style={{padding:20}}>
-      <div style={{display:"flex",justifyContent:"space-between",gap:12,marginBottom:18}}>
-        <div><Tag label={selected.id.toUpperCase()} color={rc}/><h3 style={{fontSize:24,color:T.ink,margin:"10px 0 4px",fontWeight:800}}>{selected.name}</h3><p style={{color:T.ink3,fontSize:12,margin:0}}>{selected.unit} - {selected.category}</p></div>
-        <Ring score={selected.guardrail} color={selected.guardrail>80?T.green:T.amber} size={76}/>
+      <div style={{display:"flex",justifyContent:"space-between",gap:12,marginBottom:18,alignItems:"center"}}>
+        <Tag label={selected.id.toUpperCase()} color={rc}/>
+        <Ring score={selected.guardrail} color={selected.guardrail>80?T.green:T.amber} size={64}/>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:18}}>
         {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["Executive sponsor",selected.sponsor],["AI champion",selected.champion],["CXO sponsors",selected.cxo],["Status",selected.status],["Lifecycle",selected.lifecycle],["Linked policies",selected.policies.join(", ")||"None yet"],["Linked controls",selected.controls.join(", ")||"None yet"],["Linked risks",selected.risks.join(", ")||"None yet"],["Audits",selected.audits.join(", ")||"None yet"],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/${AC_PHASES.length})`]].map(([l,v])=><div key={l} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",marginBottom:5}}>{l}</div><div style={{fontSize:12,color:T.ink2,lineHeight:1.35}}>{v}</div></div>)}
       </div>
       <h4 style={{color:T.ink,margin:"0 0 10px",fontSize:14}}>Risk, control, audit and corrective action mapping</h4>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
         {["Compliant","Partially compliant","Non-compliant","Not assessed"].map((s,idx)=><div key={s} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:8,padding:11}}><Tag label={s} color={[T.green,T.amber,T.red,T.ink3][idx]}/><div style={{fontSize:10,color:T.ink3,marginTop:8}}>{[5,3,1,2][idx]} linked items</div></div>)}
       </div>
     </Card>
@@ -908,24 +897,31 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
 
   /* ── Initiative context tabs: derived views over the initiative's own
         data. Risks are owned here and aggregated by Risk Center. ── */
-  const InitRisks=()=>{
+  /* Risk lives in the Risk Center. AI Central shows only count, highest,
+     trend and status - clicking opens the register scoped to this initiative. */
+  const renderRiskSummary=()=>{
     const rows=riskRegister.filter(r=>r.initiativeId===selected.id);
+    const worst=[...rows].sort((a,b)=>b.residual-a.residual)[0];
+    const inTreatment=rows.filter(r=>r.treatment.status!=="Complete").length;
     const lvC=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
     return <Card style={{padding:16}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Initiative risks - a view of the Risk Center register</h3>
-      <button onClick={()=>setTab&&setTab("riskcenter")} style={{background:T.red+"14",border:`1px solid ${T.red}40`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Risk Center →</button>
-    </div>
-    <div style={{display:"grid",gap:8}}>
-      {rows.map(r=><div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
-        <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r.id} · {r.title}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Risk owner: {r.riskOwner} · Treatment: {r.treatment.strategy} ({r.treatment.status}) · Controls: {r.controls.join(", ")}</div></div>
-        <Tag label={r.level} color={lvC(r.level)} bg={lvC(r.level)+"16"}/>
-        <Tag label={`Residual ${r.residual}/25`} color={r.residual<=6?T.green:T.amber} bg={(r.residual<=6?T.green:T.amber)+"14"}/>
-      </div>)}
-      {rows.length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No risks registered for this initiative yet - raise one in the Risk Center.</div>}
-      {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Open blocker:</strong> {selected.blockedBy}</div>}
-    </div>
-  </Card>;};
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:0}}>Risk summary</h3>
+        <button onClick={()=>setTab&&setTab("riskcenter")} style={{background:T.red+"14",border:`1px solid ${T.red}40`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Risk Center →</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+        {[["Registered risks",rows.length,rows.length?T.amber:T.green],
+          ["Highest residual",worst?`${worst.residual}/25`:"none",worst?lvC(worst.level):T.green],
+          ["Trend",selected.blockedBy?"Blocked":"Within appetite",selected.blockedBy?T.red:T.green],
+          ["In treatment",inTreatment,inTreatment?T.blue:T.green]].map(([l,v,c])=>
+          <button key={l} onClick={()=>setTab&&setTab("riskcenter")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{l}</div>
+            <div style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+          </button>)}
+      </div>
+      {worst&&<div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:10}}>Most severe: {worst.id} "{worst.title}" ({worst.level}) - treatment {worst.treatment.status.toLowerCase()} with {worst.treatment.owner}.</div>}
+      {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b,marginTop:10}}><strong style={{color:T.red}}>Open blocker:</strong> {selected.blockedBy}</div>}
+    </Card>;};
   const InitEvidence=()=>{
     const rows=evidenceRows.filter(e=>e.initiative===selected.name);
     return <Card style={{padding:0,overflow:"hidden"}}>
@@ -1171,42 +1167,93 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     <div style={{marginTop:12}}><FeedbackPanel/></div>
     <div style={{marginTop:12}}><InitLessons/></div>
   </div>;
-  const WS_LEGACY={implementation:"journey",risks:"risk",controls:"governance",approvals:"governance",pilot:"journey",roi:"overview",adoption:"overview",feedback:"insights",lessons:"insights",decision:"insights"};
+  const WS_LEGACY={list:"overview",implementation:"journey",risks:"governance",risk:"governance",controls:"governance",approvals:"governance",pilot:"monitoring",evidence:"monitoring",roi:"value",adoption:"value",feedback:"value",lessons:"value",insights:"value",decision:"value",scalegate:"value"};
   const wsTab=WS_LEGACY[initTab]||initTab;
-  const WS_TAB_LABELS={overview:"Overview",journey:"Journey",governance:"Governance",risk:"Risk",evidence:"Evidence",insights:"Insights",scalegate:"Scale Gate"};
+  const WS_TAB_LABELS={overview:"Overview",journey:"Journey",governance:"Governance",value:"Value",monitoring:"Monitoring"};
   const Crumbs=()=>{
     const crumb={background:"transparent",border:"none",padding:0,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.m,letterSpacing:"0.04em",cursor:"pointer"};
     const sep=<span style={{color:T.ink4,fontSize:10}}>/</span>;
     return <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,flexWrap:"wrap"}}>
       <button onClick={()=>setTab("home")} style={crumb}>Dashboard</button>{sep}
       <button onClick={()=>setView("dashboard")} style={crumb}>AI Central</button>{sep}
-      <button onClick={()=>setInitTab("list")} style={crumb}>AI Initiatives</button>{sep}
+      <button onClick={()=>setInitTab("overview")} style={crumb}>AI Initiatives</button>{sep}
       {wsTab==="overview"
         ?<span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{selected.name}</span>
         :<><button onClick={()=>setInitTab("overview")} style={crumb}>{selected.name}</button>{sep}
           <span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{WS_TAB_LABELS[wsTab]||wsTab}</span></>}
     </div>;
   };
-  const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
-    <Crumbs/>
-    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
-      <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; All initiatives</button>
-      <div style={{minWidth:0}}>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <h3 style={{fontSize:18,color:T.ink,fontWeight:800,margin:0,fontFamily:F.h}}>{selected.name}</h3>
-          <Tag label={selected.lifecycle} color={catColor(selected.lifecycle)} bg={catColor(selected.lifecycle)+"16"}/><PTag p={selected.risk}/>
+  /* ── Veris Intelligence rail (RIGHT pane): context for the selected initiative ── */
+  const renderIntelRail=()=>{
+    const f=acFeedback[selected.id]||DEFAULT_FEEDBACK;
+    const recD=feedbackDecision(f);
+    const conf=feedbackAvg(f);
+    const recC=decisionColorOf(recD,T);
+    const activity=evidenceRows.filter(e=>e.initiative===selected.name).slice(0,3);
+    const secHead=t=><div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7}}>{t}</div>;
+    return <div style={{display:"grid",gap:10,alignContent:"start"}}>
+      <Card style={{padding:14,border:`1px solid ${AI_GOLD}40`}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:9}}>
+          <span style={{width:8,height:8,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>
+          <span style={{fontSize:11,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
         </div>
-        <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
+        {secHead("Executive summary")}
+        <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.6,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected. {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
+      </Card>
+      <Card style={{padding:14,border:`1px solid ${recC}40`}}>
+        {secHead("Recommendation")}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <Tag label={recD} color={recC} bg={recC+"16"}/>
+          <span style={{fontSize:10,fontFamily:F.m,fontWeight:900,color:T.ink3}}>confidence {conf}%</span>
+        </div>
+        <div style={{display:"grid",gap:5,fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>
+          <div><strong style={{color:T.ink}}>Reason:</strong> governance {selected.guardrail}%, adoption {selected.adoption}%, value score {selected.valueScore}%.</div>
+          <div><strong style={{color:T.ink}}>Evidence:</strong> phase artifacts through {AC_PHASES[selected.phaseIndex]?.name}; controls {selected.controls.join(", ")||"pending"}.</div>
+          <div><strong style={{color:T.ink}}>Impact:</strong> {selected.expected} expected value; {selected.actual} realized.</div>
+        </div>
+        <button onClick={()=>setInitTab("value")} style={{marginTop:10,width:"100%",background:recC+"14",border:`1px solid ${recC}45`,borderRadius:7,padding:"7px 10px",color:recC,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review in Value →</button>
+      </Card>
+      {(recD==="Scale"||recD==="Retire")&&<Card style={{padding:14}}>
+        {secHead("Related decisions")}
+        <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>A governed {recD} decision is waiting on this initiative.</div>
+        <button onClick={()=>setTab&&setTab("decisions")} style={{width:"100%",background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Decision Workspace →</button>
+      </Card>}
+      <Card style={{padding:14}}>
+        {secHead("Recent activity")}
+        {activity.length===0&&<div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>No recorded activity yet - completed artifacts will appear here.</div>}
+        <div style={{display:"grid",gap:7}}>
+          {activity.map(e=><div key={`${e.item}-${e.time}`} style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.45}}><span style={{color:T.ink4,fontFamily:F.m}}>{e.time}</span> · {e.item}</div>)}
+        </div>
+        {activity.length>0&&<button onClick={()=>setView("evidence")} style={{marginTop:9,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open evidence →</button>}
+      </Card>
+    </div>;
+  };
+  /* ── AI Portfolio Command Center: portfolio rail | selected initiative | intelligence rail ── */
+  const Initiatives=()=><div>
+    <Crumbs/>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(220px,1fr) minmax(0,2.1fr) minmax(220px,1fr)",gap:14,alignItems:"start"}}>
+      {renderPortfolioRail()}
+      <div style={{minWidth:0}}>
+        {createOpen&&renderCreateForm()}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+          <div style={{minWidth:0}}>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <h3 style={{fontSize:18,color:T.ink,fontWeight:800,margin:0,fontFamily:F.h}}>{selected.name}</h3>
+              <Tag label={selected.lifecycle} color={catColor(selected.lifecycle)} bg={catColor(selected.lifecycle)+"16"}/><PTag p={selected.risk}/>
+            </div>
+            <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{selected.unit} - {selected.category} - Sponsor: {selected.sponsor}</div>
+          </div>
+        </div>
+        <MissionHeader/>
+        <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["governance","Governance"],["value","Value"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
+        {wsTab==="overview"&&<Overview/>}
+        {wsTab==="journey"&&<InitJourney/>}
+        {wsTab==="governance"&&<div>{renderRiskSummary()}<div style={{marginTop:12}}><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/></div><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
+        {wsTab==="value"&&<InitInsights/>}
+        {wsTab==="monitoring"&&<div><InitEvidenceTimeline/><div style={{marginTop:12}}><PilotExecution/></div></div>}
       </div>
+      {renderIntelRail()}
     </div>
-    <MissionHeader/>
-    <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["governance","Governance"],["risk","Risk"],["evidence","Evidence"],["insights","Insights"]]} active={wsTab} onChange={setInitTab}/>
-    {wsTab==="overview"&&<Overview/>}
-    {wsTab==="journey"&&<InitJourney/>}
-    {wsTab==="governance"&&<div><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
-    {wsTab==="risk"&&<div><InitRisks/><div style={{marginTop:12}}><PilotExecution/></div></div>}
-    {wsTab==="evidence"&&<InitEvidenceTimeline/>}
-    {wsTab==="insights"&&<InitInsights/>}
   </div>;
 
   /* ── AI Governance ─────────────────────────────────────────── */
