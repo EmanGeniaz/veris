@@ -1,6 +1,7 @@
 "use client";
 
 import { readBus, pushBus } from "@/lib/bus";
+import { CeoDashboard } from "./ceo";
 import { Map, Scale, Target, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, KPI_INSIGHTS, riskRegister, EXEC_QUICK_ACTIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
@@ -397,6 +398,7 @@ export function PageHome({role,setTab,setAiCentralView,showToast}) {
 
   /* CAIO reference architecture: the dashboard answers exactly four
      questions. Everything else lives inside AI Central. */
+  if(role==="ceo")return <CeoDashboard setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>;
   if(role==="caio"){
     const atRisk=acInitiatives.filter(i=>i.risk==="High"||i.risk==="Critical"||i.blockedBy);
     const gates=acInitiatives.filter(i=>["Scale","Retire"].includes(feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)));
