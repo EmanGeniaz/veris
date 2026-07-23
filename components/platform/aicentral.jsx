@@ -3,7 +3,7 @@
 import { readBus, pushBus } from "@/lib/bus";
 import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
+import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade } from "./riskcenter";
@@ -439,6 +439,12 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   const [selectedId,setSelectedId]=useState(acInitiatives[0].id);
   const [initTab,setInitTab]=useState("list");
   const [phaseSel,setPhaseSel]=useState(null);
+  /* Phase evidence workspace state, keyed by `${initiativeId}:${phaseIdx}` so
+     uploads and reviewer comments follow the globally selected initiative+phase. */
+  const [phaseFiles,setPhaseFiles]=useState({});
+  const [phaseComments,setPhaseComments]=useState({});
+  const [commentDraft,setCommentDraft]=useState("");
+  const [histOpen,setHistOpen]=useState(null);
   /* A left-nav click always returns the module to its root view, even when the
      module is already active (e.g. stepping out of an initiative workspace). */
   useEffect(()=>{if(navNonce){setInitTab("overview");setPhaseSel(null);setCreateOpen(false);}},[navNonce]);
@@ -720,7 +726,29 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   /* Overview: executive-level by default. Ownership and next action up
      front as typography; governance metadata and compliance mapping stay
      collapsed until explicitly expanded (progressive disclosure). */
+  /* Executive charter - the 30-second read: why, where to, what success is. */
+  const iniModels=MODEL_REGISTRY.filter(m=>m.initiativeId===selected.id);
+  const renderCharter=()=>(selected.problem||selected.vision)&&<div style={{display:"grid",gap:14}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:"14px 28px"}}>
+      {[["Problem",selected.problem],["Vision",selected.vision],["Business objective",selected.objective]].filter(([,v])=>v).map(([l,v])=><div key={l}>
+        <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:4}}>{l}</div>
+        <div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>{v}</div>
+      </div>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:"12px 24px"}}>
+      {[["Budget",`${selected.spent||"—"} of ${selected.budget||"—"}`],["Timeline",selected.timeline||"—"],
+        ["Overall completion",phaseProgress(selected)+"%"],
+        ["AI models used",iniModels.length?iniModels.map(m=>m.bizName).join(", "):"None registered"]].map(([l,v])=><div key={l}>
+        <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
+        <div style={{fontSize:12,color:T.ink,fontFamily:F.b,fontWeight:700,lineHeight:1.45}}>{v}</div>
+      </div>)}
+    </div>
+    {selected.successMetrics&&<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      {selected.successMetrics.map(m=><span key={m} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"4px 11px",fontSize:9.5,fontWeight:800,fontFamily:F.m,color:T.ink2}}>{m}</span>)}
+    </div>}
+  </div>;
   const Overview=()=><div style={{display:"grid",gap:20}}>
+    {renderCharter()}
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"14px 24px",marginBottom:4}}>
         {[["Executive sponsor",selected.sponsor],["Status",selected.status],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/${AC_PHASES.length})`],["Adoption",selected.adoption+"%"]].map(([l,v])=><div key={l}>
@@ -762,16 +790,67 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     const phase=AC_PHASES[activePhase];
     const st=phaseStatus(selected,activePhase);
     const stColor=st==="Complete"?T.green:st==="Active"?rc:st==="Blocked"?T.red:T.ink3;
+    const pKey=`${selected.id}:${activePhase}`;
+    const files=phaseFiles[pKey]||[];
+    const comments=phaseComments[pKey]||[];
+    const doneCount=idx=>idx<selected.phaseIndex?AC_PHASES[idx].deliverables.length:idx===selected.phaseIndex?selected.phaseArtifactsDone:0;
+    const approvalsOf=idx=>AC_PHASES[idx].deliverables.filter((d,ai)=>/approval|sign-off|decision|charter/i.test(d)&&artifactStatus(selected,idx,ai)==="Complete").length;
+    const lastUpdated=idx=>idx<selected.phaseIndex?"Jul 11":idx===selected.phaseIndex?"Today":"—";
+    const stamp=()=>{const d=new Date();return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});};
+    const recordEvidence=(item,control)=>pushBus("vz-gw-evidence",{item,initiative:selected.name,scope:"Phase "+phase.order+" - "+phase.name,control,risk:"Lifecycle evidence",owner:R.label,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+    const addFiles=names=>{
+      if(!names.length)return;
+      const recs=names.map(n=>({name:n,owner:R.label,time:stamp(),status:"Uploaded",version:"v1"}));
+      setPhaseFiles(f=>({...f,[pKey]:[...recs,...(f[pKey]||[])]}));
+      names.forEach(n=>recordEvidence(`Evidence uploaded: ${n}`,"Evidence intake"));
+      showToast&&showToast(`${names.length} file${names.length>1?"s":""} recorded in the ${phase.name} evidence workspace`);
+    };
+    const addComment=()=>{
+      const t=commentDraft.trim();
+      if(!t)return;
+      setPhaseComments(c=>({...c,[pKey]:[{by:R.label,time:stamp(),text:t},...(c[pKey]||[])]}));
+      setCommentDraft("");
+      recordEvidence(`Reviewer comment on ${phase.name}`,"Review trail");
+    };
+    const auditTrail=[
+      ...files.map(f=>({time:f.time,what:`${f.name} uploaded (${f.version})`,by:f.owner})),
+      ...comments.map(c=>({time:c.time,what:"Reviewer comment recorded",by:c.by})),
+      ...phase.deliverables.map((d,ai)=>artifactStatus(selected,activePhase,ai)==="Complete"?{time:lastUpdated(activePhase),what:`${d} completed and approved`,by:phase.raci.accountable}:null).filter(Boolean),
+    ];
+    const completeness=Math.round((doneCount(activePhase)/phase.deliverables.length)*100);
+    const downloadPackage=()=>{
+      const L=[`# Evidence Package - ${selected.name}`,`Phase ${phase.order}: ${phase.name} (${st})`,"",
+        "## Exit criteria",...phase.deliverables.map(d=>`- [${artifactStatus(selected,activePhase,phase.deliverables.indexOf(d))==="Complete"?"x":" "}] ${d}`),
+        `- [${selected.blockedBy&&activePhase===selected.phaseIndex?" ":"x"}] No open blockers`,
+        `- [${approvalsOf(activePhase)>0?"x":" "}] Accountable sign-off (${phase.raci.accountable})`,"",
+        "## Uploaded evidence",...(files.length?files.map(f=>`- ${f.name} · ${f.owner} · ${f.time} · ${f.version}`):["- none"]),"",
+        "## Reviewer comments",...(comments.length?comments.map(c=>`- ${c.time} ${c.by}: ${c.text}`):["- none"]),"",
+        "## Audit trail",...auditTrail.map(a=>`- ${a.time} · ${a.what} · ${a.by}`)];
+      vzDownload(`evidence-${selected.id}-phase-${phase.order}.md`,L.join("\n"));
+      recordEvidence(`Evidence package exported - ${phase.name}`,"Audit export");
+      showToast&&showToast("Evidence package downloaded - export recorded in the audit trail");
+    };
     return <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(8,minmax(96px,1fr))",gap:6,marginBottom:14,overflowX:"auto"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:6,marginBottom:14}}>
         {AC_PHASES.map((p,idx)=>{
           const s=phaseStatus(selected,idx);
           const col=s==="Complete"?T.green:s==="Active"?rc:s==="Blocked"?T.red:T.ink4;
           const isSel=idx===activePhase;
-          return <button key={p.id} onClick={()=>setPhaseSel(idx)} style={{background:isSel?col+"1C":T.s2,border:`1px solid ${isSel?col+"55":T.border}`,borderRadius:10,padding:"10px 8px",textAlign:"left",cursor:"pointer"}}>
-            <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginBottom:4}}>PHASE {p.order}</div>
+          const pc=Math.round((doneCount(idx)/p.deliverables.length)*100);
+          return <button key={p.id} onClick={()=>setPhaseSel(idx)} style={{background:isSel?col+"1C":T.s2,border:`1px solid ${isSel?col+"55":T.border}`,borderRadius:10,padding:"10px 10px",textAlign:"left",cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>PHASE {p.order}</span>
+              <Tag label={s} color={col} bg={col+"16"}/>
+            </div>
             <div style={{fontSize:11,color:isSel?col:T.ink2,fontWeight:800,fontFamily:F.b,lineHeight:1.25,marginBottom:6}}>{p.name}</div>
-            <Tag label={s} color={col} bg={col+"16"}/>
+            <Bar value={pc} color={col}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:8.5,color:T.ink4,fontFamily:F.m}}>
+              <span>{doneCount(idx)}/{p.deliverables.length} artifacts</span><span>{approvalsOf(idx)} appr.</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:3,fontSize:8.5,color:T.ink4,fontFamily:F.m}}>
+              <span>{p.raci.accountable}</span><span>{lastUpdated(idx)}</span>
+            </div>
+            <div style={{marginTop:7,fontSize:9,fontWeight:900,fontFamily:F.b,color:isSel?col:T.ink3}}>Open phase →</div>
           </button>;
         })}
       </div>
@@ -781,37 +860,96 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>}
       <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14}}>
         <Card style={{padding:18}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,gap:8,flexWrap:"wrap"}}>
             <h3 style={{fontSize:16,color:T.ink,fontWeight:800,margin:0}}>Phase {phase.order}: {phase.name}</h3>
-            <Tag label={st} color={stColor} bg={stColor+"16"}/>
+            <div style={{display:"flex",gap:7,alignItems:"center"}}>
+              <Tag label={st} color={stColor} bg={stColor+"16"}/>
+              <button onClick={downloadPackage} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 10px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Download package ↓</button>
+            </div>
           </div>
-          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 14px"}}>{phase.objective}</p>
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 12px"}}>{phase.objective}</p>
+          <h4 style={{fontSize:12,color:T.ink,margin:"0 0 7px"}}>Exit criteria</h4>
+          <div style={{display:"grid",gap:4,marginBottom:14}}>
+            {[[`All ${phase.deliverables.length} mandatory artifacts complete`,completeness===100],
+              ["No open blockers on this phase",!(selected.blockedBy&&activePhase===selected.phaseIndex)],
+              [`${phase.raci.accountable} sign-off recorded`,st==="Complete"]].map(([txt,ok])=><div key={txt} style={{display:"flex",gap:7,alignItems:"center"}}>
+              <span style={{fontSize:10,fontWeight:900,color:ok?T.green:T.amber,fontFamily:F.m}}>{ok?"✓":"○"}</span>
+              <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{txt}</span>
+            </div>)}
+          </div>
           <h4 style={{fontSize:12,color:T.ink,margin:"0 0 8px"}}>Mandatory artifacts</h4>
           <div style={{display:"grid",gap:7}}>
             {phase.deliverables.map((d,ai)=>{
               const as_=artifactStatus(selected,activePhase,ai);
               const ac_=as_==="Complete"?T.green:as_==="Blocked"?T.red:as_==="Missing"?T.amber:T.ink4;
-              return <div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px"}}>
-                <div style={{display:"flex",gap:9,alignItems:"center"}}><span style={{width:7,height:7,borderRadius:"50%",background:ac_}}/><span style={{fontSize:12,color:T.ink2,fontFamily:F.b}}>{d}</span></div>
-                <Tag label={as_} color={ac_} bg={ac_+"14"}/>
+              const hKey=pKey+":"+ai;
+              return <div key={d} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8}}>
+                <button onClick={()=>setHistOpen(histOpen===hKey?null:hKey)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:"transparent",border:"none",padding:"9px 12px",cursor:"pointer",textAlign:"left"}}>
+                  <div style={{display:"flex",gap:9,alignItems:"center",minWidth:0}}><span style={{width:7,height:7,borderRadius:"50%",background:ac_,flexShrink:0}}/><span style={{fontSize:12,color:T.ink2,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d}</span></div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                    <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{phase.raci.responsible} · {as_==="Complete"?lastUpdated(activePhase):"—"}</span>
+                    <Tag label={as_} color={ac_} bg={ac_+"14"}/>
+                  </div>
+                </button>
+                {histOpen===hKey&&<div style={{padding:"0 12px 10px 28px",animation:"up .15s ease"}}>
+                  <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>Version history & approvals</div>
+                  {as_==="Complete"?<>
+                    <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>v1 · Drafted by {phase.raci.responsible} · {lastUpdated(activePhase)}</div>
+                    <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>v2 · Approved by {phase.raci.accountable} · {lastUpdated(activePhase)} · recorded to Trust & Evidence</div>
+                  </>:<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>No versions yet - upload evidence below or complete the artifact to start the trail.</div>}
+                </div>}
               </div>;
             })}
           </div>
-          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:12,lineHeight:1.6}}>Artifacts are stored automatically in Trust &amp; Evidence when completed. A phase cannot close with missing mandatory artifacts.</div>
+          <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();addFiles([...e.dataTransfer.files].map(f=>f.name));}} style={{marginTop:12,border:`1.5px dashed ${rc}50`,borderRadius:10,padding:"16px 14px",textAlign:"center"}}>
+            <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,fontWeight:700,marginBottom:3}}>Drop evidence files here</div>
+            <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,marginBottom:8}}>Uploads are stamped with owner, time and version and recorded in Trust & Evidence.</div>
+            <label style={{background:rc+"16",border:`1px solid ${rc}45`,borderRadius:7,padding:"6px 13px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",display:"inline-block"}}>
+              Select files<input type="file" multiple style={{display:"none"}} onChange={e=>{addFiles([...e.target.files].map(f=>f.name));e.target.value="";}}/>
+            </label>
+          </div>
+          {files.length>0&&<div style={{marginTop:10,display:"grid",gap:6}}>
+            {files.map(f=><div key={f.name+f.time} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px"}}>
+              <span style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:600,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span>
+              <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,flexShrink:0}}>{f.owner} · {f.time} · {f.version}</span>
+              <Tag label={f.status} color={T.blue} bg={T.blue+"14"}/>
+            </div>)}
+          </div>}
         </Card>
         <div style={{display:"grid",gap:12,alignContent:"start"}}>
+          <Card style={{padding:16,border:`1px solid ${AI_GOLD}30`}}>
+            <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Veris completeness review</div>
+            <div style={{fontSize:20,fontWeight:900,fontFamily:F.m,color:completeness===100?T.green:completeness>=50?T.amber:T.red,marginBottom:6}}>{completeness}%</div>
+            <Bar value={completeness} color={completeness===100?T.green:T.amber}/>
+            <p style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6,margin:"9px 0 0"}}>
+              {completeness===100?`All artifacts for ${phase.name} are complete. ${st==="Complete"?"Phase is closed and archived.":"Request "+phase.raci.accountable+" sign-off to close the phase."}`
+              :`${phase.deliverables.length-doneCount(activePhase)} artifact${phase.deliverables.length-doneCount(activePhase)>1?"s":""} outstanding${selected.blockedBy&&activePhase===selected.phaseIndex?"; the phase is blocked: "+selected.blockedBy:""}. ${files.length?files.length+" uploaded file"+(files.length>1?"s":"")+" await mapping to artifacts.":"Upload supporting evidence to accelerate review."}`}
+            </p>
+          </Card>
           <Card style={{padding:16}}>
             <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px"}}>Ownership (RACI)</h3>
             {[["Responsible",phase.raci.responsible,T.green],["Accountable",phase.raci.accountable,rc],["Consulted",phase.raci.consulted,T.blue],["Informed",phase.raci.informed,T.ink3]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
               <Tag label={l} color={c} bg={c+"14"}/><span style={{fontSize:11,color:T.ink,fontWeight:700,fontFamily:F.b}}>{v}</span>
             </div>)}
-            <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:10}}>Nothing is ownerless: every phase carries explicit accountability.</div>
           </Card>
           <Card style={{padding:16}}>
-            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 8px"}}>Overall progress</h3>
-            <div style={{fontSize:24,fontWeight:800,color:rc,fontFamily:F.h,marginBottom:8}}>{phaseProgress(selected)}%</div>
-            <Bar value={phaseProgress(selected)} color={rc}/>
-            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:8}}>Phase {selected.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[selected.phaseIndex]?.name}</div>
+            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 9px"}}>Reviewer comments</h3>
+            <div style={{display:"flex",gap:6,marginBottom:9}}>
+              <input value={commentDraft} onChange={e=>setCommentDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addComment();}} placeholder="Add a review note..." style={{...fieldStyle,fontSize:10.5,padding:"7px 10px"}}/>
+              <button onClick={addComment} style={{background:rc+"16",border:`1px solid ${rc}45`,borderRadius:7,padding:"0 12px",color:rc,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Post</button>
+            </div>
+            {comments.length===0&&<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>No comments on this phase yet.</div>}
+            <div style={{display:"grid",gap:7}}>
+              {comments.map((c,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}><strong style={{color:T.ink}}>{c.by}</strong> <span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{c.time}</span><br/>{c.text}</div>)}
+            </div>
+          </Card>
+          <Card style={{padding:16}}>
+            <h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 9px"}}>Audit trail</h3>
+            {auditTrail.length===0&&<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>Activity on this phase will appear here with timestamps.</div>}
+            <div style={{display:"grid",gap:6}}>
+              {auditTrail.slice(0,6).map((a,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}><span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{a.time}</span> · {a.what} · <span style={{color:T.ink2}}>{a.by}</span></div>)}
+            </div>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:9,lineHeight:1.5}}>Entries are also written to the hash-chained platform audit log (ISO 42001 / EU AI Act ready).</div>
           </Card>
         </div>
       </div>
@@ -1269,7 +1407,25 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
         <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginLeft:"auto"}}>Executive Advisor</span>
       </div>
       {secHead("Executive brief")}
-      <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected. {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
+      <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected.{phaseSel!=null&&phaseSel!==selected.phaseIndex?` You are reviewing ${AC_PHASES[phaseSel]?.name} (${phaseSel<selected.phaseIndex?"complete":"not started"}).`:""} {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
+      {divider}
+      {secHead("Program analysis")}
+      {(()=>{
+        const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+        const totalExp=acInitiatives.reduce((a,i)=>a+money(i.expected),0);
+        const share=Math.round((money(selected.expected)/totalExp)*100);
+        const remaining=AC_PHASES.length-selected.phaseIndex;
+        const weeks=remaining*3+(selected.blockedBy?2:0);
+        const eta=new Date();eta.setDate(eta.getDate()+weeks*7);
+        const etaLabel=eta.toLocaleDateString("en-GB",{month:"short",year:"numeric"});
+        return <div style={{display:"grid",gap:6,fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
+          <div><strong style={{color:T.ink}}>Portfolio impact:</strong> {share}% of enterprise AI value ({selected.expected} of ${totalExp.toFixed(1)}M).</div>
+          <div><strong style={{color:T.ink}}>Financial impact:</strong> ${(money(selected.expected)-money(selected.actual)).toFixed(1)}M unrealized; {selected.spent||"—"} of {selected.budget||"—"} budget consumed.</div>
+          <div><strong style={{color:T.ink}}>Blockers:</strong> {selected.blockedBy||"none open"}.</div>
+          <div><strong style={{color:T.ink}}>Delay prediction:</strong> {selected.blockedBy?"~2 weeks slip if the blocker holds past this sprint":"on schedule at current cadence"}.</div>
+          <div><strong style={{color:T.ink}}>Predicted completion:</strong> ~{etaLabel} ({remaining} phases remaining).</div>
+        </div>;
+      })()}
       {divider}
       {secHead("Recommendation")}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -1289,6 +1445,13 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
         <button onClick={()=>setTab&&setTab("decisions")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"7px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review approvals →</button>
       </>}
       {divider}
+      {secHead("Suggested next actions")}
+      <div style={{display:"grid",gap:6,marginBottom:2}}>
+        {[[wsNextAction.length>46?wsNextAction.slice(0,46)+"…":wsNextAction,()=>setInitTab("journey")],
+          ["Review phase evidence",()=>setInitTab("journey")],
+          ["Check execution plan in AI PMO",()=>setInitTab("pmo")]].map(([l,go])=><button key={l} onClick={go} style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 10px",color:T.ink2,fontSize:10,fontWeight:700,fontFamily:F.b,cursor:"pointer"}}>{l} →</button>)}
+      </div>
+      {divider}
       {secHead("Recent activity")}
       {activity.length===0&&<div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>No recorded activity yet - completed artifacts will appear here.</div>}
       <div style={{display:"grid",gap:7}}>
@@ -1297,6 +1460,121 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       {activity.length>0&&<button onClick={()=>setView("evidence")} style={{marginTop:9,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open evidence →</button>}
     </div>;
   };
+  /* AI PMO - execution management. Journey owns the lifecycle method;
+     the PMO owns delivery: schedule, scope, resources, money, decisions. */
+  const renderPmo=()=>{
+    const pmo=acPmo[selected.id];
+    const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+    if(!pmo)return <Card style={{padding:18}}><div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>Execution plan not yet stood up for this initiative - the PMO workspace is created at Business Case approval.</div></Card>;
+    const secH=t=><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px",fontFamily:F.h}}>{t}</h3>;
+    const msCol=st=>st==="Complete"?T.green:st==="On Track"?T.blue:st==="At Risk"?T.red:T.ink4;
+    const budgetPct=Math.min(100,Math.round((money(selected.spent)/(money(selected.budget)||1))*100));
+    const govDecisions=readBus("vz-gw-evidence").filter(e=>e.initiative===selected.name&&/decision/i.test(e.item)).slice(0,3);
+    const allDeliverables=AC_PHASES.reduce((a,p)=>a+p.deliverables.length,0);
+    const doneDeliverables=AC_PHASES.reduce((a,p,idx)=>a+(idx<selected.phaseIndex?p.deliverables.length:idx===selected.phaseIndex?selected.phaseArtifactsDone:0),0);
+    return <div style={{display:"grid",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Sprint - "+pmo.sprint.name)}
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:7}}>{pmo.sprint.dates} · {pmo.sprint.goal}</div>
+          <Bar value={Math.round((pmo.sprint.done/pmo.sprint.committed)*100)} color={AI_GOLD}/>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:6}}>{pmo.sprint.done} of {pmo.sprint.committed} points done</div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Budget tracking")}
+          <div style={{fontSize:18,fontWeight:900,fontFamily:F.m,color:budgetPct>85?T.red:budgetPct>65?T.amber:T.green,marginBottom:6}}>{selected.spent} <span style={{fontSize:11,color:T.ink3,fontWeight:700}}>of {selected.budget}</span></div>
+          <Bar value={budgetPct} color={budgetPct>85?T.red:AI_GOLD}/>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>{budgetPct}% consumed · {phaseProgress(selected)}% of lifecycle complete</div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Deliverables")}
+          <div style={{fontSize:18,fontWeight:900,fontFamily:F.m,color:T.blue,marginBottom:6}}>{doneDeliverables} <span style={{fontSize:11,color:T.ink3,fontWeight:700}}>of {allDeliverables} artifacts</span></div>
+          <Bar value={Math.round((doneDeliverables/allDeliverables)*100)} color={T.blue}/>
+          <button onClick={()=>setInitTab("journey")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open the Journey →</button>
+        </Card>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Timeline & milestones")}
+          <div style={{display:"grid",gap:8}}>
+            {pmo.milestones.map(m=><div key={m.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",minWidth:0}}><span style={{width:7,height:7,borderRadius:"50%",background:msCol(m.status),flexShrink:0}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{m.name}</span></div>
+              <div style={{display:"flex",gap:7,alignItems:"center",flexShrink:0}}><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{m.due}</span><Tag label={m.status} color={msCol(m.status)} bg={msCol(m.status)+"14"}/></div>
+            </div>)}
+          </div>
+          <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,marginTop:10}}>Timeline {selected.timeline} · phase {selected.phaseIndex+1}/{AC_PHASES.length} · {phaseProgress(selected)}% complete</div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Tasks - current phase")}
+          <div style={{display:"grid",gap:7}}>
+            {AC_PHASES[selected.phaseIndex]?.deliverables.map((d,ai)=>{
+              const st=artifactStatus(selected,selected.phaseIndex,ai);
+              const c=st==="Complete"?T.green:st==="Blocked"?T.red:T.amber;
+              return <div key={d} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{d}</span>
+                <div style={{display:"flex",gap:7,alignItems:"center"}}><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{AC_PHASES[selected.phaseIndex].raci.responsible}</span><Tag label={st} color={c} bg={c+"14"}/></div>
+              </div>;
+            })}
+          </div>
+        </Card>
+      </div>
+      <Card style={{padding:16}}>
+        {secH("RAID log")}
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead><tr>{["Type","Item","Owner","Status"].map(h=><th key={h} style={{textAlign:"left",padding:"7px 10px",color:T.ink4,fontSize:8.5,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+          <tbody>{pmo.raid.map((r,i)=>{
+            const c=r.kind==="Risk"?T.red:r.kind==="Issue"?T.amber:r.kind==="Dependency"?T.blue:T.teal;
+            return <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
+              <td style={{padding:"8px 10px"}}><Tag label={r.kind} color={c} bg={c+"14"}/></td>
+              <td style={{padding:"8px 10px",color:T.ink2,fontFamily:F.b}}>{r.item}</td>
+              <td style={{padding:"8px 10px",color:T.ink3,fontFamily:F.b}}>{r.owner}</td>
+              <td style={{padding:"8px 10px",color:/block|open/i.test(r.status)?T.red:T.ink3,fontFamily:F.b}}>{r.status}</td>
+            </tr>;})}
+          </tbody>
+        </table></div>
+        <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risks live in the Risk Center →</button>
+      </Card>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Decision log")}
+          <div style={{display:"grid",gap:9}}>
+            {pmo.decisions.map((d,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
+              <strong style={{color:T.ink}}>{d.decision}</strong><br/>
+              <span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{d.by} · {d.date}</span> · {d.rationale}
+            </div>)}
+            {govDecisions.map((d,i)=><div key={"g"+i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
+              <strong style={{color:T.ink}}>{d.item}</strong><br/>
+              <span style={{color:T.ink4,fontFamily:F.m,fontSize:8.5}}>{d.owner} · {d.time}</span>
+            </div>)}
+          </div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Resource allocation")}
+          {pmo.resources.map(r=><div key={r.role} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role}</div></div>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Meetings")}
+          {pmo.meetings.map(m=><div key={m.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{m.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{m.cadence}</div></div>
+            <span style={{fontSize:10,fontFamily:F.m,color:T.ink2}}>{m.next}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Change requests")}
+          {pmo.changeRequests.length===0&&<div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>No open change requests.</div>}
+          {pmo.changeRequests.map(cr=><div key={cr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{minWidth:0}}><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{cr.id} · {cr.title}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{cr.impact}</div></div>
+            <Tag label={cr.status} color={/approved/i.test(cr.status)?T.green:T.amber} bg={(/approved/i.test(cr.status)?T.green:T.amber)+"14"}/>
+          </div>)}
+          <button onClick={wsBriefing} style={{marginTop:10,width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"8px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Generate executive report ↓</button>
+        </Card>
+      </div>
+    </div>;
+  };
+
   /* ── AI Portfolio Command Center: portfolio rail | selected initiative | intelligence rail ── */
   const Initiatives=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"minmax(220px,1fr) minmax(0,2.1fr) minmax(220px,1fr)",gap:14,alignItems:"start"}}>
@@ -1304,9 +1582,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <div style={{minWidth:0}}>
         {createOpen&&renderCreateForm()}
         {renderExecHeader()}
-        <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
+        <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
         {wsTab==="overview"&&<Overview/>}
         {wsTab==="journey"&&<InitJourney/>}
+        {wsTab==="pmo"&&renderPmo()}
         {wsTab==="value"&&<InitInsights/>}
         {wsTab==="governance"&&<div>{renderRiskSummary()}<div style={{marginTop:12}}><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/></div><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
         {wsTab==="monitoring"&&<div><InitEvidenceTimeline/><div style={{marginTop:12}}><PilotExecution/></div></div>}

@@ -11,6 +11,7 @@ import type {
   ACFeedbackScores,
   ACGuardrailGroup,
   ACInitiativeRecord,
+  ACPmoRecord,
   ACPhaseTemplate,
   ACRoleAccess,
   GatewayLogEntry,
@@ -100,6 +101,11 @@ export const acInitiatives: ACInitiativeRecord[] = [
     guardrail: 82, adoption: 64, valueScore: 76,
     policies: ["Responsible GenAI Use", "Human Oversight Standard"], controls: ["CTRL-AI-014", "CTRL-SEC-022"], audits: ["AUD-Q2-09"],
     risks: ["Prompt injection", "Data leakage"], roi: "22%", savings: "$1.2M", revenue: "$0.6M", productivity: "18%", training: "68%", resistance: "Medium",
+    problem: "Customer resolution takes 11 minutes on average and 28% of cases need a second contact - cost and churn are climbing.",
+    vision: "Every customer conversation resolved in one contact, with AI drafting compliant responses agents approve in seconds.",
+    objective: "Cut average handle time 40% and second-contact rate below 12% by Q4 FY26 while meeting EU AI Act oversight duties.",
+    budget: "$2.1M", spent: "$1.3M", timeline: "Jan 2026 - Nov 2026",
+    successMetrics: ["AHT -40%", "Second-contact <12%", "CSAT +8pts", "HITL override <5%"],
     phaseIndex: 4, phaseArtifactsDone: 4, blockedBy: "CISO prompt-injection evidence due",
   },
   {
@@ -109,6 +115,11 @@ export const acInitiatives: ACInitiativeRecord[] = [
     guardrail: 74, adoption: 42, valueScore: 69,
     policies: ["High-Risk AI Policy", "Adverse Decision Review"], controls: ["CTRL-AI-001", "CTRL-GRC-044"], audits: ["AUD-EUAI-03"],
     risks: ["Adverse decision harm", "Explainability gap"], roi: "14%", savings: "$0.7M", revenue: "$1.1M", productivity: "11%", training: "54%", resistance: "High",
+    problem: "Manual credit reviews average 6 days, decline reasons are inconsistent, and adverse-decision appeals are rising.",
+    vision: "Consistent, explainable credit decisions in under 24 hours with human accountability on every adverse outcome.",
+    objective: "Approve 70% of applications same-day with zero unexplained adverse decisions, fully EU AI Act Art.6 conformant.",
+    budget: "$3.4M", spent: "$1.9M", timeline: "Oct 2025 - Dec 2026",
+    successMetrics: ["Same-day decisions 70%", "Appeal rate -30%", "Explainability 100%", "Zero regulatory findings"],
     phaseIndex: 6, phaseArtifactsDone: 3, blockedBy: "Human oversight design record awaiting approval",
   },
   {
@@ -118,6 +129,11 @@ export const acInitiatives: ACInitiativeRecord[] = [
     guardrail: 91, adoption: 79, valueScore: 88,
     policies: ["Automation Control Policy", "Audit Evidence Policy"], controls: ["CTRL-FIN-008", "CTRL-AUD-019"], audits: ["AUD-SOX-11"],
     risks: ["Incorrect journal suggestion", "Segregation of duties"], roi: "31%", savings: "$1.8M", revenue: "$0.1M", productivity: "26%", training: "82%", resistance: "Low",
+    problem: "Month-end close takes 9 working days; 60% of close effort is manual reconciliation and journal preparation.",
+    vision: "A five-day close where AI prepares reconciliations and journals and controllers focus on judgment calls.",
+    objective: "Close in 5 days by FY26 year-end with SOX-clean automation evidence and zero unreviewed AI journal postings.",
+    budget: "$1.6M", spent: "$1.1M", timeline: "Aug 2025 - Sep 2026",
+    successMetrics: ["Close 9d to 5d", "Manual recs -60%", "SOX exceptions 0", "Controller hours -35%"],
     phaseIndex: 10, phaseArtifactsDone: 3, blockedBy: null,
   },
   {
@@ -127,9 +143,132 @@ export const acInitiatives: ACInitiativeRecord[] = [
     guardrail: 67, adoption: 31, valueScore: 58,
     policies: ["Employee Data Use", "Fairness and Bias Standard"], controls: ["CTRL-PRV-012", "CTRL-RAI-006"], audits: ["AUD-PRV-02"],
     risks: ["Employee profiling", "Bias in opportunity matching"], roi: "8%", savings: "$0.2M", revenue: "$0", productivity: "7%", training: "39%", resistance: "Medium",
+    problem: "Internal mobility is at 9% and skills data is stale - roles are filled externally while capable employees are invisible.",
+    vision: "Every employee sees a fair, bias-tested path to their next role; every manager sees the skills they already have.",
+    objective: "Lift internal fill rate to 25% within 12 months with a fairness-assessed recommendation engine under CHRO oversight.",
+    budget: "$0.9M", spent: "$0.3M", timeline: "Mar 2026 - Mar 2027",
+    successMetrics: ["Internal fill 25%", "Fairness parity >0.95", "Profile coverage 90%", "Attrition -3pts"],
     phaseIndex: 4, phaseArtifactsDone: 2, blockedBy: "Fairness assessment workbook incomplete",
   },
 ];
+
+
+export const acPmo: Record<string, ACPmoRecord> = {
+  "ai-001": {
+    milestones: [
+      { name: "Governance evidence pack accepted", due: "Aug 08", status: "At Risk" },
+      { name: "Pilot cohort expansion (250 agents)", due: "Sep 05", status: "On Track" },
+      { name: "Scale-gate review", due: "Oct 17", status: "Not Started" },
+    ],
+    raid: [
+      { kind: "Risk", item: "Prompt injection via pasted customer content", owner: "CISO Office", status: "Treatment in progress" },
+      { kind: "Assumption", item: "Anthropic API latency stays under 800ms P95", owner: "Platform AI", status: "Holding" },
+      { kind: "Issue", item: "CISO prompt-injection evidence overdue", owner: "L. Haddad", status: "Open - blocking" },
+      { kind: "Dependency", item: "Contact-platform SSO upgrade (IT-2214)", owner: "CIO Office", status: "Due Aug 01" },
+    ],
+    decisions: [
+      { decision: "Approve expansion to billing queries", by: "A. Patel", date: "Jul 08", rationale: "Pilot CSAT +9pts, override rate 3.1%" },
+      { decision: "Reject autonomous send - human approval stays", by: "CISO", date: "Jun 20", rationale: "EU AI Act oversight duty" },
+    ],
+    resources: [
+      { role: "Product lead", name: "Priya Mehta", allocation: "100%" },
+      { role: "ML engineer", name: "Platform AI pod (3)", allocation: "80%" },
+      { role: "Compliance partner", name: "GRC - D. Osei", allocation: "40%" },
+    ],
+    meetings: [
+      { name: "Steering committee", cadence: "Monthly", next: "Aug 04" },
+      { name: "Delivery stand-up", cadence: "Daily", next: "Tomorrow 09:30" },
+      { name: "Risk & controls review", cadence: "Bi-weekly", next: "Jul 29" },
+    ],
+    changeRequests: [
+      { id: "CR-014", title: "Add refunds intent to scope", impact: "+$0.2M, +3 weeks", status: "Awaiting sponsor" },
+      { id: "CR-011", title: "Swap toxicity filter vendor", impact: "Cost neutral", status: "Approved" },
+    ],
+    sprint: { name: "Sprint 14", dates: "Jul 21 - Aug 01", goal: "Close governance evidence gaps; ship agent feedback loop", committed: 21, done: 9 },
+  },
+  "ai-002": {
+    milestones: [
+      { name: "Human-oversight design sign-off", due: "Jul 30", status: "At Risk" },
+      { name: "Parallel-run vs manual decisions", due: "Sep 12", status: "Not Started" },
+      { name: "Art.43 conformity assessment", due: "Nov 21", status: "Not Started" },
+    ],
+    raid: [
+      { kind: "Risk", item: "Adverse decision harm without explanation", owner: "CRO", status: "Control design" },
+      { kind: "Assumption", item: "Historic decisions are a lawful training base", owner: "Legal", status: "Under review" },
+      { kind: "Issue", item: "Oversight design record awaiting approval", owner: "O. Khan", status: "Open - blocking" },
+      { kind: "Dependency", item: "Fraud screen shares feature store", owner: "Risk Engineering", status: "Aligned" },
+    ],
+    decisions: [
+      { decision: "Dual-model challenger retired", by: "R. Torres", date: "Jun 27", rationale: "Champion meets fairness bar; cost -18%" },
+    ],
+    resources: [
+      { role: "Business owner", name: "Omar Khan", allocation: "60%" },
+      { role: "Risk engineering", name: "Squad Delta (4)", allocation: "100%" },
+      { role: "Legal counsel", name: "T. Brandt", allocation: "25%" },
+    ],
+    meetings: [
+      { name: "Credit risk board", cadence: "Monthly", next: "Aug 11" },
+      { name: "Model validation sync", cadence: "Weekly", next: "Jul 25" },
+    ],
+    changeRequests: [
+      { id: "CR-021", title: "Extend to SME lending", impact: "+$0.9M, new Annex III scope", status: "Deferred to FY27" },
+    ],
+    sprint: { name: "Sprint 9", dates: "Jul 14 - Jul 25", goal: "Oversight workflow build + reason-code library", committed: 18, done: 13 },
+  },
+  "ai-003": {
+    milestones: [
+      { name: "Optimization phase artifacts complete", due: "Aug 15", status: "On Track" },
+      { name: "FY26 close dry-run at 5 days", due: "Sep 26", status: "On Track" },
+      { name: "Scale decision - all entities", due: "Oct 10", status: "Not Started" },
+    ],
+    raid: [
+      { kind: "Risk", item: "Incorrect journal suggestion posts unreviewed", owner: "Controller", status: "Mitigated - dual approval" },
+      { kind: "Assumption", item: "ERP API rate limits hold at close peak", owner: "Enterprise Apps", status: "Validated" },
+      { kind: "Dependency", item: "SOX evidence automation (AUD-SOX-11)", owner: "Internal Audit", status: "On track" },
+    ],
+    decisions: [
+      { decision: "Scale to EMEA entities approved", by: "M. Reid", date: "Jul 02", rationale: "Close time -3.5 days in pilot; zero SOX exceptions" },
+    ],
+    resources: [
+      { role: "Finance owner", name: "Elena Rossi", allocation: "50%" },
+      { role: "Automation engineers", name: "Enterprise Apps (2)", allocation: "70%" },
+    ],
+    meetings: [
+      { name: "Close excellence council", cadence: "Monthly", next: "Aug 06" },
+    ],
+    changeRequests: [
+      { id: "CR-008", title: "Add intercompany matching", impact: "+$0.15M", status: "Approved" },
+    ],
+    sprint: { name: "Sprint 18", dates: "Jul 21 - Aug 01", goal: "Variance-analysis copilot to controller UAT", committed: 15, done: 11 },
+  },
+  "ai-004": {
+    milestones: [
+      { name: "Fairness assessment workbook complete", due: "Aug 01", status: "At Risk" },
+      { name: "Works-council consultation", due: "Aug 22", status: "On Track" },
+      { name: "Pilot - Engineering org", due: "Oct 03", status: "Not Started" },
+    ],
+    raid: [
+      { kind: "Risk", item: "Bias in opportunity matching", owner: "CDPO", status: "Assessment running" },
+      { kind: "Assumption", item: "Employees opt in at >60%", owner: "CHRO Office", status: "Survey pending" },
+      { kind: "Issue", item: "Fairness workbook incomplete", owner: "S. Marin", status: "Open - blocking" },
+      { kind: "Dependency", item: "HRIS skills taxonomy v2", owner: "People Systems", status: "Due Aug 15" },
+    ],
+    decisions: [
+      { decision: "No manager-visible ranking of employees", by: "N. Lynch", date: "Jun 12", rationale: "Profiling risk; recommendations only" },
+    ],
+    resources: [
+      { role: "People lead", name: "Hannah Lee", allocation: "80%" },
+      { role: "Data science", name: "DS pod (2)", allocation: "60%" },
+      { role: "Privacy counsel", name: "CDPO - M. Novak", allocation: "30%" },
+    ],
+    meetings: [
+      { name: "People-AI ethics board", cadence: "Monthly", next: "Aug 13" },
+      { name: "Delivery sync", cadence: "Weekly", next: "Jul 28" },
+    ],
+    changeRequests: [],
+    sprint: { name: "Sprint 5", dates: "Jul 14 - Jul 25", goal: "Complete fairness workbook; taxonomy mapping", committed: 12, done: 5 },
+  },
+};
 
 export const acGuardrails: ACGuardrailGroup[] = [
   { cat: "Strategic", items: ["Business objective linked", "Executive sponsor required", "Business value hypothesis", "Success metrics defined"] },
