@@ -448,6 +448,11 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   /* A left-nav click always returns the module to its root view, even when the
      module is already active (e.g. stepping out of an initiative workspace). */
   useEffect(()=>{if(navNonce){setInitTab("overview");setPhaseSel(null);setCreateOpen(false);}},[navNonce]);
+  /* One global state: initiative + phase + role. Switching role re-frames the
+     same initiative into that executive's perspective (CAIO opens the full
+     profile by default - it is the operating role). */
+  const [profileMode,setProfileMode]=useState(role==="caio");
+  useEffect(()=>{setProfileMode(role==="caio");},[role]);
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
   const [gwTab,setGwTab]=useState("overview");
@@ -1404,7 +1409,14 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:13}}>
         <span style={{width:8,height:8,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>
         <span style={{fontSize:11.5,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
-        <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginLeft:"auto"}}>Executive Advisor</span>
+        <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginLeft:"auto"}}>{
+          /* The advisor's persona follows the context being viewed. */
+          (!profileMode&&buildPerspective())?buildPerspective().persona
+          :wsTab==="value"?"Financial Advisor"
+          :wsTab==="governance"?"Governance Advisor"
+          :wsTab==="journey"||wsTab==="pmo"?"Delivery Advisor"
+          :wsTab==="monitoring"?"Auditor"
+          :"Executive Advisor"}</span>
       </div>
       {secHead("Executive brief")}
       <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected.{phaseSel!=null&&phaseSel!==selected.phaseIndex?` You are reviewing ${AC_PHASES[phaseSel]?.name} (${phaseSel<selected.phaseIndex?"complete":"not started"}).`:""} {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
@@ -1575,6 +1587,109 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     </div>;
   };
 
+  /* ── Role perspectives: the same initiative, a different executive lens.
+     Each perspective answers ONE question from live initiative data.
+     "Full Initiative Profile" expands the complete digital twin. ── */
+  const buildPerspective=()=>{
+    const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+    const iniRisks=[...riskRegister.filter(r=>r.initiativeId===selected.id)].sort((a,b)=>b.residual-a.residual);
+    const pmo=acPmo[selected.id];
+    const models=MODEL_REGISTRY.filter(m=>m.initiativeId===selected.id);
+    const totalExp=acInitiatives.reduce((a,i)=>a+money(i.expected),0);
+    const budgetPct=Math.min(100,Math.round((money(selected.spent)/(money(selected.budget)||1))*100));
+    const benefits=Math.round((money(selected.actual)/(money(selected.expected)||1))*100);
+    const P={
+      ceo:{question:"Should I worry?",persona:"Executive Advisor",
+        tiles:[["Overall health",wsHealth,wsHealth>=75?T.green:T.amber],["Business value",selected.expected,AI_GOLD],["ROI",selected.roi,T.green],["Budget",`${budgetPct}% used`,budgetPct>85?T.red:T.blue],["Delivery confidence",wsConfidence+"%",wsConfidence>=70?T.green:T.amber]],
+        sections:[
+          {title:"Executive summary",text:`${selected.objective||selected.name} ${selected.blockedBy?"Currently blocked: "+selected.blockedBy+".":"No blockers open."} Expected impact ${selected.expected}; ${selected.actual} realized.`},
+          {title:"Major blockers",rows:selected.blockedBy?[[selected.blockedBy,"Open"]]:[["None open","\u2713"]]},
+          {title:"Top risks",rows:iniRisks.slice(0,5).map(r=>[r.title,`${r.level} \u00b7 ${r.residual}/25`])},
+        ]},
+      cfo:{question:"Is this investment creating value?",persona:"Financial Advisor",
+        tiles:[["Investment",selected.budget||"\u2014",T.blue],["Spent",selected.spent||"\u2014",budgetPct>85?T.red:T.blue],["ROI",selected.roi,T.green],["Cost savings",selected.savings,T.green],["Revenue impact",selected.revenue,AI_GOLD]],
+        sections:[
+          {title:"Benefits realization",rows:[["Expected value",selected.expected],["Realized to date",`${selected.actual} (${benefits}%)`],["Budget variance",`${100-budgetPct}% headroom`],["Run rate",`~$${(money(selected.spent)/Math.max(1,selected.phaseIndex)).toFixed(2)}M per phase`],["Forecast accuracy",wsConfidence+"% confidence"],["Portfolio share",Math.round((money(selected.expected)/totalExp)*100)+"% of enterprise AI value"]]},
+          {title:"Financial risks",rows:iniRisks.slice(0,3).map(r=>[r.title,r.level])},
+        ]},
+      cio:{question:"Will this integrate and scale?",persona:"Technology Advisor",
+        tiles:[["Delivery timeline",selected.timeline||"\u2014",T.blue],["Platform readiness",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Operational health",wsHealth,wsHealth>=75?T.green:T.amber],["Models deployed",models.filter(m=>m.status==="In Production").length+"/"+models.length,T.teal]],
+        sections:[
+          {title:"Technology stack",rows:models.map(m=>[m.system,`${m.type} \u00b7 ${m.vendor}`])},
+          {title:"Dependencies & infrastructure",rows:(pmo?pmo.raid.filter(r=>r.kind==="Dependency"):[]).map(d=>[d.item,d.status]).concat([["Technical debt","Low - reviewed at each gate"],["Availability target","99.9% (gateway-fronted)"]])},
+        ]},
+      ciso:{question:"Can I trust this AI?",persona:"Security & Risk Advisor",
+        tiles:[["Risk score",wsRiskScore?wsRiskScore+"/25":"none",wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green],["Open risks",iniRisks.length,iniRisks.length?T.amber:T.green],["Controls",selected.controls.length,T.blue],["Security testing",models.filter(m=>m.biasTest).length+"/"+models.length+" tested",T.teal],["Kill switch",models.filter(m=>m.killSwitch).length+"/"+models.length,models.every(m=>m.killSwitch)?T.green:T.amber]],
+        sections:[
+          {title:"Threat exposure",rows:iniRisks.map(r=>[r.title,`${r.level} \u00b7 residual ${r.residual}/25 \u00b7 ${r.treatment.status}`])},
+          {title:"Mitigations & evidence",rows:[["Active controls",selected.controls.join(", ")||"pending"],["Evidence trail",wsEvidence+"% of lifecycle evidenced"],["Attack surface","Gateway-mediated; no direct model exposure"]]},
+        ]},
+      caio:{question:"Is this AI responsible and governed?",persona:"Governance Advisor",
+        tiles:[["Governance score",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Lifecycle phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Approvals pending",(pmo?1:0)+(selected.blockedBy?1:0),T.amber],["Evidence",wsEvidence+"%",wsEvidence>=70?T.green:T.amber]],
+        sections:[
+          {title:"Responsible AI posture",rows:[["AI policies",selected.policies.join(", ")],["Human oversight","HITL gates on all high-impact decisions"],["AIRA / AIRT","Open the Risk Center for assessments and treatments"]]},
+          {title:"Decision log",rows:(pmo?pmo.decisions:[]).map(d=>[d.decision,`${d.by} \u00b7 ${d.date}`])},
+        ]},
+      cdpo:{question:"Does this protect personal information?",persona:"Privacy Advisor",
+        tiles:[["DPIA",models.every(m=>m.aia)?"Complete":"In progress",models.every(m=>m.aia)?T.green:T.amber],["Privacy controls",selected.policies.length,T.blue],["Data provenance",models.filter(m=>m.dataProvenance).length+"/"+models.length,T.teal],["Privacy risks",iniRisks.filter(r=>/leak|profil|privacy|data/i.test(r.title)).length,T.amber]],
+        sections:[
+          {title:"Privacy posture",rows:[["GDPR basis","Legitimate interest + consent where required"],["PII handling","Masked at the gateway before model calls"],["Retention","7-year evidence retention; prompts 90 days"],["Cross-border","EU/US processing under adequacy safeguards"],["Data classification",selected.policies.join(", ")]]},
+          {title:"Privacy risks",rows:iniRisks.filter(r=>/leak|profil|privacy|data|bias/i.test(r.title)).map(r=>[r.title,r.level])},
+        ]},
+      cgo:{question:"Can this legally operate?",persona:"Legal & Compliance Advisor",
+        tiles:[["Regulatory scope",models[0]?.clause?.split("/")[0]||"EU AI Act",T.blue],["Legal reviews",selected.audits.length,T.teal],["Open obligations",(selected.blockedBy?1:0),(selected.blockedBy?T.amber:T.green)],["Vendor contracts",[...new Set(models.map(m=>m.vendor))].filter(v=>v!=="Internal").length,T.ink3]],
+        sections:[
+          {title:"Regulatory obligations",rows:models.map(m=>[m.bizName,m.clause])},
+          {title:"Contracts, IP & licensing",rows:[["Vendors",[...new Set(models.map(m=>m.vendor))].join(", ")],["Liability posture","Human accountability retained on all decisions"],["Policy compliance",selected.policies.join(", ")],["Open obligations",selected.blockedBy||"None"]]},
+        ]},
+      coo:{question:"Will this deliver successfully?",persona:"Delivery Advisor",
+        tiles:[["Phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Completion",phaseProgress(selected)+"%",T.teal],["Sprint",pmo?`${pmo.sprint.done}/${pmo.sprint.committed} pts`:"\u2014",AI_GOLD],["Milestones at risk",pmo?pmo.milestones.filter(m=>m.status==="At Risk").length:0,T.amber]],
+        sections:[
+          {title:"Milestones",rows:(pmo?pmo.milestones:[]).map(m=>[m.name,`${m.due} \u00b7 ${m.status}`])},
+          {title:"RAID highlights",rows:(pmo?pmo.raid.slice(0,4):[]).map(r=>[`${r.kind}: ${r.item}`,r.status])},
+        ]},
+      chro:{question:"Is adoption increasing?",persona:"Adoption Advisor",
+        tiles:[["Adoption",selected.adoption+"%",selected.adoption>=70?T.green:T.amber],["Training",selected.training,T.blue],["Resistance",selected.resistance,selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green],["Value score",selected.valueScore+"%",AI_GOLD]],
+        sections:[
+          {title:"Workforce signals",rows:[["Users in scope",selected.unit+" teams"],["Usage trend",selected.adoption>=60?"Growing week over week":"Below target - enablement needed"],["Feedback",`Stakeholder composite ${feedbackAvg(acFeedback[selected.id]||DEFAULT_FEEDBACK)}/100`],["Improvement backlog",pmo&&pmo.changeRequests.length?pmo.changeRequests.map(c=>c.title).join("; "):"None open"]]},
+          {title:"Business KPIs",rows:(selected.successMetrics||[]).map(m=>[m,"tracked"])},
+        ]},
+    };
+    return P[role];
+  };
+  const renderPerspective=()=>{
+    const p=buildPerspective();
+    if(!p)return null;
+    return <div style={{animation:"up .25s ease"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,margin:"2px 0 14px",flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:RC(role),textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:3}}>{(ROLES[role]||ROLES.caio).label} perspective</div>
+          <div style={{fontSize:16,fontWeight:800,fontFamily:F.h,color:T.ink}}>{p.question}</div>
+        </div>
+        <button onClick={()=>setProfileMode(true)} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"8px 14px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Full Initiative Profile \u2192</button>
+      </div>
+      <div style={{display:"flex",gap:24,flexWrap:"wrap",marginBottom:18}}>
+        {p.tiles.map(([l,v,c])=><div key={l}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c,lineHeight:1.1}}>{v}</div>
+        </div>)}
+      </div>
+      <div style={{display:"grid",gap:18}}>
+        {p.sections.map(sec=><div key={sec.title}>
+          <h3 style={{fontSize:13,color:T.ink,margin:"0 0 8px",fontFamily:F.h,fontWeight:800}}>{sec.title}</h3>
+          {sec.text&&<p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{sec.text}</p>}
+          {sec.rows&&<div style={{display:"grid",gap:6}}>
+            {sec.rows.length===0&&<div style={{fontSize:10.5,color:T.ink4,fontFamily:F.b}}>Nothing recorded yet.</div>}
+            {sec.rows.map(([a,b],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",gap:12,borderBottom:`1px solid ${T.border}`,padding:"6px 0"}}>
+              <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{a}</span>
+              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:700,textAlign:"right",flexShrink:0}}>{b}</span>
+            </div>)}
+          </div>}
+        </div>)}
+      </div>
+    </div>;
+  };
+
   /* ── AI Portfolio Command Center: portfolio rail | selected initiative | intelligence rail ── */
   const Initiatives=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"minmax(220px,1fr) minmax(0,2.1fr) minmax(220px,1fr)",gap:14,alignItems:"start"}}>
@@ -1582,13 +1697,16 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <div style={{minWidth:0}}>
         {createOpen&&renderCreateForm()}
         {renderExecHeader()}
-        <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
-        {wsTab==="overview"&&<Overview/>}
-        {wsTab==="journey"&&<InitJourney/>}
-        {wsTab==="pmo"&&renderPmo()}
-        {wsTab==="value"&&<InitInsights/>}
-        {wsTab==="governance"&&<div>{renderRiskSummary()}<div style={{marginTop:12}}><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/></div><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
-        {wsTab==="monitoring"&&<div><InitEvidenceTimeline/><div style={{marginTop:12}}><PilotExecution/></div></div>}
+        {!profileMode&&buildPerspective()?renderPerspective():<>
+          {buildPerspective()&&<button onClick={()=>setProfileMode(false)} style={{background:"transparent",border:"none",padding:0,marginBottom:8,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>← {(ROLES[role]||ROLES.caio).label} perspective</button>}
+          <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
+          {wsTab==="overview"&&<Overview/>}
+          {wsTab==="journey"&&<InitJourney/>}
+          {wsTab==="pmo"&&renderPmo()}
+          {wsTab==="value"&&<InitInsights/>}
+          {wsTab==="governance"&&<div>{renderRiskSummary()}<div style={{marginTop:12}}><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/></div><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
+          {wsTab==="monitoring"&&<div><InitEvidenceTimeline/><div style={{marginTop:12}}><PilotExecution/></div></div>}
+        </>}
       </div>
       {renderIntelRail()}
     </div>

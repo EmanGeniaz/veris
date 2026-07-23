@@ -88,7 +88,7 @@ export const AC_RBAC: Record<string, ACRoleAccess> = {
   caio: { lens: "Governance", modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Implementation, controls, evidence and lifecycle gates" },
   cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
   cdpo: { lens: "Privacy",    modules: ["dashboard", "initiatives", "governance", "evidence"], focus: "DPIAs, data classification and privacy evidence" },
-  cgo:  { lens: "Compliance", modules: ["dashboard", "governance", "evidence", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
+  cgo:  { lens: "Compliance", modules: ["dashboard", "initiatives", "governance", "evidence", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
   employee: { lens: "Operations", modules: ["dashboard"], focus: "Your governed AI activity" },
   manager:  { lens: "Operations", modules: ["dashboard"], focus: "Team adoption and governed usage" },
 };

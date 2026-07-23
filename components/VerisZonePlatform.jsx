@@ -516,7 +516,9 @@ export default function VerisZone() {
     showToast._t=setTimeout(()=>setToast(t=>({...t,vis:false})),3000);
   },[]);
 
-  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":"home");setHitlCount((HITL[r]||[]).length);};
+  /* Switching role inside AI Central keeps the initiative open - only the
+     executive perspective changes. Elsewhere it opens that role's home. */
+  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
     setTab("home");
@@ -613,16 +615,15 @@ export default function VerisZone() {
           <BrandLogo theme={theme} width={120}/>
         </div>}
         {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
-          {sessionMode==="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Back to the ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to {R.label} Workspace</button>}
-          {sessionMode==="demo"&&tab!=="aicentral"&&Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
+          {/* Role switching stays available inside AI Central: the initiative
+              is constant, only the executive perspective changes. */}
+          {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
           {sessionMode!=="demo"&&tab==="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>&#8592; {R.label} Workspace</button>}
           {sessionMode!=="demo"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab(roleHome)} title={`Return to ${R.label} workspace`} style={{background:rc+"18",border:`1px solid ${rc}45`,borderRadius:8,padding:"5px 14px",color:rc,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{R.label} Workspace</button>}
         </div>}
         {isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s3:T.bg,borderRadius:7,padding:3,border:`1px solid ${T.border}`,flex:1,overflowX:"auto"}}>
-          {sessionMode==="demo"&&tab==="aicentral"
-            ?<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:rc+"20",border:`1px solid ${rc}40`,borderRadius:5,padding:"3px 6px",color:rc,fontSize:9,fontWeight:800,fontFamily:F.b}}>&#8592; {R.label} Workspace</button>
-            :sessionMode==="demo"
-            ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
+          {sessionMode==="demo"
+            ?Object.values(ROLES).map(r2=>{const active=role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
             :<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
