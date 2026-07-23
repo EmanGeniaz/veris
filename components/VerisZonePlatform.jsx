@@ -162,13 +162,13 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {items.map(renderNavButton)}
           </div>;
         })}
-        {acOnly&&isAICentral&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
+        {acOnly&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
         </div>}
-        {acOnly&&isAICentral&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
+        {acOnly&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
           const isA=aiCentralView===item.id;
-          return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setAiCentralView(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+          return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setAiCentralView(item.id);setTab("aicentral");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
@@ -621,6 +621,7 @@ export default function VerisZone() {
             ?Object.values(ROLES).map(r2=>{const active=tab!=="aicentral"&&role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{flex:1,background:active?RC(r2.id)+"20":"transparent",border:active?`1px solid ${RC(r2.id)}40`:"1px solid transparent",borderRadius:5,padding:"3px 6px",color:active?RC(r2.id):T.ink4,fontSize:9,fontWeight:700,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})
             :<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
+        {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setTheme(theme==="dark"?"light":"dark")} title="Toggle dark and light mode" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:isMobile?"4px 10px":"6px 13px",color:T.ink2,fontSize:isMobile?10:11,fontWeight:800,fontFamily:F.b,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.05)":"none"}}>{theme==="dark"?"Light":"Dark"}</button>
           {hitlCount>0&&<button onClick={()=>setTab("hitl")} style={{display:"flex",alignItems:"center",gap:6,background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:20,padding:"4px 10px"}}>
@@ -656,7 +657,7 @@ export default function VerisZone() {
         {tab==="aiusage"   &&<PageAIUsage   role={role} sessionMode={sessionMode}/>}
       </div>
     </div>
-    {sessionMode!=="aicentral"&&<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
+    {<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
   </div>;
 }
 
