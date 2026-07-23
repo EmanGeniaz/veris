@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
   await test('Create AI Initiative', async () => {
     await page.locator('nav button', { hasText: 'AI Central' }).first().click(); await page.waitForTimeout(1000);
     await page.getByRole('button', { name: 'AI Initiatives', exact: true }).first().click(); await page.waitForTimeout(800);
-    await page.locator('button:has-text("Create AI Initiative")').first().click(); await page.waitForTimeout(600);
+    await page.locator('button:has-text("New AI Initiative")').first().click(); await page.waitForTimeout(600);
     const labels=[['Initiative name','Feature Test Initiative'],['Business unit','QA Lab'],['Business owner','Test Owner'],['Executive sponsor','Test Sponsor'],['Expected value','$1.0M']];
     for(const [l,v] of labels){ await page.locator(`label:has-text("${l}") input`).first().fill(v); }
     await page.locator('button:has-text("Create")').last().click(); await page.waitForTimeout(1100);
