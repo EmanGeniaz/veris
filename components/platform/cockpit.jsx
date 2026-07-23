@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { acInitiatives, acFeedback, riskRegister, EXEC_DECISIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
+import { acInitiatives, acFeedback, riskRegister, EXEC_DECISIONS, EXEC_RECENT_CHANGES, EXEC_BRIEF } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } from "./core";
 
@@ -10,7 +10,11 @@ import { T, F, AI_GOLD, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } f
    attention, what decision do I make, where do I go next. Every click
    lands on the module that owns the metric. One viewport, no scroll-
    report. */
-export function CeoDashboard({setTab,setAiCentralView,showToast}){
+/* The one executive dashboard. Layout never changes between roles -
+   only the data does. Composed from the canonical components:
+   ExecutiveBrief, DecisionPanel, EnterpriseSnapshot, AttentionRequired,
+   RecentActivity, Veris Intelligence narrative. */
+export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast}){
   const [decided,setDecided]=useState({});
   const goAC=v=>{setAiCentralView&&setAiCentralView(v);setTab("aicentral");};
   const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
@@ -20,12 +24,15 @@ export function CeoDashboard({setTab,setAiCentralView,showToast}){
   const risksOpen=riskRegister.filter(r=>r.status!=="Closed").length;
   const critHigh=riskRegister.filter(r=>r.level==="Critical"||r.level==="High").length;
   const gates=acInitiatives.filter(i=>["Scale","Retire"].includes(feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)));
-  const decisions=(EXEC_DECISIONS.ceo||[]).length+gates.length;
+  const roleDecisions=EXEC_DECISIONS[role]||EXEC_DECISIONS.ceo||[];
+  const decisions=roleDecisions.length+gates.length;
   const compliance=84;
   const maturity=78;
   const blocked=acInitiatives.find(i=>i.blockedBy);
   const scaleReady=gates.filter(i=>feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)==="Scale");
+  const roleBrief=EXEC_BRIEF[role]||EXEC_BRIEF.ceo;
   const narrative=[
+    roleBrief.headline,
     `Enterprise AI maturity is ${maturity}/100 with $${realized.toFixed(1)}M of $${expected.toFixed(1)}M value realized.`,
     scaleReady.length?`${scaleReady.length} initiative${scaleReady.length>1?"s are":" is"} ready to scale.`:null,
     `${decisions} decision${decisions===1?"":"s"} are waiting on you.`,
@@ -47,13 +54,15 @@ export function CeoDashboard({setTab,setAiCentralView,showToast}){
     ["Enterprise risk",`${critHigh} high+`,"of "+risksOpen+" open",T.red,()=>setTab("riskcenter")],
     ["Active programs",acInitiatives.length,"in lifecycle",T.violet,()=>goAC("initiatives")],
   ];
+  const blockedIni=acInitiatives.filter(i=>i.blockedBy).sort((a,b)=>(b.risk==="Critical")-(a.risk==="Critical"))[0];
+  const lowAdopt=[...acInitiatives].sort((a,b)=>a.adoption-b.adoption)[0];
   const attention=[
-    {name:"Credit Decision Assurance",note:"Board approval required",c:T.red,go:()=>goAC("initiatives")},
-    {name:"Finance Close Automation",note:"Ready to scale",c:T.green,go:()=>goAC("initiatives")},
-    {name:"Workforce Skills Navigator",note:"Low adoption - 31%",c:T.amber,go:()=>goAC("initiatives")},
-  ];
+    blockedIni&&{name:blockedIni.name,note:"Blocked: "+blockedIni.blockedBy.slice(0,32),c:T.red,go:()=>goAC("initiatives")},
+    scaleReady[0]&&{name:scaleReady[0].name,note:"Ready to scale",c:T.green,go:()=>goAC("initiatives")},
+    lowAdopt&&{name:lowAdopt.name,note:`Low adoption - ${lowAdopt.adoption}%`,c:T.amber,go:()=>goAC("initiatives")},
+  ].filter(Boolean).slice(0,3);
   const activity=[
-    ...(EXEC_RECENT_CHANGES.ceo||[]),
+    ...(EXEC_RECENT_CHANGES[role]||EXEC_RECENT_CHANGES.ceo||[]),
     {what:"CISO submitted prompt-injection evidence pack",initiative:"Customer Resolution Copilot",when:"2 days ago",kind:"evidence"},
     {what:"Q2 board report generated",initiative:"Portfolio",when:"3 days ago",kind:"decision"},
   ].slice(0,5);
@@ -63,7 +72,7 @@ export function CeoDashboard({setTab,setAiCentralView,showToast}){
     const st=decided[idx];
     const record=(verdict)=>{
       setDecided(prev=>({...prev,[idx]:verdict}));
-      pushBus("vz-gw-evidence",{item:`CEO decision: ${verdict} - ${d.title}`,initiative:d.title,scope:"Enterprise",control:"Executive decision record",risk:d.risk,owner:"CEO",status:"Complete",approval:verdict,version:"v1",time:"Just now"});
+      pushBus("vz-gw-evidence",{item:`CEO decision: ${verdict} - ${d.title}`,initiative:d.title,scope:"Enterprise",control:"Executive decision record",risk:d.risk,owner:(ROLES[role]||ROLES.ceo).label,status:"Complete",approval:verdict,version:"v1",time:"Just now"});
       showToast&&showToast(`Decision recorded: ${verdict} - audit evidence minted`);
     };
     return <Card key={d.id} style={{padding:"16px 18px",border:`1px solid ${st?T.green+"45":AI_GOLD+"35"}`}}>
@@ -90,7 +99,7 @@ export function CeoDashboard({setTab,setAiCentralView,showToast}){
     <Card style={{padding:"22px 24px",border:`1px solid ${AI_GOLD}30`,background:`linear-gradient(130deg,${T.s2},${T.s1})`}}>
       <div style={{display:"flex",justifyContent:"space-between",gap:18,flexWrap:"wrap",alignItems:"flex-start"}}>
         <div style={{minWidth:260}}>
-          <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:0}}>{greet}, {ROLES.ceo.name.split(" ")[0]}</h1>
+          <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:0}}>{greet}, {(ROLES[role]||ROLES.ceo).name.split(" ")[0]}</h1>
           <div style={{fontSize:12,color:health>=75?T.green:T.amber,fontFamily:F.b,fontWeight:800,marginTop:5}}>Enterprise AI is {health>=75?"healthy":"holding - two items need you"}.</div>
         </div>
         <div style={{display:"flex",gap:9,flexWrap:"wrap"}}>
@@ -111,7 +120,7 @@ export function CeoDashboard({setTab,setAiCentralView,showToast}){
     <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.5fr) minmax(0,1fr)",gap:16,alignItems:"start"}}>
       <div style={{display:"grid",gap:12}}>
         <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Executive decisions</div>
-        {(EXEC_DECISIONS.ceo||[]).map(decideCard)}
+        {roleDecisions.map(decideCard)}
         {gates.map((i,gi)=>{
           const rec=feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK);
           return decideCard({id:"gate-"+i.id,title:`${rec} ${i.name}`,risk:i.risk,conf:82,time:"Gate open",clause:`Lifecycle evidence through phase ${i.phaseIndex+1}`,reasoning:`${i.actual} realized of ${i.expected} expected · adoption ${i.adoption}%`,action:`Feedback engine recommends ${rec}`,owner:i.sponsor},"g"+gi);
