@@ -300,12 +300,17 @@ export const EMPLOYEE_NAV_SECTIONS = [
   {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
 ];
 
+/* Mode 1 - Enterprise AI Central: portfolio-wide command views only.
+   Mode 2 - the AI Initiative Workspace - opens from any initiative. */
 export const AI_CENTRAL_NAV = [
-  {id:"dashboard", label:"Dashboard", sub:"Executive intelligence"},
-  {id:"initiatives", label:"AI Initiatives", sub:"Lifecycle and delivery"},
+  {id:"dashboard", label:"Portfolio Overview", sub:"Enterprise command center"},
+  {id:"initiatives", label:"AI Initiatives", sub:"Initiative workspaces"},
+  {id:"pmo", label:"AI PMO", sub:"Portfolio delivery office"},
+  {id:"models", label:"AI Models", sub:"Enterprise model registry"},
   {id:"governance", label:"AI Governance", sub:"Controls and compliance"},
   {id:"evidence", label:"Trust & Evidence", sub:"Enterprise evidence"},
-  {id:"portfolio", label:"Portfolio", sub:"Models, maturity, use cases"},
+  {id:"approvals", label:"Approvals", sub:"Executive decision queue"},
+  {id:"portfolio", label:"Portfolio", sub:"Units, maturity, use cases"},
   {id:"gateway", label:"AI Gateway", sub:"Enterprise control plane"},
   {id:"admin", label:"Administration", sub:"Providers, routing, policies"},
   {id:"academy", label:"Governance Academy", sub:"Readiness and learning"},
@@ -313,7 +318,7 @@ export const AI_CENTRAL_NAV = [
 
 /* Pre-consolidation view ids still reachable via old URLs/hashes */
 export const AC_LEGACY_VIEWS = {
-  registry:"initiatives", pilot:"initiatives", detail:"initiatives", lifecycle:"initiatives",
+  registry:"models", pilot:"initiatives", detail:"initiatives", lifecycle:"initiatives",
   dna:"initiatives", scalegate:"initiatives",
   guardrails:"governance", controlmatrix:"governance", riskdrift:"governance", spine:"governance",
   cxo:"dashboard", value:"dashboard", maturitymap:"dashboard",

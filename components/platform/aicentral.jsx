@@ -523,7 +523,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
      Intelligence, and the selected initiative is the page's visual focus. */
   const Header=()=><div style={{margin:"4px 0 20px"}}>
     <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
-    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b}}>{activeModule==="initiatives"?"Enterprise AI Portfolio Workspace":access.focus}</p>
+    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b}}>{activeModule==="initiatives"?"AI Initiative Workspace - the digital twin of one initiative":activeModule==="dashboard"?"Enterprise AI Command Center - portfolio-wide visibility":activeModule==="pmo"?"Portfolio Delivery Office - delivery across every initiative":access.focus}</p>
   </div>;
 
   /* ── Dashboard ─────────────────────────────────────────────── */
@@ -763,6 +763,15 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>
       {selected.blockedBy&&<div style={{background:T.redL,border:`1px solid ${T.red}35`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b,marginTop:12}}><strong style={{color:T.red}}>Blocked:</strong> {selected.blockedBy}</div>}
       <button onClick={()=>{if(selected.blockedBy)setInitTab("journey");else setInitTab("journey");}} style={{marginTop:12,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"9px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Next action: {wsNextAction} →</button>
+    </div>
+    <div>
+      <h3 style={{fontSize:13,color:T.ink,margin:"0 0 10px",fontFamily:F.h,fontWeight:800}}>Initiative team</h3>
+      <div style={{display:"flex",gap:22,flexWrap:"wrap",marginBottom:4}}>
+        {[["Executive sponsor",selected.sponsor],["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["AI champion",selected.champion],["CXO sponsors",selected.cxo]].map(([l,v])=><div key={l}>
+          <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
+          <div style={{fontSize:11.5,color:T.ink,fontFamily:F.b,fontWeight:600}}>{v}</div>
+        </div>)}
+      </div>
     </div>
     <div>
       <h3 style={{fontSize:13,color:T.ink,margin:"0 0 10px",fontFamily:F.h,fontWeight:800}}>Financial impact</h3>
@@ -1690,6 +1699,81 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     </div>;
   };
 
+  /* ── Enterprise AI PMO: the Portfolio Delivery Office. Enterprise-wide
+     delivery visibility only - execution stays inside each initiative. ── */
+  const renderEnterprisePmo=()=>{
+    const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
+    const totBudget=acInitiatives.reduce((a,i)=>a+money(i.budget),0);
+    const totSpent=acInitiatives.reduce((a,i)=>a+money(i.spent),0);
+    const allRaid=acInitiatives.flatMap(i=>(acPmo[i.id]?.raid||[]).map(r=>({...r,ini:i})));
+    const deps=allRaid.filter(r=>r.kind==="Dependency");
+    const openIssues=allRaid.filter(r=>r.kind==="Issue"&&/open/i.test(r.status));
+    const atRisk=acInitiatives.filter(i=>(acPmo[i.id]?.milestones||[]).some(m=>m.status==="At Risk"));
+    const resources=acInitiatives.flatMap(i=>(acPmo[i.id]?.resources||[]).map(r=>({...r,ini:i.name})));
+    const secH=t=><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px",fontFamily:F.h}}>{t}</h3>;
+    return <div style={{display:"grid",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10}}>
+        {[["Initiatives in delivery",acInitiatives.length,T.blue],["Milestones at risk",atRisk.length,atRisk.length?T.red:T.green],["Open blocking issues",openIssues.length,openIssues.length?T.amber:T.green],["Portfolio budget",`$${totSpent.toFixed(1)}M / $${totBudget.toFixed(1)}M`,AI_GOLD]].map(([l,v,c])=><Card key={l} style={{padding:"13px 14px"}}>
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{l}</div>
+          <div style={{fontSize:20,fontWeight:800,fontFamily:F.m,color:c}}>{v}</div>
+        </Card>)}
+      </div>
+      <Card style={{padding:16}}>
+        {secH("Delivery health & portfolio timeline")}
+        <div style={{display:"grid",gap:9}}>
+          {acInitiatives.map(i=>{
+            const pmo=acPmo[i.id];
+            const riskMs=(pmo?.milestones||[]).filter(m=>m.status==="At Risk").length;
+            return <button key={i.id} onClick={()=>openInitiative(i.id,"pmo")} style={{display:"grid",gridTemplateColumns:"1.3fr 2fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${riskMs?T.amber+"45":T.border}`,borderRadius:9,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.name}</div>
+                <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,marginTop:2}}>{i.timeline} \u00b7 {pmo?pmo.sprint.name:"no sprint"}</div>
+              </div>
+              <div><Bar value={phaseProgress(i)} color={i.blockedBy?T.amber:T.green}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:4}}>Phase {i.phaseIndex+1}/{AC_PHASES.length} \u00b7 {phaseProgress(i)}% \u00b7 {money(i.spent).toFixed(1)} of {money(i.budget).toFixed(1)}M</div></div>
+              {riskMs?<Tag label={`${riskMs} at risk`} color={T.amber} bg={T.amberL}/>:<Tag label="On track" color={T.green} bg={T.greenL}/>}
+              <span style={{fontSize:10,fontWeight:900,color:AI_GOLD,fontFamily:F.b}}>Open PMO \u2192</span>
+            </button>;
+          })}
+        </div>
+      </Card>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:12}}>
+        <Card style={{padding:16}}>
+          {secH("Cross-initiative dependencies")}
+          <div style={{display:"grid",gap:8}}>
+            {deps.map((d,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
+              <div style={{minWidth:0}}><div style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{d.item}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{d.ini.name} \u00b7 {d.owner}</div></div>
+              <span style={{fontSize:9.5,color:/due|pending/i.test(d.status)?T.amber:T.green,fontFamily:F.b,fontWeight:800,flexShrink:0}}>{d.status}</span>
+            </div>)}
+          </div>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Portfolio RAID")}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+            {["Risk","Assumption","Issue","Dependency"].map(k=>{
+              const n=allRaid.filter(r=>r.kind===k).length;
+              const c=k==="Risk"?T.red:k==="Issue"?T.amber:k==="Dependency"?T.blue:T.teal;
+              return <span key={k} style={{background:c+"14",border:`1px solid ${c}35`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:c}}>{k} {n}</span>;
+            })}
+          </div>
+          {openIssues.map((r,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:5}}><strong style={{color:T.amber}}>{r.ini.name}:</strong> {r.item}</div>)}
+          <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginTop:6,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risks live in the Risk Center \u2192</button>
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Capacity & resources")}
+          {resources.slice(0,7).map((r,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role} \u00b7 {r.ini}</div></div>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:16}}>
+          {secH("Executive reporting")}
+          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>Portfolio packs, value reporting and audit-ready exports are generated in Reports.</p>
+          <button onClick={()=>setTab&&setTab("reports")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"8px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Reports \u2192</button>
+        </Card>
+      </div>
+    </div>;
+  };
+
   /* ── AI Portfolio Command Center: portfolio rail | selected initiative | intelligence rail ── */
   const Initiatives=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"minmax(220px,1fr) minmax(0,2.1fr) minmax(220px,1fr)",gap:14,alignItems:"start"}}>
@@ -1834,9 +1918,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   </div>;
   const [pfTab,setPfTab]=useState("units");
   const Portfolio=()=><div>
-    <SubTabs tabs={[["units","Business Units"],["registry","Model Registry"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
+    <SubTabs tabs={[["units","Business Units"],["maturity","Governance Maturity"],["usecases","Use Case Pipeline"]]} active={pfTab} onChange={setPfTab}/>
     {pfTab==="units"&&<PortfolioUnits setView={setView}/>}
-    {pfTab==="registry"&&<PageModelRegistry setTab={setTab} openInitiative={openInitiative}/>}
     {pfTab==="maturity"&&<PageMaturityRadar/>}
     {pfTab==="usecases"&&<PageUseCases/>}
   </div>;
@@ -1915,6 +1998,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     <Header/>
     {activeModule==="dashboard"&&<Dashboard/>}
     {activeModule==="initiatives"&&<Initiatives/>}
+    {activeModule==="pmo"&&renderEnterprisePmo()}
+    {activeModule==="models"&&<PageModelRegistry setTab={setTab} openInitiative={openInitiative}/>}
     {activeModule==="governance"&&<Governance/>}
     {activeModule==="evidence"&&<EvidenceModule/>}
     {activeModule==="portfolio"&&<Portfolio/>}

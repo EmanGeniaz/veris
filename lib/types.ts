@@ -3,6 +3,9 @@
 export type ACModuleId =
   | "dashboard"
   | "initiatives"
+  | "pmo"
+  | "models"
+  | "approvals"
   | "portfolio"
   | "governance"
   | "evidence"

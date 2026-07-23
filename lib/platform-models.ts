@@ -80,13 +80,13 @@ export const AC_PHASES: ACPhaseTemplate[] = [
 /* Role-based access into AI Central. Everyone enters; each role sees
    a different lens. One product, multiple perspectives. */
 export const AC_RBAC: Record<string, ACRoleAccess> = {
-  ceo:  { lens: "Executive",  modules: ["dashboard", "initiatives", "portfolio", "governance", "academy"], focus: "Portfolio, ROI, risk, growth and board metrics" },
-  coo:  { lens: "Operations", modules: ["dashboard", "initiatives", "academy"], focus: "Rollout health, adoption and operating exceptions" },
-  cfo:  { lens: "Value",      modules: ["dashboard", "initiatives", "portfolio", "governance", "academy"], focus: "Budget utilization, ROI confidence and benefit realization" },
+  ceo:  { lens: "Executive",  modules: ["dashboard", "initiatives", "pmo", "models", "portfolio", "governance", "academy"], focus: "Portfolio, ROI, risk, growth and board metrics" },
+  coo:  { lens: "Operations", modules: ["dashboard", "initiatives", "pmo", "academy"], focus: "Rollout health, adoption and operating exceptions" },
+  cfo:  { lens: "Value",      modules: ["dashboard", "initiatives", "pmo", "models", "portfolio", "governance", "academy"], focus: "Budget utilization, ROI confidence and benefit realization" },
   chro: { lens: "Workforce",  modules: ["dashboard", "initiatives", "academy"], focus: "Readiness, adoption resistance and learning completion" },
-  ciso: { lens: "Security",   modules: ["dashboard", "initiatives", "governance", "evidence", "gateway"], focus: "Model security, gateway enforcement and control evidence" },
-  caio: { lens: "Governance", modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Implementation, controls, evidence and lifecycle gates" },
-  cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
+  ciso: { lens: "Security",   modules: ["dashboard", "initiatives", "models", "governance", "evidence", "gateway"], focus: "Model security, gateway enforcement and control evidence" },
+  caio: { lens: "Governance", modules: ["dashboard", "initiatives", "pmo", "models", "approvals", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Implementation, controls, evidence and lifecycle gates" },
+  cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "pmo", "models", "approvals", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
   cdpo: { lens: "Privacy",    modules: ["dashboard", "initiatives", "governance", "evidence"], focus: "DPIAs, data classification and privacy evidence" },
   cgo:  { lens: "Compliance", modules: ["dashboard", "initiatives", "governance", "evidence", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
   employee: { lens: "Operations", modules: ["dashboard"], focus: "Your governed AI activity" },
