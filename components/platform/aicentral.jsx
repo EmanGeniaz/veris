@@ -430,7 +430,7 @@ function PortfolioUnits({setView}){
   </div>;
 }
 
-export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme,sessionMode}) {
+export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initToOpen,onInitOpened,theme,sessionMode}) {
   const rc=AI_GOLD;
   const access=acAccessFor(role);
   const R=ROLES[role]||ROLES.caio;
@@ -453,6 +453,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
      profile by default - it is the operating role). */
   const [profileMode,setProfileMode]=useState(role==="caio");
   useEffect(()=>{setProfileMode(role==="caio");},[role]);
+  /* Deep-open from universal search: land directly on the requested initiative. */
+  useEffect(()=>{if(initToOpen){openInitiative(initToOpen);onInitOpened&&onInitOpened();}},[initToOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
   const [gwTab,setGwTab]=useState("overview");
@@ -1274,10 +1276,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
      primary recommendation. Everything else lives inside the tabs. */
   const renderExecHeader=()=>{
     const heroes=[
-      ["Health",String(wsHealth),wsHealth>=80?T.green:wsHealth>=60?T.amber:T.red,"overview"],
-      ["Business value",selected.expected,AI_GOLD,"value"],
-      ["Risk",wsRiskScore?`${wsRiskScore}/25`:selected.risk,wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green,"governance"],
-      ["Phase",`${selected.phaseIndex+1} of ${AC_PHASES.length}`,T.blue,"journey"],
+      ["Health",String(wsHealth),wsHealth>=80?T.green:wsHealth>=60?T.amber:T.red,"overview",`(governance ${selected.guardrail} + adoption ${selected.adoption} + value ${selected.valueScore}) / 3`],
+      ["Business value",selected.expected,AI_GOLD,"value","Expected value from the approved business case"],
+      ["Risk",wsRiskScore?`${wsRiskScore}/25`:selected.risk,wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green,"governance","Worst residual risk: likelihood x impact out of 25"],
+      ["Phase",`${selected.phaseIndex+1} of ${AC_PHASES.length}`,T.blue,"journey","Position in the 13-phase governed lifecycle"],
     ];
     return <div style={{margin:"2px 0 18px"}}>
       <div style={{display:"flex",gap:10,alignItems:"baseline",flexWrap:"wrap"}}>
@@ -1286,7 +1288,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>
       <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:4}}>{selected.unit} · {selected.category} · Sponsor {selected.sponsor}</div>
       <div style={{display:"flex",gap:28,flexWrap:"wrap",margin:"16px 0 0"}}>
-        {heroes.map(([l,v,c,tabTo])=><button key={l} onClick={()=>setInitTab(tabTo)} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",textAlign:"left"}}>
+        {heroes.map(([l,v,c,tabTo,how])=><button key={l} onClick={()=>setInitTab(tabTo)} title={how} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",textAlign:"left"}}>
           <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
           <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,lineHeight:1}}>{v}</div>
         </button>)}
@@ -1684,17 +1686,25 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
         </div>)}
       </div>
       <div style={{display:"grid",gap:18}}>
-        {p.sections.map(sec=><div key={sec.title}>
+        {p.sections.map(sec=>{
+          const secGo=/risk|threat/i.test(sec.title)?()=>setTab&&setTab("riskcenter")
+            :/benefit|financ|value|kpi/i.test(sec.title)?()=>setInitTab("value")
+            :/milestone|raid|task/i.test(sec.title)?()=>setInitTab("pmo")
+            :/decision/i.test(sec.title)?()=>setTab&&setTab("decisions")
+            :/stack|dependen|infra|technology/i.test(sec.title)?()=>setInitTab("pmo")
+            :/mitigation|evidence|posture|regulat|contract|privacy|responsible|workforce|blocker|summary/i.test(sec.title)?()=>setInitTab(/evidence|posture/i.test(sec.title)?"monitoring":"governance")
+            :null;
+          return <div key={sec.title}>
           <h3 style={{fontSize:13,color:T.ink,margin:"0 0 8px",fontFamily:F.h,fontWeight:800}}>{sec.title}</h3>
           {sec.text&&<p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{sec.text}</p>}
-          {sec.rows&&<div style={{display:"grid",gap:6}}>
+          {sec.rows&&<div style={{display:"grid",gap:2}}>
             {sec.rows.length===0&&<div style={{fontSize:10.5,color:T.ink4,fontFamily:F.b}}>Nothing recorded yet.</div>}
-            {sec.rows.map(([a,b],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",gap:12,borderBottom:`1px solid ${T.border}`,padding:"6px 0"}}>
+            {sec.rows.map(([a,b],i)=><button key={i} onClick={secGo||undefined} disabled={!secGo} style={{display:"flex",justifyContent:"space-between",gap:12,borderBottom:`1px solid ${T.border}`,padding:"7px 2px",background:"transparent",border:"none",cursor:secGo?"pointer":"default",textAlign:"left",width:"100%"}}>
               <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{a}</span>
-              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:700,textAlign:"right",flexShrink:0}}>{b}</span>
-            </div>)}
+              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:700,textAlign:"right",flexShrink:0}}>{b}{secGo?<span style={{color:T.ink4}}> \u2192</span>:null}</span>
+            </button>)}
           </div>}
-        </div>)}
+        </div>;})}
       </div>
     </div>;
   };
@@ -1713,7 +1723,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     const secH=t=><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:"0 0 10px",fontFamily:F.h}}>{t}</h3>;
     return <div style={{display:"grid",gap:12}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10}}>
-        {[["Initiatives in delivery",acInitiatives.length,T.blue],["Milestones at risk",atRisk.length,atRisk.length?T.red:T.green],["Open blocking issues",openIssues.length,openIssues.length?T.amber:T.green],["Portfolio budget",`$${totSpent.toFixed(1)}M / $${totBudget.toFixed(1)}M`,AI_GOLD]].map(([l,v,c])=><Card key={l} style={{padding:"13px 14px"}}>
+        {[["Initiatives in delivery",acInitiatives.length,T.blue,()=>openModule("initiatives"),"Open the initiative workspaces"],
+          ["Milestones at risk",atRisk.length,atRisk.length?T.red:T.green,()=>atRisk[0]?openInitiative(atRisk[0].id,"pmo"):openModule("initiatives"),"Open the first at-risk initiative's PMO"],
+          ["Open blocking issues",openIssues.length,openIssues.length?T.amber:T.green,()=>openIssues[0]?openInitiative(openIssues[0].ini.id,"pmo"):openModule("initiatives"),"Open the blocked initiative's PMO"],
+          ["Portfolio budget",`$${totSpent.toFixed(1)}M / $${totBudget.toFixed(1)}M`,AI_GOLD,()=>setTab&&setTab("reports"),"Financial reporting lives in Reports"]].map(([l,v,c,go,hint])=><Card key={l} onClick={go} title={hint} style={{padding:"13px 14px",cursor:"pointer"}}>
           <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{l}</div>
           <div style={{fontSize:20,fontWeight:800,fontFamily:F.m,color:c}}>{v}</div>
         </Card>)}

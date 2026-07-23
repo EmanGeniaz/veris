@@ -3,7 +3,8 @@
 import { Scale, Settings } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS } from "./platform/core";
+import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES } from "./platform/core";
+import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
 import dynamic from "next/dynamic";
 import { hydrateBus } from "@/lib/bus";
@@ -469,6 +470,10 @@ export default function VerisZone() {
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [isMobile,setIsMobile]=useState(()=>typeof window!=="undefined"&&window.innerWidth<768);
   const [theme,setTheme]=useState("dark");
+  /* Universal search + cross-module deep-open: any enterprise object is
+     reachable from anywhere; selecting an initiative opens its workspace. */
+  const [searchQ,setSearchQ]=useState("");
+  const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
   /* Bumped on every AI Central left-nav click so the module resets to its root view,
      even when the target module is already active (e.g. leaving an initiative workspace). */
@@ -628,6 +633,34 @@ export default function VerisZone() {
         </div>}
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          {!isMobile&&showSeededData&&<div style={{position:"relative"}}>
+            <input aria-label="Universal search" placeholder="Search everything..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
+            {searchQ.trim().length>1&&(()=>{
+              const q=searchQ.trim().toLowerCase();
+              const openIni=(id,label)=>({label,go:()=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}});
+              const idx=[
+                ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} \u00b7 ${i.lifecycle}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}})),
+                ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} \u00b7 ${m.vendor}`,go:()=>{setAiCentralView("models");setTab("aicentral");}})),
+                ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} \u00b7 ${r.system}`,go:()=>setTab("riskcenter")})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Compliance & Standards",go:()=>setTab("compliance")})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.controls))].map(c=>({type:"Control",label:c,sub:"Control Library",go:()=>setTab("controls")})),
+                ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} \u00b7 ${i.name}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}}))),
+                ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>setTab("knowledge")})),
+                ...TEMPLATES.map(t2=>({type:"Template",label:t2.name,sub:t2.cat,go:()=>setTab("templates")})),
+                {type:"Approvals",label:"Executive decision queue",sub:"Approvals, HITL and gates",go:()=>setTab("decisions")},
+              ].filter(e=>`${e.label} ${e.sub} ${e.type}`.toLowerCase().includes(q)).slice(0,9);
+              return <div style={{position:"absolute",top:38,right:0,width:340,maxHeight:420,overflowY:"auto",background:T.card,border:`1px solid ${AI_GOLD}35`,borderRadius:12,boxShadow:"0 24px 60px rgba(0,0,0,.5)",zIndex:300,padding:6}}>
+                {idx.length===0&&<div style={{padding:"12px 14px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No matching enterprise objects.</div>}
+                {idx.map((e,i2)=><button key={i2} onClick={()=>{setSearchQ("");e.go();}} style={{width:"100%",display:"flex",gap:9,alignItems:"center",background:"transparent",border:"none",borderRadius:8,padding:"8px 10px",cursor:"pointer",textAlign:"left"}}>
+                  <span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.08em",width:64,flexShrink:0}}>{e.type}</span>
+                  <span style={{minWidth:0,flex:1}}>
+                    <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.label}</span>
+                    <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:1}}>{e.sub}</span>
+                  </span>
+                </button>)}
+              </div>;
+            })()}
+          </div>}
           <button onClick={()=>setTheme(theme==="dark"?"light":"dark")} title="Toggle dark and light mode" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:isMobile?"4px 10px":"6px 13px",color:T.ink2,fontSize:isMobile?10:11,fontWeight:800,fontFamily:F.b,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.05)":"none"}}>{theme==="dark"?"Light":"Dark"}</button>
           {hitlCount>0&&<button onClick={()=>setTab("decisions")} style={{display:"flex",alignItems:"center",gap:6,background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:20,padding:"4px 10px"}}>
             <div style={{width:5,height:5,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/>
@@ -646,7 +679,7 @@ export default function VerisZone() {
         {showSeededData&&["playbook","templates","checklists"].includes(tab)&&<PagePlaybook key={tab} tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
         {showSeededData&&["compliance","impl","iso27001","scope","controls","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} navNonce={acNavNonce} theme={theme} sessionMode={sessionMode}/>}
+        {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} navNonce={acNavNonce} initToOpen={initToOpen} onInitOpened={()=>setInitToOpen(null)} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&["riskcenter","aira","airt","aia","aiia"].includes(tab)&&<PageRiskCenter key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="registry"   &&<PageModelRegistry setTab={setTab}/>}

@@ -95,7 +95,7 @@ const { chromium } = require('playwright');
   await test('Submit AI idea (create + list)', async () => {
     await page.locator('nav button', { hasText: 'My AI Ideas' }).first().click(); await page.waitForTimeout(900);
     await page.locator('button:has-text("Submit"), button:has-text("New idea"), button:has-text("Submit new idea")').first().click(); await page.waitForTimeout(500);
-    const vis = page.locator('input:visible, textarea:visible');
+    const vis = page.locator('input:visible:not([aria-label="Universal search"]), textarea:visible');
     await vis.first().fill('Feature Test Idea - auto triage');
     const n = await vis.count();
     for (let i = 1; i < Math.min(n, 3); i++) { try { await vis.nth(i).fill('Testing the idea pipeline'); } catch {} }
