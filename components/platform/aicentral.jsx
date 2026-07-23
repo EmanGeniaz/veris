@@ -457,23 +457,11 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     </div>
   </Card>;
 
-  const Header=()=><div style={{background:"linear-gradient(135deg,"+T.s2+", "+T.s1+")",border:"1px solid "+T.border,borderRadius:16,padding:"20px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
-    <div style={{position:"absolute",right:-60,top:-80,width:220,height:220,borderRadius:"50%",background:rc+"16",filter:"blur(24px)"}}/>
-    <div style={{display:"flex",justifyContent:"space-between",gap:20,alignItems:"flex-start",position:"relative",flexWrap:"wrap"}}>
-      <div style={{display:"flex",gap:16,alignItems:"flex-start",minWidth:0}}>
-        <AICentralLogo compact width={52} style={{flexShrink:0,marginTop:2,boxShadow:`0 14px 30px ${AI_GOLD}22`}}/>
-        <div style={{minWidth:0}}>
-          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:9,flexWrap:"wrap"}}>
-            <Tag label="AI CENTRAL" color={AI_GOLD} bg={AI_GOLD_L}/>
-            <Tag label={`Viewing as ${R.label}`} color={RC(role)} bg={RC(role)+"16"}/>
-            <Tag label={`${access.lens} lens`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
-          </div>
-          <h2 style={{fontSize:28,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
-          <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,maxWidth:780,margin:"7px 0 0",fontFamily:F.b}}>{access.focus}. One platform, one source of truth - every role sees its own perspective.</p>
-        </div>
-      </div>
-      <button onClick={()=>{setTab("decisions");showToast&&showToast("Opening HITL approvals from AI Central");}} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"10px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,whiteSpace:"nowrap",boxShadow:"0 14px 34px "+AI_GOLD+"22",cursor:"pointer"}}>Review Approvals</button>
-    </div>
+  /* Plain typographic module header. Approval awareness lives in Veris
+     Intelligence, and the selected initiative is the page's visual focus. */
+  const Header=()=><div style={{margin:"4px 0 20px"}}>
+    <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
+    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b}}>{activeModule==="initiatives"?"Enterprise AI Portfolio Workspace":access.focus}</p>
   </div>;
 
   /* ── Dashboard ─────────────────────────────────────────────── */
@@ -620,23 +608,23 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   const navRow=i=>{
     const isA=selectedId===i.id;
     const h=railHealth(i);
-    return <div key={i.id} className="vz-pn-row" style={{display:"flex",alignItems:"center",gap:8,borderRadius:7,background:isA?AI_GOLD+"12":"transparent",boxShadow:isA?`inset 2px 0 0 ${AI_GOLD}`:"none"}}>
-      <button onClick={()=>openInitiative(i.id)} style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:8,background:"transparent",border:"none",padding:"7px 4px 7px 9px",cursor:"pointer",textAlign:"left"}}>
+    return <div key={i.id} className="vz-pn-row" style={{display:"flex",alignItems:"center",gap:8,borderRadius:8,marginBottom:3,background:isA?AI_GOLD+"12":"transparent",boxShadow:isA?`inset 2px 0 0 ${AI_GOLD}`:"none"}}>
+      <button onClick={()=>openInitiative(i.id)} style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:9,background:"transparent",border:"none",padding:"11px 4px 11px 11px",cursor:"pointer",textAlign:"left"}}>
         <span style={{width:7,height:7,borderRadius:"50%",background:catColor(i.lifecycle),flexShrink:0}} title={i.lifecycle}/>
-        <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,color:isA?AI_GOLD:T.ink2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.name}</span>
+        <span style={{flex:1,minWidth:0,fontSize:11.5,fontWeight:isA?800:600,fontFamily:F.b,color:isA?AI_GOLD:T.ink2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.name}</span>
         <span style={{fontSize:9,fontFamily:F.m,color:T.ink4,flexShrink:0}}>{i.phaseIndex+1}/{AC_PHASES.length}</span>
         <span style={{fontSize:9,fontFamily:F.m,fontWeight:800,color:h>=75?T.green:h>=55?T.amber:T.red,flexShrink:0}}>{h}</span>
         <span style={{fontSize:9,fontFamily:F.m,color:T.ink3,flexShrink:0}}>{i.expected}</span>
       </button>
-      <button aria-label={favIds.includes(i.id)?"Unfavorite":"Favorite"} onClick={()=>setFavIds(f=>f.includes(i.id)?f.filter(x=>x!==i.id):[...f,i.id])} style={{background:"transparent",border:"none",padding:"0 8px 0 0",cursor:"pointer",color:favIds.includes(i.id)?AI_GOLD:T.ink4,fontSize:11,lineHeight:1}}>{favIds.includes(i.id)?"★":"☆"}</button>
+      <button aria-label={favIds.includes(i.id)?"Unfavorite":"Favorite"} onClick={()=>setFavIds(f=>f.includes(i.id)?f.filter(x=>x!==i.id):[...f,i.id])} className="vz-pn-fav" style={{background:"transparent",border:"none",padding:"0 9px 0 0",cursor:"pointer",color:favIds.includes(i.id)?AI_GOLD:T.ink4,fontSize:11,lineHeight:1,opacity:favIds.includes(i.id)?1:0}}>{favIds.includes(i.id)?"★":"☆"}</button>
     </div>;
   };
   const navGroup=(title,list)=>list.length>0&&<div key={title}>
-    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",margin:"10px 0 4px 4px"}}>{title}</div>
+    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",margin:"16px 0 7px 4px"}}>{title}</div>
     {list.map(navRow)}
   </div>;
   const renderPortfolioRail=()=><div style={{display:"flex",flexDirection:"column",gap:4,alignContent:"start",minHeight:420}}>
-    <style>{`.vz-pn-row:hover{background:${T.s2}}`}</style>
+    <style>{`.vz-pn-row:hover{background:${T.s2}} .vz-pn-row:hover .vz-pn-fav{opacity:1}`}</style>
     <input aria-label="Search initiatives" placeholder="Search portfolio..." value={initQuery} onChange={e=>setInitQuery(e.target.value)} style={{...fieldStyle,fontSize:11,marginBottom:4}}/>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
       <select aria-label="Business unit filter" value={unitFilter} onChange={e=>setUnitFilter(e.target.value)} style={{...fieldStyle,fontSize:10,padding:"7px 8px",cursor:"pointer"}}>
@@ -679,7 +667,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   const Overview=()=><div style={{display:"grid",gap:20}}>
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"14px 24px",marginBottom:4}}>
-        {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["Executive sponsor",selected.sponsor],["Status",selected.status],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/${AC_PHASES.length})`],["Adoption",selected.adoption+"%"]].map(([l,v])=><div key={l}>
+        {[["Executive sponsor",selected.sponsor],["Status",selected.status],["Current phase",`${AC_PHASES[selected.phaseIndex]?.name} (${selected.phaseIndex+1}/${AC_PHASES.length})`],["Adoption",selected.adoption+"%"]].map(([l,v])=><div key={l}>
           <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
           <div style={{fontSize:12,color:T.ink,fontFamily:F.b,fontWeight:600,lineHeight:1.4}}>{v}</div>
         </div>)}
@@ -688,9 +676,9 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <button onClick={()=>{if(selected.blockedBy)setInitTab("journey");else setInitTab("journey");}} style={{marginTop:12,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"9px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Next action: {wsNextAction} →</button>
     </div>
     <div>
-      <h3 style={{fontSize:13,color:T.ink,margin:"0 0 10px",fontFamily:F.h,fontWeight:800}}>Business value</h3>
+      <h3 style={{fontSize:13,color:T.ink,margin:"0 0 10px",fontFamily:F.h,fontWeight:800}}>Financial impact</h3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:"12px 24px"}}>
-        {[["Expected ROI",selected.roi],["Cost savings",selected.savings],["Revenue impact",selected.revenue],["Productivity",selected.productivity],["Realized",selected.actual],["Expected",selected.expected]].map(([l,v])=><div key={l}>
+        {[["Expected value",selected.expected],["Realized value",selected.actual],["ROI",selected.roi],["Cost savings",selected.savings],["Revenue generated",selected.revenue]].map(([l,v])=><div key={l}>
           <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
           <div style={{fontSize:14,color:T.ink,fontFamily:F.m,fontWeight:800}}>{v}</div>
         </div>)}
@@ -700,7 +688,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       <button onClick={()=>setOvDetails(!ovDetails)} style={{background:"transparent",border:"none",padding:0,color:T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{ovDetails?"▾":"▸"} Governance & technical details</button>
       {ovDetails&&<div style={{marginTop:12,animation:"up .2s ease"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"12px 24px",marginBottom:16}}>
-          {[["AI champion",selected.champion],["CXO sponsors",selected.cxo],["Lifecycle",selected.lifecycle],["Linked policies",selected.policies.join(", ")||"None yet"],["Linked controls",selected.controls.join(", ")||"None yet"],["Linked risks",selected.risks.join(", ")||"None yet"],["Audits",selected.audits.join(", ")||"None yet"],["Training status",selected.training]].map(([l,v])=><div key={l}>
+          {[["Business owner",selected.businessOwner],["Technical owner",selected.technicalOwner],["AI champion",selected.champion],["CXO sponsors",selected.cxo],["Lifecycle",selected.lifecycle],["Linked policies",selected.policies.join(", ")||"None yet"],["Linked controls",selected.controls.join(", ")||"None yet"],["Linked risks",selected.risks.join(", ")||"None yet"],["Audits",selected.audits.join(", ")||"None yet"],["Training status",selected.training]].map(([l,v])=><div key={l}>
             <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
             <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.4}}>{v}</div>
           </div>)}
@@ -1207,21 +1195,6 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   </div>;
   const WS_LEGACY={list:"overview",implementation:"journey",risks:"governance",risk:"governance",controls:"governance",approvals:"governance",pilot:"monitoring",evidence:"monitoring",roi:"value",adoption:"value",feedback:"value",lessons:"value",insights:"value",decision:"value",scalegate:"value"};
   const wsTab=WS_LEGACY[initTab]||initTab;
-  const WS_TAB_LABELS={overview:"Overview",journey:"Journey",governance:"Governance",value:"Value",monitoring:"Monitoring"};
-  const Crumbs=()=>{
-    const crumb={background:"transparent",border:"none",padding:0,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.m,letterSpacing:"0.04em",cursor:"pointer"};
-    const sep=<span style={{color:T.ink4,fontSize:10}}>/</span>;
-    return <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,flexWrap:"wrap"}}>
-      <button onClick={()=>setTab("home")} style={crumb}>Dashboard</button>{sep}
-      <button onClick={()=>setView("dashboard")} style={crumb}>AI Central</button>{sep}
-      <button onClick={()=>setInitTab("overview")} style={crumb}>AI Initiatives</button>{sep}
-      <button onClick={()=>{setUnitFilter(selected.unit);setInitTab("overview");}} style={crumb}>{selected.unit}</button>{sep}
-      {wsTab==="overview"
-        ?<span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{selected.name}</span>
-        :<><button onClick={()=>setInitTab("overview")} style={crumb}>{selected.name}</button>{sep}
-          <span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{WS_TAB_LABELS[wsTab]||wsTab}</span></>}
-    </div>;
-  };
   /* ── Veris Intelligence rail (RIGHT pane): context for the selected initiative ── */
   const renderIntelRail=()=>{
     const f=acFeedback[selected.id]||DEFAULT_FEEDBACK;
@@ -1230,13 +1203,16 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
     const recC=decisionColorOf(recD,T);
     const activity=evidenceRows.filter(e=>e.initiative===selected.name).slice(0,3);
     const secHead=t=><div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7}}>{t}</div>;
-    const divider=<div style={{height:1,background:T.border,opacity:.6,margin:"14px 0"}}/>;
-    return <div style={{alignSelf:"start",background:T.s1+"66",border:`1px solid ${AI_GOLD}26`,borderRadius:12,padding:"16px 15px"}}>
-      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
+    const divider=<div style={{height:1,background:`linear-gradient(90deg,${AI_GOLD}30,transparent)`,margin:"15px 0"}}/>;
+    /* The Executive Advisor is visually distinct from the rest of the
+       interface: gold spine, soft gradient, typographic sections. */
+    return <div style={{alignSelf:"start",background:`linear-gradient(165deg,${AI_GOLD}0a,${T.s1}99 40%)`,borderLeft:`2px solid ${AI_GOLD}55`,borderRadius:"4px 12px 12px 4px",padding:"16px 15px"}}>
+      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:13}}>
         <span style={{width:8,height:8,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>
-        <span style={{fontSize:11,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
+        <span style={{fontSize:11.5,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
+        <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em",marginLeft:"auto"}}>Executive Advisor</span>
       </div>
-      {secHead("Executive summary")}
+      {secHead("Executive brief")}
       <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>{selected.name} is in {AC_PHASES[selected.phaseIndex]?.name} (phase {selected.phaseIndex+1}/{AC_PHASES.length}) delivering {selected.actual} of {selected.expected} expected. {selected.blockedBy?`Progress is blocked: ${selected.blockedBy}.`:`No open blockers; adoption is at ${selected.adoption}%.`}</p>
       {divider}
       {secHead("Recommendation")}
@@ -1246,15 +1222,15 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
       </div>
       <div style={{display:"grid",gap:6,fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
         <div><strong style={{color:T.ink}}>Reason:</strong> governance {selected.guardrail}%, adoption {selected.adoption}%, value score {selected.valueScore}%.</div>
+        <div><strong style={{color:T.ink}}>Business impact:</strong> {selected.expected} expected value; {selected.actual} realized to date.</div>
         <div><strong style={{color:T.ink}}>Evidence:</strong> phase artifacts through {AC_PHASES[selected.phaseIndex]?.name}; controls {selected.controls.join(", ")||"pending"}.</div>
-        <div><strong style={{color:T.ink}}>Impact:</strong> {selected.expected} expected value; {selected.actual} realized.</div>
       </div>
-      <button onClick={()=>setInitTab("value")} style={{marginTop:11,width:"100%",background:recC+"12",border:`1px solid ${recC}40`,borderRadius:7,padding:"7px 10px",color:recC,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review in Value →</button>
-      {(recD==="Scale"||recD==="Retire")&&<>
+      <button onClick={()=>setInitTab("value")} style={{marginTop:11,width:"100%",background:recC+"12",border:`1px solid ${recC}40`,borderRadius:7,padding:"7px 10px",color:recC,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Recommended action: review in Value →</button>
+      {(pending>0||recD==="Scale"||recD==="Retire")&&<>
         {divider}
-        {secHead("Related decisions")}
-        <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55,marginBottom:8}}>A governed {recD} decision is waiting on this initiative.</div>
-        <button onClick={()=>setTab&&setTab("decisions")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"7px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Decision Workspace →</button>
+        {secHead("Pending approvals")}
+        <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55,marginBottom:8}}>{pending} approval{pending===1?"":"s"} await{pending===1?"s":""} executive review{(recD==="Scale"||recD==="Retire")?` - including a governed ${recD} decision on this initiative`:""}.</div>
+        <button onClick={()=>setTab&&setTab("decisions")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"7px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review approvals →</button>
       </>}
       {divider}
       {secHead("Recent activity")}
@@ -1267,7 +1243,6 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme
   };
   /* ── AI Portfolio Command Center: portfolio rail | selected initiative | intelligence rail ── */
   const Initiatives=()=><div>
-    <Crumbs/>
     <div style={{display:"grid",gridTemplateColumns:"minmax(220px,1fr) minmax(0,2.1fr) minmax(220px,1fr)",gap:14,alignItems:"start"}}>
       {renderPortfolioRail()}
       <div style={{minWidth:0}}>
