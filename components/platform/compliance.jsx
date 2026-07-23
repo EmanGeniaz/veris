@@ -71,11 +71,11 @@ export function CompliancePosture({role,setTab,setAiCentralView}) {
    template, checklist and trust artifact. One control, many frameworks -
    owned here, referenced everywhere else. */
 export function PageComplianceStandards({role,tab,setTab,setAiCentralView,showToast}){
-  const LEGACY={compliance:"posture",checklists:"checklists",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",templates:"templates",controls:"controls",trustcenter:"trust",knowledge:"search"};
+  const LEGACY={compliance:"posture",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",controls:"controls",trustcenter:"trust",knowledge:"search"};
   const FW_LEGACY={impl:"impl",iso27001:"iso27001",scope:"scope",gapanalysis:"gap",aigov:"cube"};
   const [cTab,setCTab]=useState(LEGACY[tab]||"posture");
   const [fw,setFw]=useState(FW_LEGACY[tab]||"impl");
-  const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["templates","Templates"],["checklists","Checklists"],["trust","Trust Center"]];
+  const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["trust","Trust Center"]];
   const FWS=[["impl","ISO 42001 Implementation"],["iso27001","ISO 27001 Workspace"],["scope","ISMS Scope"],["gap","Gap Analysis"],["cube","Framework Compare"]];
   const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
   return <div style={{animation:"up .3s ease"}}>
@@ -95,8 +95,6 @@ export function PageComplianceStandards({role,tab,setTab,setAiCentralView,showTo
       {fw==="cube"&&<PageAIGovCube role={role} setTab={setTab}/>}
     </div>}
     {cTab==="controls"&&<PageCommonControls role={role}/>}
-    {cTab==="templates"&&<PageTemplates role={role} showToast={showToast}/>}
-    {cTab==="checklists"&&<PageChecklists role={role} showToast={showToast}/>}
     {cTab==="trust"&&<PageTrustCenter role={role} showToast={showToast}/>}
   </div>;
 }

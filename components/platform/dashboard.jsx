@@ -1,7 +1,7 @@
 "use client";
 
 import { readBus, pushBus } from "@/lib/bus";
-import { CeoDashboard } from "./ceo";
+import { ExecutiveCockpit } from "./cockpit";
 import { Map, Scale, Target, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, KPI_INSIGHTS, riskRegister, EXEC_QUICK_ACTIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
@@ -14,8 +14,8 @@ export function ExecBrief({role,goAC,goto}){
     const l=label.toLowerCase();
     if(/risk|blocked|incident|vuln|leak/.test(l))return {link:{tab:"riskcenter"},hint:"Open Risk Center"};
     if(/maturity|readiness|training|learning|adoption|resistance/.test(l))return {link:{tab:"academy"},hint:"Open Governance Academy"};
-    if(/value|roi|revenue|saving|spend|budget|cost|payback/.test(l))return {link:{ac:"portfolio"},hint:"Open portfolio value in AI Central"};
-    if(/pilot|scale|initiative|decision|hitl|approval|retire/.test(l))return {link:{ac:"initiatives"},hint:"Open initiatives in AI Central"};
+    if(/value|roi|revenue|saving|spend|budget|cost|payback/.test(l))return {link:{ac:"portfolio"},hint:"Analyze portfolio value"};
+    if(/pilot|scale|initiative|decision|hitl|approval|retire/.test(l))return {link:{ac:"initiatives"},hint:"Review initiatives"};
     return {link:{ac:"dashboard"},hint:"Open AI Central"};
   };
   const open=link=>{
@@ -99,7 +99,7 @@ export function ExecDecisionCenter({role,goto,showToast}){
           <span style={{display:"inline-flex",alignItems:"center",gap:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:AI_GOLD,animation:"up .45s ease",boxShadow:`0 0 18px ${AI_GOLD}30`}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>Evidence record created → Trust &amp; Evidence
           </span>
-          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>View in AI Central →</button>
+          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
         </div>
         :<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
           {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>act(i,label,d)} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
@@ -126,7 +126,7 @@ export function ExecRecommendations({role,goto}){
           <span style={{fontSize:9,color:T.ink3,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>{r.metric}</span>
         </div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.5,marginBottom:9}}>{r.rationale}</div>
-        <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Act in AI Central →</span>
+        <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Review initiative →</span>
       </button>)}
     </div>
   </Card>;
@@ -137,7 +137,7 @@ export function ExecMyInitiatives({role,goAC}){
   return <Card style={{marginBottom:12,overflow:"hidden"}}>
     <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,margin:0}}>My Initiatives</h3>
-      <button onClick={()=>goAC("initiatives")} style={{fontSize:9,color:AI_GOLD,background:"none",border:"none",fontFamily:F.b,fontWeight:600,cursor:"pointer"}}>Open portfolio in AI Central</button>
+      <button onClick={()=>goAC("initiatives")} style={{fontSize:9,color:AI_GOLD,background:"none",border:"none",fontFamily:F.b,fontWeight:600,cursor:"pointer"}}>Review portfolio</button>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.3fr 90px 110px 70px 70px 110px 120px",padding:"7px 14px",background:T.s4,borderBottom:`1px solid ${T.border}`}}>
       {["Initiative","Health","Phase","ROI","Risk","Value / Budget","Next milestone"].map(h=><span key={h} style={{fontSize:8,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F.m}}>{h}</span>)}
@@ -366,278 +366,10 @@ export function ExecRiskPulse({setTab}){
 }
 
 export function PageHome({role,setTab,setAiCentralView,showToast}) {
-  const rc=RC(role), K=KPI[role]||KPI.caio;
-  const metrics=DOMAIN_METRICS[role]||[];
-  const roleKpis=ROLE_KPIS[role]||[];
-  const standards=STANDARDS_MAP[role]||[];
-  const hr=new Date().getHours();
-  const greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
-  const R=ROLES[role];
-  const [kpiPage,setKpiPage]=useState(0);
-  const [kpiOpen,setKpiOpen]=useState(null);
-  const [metricOpen,setMetricOpen]=useState(null);
-  const KPI_PAGE_SIZE=5;
-  const pagedKpis=roleKpis.slice(kpiPage*KPI_PAGE_SIZE,(kpiPage+1)*KPI_PAGE_SIZE);
-  const totalKpiPages=Math.ceil(roleKpis.length/KPI_PAGE_SIZE);
-
-  const topKpis=[
-    {label:K.domainLabel,        value:K.score+"/100", sub:K.scoreLabel,    color:rc,       badge:"Maturity", link:{ac:"governance"}},
-    {label:"Overall Compliance", value:K.compliance+"%",sub:"All frameworks",color:T.teal,  badge:"Coverage", link:{ac:"governance"}},
-    {label:"Active Risks",       value:K.risks,        sub:"In register",   color:T.amber,  badge:"Risk", link:{ac:"governance"}},
-    {label:"HITL Pending",       value:K.hitl,         sub:"Need approval", color:T.violet, badge:"Approvals",link:{tab:"hitl"}},
-  ];
-
-  const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink3;
-  /* Deep-link from the personal Executive Workspace into organizational AI Central. */
-  const goto=link=>{
-    if(!link)return;
-    if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab("aicentral");}
-    else if(link.tab){setTab(link.tab);}
-  };
-  const goAC=m=>goto({ac:m});
-
-  /* CAIO reference architecture: the dashboard answers exactly four
-     questions. Everything else lives inside AI Central. */
-  if(role==="ceo")return <CeoDashboard setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>;
-  if(role==="caio"){
-    const atRisk=acInitiatives.filter(i=>i.risk==="High"||i.risk==="Critical"||i.blockedBy);
-    const gates=acInitiatives.filter(i=>["Scale","Retire"].includes(feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK)));
-    const decisionsWaiting=(EXEC_DECISIONS.caio||[]).length+K.hitl+gates.length;
-    return <div style={{animation:"up .3s ease"}}>
-      <div style={{marginBottom:18}}>
-        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,letterSpacing:0,marginBottom:4}}>{greet}, {R.name.split(" ")[0]}</h1>
-        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{R.title} - {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
-      </div>
-      <ExecBrief role={role} goAC={goAC} goto={goto}/>
-      <ExecPriorities role={role} goto={goto}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
-        <Card onClick={()=>setTab("decisions")} style={{padding:18,cursor:"pointer",border:`1px solid ${AI_GOLD}35`}}>
-          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>Which decisions require me?</div>
-          <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:8}}>
-            <span style={{fontSize:34,fontWeight:900,fontFamily:F.h,color:AI_GOLD}}><CountUp value={decisionsWaiting}/></span>
-            <span style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>waiting - approvals, HITL and scale/retire gates</span>
-          </div>
-          <span style={{fontSize:10,color:AI_GOLD,fontWeight:900,fontFamily:F.b}}>Open Decisions →</span>
-        </Card>
-        <Card style={{padding:18}}>
-          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>Which initiatives are at risk?</div>
-          <div style={{display:"grid",gap:7}}>
-            {atRisk.map(i=><button key={i.id} onClick={()=>goAC("initiatives")} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
-              <span style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700,minWidth:0}}>{i.name}</span>
-              <PTag p={i.risk}/>
-            </button>)}
-          </div>
-        </Card>
-      </div>
-      <ExecRiskPulse setTab={setTab}/>
-      <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
-      <ExecRecommendations role={role} goto={goto}/>
-      <ExecQuickActions role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
-      <ExecRecentChanges role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
-      <ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/>
-    </div>;
-  }
-
-  return <div style={{animation:"up .3s ease"}}>
-    {/* Header */}
-    <div style={{marginBottom:18}}>
-      <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,letterSpacing:0,marginBottom:4}}>{greet}, {R.name.split(" ")[0]}</h1>
-      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{R.title} - {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
-    </div>
-
-    {/* Top KPI strip */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-      {topKpis.map((k,i)=><div key={k.label} onClick={()=>goto(k.link)} title="Open in AI Central"
-        style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px",cursor:"pointer",position:"relative",overflow:"hidden",transition:"border-color .2s"}}
-        onMouseEnter={e=>e.currentTarget.style.borderColor=k.color+"60"}
-        onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
-        <div style={{position:"absolute",top:0,right:0,width:50,height:50,background:`radial-gradient(circle at top right,${k.color}15,transparent 70%)`}}/>
-        <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",height:22,padding:"0 8px",borderRadius:999,background:k.color+"14",border:"1px solid "+k.color+"32",color:k.color,fontSize:9,fontWeight:800,fontFamily:F.m,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10}}>{k.badge}</div>
-        <div style={{fontSize:24,fontWeight:700,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:2}}><CountUp value={k.value}/></div>
-        <div style={{fontSize:10,fontWeight:600,color:T.ink2,fontFamily:F.b,marginBottom:1}}>{k.label}</div>
-        <div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
-      </div>)}
-    </div>
-
-    {/* Executive Workspace 4.0 intelligence layer */}
-    <ExecBrief role={role} goAC={goAC} goto={goto}/>
-    <ExecPriorities role={role} goto={goto}/>
-    <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
-    <ExecRiskPulse setTab={setTab}/>
-    <ExecRecommendations role={role} goto={goto}/>
-    <ExecSection title="My Initiatives" hint="Health, phase, ROI and next milestone"><ExecMyInitiatives role={role} goAC={goAC}/></ExecSection>
-    <ExecSection title="Enterprise Risk Center" hint="Exposure, mitigation and AI recommendations"><ExecRiskCenter role={role} goAC={goAC}/></ExecSection>
-    <ExecSection title="Value Center" hint="Realized value, ROI and target achievement"><ExecValueCenter role={role} goAC={goAC}/></ExecSection>
-    <ExecQuickActions role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
-    <ExecRecentChanges role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>
-    <ExecSection title="Governance Health" hint="Controls, evidence, audit readiness and frameworks"><ExecGovernanceHealth role={role} goAC={goAC} goto={goto}/></ExecSection>
-
-    {/* Enterprise AI Transformation Control Plane */}
-    <Card style={{padding:16,marginBottom:12,background:`linear-gradient(135deg,${T.s2},${T.bg})`,border:`1px solid ${T.border}`}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,marginBottom:14}}>
-        <div>
-          <div style={{fontSize:9,fontWeight:900,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.16em",fontFamily:F.m,marginBottom:6}}>Enterprise AI Transformation Control Plane</div>
-          <h2 style={{fontFamily:F.h,fontSize:22,fontWeight:900,color:T.ink,marginBottom:5}}>Pilot-to-scale governance spine</h2>
-          <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,maxWidth:760}}>Launch AI department by department. CXOs own strategy and accountability; AI Central executes; AI Spine monitors readiness, risk drift, evidence confidence and scale decisions.</p>
-        </div>
-        <Tag label="AI Central executes after standalone sign in" color={AI_GOLD} bg={AI_GOLD+"18"}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
-        {AI_SPINE_SIGNALS.map(s=><div key={s.label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
-          <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{s.label}</div>
-          <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:s.color,marginBottom:2}}>{s.value}</div>
-          <div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{s.sub}</div>
-        </div>)}
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1.2fr .8fr",gap:10}}>
-        <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
-          <div style={{padding:"10px 12px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink}}>Active AI rollout programs</h3>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Idea - Pilot - Scale</span>
-          </div>
-          {AI_ROLLOUT_PROGRAMS.slice(0,3).map((p,i)=>{
-            const decisionColor=p.decision==="Scale"?T.green:p.decision==="Hold"?T.amber:p.decision==="Remediate"?T.red:T.ink3;
-            return <div key={p.id} style={{padding:"10px 12px",borderBottom:i<2?`1px solid ${T.border}`:"none",display:"grid",gridTemplateColumns:"1.2fr 95px 78px 70px",gap:8,alignItems:"center"}}>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:900,color:T.ink,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-                <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Pilot: {p.pilot} to Next: {p.next}</div>
-              </div>
-              <Tag label={p.stage} color={RC(p.owner.toLowerCase())||AI_GOLD} bg={(RC(p.owner.toLowerCase())||AI_GOLD)+"18"}/>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.m}}>{p.readiness}% ready</span>
-              <Tag label={p.decision} color={decisionColor} bg={decisionColor+"18"}/>
-            </div>;
-          })}
-        </div>
-        <div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:12}}>
-          <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,marginBottom:10}}>Scale gate focus</h3>
-          {AI_ROLLOUT_PROGRAMS.slice(0,3).map(p=><div key={p.id} style={{display:"grid",gridTemplateColumns:"42px 1fr",gap:10,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
-            <Ring score={p.evidence} color={p.evidence>=85?T.green:p.evidence>=70?AI_GOLD:T.red} size={40}/>
-            <div>
-              <div style={{fontSize:10,color:T.ink,fontWeight:900,fontFamily:F.b}}>{p.name}</div>
-              <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{p.blocker}</div>
-            </div>
-          </div>)}
-        </div>
-      </div>
-    </Card>
-
-    {/* Domain metrics  */}
-    <Card style={{padding:16,marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:700,color:T.ink}}>{R.label} Domain Metrics</h3>
-        <button onClick={()=>setTab("compliance")} style={{fontSize:9,color:rc,background:"none",border:"none",fontFamily:F.b,fontWeight:600}}>Full scorecard</button>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
-        {metrics.map((m,i)=>{
-          const col=m.color;
-          const isOpen=metricOpen===m.label;
-          return <div key={m.label} onClick={()=>setMetricOpen(isOpen?null:m.label)} title="Show root cause and recommended action" style={{background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${col}`,animation:`up ${.3+i*.05}s ease both`,cursor:"pointer"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,fontWeight:500,lineHeight:1.3,flex:1,paddingRight:6}}>{m.label}</span>
-              <span style={{fontSize:9,fontFamily:F.m,color:m.trend>0&&m.label.includes("Violation")?"red":m.trend>0?T.green:T.red,whiteSpace:"nowrap"}}>
-                {m.trend>0?"Up":"Down"} {Math.abs(m.trend)}{m.unit==="%" ?"%":""}
-              </span>
-            </div>
-            <div style={{fontSize:20,fontWeight:700,fontFamily:F.m,color:col,letterSpacing:"-0.02em"}}><CountUp value={m.value}/>{m.unit}</div>
-            <div style={{fontSize:8,color:T.ink4,fontFamily:F.m,marginTop:3}}>{m.fw}</div>
-            {isOpen&&<KpiInsightPanel label={m.label} status={m.trend>0?"Good":"Alert"} role={role} goto={goto}/>}
-          </div>;
-        })}
-      </div>
-    </Card>
-
-    {/* Role-specific KPI table */}
-    <Card style={{marginBottom:12,overflow:"hidden"}}>
-      <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,background:T.s3,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>{R.label} KPI & Standards Table</h3>
-        <button onClick={()=>setTab("compliance")} style={{fontSize:9,color:rc,background:"none",border:"none",fontFamily:F.b,fontWeight:600}}>View all</button>
-      </div>
-      {/* Table header */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"7px 14px",background:T.s4,borderBottom:`1px solid ${T.border}`}}>
-        {["KPI Category","KPI / Metric","Target","Threshold","Framework","Status"].map(h=>
-          <span key={h} style={{fontSize:8,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:F.m}}>{h}</span>
-        )}
-      </div>
-      {pagedKpis.map((k,i)=>{
-        const sc=stColor(k.status);
-        const isOpen=kpiOpen===k.kpi;
-        return <div key={i} onClick={()=>setKpiOpen(isOpen?null:k.kpi)} title="Show root cause and recommended action" style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px 80px 80px 60px",padding:"9px 14px",alignItems:"center",borderBottom:`1px solid ${T.border}`,background:i%2===0?T.s1:T.bg,cursor:"pointer"}}>
-          <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.cat}</span>
-          <div>
-            <div style={{fontSize:10,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{k.kpi}</div>
-            <span style={{fontSize:9,color:rc,fontFamily:F.m,fontWeight:700}}>{k.value}</span>
-          </div>
-          <span style={{fontSize:9,color:T.green,fontFamily:F.m}}>{k.target}</span>
-          <span style={{fontSize:9,color:T.red,fontFamily:F.m}}>{k.threshold}</span>
-          <span style={{fontSize:9,color:T.ink3,fontFamily:F.m}}>{k.fw}</span>
-          <Tag label={k.status} color={sc} bg={sc+"18"}/>
-          {isOpen&&<KpiInsightPanel label={k.kpi} status={k.status} role={role} goto={goto}/>}
-        </div>;
-      })}
-      {totalKpiPages>1&&<div style={{padding:"8px 14px",display:"flex",gap:6,alignItems:"center",borderTop:`1px solid ${T.border}`}}>
-        <button onClick={()=>setKpiPage(p=>Math.max(0,p-1))} disabled={kpiPage===0}
-          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 10px",fontSize:10,color:kpiPage===0?T.ink4:T.ink,fontFamily:F.b,opacity:kpiPage===0?.4:1}}>Prev</button>
-        <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{kpiPage+1}/{totalKpiPages}</span>
-        <button onClick={()=>setKpiPage(p=>Math.min(totalKpiPages-1,p+1))} disabled={kpiPage===totalKpiPages-1}
-          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 10px",fontSize:10,color:kpiPage===totalKpiPages-1?T.ink4:T.ink,fontFamily:F.b,opacity:kpiPage===totalKpiPages-1?.4:1}}>Next</button>
-        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:4}}>{roleKpis.length} KPIs total</span>
-      </div>}
-    </Card>
-
-    {/* Standards mapping */}
-    <Card style={{padding:16,marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink}}>Standards & Regulatory Mapping</h3>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
-        {standards.map((s,i)=>{
-          const col=s.score>=85?T.green:s.score>=70?T.blue:s.score>=50?T.amber:s.score>0?T.red:T.ink4;
-          return <div key={s.std} style={{background:T.s3,borderRadius:8,padding:"9px 12px",display:"flex",gap:10,alignItems:"center",animation:`up ${.3+i*.05}s ease both`}}>
-            <Ring score={s.score>0?s.score:0} color={col} size={38}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.m,marginBottom:2}}>{s.std}</div>
-              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.applies}</div>
-              <Tag label={s.status} color={stColor(s.status)} bg={stColor(s.status)+"18"}/>
-            </div>
-          </div>;
-        })}
-      </div>
-    </Card>
-
-    {/* Quick actions */}
-    <Card style={{padding:14,marginBottom:12}}>
-      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginBottom:10}}>Quick Access</h3>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
-        {[
-          {label:"HITL Queue",tab:"hitl",color:T.amber,badge:"HQ"},
-          {label:"Playbook",tab:"playbook",color:rc,badge:"PB"},
-          {label:"ISO Checklists",tab:"checklists",color:T.teal,badge:"ISO"},
-          {label:"Risk Center",tab:role==="caio"?"riskcenter":"aia",color:T.red,badge:"RC"},
-          {label:role==="caio"?"Model Registry":"Templates",tab:role==="caio"?"registry":"templates",color:T.violet,badge:role==="caio"?"MR":"TP"},
-          {label:role==="caio"?"Use Case Pipeline":"Roadmap",tab:role==="caio"?"usecases":"roadmap",color:T.green,badge:role==="caio"?"UC":"RM"},
-        ].map(q=><button key={q.label} onClick={()=>setTab(q.tab)}
-          style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 10px",display:"flex",alignItems:"center",gap:7,color:T.ink2,fontSize:10,fontWeight:500,fontFamily:F.b,textAlign:"left",transition:"all .12s"}}
-          onMouseEnter={e=>{e.currentTarget.style.borderColor=q.color+"50";e.currentTarget.style.color=q.color;}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.ink2;}}>
-          <span style={{minWidth:28,height:20,borderRadius:999,display:"inline-flex",alignItems:"center",justifyContent:"center",background:q.color+"18",border:"1px solid "+q.color+"35",color:q.color,fontSize:8,fontWeight:900,fontFamily:F.m}}>{q.badge}</span>{q.label}
-        </button>)}
-      </div>
-    </Card>
-
-    {/* HITL alert */}
-    {K.hitl>0&&<div onClick={()=>setTab("hitl")}
-      style={{background:`linear-gradient(135deg,${T.amberL},${T.s2})`,border:`1px solid ${T.amber}40`,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
-      <div style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite",flexShrink:0}}/>
-      <div style={{flex:1}}>
-        <div style={{fontSize:12,fontWeight:600,color:T.amber,fontFamily:F.b}}>{K.hitl} items awaiting your approval in the HITL Queue</div>
-        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>High-stakes decisions the AI cannot act on without your explicit sign-off.</p>
-      </div>
-      <span style={{color:T.amber,fontSize:12,fontWeight:800,fontFamily:F.b}}>Open queue</span>
-    </div>}
-  </div>;
+  /* One dashboard layout for every executive - only the data changes. */
+  return <ExecutiveCockpit role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>;
 }
 
-/* Section */
 export function PageOnboard({role,showToast}) {
   const rc=RC(role), R=ROLES[role], steps=ONBOARD[role]||ONBOARD.caio||[];
   const [done,setDone]=useState({});
@@ -857,7 +589,7 @@ export function PageStrategy({role,setTab}) {
             <div><div style={{fontSize:11,color:T.ink,fontWeight:900,fontFamily:F.b}}>{p.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>Pilot {p.pilot}; next {p.next}; owner {p.owner}</div></div>
             <Tag label={p.decision} color={p.decision==="Scale"?T.green:p.decision==="Hold"?T.amber:T.red} bg={(p.decision==="Scale"?T.green:p.decision==="Hold"?T.amber:T.red)+"18"}/>
           </div>)}
-          <button onClick={()=>setTab("hitl")} style={{marginTop:10,width:"100%",background:rc+"18",border:`1px solid ${rc}40`,borderRadius:8,padding:"8px 10px",color:rc,fontFamily:F.b,fontSize:10,fontWeight:900,cursor:"pointer"}}>Open CXO approvals</button>
+          <button onClick={()=>setTab("decisions")} style={{marginTop:10,width:"100%",background:rc+"18",border:`1px solid ${rc}40`,borderRadius:8,padding:"8px 10px",color:rc,fontFamily:F.b,fontSize:10,fontWeight:900,cursor:"pointer"}}>Open CXO approvals</button>
         </div>
       </div>
     </Card>
@@ -1095,7 +827,7 @@ export function PageRoadmap({role,setTab,setAiCentralView}) {
           <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:6}}>{ns.w}</div>
           <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
             <Tag label={`Impact: ${ns.i}`} color={ns.i==="Critical"?T.red:ns.i==="High"?T.amber:T.blue} bg={ns.i==="Critical"?T.redL:ns.i==="High"?T.amberL:T.blueL}/>
-            <button onClick={()=>gotoAC(/risk|dpia|violation|assessment/i.test(ns.a+ns.w)?"governance":/evidence|docs|report|pack/i.test(ns.a+ns.w)?"evidence":"initiatives")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>Act in AI Central →</button>
+            <button onClick={()=>gotoAC(/risk|dpia|violation|assessment/i.test(ns.a+ns.w)?"governance":/evidence|docs|report|pack/i.test(ns.a+ns.w)?"evidence":"initiatives")} style={{background:"transparent",border:"none",color:rc,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>Review initiative →</button>
           </div>
         </div>
       </div>)}

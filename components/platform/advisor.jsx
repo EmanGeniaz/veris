@@ -53,8 +53,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
     if(/help|what can|who are/.test(t))return {text:`I am Veris Intelligence, your Executive Advisor. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`,src:"Internal",srcNote:"Platform knowledge"};
     return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority",src:"Internal",srcNote:"Your priorities and nudges"};
   };
-  const ask=()=>{
-    const t=q.trim();
+  const send=t=>{
     if(!t||busy)return;
     setChat(c=>[...c.slice(-5),{from:"user",text:t}]);
     setQ("");setBusy(true);
@@ -63,6 +62,19 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
       setBusy(false);
     },700);
   };
+  const ask=()=>send(q.trim());
+  /* Surface-aware quick asks - each routes into the grounded responder above. */
+  const CONTEXT_ASKS={
+    home:["Any decisions pending?","What is our most severe risk?"],
+    aicentral:["Any decisions pending?","How is evidence captured?"],
+    riskcenter:["What is our most severe risk?","Explain the EU AI Act"],
+    compliance:["Explain ISO 42001","How is evidence captured?"],
+    playbook:["What is my top priority?","How is evidence captured?"],
+    reports:["How is evidence captured?","Any decisions pending?"],
+    academy:["What training should my teams take?","What is my top priority?"],
+    workbench:["Can I submit an idea?","What training should my teams take?"],
+  };
+  const contextAsks=CONTEXT_ASKS[tab]||CONTEXT_ASKS.home;
   return <>
     {!open&&<button onClick={()=>setOpen(true)} title="AI Executive Assistant" style={{position:"fixed",bottom:22,right:22,zIndex:9000,display:"flex",alignItems:"center",gap:9,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:`1px solid ${AI_GOLD_B}`,borderRadius:999,padding:isMobile?"10px 14px":"12px 18px",fontSize:12,fontWeight:900,fontFamily:F.b,boxShadow:`0 16px 40px ${AI_GOLD}44`,cursor:"pointer"}}>
       <span style={{width:8,height:8,borderRadius:"50%",background:"#111",boxShadow:"0 0 0 3px rgba(17,17,17,.18)",animation:"pulse 2s infinite"}}/>
@@ -98,7 +110,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
               </div>)}
             </div>
             <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>Sources: feedback engine scores · controls {gate.i.controls.join(", ")||"none"} · policies {gate.i.policies.join(", ")||"none"} · phase artifact evidence. Value at stake: {gate.i.expected} expected.</div>
-            <button onClick={()=>{goto({ac:"initiatives"});setOpen(false);}} style={{width:"100%",background:decisionColorOf(gate.rec,T)+"14",border:`1px solid ${decisionColorOf(gate.rec,T)}45`,borderRadius:7,padding:"7px 10px",color:decisionColorOf(gate.rec,T),fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record {gate.rec} decision in AI Central →</button>
+            <button onClick={()=>{goto({ac:"initiatives"});setOpen(false);}} style={{width:"100%",background:decisionColorOf(gate.rec,T)+"14",border:`1px solid ${decisionColorOf(gate.rec,T)}45`,borderRadius:7,padding:"7px 10px",color:decisionColorOf(gate.rec,T),fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record the {gate.rec} decision →</button>
           </div>
         </div>}
         {isWorkbench&&<div>
@@ -110,6 +122,12 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
             </button>)}
           </div>
         </div>}
+        <div>
+          <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Ask about {pageLabel}</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {contextAsks.map(a=><button key={a} onClick={()=>send(a)} style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:999,padding:"6px 11px",color:T.ink2,fontSize:10,fontWeight:700,fontFamily:F.b,cursor:"pointer"}}>{a}</button>)}
+          </div>
+        </div>
         <div>
           <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Do it now</div>
           <div style={{display:"grid",gap:6}}>

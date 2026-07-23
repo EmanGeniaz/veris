@@ -92,7 +92,7 @@ export function PageModelRegistry({setTab}) {
             <div style={{fontSize:10,fontWeight:700,color:T.red,fontFamily:F.b,marginBottom:3}}>Action Required</div>
             <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:0}}>{sel.euAiAct==="Unclassified"?"EU AI Act risk classification must be completed before August 2026 enforcement.":"High-Risk system - full conformity assessment required per EU AI Act Art.43."}</p>
           </div>}
-          <button onClick={()=>setTab("hitl")} style={{width:"100%",marginTop:12,background:T.caio,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Review in HITL Queue </button>
+          <button onClick={()=>setTab("decisions")} style={{width:"100%",marginTop:12,background:T.caio,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:11,fontWeight:600,fontFamily:F.b}}>Review in HITL Queue </button>
         </div>
       </Card>}
     </div>
@@ -371,7 +371,7 @@ function PortfolioUnits({setView}){
             <div><div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{i.category} · phase {i.phaseIndex+1}/{AC_PHASES.length} {AC_PHASES[i.phaseIndex]?.name}</div></div>
             <STag s={i.lifecycle}/>
             <Tag label={`${i.roi} ROI`} color={T.green} bg={T.greenL}/>
-            <button onClick={()=>setView&&setView("initiatives")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open lifecycle →</button>
+            <button onClick={()=>setView&&setView("initiatives")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Continue initiative →</button>
           </div>)}
         </div>}
       </Card>)}
@@ -379,7 +379,7 @@ function PortfolioUnits({setView}){
   </div>;
 }
 
-export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionMode}) {
+export function PageAICentral({role,setTab,showToast,view,setView,navNonce,theme,sessionMode}) {
   const rc=AI_GOLD;
   const access=acAccessFor(role);
   const R=ROLES[role]||ROLES.caio;
@@ -388,6 +388,9 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
   const [selectedId,setSelectedId]=useState(acInitiatives[0].id);
   const [initTab,setInitTab]=useState("list");
   const [phaseSel,setPhaseSel]=useState(null);
+  /* A left-nav click always returns the module to its root view, even when the
+     module is already active (e.g. stepping out of an initiative workspace). */
+  useEffect(()=>{if(navNonce){setInitTab("list");setPhaseSel(null);setCreateOpen(false);}},[navNonce]);
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
   const [gwTab,setGwTab]=useState("overview");
@@ -464,7 +467,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
           <p style={{fontSize:12,color:T.ink3,lineHeight:1.7,maxWidth:780,margin:"7px 0 0",fontFamily:F.b}}>{access.focus}. One platform, one source of truth - every role sees its own perspective.</p>
         </div>
       </div>
-      <button onClick={()=>{setTab("hitl");showToast&&showToast("Opening HITL approvals from AI Central");}} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"10px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,whiteSpace:"nowrap",boxShadow:"0 14px 34px "+AI_GOLD+"22",cursor:"pointer"}}>Review Approvals</button>
+      <button onClick={()=>{setTab("decisions");showToast&&showToast("Opening HITL approvals from AI Central");}} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,color:"#111",border:"1px solid "+AI_GOLD_B,borderRadius:8,padding:"10px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,whiteSpace:"nowrap",boxShadow:"0 14px 34px "+AI_GOLD+"22",cursor:"pointer"}}>Review Approvals</button>
     </div>
   </div>;
 
@@ -473,7 +476,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
     portfolio:{label:"Total initiatives",value:total,sub:"Enterprise AI portfolio",color:rc,go:()=>openModule("initiatives")},
     active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openModule("initiatives")},
     risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>openModule("initiatives")},
-    approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("hitl");}},
+    approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("decisions");}},
     findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("evidence")},
     guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("governance")},
     adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
@@ -933,7 +936,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
         <span style={{fontSize:10,color:T.ink2}}>Owner: {e.owner}</span>
         <div style={{display:"flex",gap:6}}><STag s={e.status}/><STag s={e.approval}/></div>
       </div>)}
-      <div style={{padding:"10px 18px"}}><button onClick={()=>setView("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open the enterprise repository →</button></div>
+      <div style={{padding:"10px 18px"}}><button onClick={()=>setView("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open evidence →</button></div>
     </Card>;
   };
   const InitControls=()=><Card style={{padding:16}}>
@@ -951,7 +954,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
         {selected.policies.length?selected.policies.map(c=><div key={c} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}><span style={{width:7,height:7,borderRadius:"50%",background:T.blue}}/><span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{c}</span></div>):<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No policies mapped yet.</div>}
       </div>
     </div>
-    <button onClick={()=>setView("governance")} style={{marginTop:12,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open AI Governance →</button>
+    <button onClick={()=>setView("governance")} style={{marginTop:12,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Review controls →</button>
   </Card>;
   const InitApprovals=()=><Card style={{padding:16}}>
     <h3 style={{fontSize:15,color:T.ink,fontWeight:800,margin:"0 0 12px"}}>Phase approvals</h3>
@@ -1170,9 +1173,24 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
   </div>;
   const WS_LEGACY={implementation:"journey",risks:"risk",controls:"governance",approvals:"governance",pilot:"journey",roi:"overview",adoption:"overview",feedback:"insights",lessons:"insights",decision:"insights"};
   const wsTab=WS_LEGACY[initTab]||initTab;
+  const WS_TAB_LABELS={overview:"Overview",journey:"Journey",governance:"Governance",risk:"Risk",evidence:"Evidence",insights:"Insights",scalegate:"Scale Gate"};
+  const Crumbs=()=>{
+    const crumb={background:"transparent",border:"none",padding:0,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.m,letterSpacing:"0.04em",cursor:"pointer"};
+    const sep=<span style={{color:T.ink4,fontSize:10}}>/</span>;
+    return <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+      <button onClick={()=>setTab("home")} style={crumb}>Dashboard</button>{sep}
+      <button onClick={()=>setView("dashboard")} style={crumb}>AI Central</button>{sep}
+      <button onClick={()=>setInitTab("list")} style={crumb}>AI Initiatives</button>{sep}
+      {wsTab==="overview"
+        ?<span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{selected.name}</span>
+        :<><button onClick={()=>setInitTab("overview")} style={crumb}>{selected.name}</button>{sep}
+          <span style={{...crumb,color:AI_GOLD,cursor:"default"}}>{WS_TAB_LABELS[wsTab]||wsTab}</span></>}
+    </div>;
+  };
   const Initiatives=()=>initTab==="list"?<InitiativeList/>:<div>
+    <Crumbs/>
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"}}>
-      <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; Portfolio</button>
+      <button onClick={()=>setInitTab("list")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>&#8592; All initiatives</button>
       <div style={{minWidth:0}}>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <h3 style={{fontSize:18,color:T.ink,fontWeight:800,margin:0,fontFamily:F.h}}>{selected.name}</h3>
@@ -1183,7 +1201,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
     </div>
     <MissionHeader/>
     <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["governance","Governance"],["risk","Risk"],["evidence","Evidence"],["insights","Insights"]]} active={wsTab} onChange={setInitTab}/>
-    {wsTab==="overview"&&<div><Overview/><div style={{marginTop:14}}><InitROI/></div><div style={{marginTop:14}}><InitAdoption/></div><div style={{marginTop:14}}><PageAISpine mode="dna" setTab={setTab} focus={selected}/></div></div>}
+    {wsTab==="overview"&&<Overview/>}
     {wsTab==="journey"&&<InitJourney/>}
     {wsTab==="governance"&&<div><RiskAssessmentCascade setTab={setTab} fixed={selected.id}/><div style={{marginTop:12}}><InitControls/></div><div style={{marginTop:12}}><InitApprovals/></div></div>}
     {wsTab==="risk"&&<div><InitRisks/><div style={{marginTop:12}}><PilotExecution/></div></div>}
@@ -1197,7 +1215,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,theme,sessionM
       <Metric label="Governance score" value={avgGuard+"%"} sub="Portfolio control compliance" color={rc} score={avgGuard}/>
       {AC_FRAMEWORK_POSTURE.filter(f=>["iso42001","nist","euai"].includes(f.id)).map(f=><Metric key={f.id} label={f.name} value={f.score+"%"} sub={f.sub} color={f.score>=75?T.blue:f.score>=70?T.teal:T.amber} score={f.score} onClick={()=>setGovTab("controls")}/>)}
       <Metric label="Policy violations" value="3" sub="1 repeated - training assigned" color={T.red} onClick={()=>openModule("academy")}/>
-      <Metric label="Active exceptions" value="4" sub="2 expiring this month" color={T.amber} onClick={()=>{setTab("hitl");}}/>
+      <Metric label="Active exceptions" value="4" sub="2 expiring this month" color={T.amber} onClick={()=>{setTab("decisions");}}/>
     </div>
     <SubTabs tabs={[["controls","Controls & Guardrails"],["matrix","Control Matrix"],["drift","Risk Drift"]]} active={govTab} onChange={setGovTab}/>
     {govTab==="controls"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
