@@ -1659,6 +1659,19 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           {title:"Milestones",rows:(pmo?pmo.milestones:[]).map(m=>[m.name,`${m.due} \u00b7 ${m.status}`])},
           {title:"RAID highlights",rows:(pmo?pmo.raid.slice(0,4):[]).map(r=>[`${r.kind}: ${r.item}`,r.status])},
         ]},
+      employee:{question:"What must happen next?",persona:"Work Advisor",
+        tiles:[["Current phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["My tasks",AC_PHASES[selected.phaseIndex]?.deliverables.length-selected.phaseArtifactsDone,T.amber],["Evidence required",selected.blockedBy?1:0,selected.blockedBy?T.red:T.green],["Next milestone",(pmo?.milestones||[]).find(m=>m.status!=="Complete")?.due||"—",T.teal]],
+        sections:[
+          {title:"Tasks in this phase",rows:AC_PHASES[selected.phaseIndex]?.deliverables.map((d,ai)=>[d,ai<selected.phaseArtifactsDone?"Complete":"Open · "+AC_PHASES[selected.phaseIndex].raci.responsible])||[]},
+          {title:"Evidence & approvals",rows:[["Evidence required",selected.blockedBy||"None outstanding"],["Approver",AC_PHASES[selected.phaseIndex]?.raci.accountable||"—"],["Applicable policies",selected.policies.join(", ")]]},
+          {title:"Deadlines",rows:(pmo?.milestones||[]).map(m=>[m.name,`${m.due} · ${m.status}`])},
+        ]},
+      manager:{question:"Is my team ready to deliver?",persona:"Adoption Advisor",
+        tiles:[["Team adoption",selected.adoption+"%",selected.adoption>=60?T.green:T.amber],["Training",selected.training,T.blue],["Resistance",selected.resistance,selected.resistance==="High"?T.red:T.amber],["Phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.teal]],
+        sections:[
+          {title:"Milestones",rows:(pmo?.milestones||[]).map(m=>[m.name,`${m.due} · ${m.status}`])},
+          {title:"Workforce signals",rows:[["Adoption trend",selected.adoption>=60?"Growing":"Below target - enablement needed"],["Training completion",selected.training],["Change resistance",selected.resistance],["Blocker",selected.blockedBy||"None"]]},
+        ]},
       chro:{question:"Is adoption increasing?",persona:"Adoption Advisor",
         tiles:[["Adoption",selected.adoption+"%",selected.adoption>=70?T.green:T.amber],["Training",selected.training,T.blue],["Resistance",selected.resistance,selected.resistance==="High"?T.red:selected.resistance==="Medium"?T.amber:T.green],["Value score",selected.valueScore+"%",AI_GOLD]],
         sections:[

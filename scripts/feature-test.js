@@ -76,6 +76,7 @@ const { chromium } = require('playwright');
 
   // ── Employee: workbench send, mask, block + idea submit ──
   await page.locator('button', { hasText: /^Employee$/ }).first().click(); await page.waitForTimeout(1200);
+  await page.locator('nav button', { hasText: 'AI Workbench' }).first().click(); await page.waitForTimeout(1000);
   const composer = () => page.locator('input[placeholder*="through the Gateway"]').first();
   await test('Workbench normal prompt gets reply', async () => {
     await composer().fill('Summarize our AI governance posture');
