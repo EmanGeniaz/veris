@@ -80,6 +80,11 @@ export function PageWorkbench({role,sessionMode,showToast}){
     const blocked=guard&&guard.action==="Blocked";
     const shown=blocked?"[Prompt blocked before leaving the enterprise boundary]":(guard?guard.masked:text);
     const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null};
+    if(guard){
+      /* Every enforcement event becomes a queryable violation record. */
+      const RULE_POLICY={"PII":"POL-DH-002 Data Handling Standard","PCI / Card Data":"POL-DH-002 Data Handling Standard","Credentials":"POL-DH-002 Data Handling Standard","Prompt Filtering":"POL-RAI-001 Responsible GenAI Use"};
+      pushBus("vz-violations",{rule:guard.detector,policy:RULE_POLICY[guard.detector]||"POL-DH-002 Data Handling Standard",action:blocked?"Blocked":"Masked",model:provider.models[0]||provider.name,classification:base.classification,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
+    }
     const withUser={...base,lastActivity:"Just now",messages:[...base.messages,userMsg],
       riskScore:blocked?Math.min(95,base.riskScore+20):base.riskScore,
       policyDecision:blocked?"Blocked by policy":base.policyDecision};

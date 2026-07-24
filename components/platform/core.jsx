@@ -291,7 +291,7 @@ export const OWNER_SURFACE = {
   onboard:"aicentral", intake:"aicentral", strategy:"aicentral", roadmap:"aicentral",
   registry:"aicentral", maturity:"aicentral", usecases:"aicentral", servicenow:"aicentral",
   aia:"riskcenter", aiia:"riskcenter",
-  checklists:"playbook", impl:"compliance", templates:"playbook", iso27001:"compliance",
+  checklists:"playbook", impl:"compliance", templates:"playbook", policies:"compliance", iso27001:"compliance",
   scope:"compliance", controls:"compliance", trustcenter:"compliance", gapanalysis:"compliance",
   aigov:"compliance", knowledge:"compliance",
   aira:"riskcenter", airt:"riskcenter",

@@ -12,6 +12,7 @@ import type {
   ACGuardrailGroup,
   ACInitiativeRecord,
   ACPmoRecord,
+  PolicyRecord,
   ACPhaseTemplate,
   ACRoleAccess,
   GatewayLogEntry,
@@ -309,6 +310,65 @@ export const gatewayProviders: GatewayProvider[] = [
   { id: "gw-claude",   name: "Claude",            kind: "Frontier", status: "Approved",   models: ["Claude Opus", "Claude Sonnet"], routedShare: 16, costMtd: "$13.4K" },
   { id: "gw-gemini",   name: "Gemini",            kind: "Frontier", status: "Restricted", models: ["Gemini Pro (eval)"], routedShare: 3, costMtd: "$1.8K" },
   { id: "gw-internal", name: "Internal Models",   kind: "Internal", status: "Approved",   models: ["risk-scorer-v3", "doc-classifier-v2"], routedShare: 5, costMtd: "$2.2K" },
+];
+
+
+/* ── Policy register - the governed documents behind the gateway's runtime
+   rules. Two policies are deliberately overdue for review (the register's
+   overdue band answers "which policies have overdue reviews?"). ── */
+export const POLICY_REGISTER: PolicyRecord[] = [
+  { id: "pl-rai", key: "POL-RAI-001", name: "Responsible GenAI Use", category: "Responsible AI", status: "Active", owner: "CAIO",
+    version: "v6", reviewCycleDays: 365, lastReviewed: "Feb 2026", nextReview: "Feb 2027", overdueDays: 0,
+    rules: [
+      { id: "pol-filt", name: "Prompt Filtering", clauseRef: "§3.1 Acceptable prompts", action: "Block", violationsMtd: 312, trend: "+2%" },
+      { id: "det-doc", name: "Confidential Documents", clauseRef: "§5.2 Document handling", action: "Require justification", violationsMtd: 149, trend: "-4%" },
+    ],
+    controls: ["CTRL-AI-014"], standards: ["ISO 42001 C.6", "EU AI Act Art.52"], initiativeIds: ["ai-001"], ackCoverage: 87,
+    versionHistory: [
+      { version: "v6", date: "Feb 2026", summary: "Added agentic-workflow guardrails and disclosure duties", approvedBy: "A. Patel" },
+      { version: "v5", date: "Jun 2025", summary: "EU AI Act transparency alignment", approvedBy: "A. Patel" },
+    ] },
+  { id: "pl-dh", key: "POL-DH-002", name: "Data Handling Standard", category: "Data Protection", status: "Active", owner: "CDPO",
+    version: "v4", reviewCycleDays: 365, lastReviewed: "Jun 2025", nextReview: "Jun 2026", overdueDays: 43,
+    rules: [
+      { id: "pol-pii", name: "PII Detection & Redaction", clauseRef: "§2.1 Personal data", action: "Redact", violationsMtd: 1284, trend: "+12%" },
+      { id: "det-cust", name: "Sensitive Customer Data", clauseRef: "§2.3 Customer records", action: "Mask", violationsMtd: 512, trend: "+6%" },
+      { id: "pol-sens", name: "Sensitive Data Protection", clauseRef: "§2.4 Restricted classes", action: "Block", violationsMtd: 97, trend: "-3%" },
+      { id: "det-pci", name: "PCI / Card Data", clauseRef: "§2.5 Payment data", action: "Block", violationsMtd: 17, trend: "0%" },
+      { id: "det-phi", name: "PHI Detection", clauseRef: "§2.6 Health data", action: "Block", violationsMtd: 42, trend: "-8%" },
+    ],
+    controls: ["CTRL-SEC-022", "CTRL-PRV-012"], standards: ["GDPR Art.5", "ISO 42001 C.7.2"], initiativeIds: ["ai-001", "ai-002", "ai-003", "ai-004"], ackCoverage: 91,
+    versionHistory: [ { version: "v4", date: "Jun 2025", summary: "Gateway masking made mandatory for Confidential and above", approvedBy: "M. Novak" } ] },
+  { id: "pl-ho", key: "POL-HO-003", name: "Human Oversight Standard", category: "Human Oversight", status: "Active", owner: "CAIO",
+    version: "v3", reviewCycleDays: 365, lastReviewed: "Apr 2026", nextReview: "Apr 2027", overdueDays: 0,
+    rules: [ { id: "pol-hitl", name: "High-Risk Prompt Approval", clauseRef: "§4.1 HITL gates", action: "Route to review", violationsMtd: 68, trend: "+9%" } ],
+    controls: ["CTRL-AI-001"], standards: ["EU AI Act Art.14"], initiativeIds: ["ai-001", "ai-002"], ackCoverage: 94,
+    versionHistory: [ { version: "v3", date: "Apr 2026", summary: "Adverse-decision review duty extended to credit scope", approvedBy: "R. Torres" } ] },
+  { id: "pl-ven", key: "POL-VEN-004", name: "Approved AI Vendors", category: "Vendor Control", status: "Active", owner: "CIO",
+    version: "v2", reviewCycleDays: 180, lastReviewed: "May 2026", nextReview: "Nov 2026", overdueDays: 0,
+    rules: [ { id: "pol-model", name: "Approved Model Allowlist", clauseRef: "§2.2 Model routing", action: "Block", violationsMtd: 154, trend: "-11%" } ],
+    controls: ["CTRL-GRC-044"], standards: ["ISO 27001 A.15"], initiativeIds: ["ai-001", "ai-003"], ackCoverage: 78,
+    versionHistory: [ { version: "v2", date: "May 2026", summary: "Anthropic API approved for Confidential with masking", approvedBy: "CIO Office" } ] },
+  { id: "pl-fin", key: "POL-FIN-005", name: "AI FinOps Policy", category: "FinOps", status: "Active", owner: "CFO",
+    version: "v1", reviewCycleDays: 365, lastReviewed: "Jan 2026", nextReview: "Jan 2027", overdueDays: 0,
+    rules: [ { id: "pol-cost", name: "Cost & Token Guard", clauseRef: "§3.2 Spend limits", action: "Route to review", violationsMtd: 41, trend: "+4%" } ],
+    controls: ["CTRL-FIN-008"], standards: [], initiativeIds: ["ai-003"], ackCoverage: 71,
+    versionHistory: [ { version: "v1", date: "Jan 2026", summary: "Initial issue", approvedBy: "M. Reid" } ] },
+  { id: "pl-edu", key: "POL-EDU-006", name: "Employee Data Use", category: "Privacy", status: "Active", owner: "CDPO",
+    version: "v2", reviewCycleDays: 365, lastReviewed: "Jul 2025", nextReview: "Jul 2026", overdueDays: 12,
+    rules: [],
+    controls: ["CTRL-PRV-012"], standards: ["GDPR Art.88"], initiativeIds: ["ai-004"], ackCoverage: 66,
+    versionHistory: [ { version: "v2", date: "Jul 2025", summary: "Works-council consultation duties added", approvedBy: "M. Novak" } ] },
+  { id: "pl-hra", key: "POL-HRA-007", name: "High-Risk AI Policy", category: "Responsible AI", status: "Active", owner: "CGO",
+    version: "v3", reviewCycleDays: 180, lastReviewed: "Jun 2026", nextReview: "Dec 2026", overdueDays: 0,
+    rules: [],
+    controls: ["CTRL-AI-001", "CTRL-GRC-044"], standards: ["EU AI Act Art.6", "Annex III"], initiativeIds: ["ai-002"], ackCoverage: 89,
+    versionHistory: [ { version: "v3", date: "Jun 2026", summary: "Art.43 conformity assessment procedure adopted", approvedBy: "R. Torres" } ] },
+  { id: "pl-aut", key: "POL-AUT-008", name: "Automation Control Policy", category: "Process Control", status: "Active", owner: "CFO",
+    version: "v2", reviewCycleDays: 365, lastReviewed: "Mar 2026", nextReview: "Mar 2027", overdueDays: 0,
+    rules: [ { id: "det-code", name: "Source Code Guard", clauseRef: "§4.3 Code exfiltration", action: "Warn", violationsMtd: 388, trend: "-8%" } ],
+    controls: ["CTRL-FIN-008", "CTRL-AUD-019"], standards: ["SOX 404"], initiativeIds: ["ai-003"], ackCoverage: 84,
+    versionHistory: [ { version: "v2", date: "Mar 2026", summary: "Dual approval on AI journal postings", approvedBy: "E. Rossi" } ] },
 ];
 
 export const gatewayPolicies: GatewayPolicy[] = [
