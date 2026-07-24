@@ -89,8 +89,8 @@ export const AC_RBAC: Record<string, ACRoleAccess> = {
   cio:  { lens: "Delivery",   modules: ["dashboard", "initiatives", "pmo", "models", "approvals", "portfolio", "governance", "evidence", "gateway", "admin", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
   cdpo: { lens: "Privacy",    modules: ["dashboard", "initiatives", "governance", "evidence"], focus: "DPIAs, data classification and privacy evidence" },
   cgo:  { lens: "Compliance", modules: ["dashboard", "initiatives", "governance", "evidence", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
-  employee: { lens: "Operations", modules: ["dashboard"], focus: "Your governed AI activity" },
-  manager:  { lens: "Operations", modules: ["dashboard"], focus: "Team adoption and governed usage" },
+  employee: { lens: "Operations", modules: ["dashboard", "initiatives"], focus: "Your governed AI activity" },
+  manager:  { lens: "Operations", modules: ["dashboard", "initiatives"], focus: "Team adoption and governed usage" },
 };
 
 export const acInitiatives: ACInitiativeRecord[] = [

@@ -218,8 +218,8 @@ export const ROLES = {
   cio: {id:"cio", label:"CIO", title:"Chief Information Officer",name:"Marcus Reid",initials:"MR",frameworks:["ISO 27001","NIST CSF","GDPR","SOC 2"]},
   cdpo:{id:"cdpo",label:"CDPO",title:"Chief Data Privacy Officer",name:"Niamh Lynch",initials:"NL",frameworks:["GDPR","ISO 27701","CCPA/CPRA","ePrivacy"]},
   cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
-  employee:{id:"employee",label:"Employee",title:"Employee AI Workbench",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
-  manager:{id:"manager",label:"Manager",title:"Team AI Adoption Lead",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
+  employee:{id:"employee",label:"Employee",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
+  manager:{id:"manager",label:"Manager",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
 };
 export const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
 export const USER_PROFILES = {
@@ -264,6 +264,8 @@ export const NAV = [
   {id:"riskcenter",icon:"R", label:"Risk Center"},
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
+  {id:"myworkspace",icon:"H", label:"My AI Workspace"},
+  {id:"teamspace", icon:"T", label:"Team AI Workspace"},
   {id:"workbench", icon:"W", label:"AI Workbench"},
   {id:"myideas",   icon:"I", label:"My AI Ideas"},
   {id:"aiusage",   icon:"U", label:"My AI Dashboard"},
@@ -297,7 +299,10 @@ export const OWNER_SURFACE = {
 };
 
 export const EMPLOYEE_NAV_SECTIONS = [
-  {title:"AI Workbench", items:["workbench","myideas","aiusage"]},
+  {title:"My AI Workspace", items:["myworkspace","workbench","myideas"]},
+];
+export const MANAGER_NAV_SECTIONS = [
+  {title:"Team AI Workspace", items:["teamspace","aiusage","myideas"]},
 ];
 
 /* Mode 1 - Enterprise AI Central: portfolio-wide command views only.
@@ -1519,8 +1524,8 @@ export const LOGIN_PROFILES = [
   {id:"cio",label:"CIO",role:"cio",target:"home",accent:"#06B6D4",title:"CIO AI Portfolio Control",subtitle:"AI systems portfolio, implementation roadmap, platform controls, data readiness and enterprise adoption.",email:"marcus.chen@veriszone.ai",kpis:[["47","AI assets"],["12","Roadmap items"],["79%","Controls"]]},
   {id:"cdpo",label:"CDPO",role:"cdpo",target:"home",accent:"#14B8A6",title:"CDPO Privacy Oversight",subtitle:"DPIAs, GDPR Article 22, data processing controls, consent evidence and regulatory response readiness.",email:"elena.rossi@veriszone.ai",kpis:[["11","DPIAs"],["83%","GDPR"],["4","Deadlines"]]},
   {id:"cgo",label:"CGO",role:"cgo",target:"home",accent:"#F59E0B",title:"CGO Governance Office",subtitle:"Policy lifecycle, framework mapping, approvals, escalations and assurance reporting for leadership.",email:"rafael.torres@veriszone.ai",kpis:[["24","Policies"],["61%","ISO 42001 A"],["9","Reports"]]},
-  {id:"employee",label:"Employee",role:"employee",target:"workbench",accent:"#2BA88A",title:"Employee AI Workbench",subtitle:"One governed workbench for every AI interaction - approved models, enterprise knowledge and automatic compliance, faster than any public chat.",email:"jamie.park@veriszone.ai",kpis:[["84","Prompts governed"],["11.5h","Time saved"],["0","Data leaks"]]},
-  {id:"manager",label:"Manager",role:"manager",target:"aiusage",accent:"#0EA5E9",title:"Manager AI Adoption View",subtitle:"Team adoption, value and compliance without reading private prompts - aggregates only, by policy.",email:"riley.chen@veriszone.ai",kpis:[["64%","Team adoption"],["92%","Compliance"],["3","Blocked events"]]},
+  {id:"employee",label:"Employee",role:"employee",target:"myworkspace",accent:"#2BA88A",title:"My AI Workspace",subtitle:"One governed workbench for every AI interaction - approved models, enterprise knowledge and automatic compliance, faster than any public chat.",email:"jamie.park@veriszone.ai",kpis:[["84","Prompts governed"],["11.5h","Time saved"],["0","Data leaks"]]},
+  {id:"manager",label:"Manager",role:"manager",target:"teamspace",accent:"#0EA5E9",title:"Team AI Workspace",subtitle:"Team adoption, value and compliance without reading private prompts - aggregates only, by policy.",email:"riley.chen@veriszone.ai",kpis:[["64%","Team adoption"],["92%","Compliance"],["3","Blocked events"]]},
   {id:"aicentral",label:"AI Central",role:"caio",target:"aicentral",mode:"aicentral",accent:AI_GOLD,title:"AI Central Standalone",subtitle:"Dedicated command center for AI initiatives, guardrails, lifecycle workflow, CXO alignment and value tracking.",email:"ai.central@veriszone.ai",kpis:[["4","Initiatives"],["3","High risk"],["79%","Guardrails"]]}
 ];
 

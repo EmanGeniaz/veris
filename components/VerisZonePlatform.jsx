@@ -3,7 +3,7 @@
 import { Scale, Settings } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES } from "./platform/core";
+import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
 import dynamic from "next/dynamic";
@@ -27,6 +27,8 @@ const PageMaturityRadar=dynamic(()=>import("./platform/aicentral").then(m=>m.Pag
 const PageUseCases=dynamic(()=>import("./platform/aicentral").then(m=>m.PageUseCases),{ssr:false,loading:vzLoading});
 const PageIntegrations=dynamic(()=>import("./platform/aicentral").then(m=>m.PageIntegrations),{ssr:false,loading:vzLoading});
 const PageAICentral=dynamic(()=>import("./platform/aicentral").then(m=>m.PageAICentral),{ssr:false,loading:vzLoading});
+const PageMyWorkspace=dynamic(()=>import("./platform/workbench").then(m=>m.PageMyWorkspace),{ssr:false,loading:vzLoading});
+const PageTeamWorkspace=dynamic(()=>import("./platform/workbench").then(m=>m.PageTeamWorkspace),{ssr:false,loading:vzLoading});
 const PageWorkbench=dynamic(()=>import("./platform/workbench").then(m=>m.PageWorkbench),{ssr:false,loading:vzLoading});
 const PageMyIdeas=dynamic(()=>import("./platform/workbench").then(m=>m.PageMyIdeas),{ssr:false,loading:vzLoading});
 const PageAIUsage=dynamic(()=>import("./platform/workbench").then(m=>m.PageAIUsage),{ssr:false,loading:vzLoading});
@@ -110,7 +112,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isAICentral=tab==="aicentral";
   const acOnly=sessionMode==="aicentral";
   const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV].map(item=>[item.id,item]));
-  const roleNavSections=(role==="employee"||role==="manager")?EMPLOYEE_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
+  const roleNavSections=role==="employee"?EMPLOYEE_NAV_SECTIONS:role==="manager"?MANAGER_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
@@ -523,7 +525,7 @@ export default function VerisZone() {
 
   /* Switching role inside AI Central keeps the initiative open - only the
      executive perspective changes. Elsewhere it opens that role's home. */
-  const switchRole=r=>{setRole(r);setTab(r==="employee"||r==="manager"?"workbench":tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
+  const switchRole=r=>{setRole(r);setTab(r==="employee"?"myworkspace":r==="manager"?"teamspace":tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
     setTab("home");
@@ -689,6 +691,8 @@ export default function VerisZone() {
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {tab==="myworkspace"&&<PageMyWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}}/>}
+        {tab==="teamspace" &&<PageTeamWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&tab==="decisions" &&<PageDecisions role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}

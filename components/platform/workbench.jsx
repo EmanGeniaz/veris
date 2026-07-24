@@ -3,8 +3,8 @@
 import { readBus, pushBus } from "@/lib/bus";
 import { Library, Scale, Workflow } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { acInitiatives, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
-import { T, USER_PROFILES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS } from "./core";
+import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
+import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 
 export function wbInspectPrompt(text){
   if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
@@ -355,3 +355,223 @@ export function PageAIUsage({role,sessionMode}){
 /* ── Decisions: one queue for everything awaiting the executive ────
    Merges executive decisions, pending scale/retire gates and the HITL
    queue. One Decision surface - the HITL engine is embedded, not cloned. */
+
+/* ── V5: My AI Workspace ──────────────────────────────────────────
+   The employee's digital workplace. Work first, assistant second:
+   the page answers "what do I need to do today?" and every widget
+   navigates to the surface that owns the work. Assignments, training
+   and evidence requests derive from the initiative lifecycle - the
+   AI PMO creates them, nothing is manually tracked. */
+const EMPLOYEE_ASSIGNMENTS={
+  employee:[{initiativeId:"ai-001",myRole:"Agent champion - business user",deliverable:"Agent feedback pack for pilot cohort"}],
+  manager:[{initiativeId:"ai-001",myRole:"Adoption lead - Customer Operations",deliverable:"Adoption plan for 250-agent expansion"},
+           {initiativeId:"ai-004",myRole:"People manager sponsor",deliverable:"Team skills-profile review"}],
+};
+/* Initiative-driven learning: phase + role decide the curriculum. */
+const PHASE_TRAINING={
+  Governance:["Prompt Injection Defense","ISO 42001 Clause 8","Human Oversight in Practice","Threat Modeling for GenAI"],
+  Development:["Secure Prompt Engineering","Evaluation & Test Design"],
+  Pilot:["Responsible Rollout","Feedback Capture"],
+  Testing:["Evaluation & Test Design","Bias Testing Basics"],
+};
+const CERTIFICATIONS=[
+  {name:"Responsible AI Practitioner",expires:"Dec 2026",status:"Active"},
+  {name:"Data Handling Level 2",expires:"Aug 2026",status:"Expiring soon"},
+];
+export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,openInitiative}){
+  const P=USER_PROFILES[role]||{};
+  const R=ROLES[role]||ROLES.employee;
+  const assigns=(EMPLOYEE_ASSIGNMENTS[role]||EMPLOYEE_ASSIGNMENTS.employee).map(a=>({...a,ini:acInitiatives.find(i=>i.id===a.initiativeId)})).filter(a=>a.ini);
+  const primary=assigns[0];
+  const phaseName=i=>AC_PHASES[i.phaseIndex]?.name;
+  const training=[...new Set(assigns.flatMap(a=>PHASE_TRAINING[phaseName(a.ini)]||[]))].slice(0,4);
+  const pendingEvidence=assigns.filter(a=>a.ini.blockedBy).map(a=>({ini:a.ini,what:a.ini.blockedBy}));
+  const nextMilestone=a=>(acPmo[a.ini.id]?.milestones||[]).find(m=>m.status!=="Complete");
+  const tasks=[
+    ...pendingEvidence.map(p=>({what:`Upload evidence: ${p.what}`,src:`${p.ini.name} \u00b7 ${phaseName(p.ini)}`,go:()=>openInitiative&&openInitiative(p.ini.id),urgent:true})),
+    ...(primary?[{what:`Deliverable: ${primary.deliverable}`,src:`${primary.ini.name} \u00b7 due with ${nextMilestone(primary)?.name||"next milestone"}`,go:()=>openInitiative&&openInitiative(primary.ini.id)}]:[]),
+    {what:`Complete "${training[0]||"Responsible AI Use"}" training`,src:"Governance Academy \u00b7 assigned from your initiative phase",go:()=>setTab&&setTab("academy")},
+    {what:"Acknowledge Responsible GenAI Use policy v6",src:"Policy update \u00b7 requires acknowledgement",go:()=>{pushBus("vz-gw-evidence",{item:`Policy acknowledged: Responsible GenAI Use v6`,initiative:primary?primary.ini.name:"Employee Workspace",scope:"Policy",control:"Policy acknowledgement",risk:"Compliance",owner:P.name||R.name,status:"Complete",approval:"Recorded",version:"v6",time:"Just now"});showToast&&showToast("Policy acknowledged - recorded in your audit trail");}},
+  ];
+  const convos=demoConversations.slice(0,3);
+  const secHead=t=><div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:9}}>{t}</div>;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title={`Good day, ${(P.name||R.name||"there").split(" ")[0]}`} sub="My AI Workspace - what needs you today, with AI assisting your work through the Trust Gateway."/>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.5fr) minmax(0,1fr)",gap:14,alignItems:"start"}}>
+      <div style={{display:"grid",gap:14}}>
+        <div>
+          {secHead("Today's tasks")}
+          <div style={{display:"grid",gap:7}}>
+            {tasks.map((t2,i)=><button key={i} onClick={t2.go} style={{display:"flex",gap:10,alignItems:"center",background:t2.urgent?T.amberL:T.s2,border:`1px solid ${t2.urgent?T.amber+"45":T.border}`,borderRadius:9,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:t2.urgent?T.amber:T.green,flexShrink:0}}/>
+              <span style={{flex:1,minWidth:0}}>
+                <span style={{display:"block",fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t2.what}</span>
+                <span style={{display:"block",fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{t2.src}</span>
+              </span>
+              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900}}>\u2192</span>
+            </button>)}
+          </div>
+        </div>
+        <div>
+          {secHead("My AI initiatives")}
+          <div style={{display:"grid",gap:9}}>
+            {assigns.map(a=>{
+              const ms=nextMilestone(a);
+              const h=Math.round((a.ini.guardrail+a.ini.adoption+a.ini.valueScore)/3);
+              return <button key={a.initiativeId} onClick={()=>openInitiative&&openInitiative(a.ini.id)} style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"13px 15px",cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
+                  <span style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.ini.name}</span>
+                  <Tag label={`Phase ${a.ini.phaseIndex+1}/13 \u00b7 ${phaseName(a.ini)}`} color={T.blue} bg={T.blue+"14"}/>
+                </div>
+                <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:8}}>{a.ini.problem||a.ini.objective}</div>
+                <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:9.5,color:T.ink3,fontFamily:F.m}}>
+                  <span>My role: <strong style={{color:T.ink2}}>{a.myRole}</strong></span>
+                  <span>Owner: <strong style={{color:T.ink2}}>{a.ini.businessOwner}</strong></span>
+                  <span>Health: <strong style={{color:h>=75?T.green:T.amber}}>{h}</strong></span>
+                  <span>Governance: <strong style={{color:T.ink2}}>{a.ini.guardrail}%</strong></span>
+                  <span>Risk: <strong style={{color:a.ini.risk==="Critical"||a.ini.risk==="High"?T.red:T.ink2}}>{a.ini.risk}</strong></span>
+                  {ms&&<span>Next: <strong style={{color:T.ink2}}>{ms.name} \u00b7 {ms.due}</strong></span>}
+                </div>
+              </button>;
+            })}
+          </div>
+        </div>
+        <div>
+          {secHead("My conversations - enterprise knowledge")}
+          <div style={{display:"grid",gap:7}}>
+            {convos.map(c=><button key={c.id} onClick={()=>setTab&&setTab("workbench")} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 13px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{minWidth:0,flex:1}}>
+                <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.title}</span>
+                <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{c.project} \u00b7 {c.model} \u00b7 {c.classification} \u00b7 {c.lastActivity}</span>
+              </span>
+              <span style={{fontSize:9.5,color:AI_GOLD,fontWeight:900,fontFamily:F.b,flexShrink:0}}>Continue \u2192</span>
+            </button>)}
+          </div>
+        </div>
+      </div>
+      <div style={{display:"grid",gap:12,alignContent:"start"}}>
+        <Card style={{padding:15,border:`1px solid ${AI_GOLD}30`}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:9}}>
+            <span style={{width:8,height:8,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
+          </div>
+          <p style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>
+            {primary?`${primary.ini.name} is in ${phaseName(primary.ini)}${primary.ini.blockedBy?" and blocked on evidence - your upload is the fastest unblock":""}. Your "${training[0]||"Responsible AI Use"}" training was assigned because of this phase and your role.`:"No initiative assignments yet - your governed workbench is ready."}
+          </p>
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("My governance training")}
+          {training.map(t2=><div key={t2} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{t2}</span>
+            <button onClick={()=>setTab&&setTab("academy")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Start \u2192</button>
+          </div>)}
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}>Auto-assigned from {primary?`${primary.ini.name} \u00b7 ${phaseName(primary.ini)} phase \u00b7 your role`:"your role"}. No manual assignment.</div>
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("My certifications")}
+          {CERTIFICATIONS.map(c=><div key={c.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{c.name}</span>
+            <Tag label={`${c.status} \u00b7 ${c.expires}`} color={c.status==="Active"?T.green:T.amber} bg={(c.status==="Active"?T.green:T.amber)+"14"}/>
+          </div>)}
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("Recent activity")}
+          {[`${employeeUsageSeed.prompts} governed prompts \u00b7 ${employeeUsageSeed.timeSavedHrs}h saved`,`${employeeUsageSeed.blocked} prompts blocked by the Trust Gateway`,`Knowledge reuse ${employeeUsageSeed.knowledgeReuse}% \u00b7 learning ${employeeUsageSeed.learningProgress}%`].map((a,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>\u00b7 {a}</div>)}
+          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open my AI dashboard \u2192</button>
+        </Card>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── V5: Team AI Workspace (managers) ───────────────────────────── */
+export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,openInitiative}){
+  const P=USER_PROFILES[role]||{};
+  const assigns=(EMPLOYEE_ASSIGNMENTS.manager).map(a=>({...a,ini:acInitiatives.find(i=>i.id===a.initiativeId)})).filter(a=>a.ini);
+  const team=[
+    {name:"Jamie Park",role:"Agent champion",training:82,certs:"2 active",evidence:1,ready:true},
+    {name:"Sam Osei",role:"Senior agent",training:64,certs:"1 active",evidence:0,ready:true},
+    {name:"Lena Fischer",role:"Team coach",training:41,certs:"1 expiring",evidence:2,ready:false},
+    {name:"Marco Silva",role:"Quality analyst",training:23,certs:"none",evidence:0,ready:false},
+  ];
+  const avgTraining=Math.round(team.reduce((a,m)=>a+m.training,0)/team.length);
+  const pendingEvidence=team.reduce((a,m)=>a+m.evidence,0);
+  const overdue=team.filter(m=>m.training<50);
+  const secHead=t=><div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:9}}>{t}</div>;
+  const act=(what,detail)=>{
+    pushBus("vz-gw-evidence",{item:what,initiative:assigns[0]?.ini.name||"Team",scope:"Team",control:"Manager action",risk:"Readiness",owner:P.name||"Manager",status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
+    showToast&&showToast(detail);
+  };
+  const readinessReport=()=>{
+    const L=["# Team AI Readiness Report","",`Average training completion: ${avgTraining}%`,`Pending evidence uploads: ${pendingEvidence}`,`Members below 50% training: ${overdue.map(m=>m.name).join(", ")||"none"}`,"",
+      "## Team",...team.map(m=>`- ${m.name} (${m.role}): training ${m.training}%, certifications ${m.certs}, pending evidence ${m.evidence}`),"",
+      "## Initiatives",...assigns.map(a=>`- ${a.ini.name}: phase ${a.ini.phaseIndex+1}/13, adoption ${a.ini.adoption}%, ${a.ini.blockedBy?"BLOCKED: "+a.ini.blockedBy:"no blockers"}`)];
+    vzDownload("team-readiness-report.md",L.join("\n"));
+    act("Team readiness report generated","Readiness report downloaded - recorded in the audit trail");
+  };
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Team AI Workspace" sub="Team readiness, governed adoption and capacity - aggregates only, private prompts stay private by policy."/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+      {[["Team readiness",`${avgTraining}%`,avgTraining>=70?T.green:T.amber,()=>setTab&&setTab("academy")],
+        ["Pending evidence",pendingEvidence,pendingEvidence?T.amber:T.green,()=>assigns[0]&&openInitiative&&openInitiative(assigns[0].ini.id)],
+        ["Overdue training",overdue.length,overdue.length?T.red:T.green,()=>setTab&&setTab("academy")],
+        ["Open team risks","2",T.amber,()=>setTab&&setTab("riskcenter")]].map(([l,v,c,go])=><Card key={l} onClick={go} style={{padding:"13px 14px",cursor:"pointer"}}>
+        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:22,fontWeight:800,fontFamily:F.m,color:c}}>{v}</div>
+      </Card>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.5fr) minmax(0,1fr)",gap:14,alignItems:"start"}}>
+      <div style={{display:"grid",gap:14}}>
+        <Card style={{padding:16}}>
+          {secHead("Team readiness")}
+          <div style={{display:"grid",gap:9}}>
+            {team.map(m=><div key={m.name} style={{display:"grid",gridTemplateColumns:"1.2fr 1.6fr auto",gap:12,alignItems:"center"}}>
+              <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{m.role} \u00b7 {m.certs}{m.evidence?` \u00b7 ${m.evidence} evidence pending`:""}</div></div>
+              <div><Bar value={m.training} color={m.training>=70?T.green:m.training>=45?T.amber:T.red}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:3}}>training {m.training}%</div></div>
+              {m.ready?<Tag label="Ready" color={T.green} bg={T.greenL}/>:<button onClick={()=>act(`Learning path assigned to ${m.name}`,`Learning path assigned to ${m.name} - completion will lift team readiness`)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Assign learning</button>}
+            </div>)}
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
+            <button onClick={()=>act("Overdue training escalated","Overdue training escalated to the members and their initiative owners")} style={{background:T.amber+"16",border:`1px solid ${T.amber}45`,borderRadius:7,padding:"7px 12px",color:T.amber,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Escalate overdue training</button>
+            <button onClick={readinessReport} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 12px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Generate readiness report \u2193</button>
+          </div>
+        </Card>
+        <div>
+          {secHead("Current initiatives")}
+          <div style={{display:"grid",gap:9}}>
+            {assigns.map(a=><button key={a.initiativeId} onClick={()=>openInitiative&&openInitiative(a.ini.id)} style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"12px 15px",cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",marginBottom:4,flexWrap:"wrap"}}>
+                <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.ini.name}</span>
+                <Tag label={`Adoption ${a.ini.adoption}%`} color={a.ini.adoption>=60?T.green:T.amber} bg={(a.ini.adoption>=60?T.green:T.amber)+"14"}/>
+              </div>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{a.myRole} \u00b7 phase {a.ini.phaseIndex+1}/13{a.ini.blockedBy?` \u00b7 blocked: ${a.ini.blockedBy}`:""}</div>
+            </button>)}
+          </div>
+        </div>
+      </div>
+      <div style={{display:"grid",gap:12,alignContent:"start"}}>
+        <Card style={{padding:15,border:`1px solid ${AI_GOLD}30`}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:9}}>
+            <span style={{width:8,height:8,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.h,color:T.ink}}>Veris Intelligence</span>
+          </div>
+          <p style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>Team readiness is {avgTraining}%. {overdue.length?`${overdue.map(m=>m.name.split(" ")[0]).join(" and ")} are below 50% training - assigning the governance path now protects the ${assigns[0]?.ini.name} expansion.`:"All members are on track."} Policy compliance is aggregate-only: private prompts stay private.</p>
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("Capacity")}
+          {(acPmo[assigns[0]?.initiativeId]?.resources||[]).map(r=><div key={r.role} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role}</div></div>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
+          </div>)}
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("Policy compliance")}
+          {[["Compliance rate","92%",T.green],["Blocked events","3",T.amber],["Gateway coverage","100%",T.green]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{l}</span><span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:c}}>{v}</span>
+          </div>)}
+          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open team dashboard \u2192</button>
+        </Card>
+      </div>
+    </div>
+  </div>;
+}
