@@ -1,8 +1,10 @@
 "use client";
 
+import { pushBus } from "@/lib/bus";
+
 import { Activity, Cloud, Library, Map, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AC_FRAMEWORK_POSTURE, knowledgeAssets } from "@/lib/platform-models";
+import { AC_FRAMEWORK_POSTURE, knowledgeAssets , POLICY_REGISTER, acInitiatives} from "@/lib/platform-models";
 import { T, RC, RCL, ROLES, AI_GOLD, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -71,11 +73,11 @@ export function CompliancePosture({role,setTab,setAiCentralView}) {
    template, checklist and trust artifact. One control, many frameworks -
    owned here, referenced everywhere else. */
 export function PageComplianceStandards({role,tab,setTab,setAiCentralView,showToast}){
-  const LEGACY={compliance:"posture",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",controls:"controls",trustcenter:"trust",knowledge:"search"};
+  const LEGACY={compliance:"posture",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",controls:"controls",policies:"policies",trustcenter:"trust",knowledge:"search"};
   const FW_LEGACY={impl:"impl",iso27001:"iso27001",scope:"scope",gapanalysis:"gap",aigov:"cube"};
   const [cTab,setCTab]=useState(LEGACY[tab]||"posture");
   const [fw,setFw]=useState(FW_LEGACY[tab]||"impl");
-  const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["trust","Trust Center"]];
+  const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["policies","Policies"],["trust","Trust Center"]];
   const FWS=[["impl","ISO 42001 Implementation"],["iso27001","ISO 27001 Workspace"],["scope","ISMS Scope"],["gap","Gap Analysis"],["cube","Framework Compare"]];
   const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
   return <div style={{animation:"up .3s ease"}}>
@@ -95,6 +97,7 @@ export function PageComplianceStandards({role,tab,setTab,setAiCentralView,showTo
       {fw==="cube"&&<PageAIGovCube role={role} setTab={setTab}/>}
     </div>}
     {cTab==="controls"&&<PageCommonControls role={role}/>}
+    {cTab==="policies"&&<PagePolicies role={role} setTab={setTab} showToast={showToast}/>}
     {cTab==="trust"&&<PageTrustCenter role={role} showToast={showToast}/>}
   </div>;
 }
@@ -1241,4 +1244,88 @@ export function PageKnowledge({role,setTab,showToast}){
   </div>;
 }
 
-
+/* ── Policy register: the governed documents behind the gateway's runtime
+   rules. Answers "which policies have overdue reviews?" at a glance and
+   drills from any policy into its rules, mappings and version history. ── */
+export function PagePolicies({role,setTab,showToast}){
+  const [sel,setSel]=useState(null);
+  const [q,setQ]=useState("");
+  const [cat,setCat]=useState("All");
+  const cats=["All",...new Set(POLICY_REGISTER.map(p=>p.category))];
+  const list=POLICY_REGISTER.filter(p=>(cat==="All"||p.category===cat)&&(!q.trim()||`${p.key} ${p.name} ${p.owner}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const overdue=list.filter(p=>p.overdueDays>0).sort((a,b)=>b.overdueDays-a.overdueDays);
+  const onSchedule=list.filter(p=>p.overdueDays===0);
+  const iniName=id=>acInitiatives.find(i=>i.id===id)?.name||id;
+  const startReview=p=>{
+    pushBus("vz-gw-evidence",{item:`Policy review started: ${p.key} ${p.name}`,initiative:"Enterprise",scope:"Organization",control:"Policy review cycle",risk:"Governance",owner:ROLES[role]?.label||"CAIO",status:"In Progress",approval:"Queued in Decision Workspace",version:p.version,time:"Just now"});
+    showToast&&showToast(`Review of ${p.key} started - queued in the Decision Workspace`);
+  };
+  const row=p=><button key={p.id} onClick={()=>setSel(sel?.id===p.id?null:p)} style={{width:"100%",textAlign:"left",background:sel?.id===p.id?T.s3:"transparent",border:"none",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${p.overdueDays>0?T.amber:sel?.id===p.id?T.blue:"transparent"}`,padding:"12px 14px",cursor:"pointer"}}>
+    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <span style={{fontSize:10,fontFamily:F.m,fontWeight:900,color:T.ink4}}>{p.key}</span>
+      <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{p.name}</span>
+      <Tag label={p.version} color={T.blue} bg={T.blue+"14"}/>
+      <Tag label={p.status} color={T.green} bg={T.greenL}/>
+      {p.overdueDays>0&&<Tag label={`Review overdue ${p.overdueDays}d`} color={T.amber} bg={T.amberL}/>}
+      <span style={{marginLeft:"auto",fontSize:9.5,color:T.ink4,fontFamily:F.m}}>{p.rules.reduce((a,r)=>a+r.violationsMtd,0)} viol/mtd</span>
+    </div>
+    <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:4}}>
+      {p.category} · owner {p.owner} · next review {p.nextReview} · {p.rules.length} runtime rule{p.rules.length===1?"":"s"} · ack {p.ackCoverage}%
+    </div>
+  </button>;
+  return <div style={{animation:"up .3s ease"}}>
+    <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search policies..." style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none",width:220}}/>
+      {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{background:cat===c?T.blue+"18":T.s2,border:`1px solid ${cat===c?T.blue+"45":T.border}`,borderRadius:999,padding:"5px 12px",color:cat===c?T.blue:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{c}</button>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:sel?"minmax(0,1.2fr) minmax(300px,.8fr)":"1fr",gap:14,alignItems:"start"}}>
+      <div>
+        {overdue.length>0&&<Card style={{padding:0,overflow:"hidden",marginBottom:12,border:`1px solid ${T.amber}45`}}>
+          <div style={{padding:"10px 14px",background:T.amberL,display:"flex",gap:8,alignItems:"center"}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/>
+            <span style={{fontSize:11,fontWeight:900,color:T.amber,fontFamily:F.b}}>Overdue reviews ({overdue.length})</span>
+            <span style={{fontSize:9.5,color:T.ink3,fontFamily:F.b}}>· escalated to the owner's cockpit and the Decision Workspace</span>
+          </div>
+          {overdue.map(row)}
+        </Card>}
+        <Card style={{padding:0,overflow:"hidden"}}>
+          <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <h3 style={{margin:0,fontSize:14,color:T.ink,fontWeight:800,fontFamily:F.h}}>Policy register</h3>
+            <Tag label={`${list.length} policies`} color={T.ink3}/>
+          </div>
+          {onSchedule.map(row)}
+        </Card>
+      </div>
+      {sel&&<Card style={{padding:16,position:"sticky",top:70,animation:"fade .25s ease"}}>
+        <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}>
+          <Tag label={sel.key} color={T.ink3}/>
+          <Tag label={sel.version} color={T.blue} bg={T.blue+"14"}/>
+          {sel.overdueDays>0?<Tag label={`Overdue ${sel.overdueDays}d`} color={T.amber} bg={T.amberL}/>:<Tag label={`Review ${sel.nextReview}`} color={T.green} bg={T.greenL}/>}
+        </div>
+        <h3 style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.h,margin:"0 0 4px"}}>{sel.name}</h3>
+        <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginBottom:12}}>{sel.category} · owner {sel.owner} · cycle {sel.reviewCycleDays}d · last reviewed {sel.lastReviewed}</div>
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:7}}>Runtime rules</div>
+        {sel.rules.length===0&&<div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:10}}>Procedural policy - no gateway rules. Enforced through reviews, approvals and training.</div>}
+        {sel.rules.map(r=><div key={r.id} style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{minWidth:0}}>
+            <span style={{display:"block",fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b}}>{r.name}</span>
+            <span style={{display:"block",fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{r.clauseRef} · {r.action}</span>
+          </span>
+          <span style={{fontSize:10,fontFamily:F.m,fontWeight:800,color:r.trend.startsWith("+")?T.amber:T.green,flexShrink:0}}>{r.violationsMtd} <span style={{color:T.ink4}}>({r.trend})</span></span>
+        </div>)}
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",margin:"12px 0 7px"}}>Mappings</div>
+        <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.7}}>
+          Controls: {sel.controls.join(", ")||"none"}<br/>
+          Standards: {sel.standards.join(", ")||"none"}<br/>
+          Initiatives: {sel.initiativeIds.map(iniName).join(", ")||"none"}
+        </div>
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",margin:"12px 0 7px"}}>Version history</div>
+        {sel.versionHistory.map(v=><div key={v.version} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:4}}><strong style={{color:T.ink2}}>{v.version}</strong> · {v.date} · {v.summary} · approved by {v.approvedBy}</div>)}
+        <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
+          <button onClick={()=>startReview(sel)} style={{background:T.amber+"16",border:`1px solid ${T.amber}45`,borderRadius:7,padding:"8px 13px",color:T.amber,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Start review</button>
+          <button onClick={()=>{setTab&&setTab("evidence");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px 13px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open document in Trust & Evidence</button>
+        </div>
+      </Card>}
+    </div>
+  </div>;
+}

@@ -113,6 +113,37 @@ export type ACPmoRecord = {
   sprint: { name: string; dates: string; goal: string; committed: number; done: number };
 };
 
+
+/* Policy lifecycle - Phase 1 of the policy engine. Policies are governed
+   documents; RuntimeRules are their enforceable clauses at the AI Gateway. */
+export type PolicyRuleRef = {
+  id: string;            // gateway policy or detector id
+  name: string;
+  clauseRef: string;
+  action: string;        // Block | Redact | Warn | Route to review | ...
+  violationsMtd: number;
+  trend: string;         // "+12%" vs prior 30 days
+};
+export type PolicyRecord = {
+  id: string;
+  key: string;           // POL-RAI-001
+  name: string;
+  category: string;
+  status: "Active" | "Draft" | "Suspended" | "Retired";
+  owner: string;
+  version: string;
+  reviewCycleDays: number;
+  lastReviewed: string;
+  nextReview: string;
+  overdueDays: number;   // 0 = on schedule
+  rules: PolicyRuleRef[];
+  controls: string[];
+  standards: string[];
+  initiativeIds: string[];
+  ackCoverage: number;   // % of assigned users on current version
+  versionHistory: { version: string; date: string; summary: string; approvedBy: string }[];
+};
+
 export type GatewayProviderStatus = "Approved" | "Restricted" | "Blocked";
 
 export type GatewayProvider = {

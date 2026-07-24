@@ -190,3 +190,109 @@ model AuditLog {
   hash      String
   createdAt DateTime @default(now())
 }
+
+/* ── Policy lifecycle & runtime enforcement (guarded like every store) ── */
+
+model Policy {
+  id              String    @id @default(cuid())
+  tenantId        String
+  key             String
+  name            String
+  category        String
+  status          String    @default("Active")
+  ownerRole       String
+  reviewCycleDays Int       @default(365)
+  lastReviewedAt  DateTime?
+  nextReviewAt    DateTime?
+  currentVersion  String    @default("v1")
+  versions        PolicyVersion[]
+  rules           RuntimeRule[]
+  reviews         PolicyReview[]
+  @@unique([tenantId, key])
+  @@index([tenantId, nextReviewAt])
+}
+
+model PolicyVersion {
+  id          String    @id @default(cuid())
+  policyId    String
+  version     String
+  summary     String
+  documentRef String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  effectiveAt DateTime?
+  policy      Policy    @relation(fields: [policyId], references: [id])
+  acks        PolicyAcknowledgement[]
+}
+
+model RuntimeRule {
+  id         String  @id @default(cuid())
+  tenantId   String
+  policyId   String
+  clauseRef  String?
+  name       String
+  detector   String
+  action     String
+  scope      String  @default("global")
+  severity   Int     @default(2)
+  status     String  @default("Active")
+  policy     Policy  @relation(fields: [policyId], references: [id])
+  violations Violation[]
+  @@index([tenantId, status])
+}
+
+model Violation {
+  id             String   @id @default(cuid())
+  tenantId       String
+  ruleId         String
+  policyId       String
+  occurredAt     DateTime @default(now())
+  actorUserId    String?
+  initiativeId   String?
+  conversationId String?
+  model          String?
+  classification String?
+  action         String
+  severity       Int      @default(2)
+  disposition    String   @default("Enforced")
+  evidenceId     String?
+  auditSeq       Int?
+  rule           RuntimeRule @relation(fields: [ruleId], references: [id])
+  @@index([tenantId, ruleId, occurredAt])
+  @@index([tenantId, initiativeId, occurredAt])
+}
+
+model PolicyReview {
+  id          String    @id @default(cuid())
+  policyId    String
+  dueAt       DateTime
+  completedAt DateTime?
+  reviewer    String?
+  outcome     String?
+  decisionId  String?
+  policy      Policy    @relation(fields: [policyId], references: [id])
+  @@index([policyId, dueAt])
+}
+
+model PolicyAcknowledgement {
+  id        String        @id @default(cuid())
+  versionId String
+  userId    String
+  at        DateTime      @default(now())
+  via       String        @default("task")
+  version   PolicyVersion @relation(fields: [versionId], references: [id])
+  @@unique([versionId, userId])
+}
+
+model PolicyException {
+  id            String   @id @default(cuid())
+  tenantId      String
+  policyId      String
+  ruleId        String?
+  scope         String
+  justification String
+  decisionId    String?
+  expiresAt     DateTime
+  status        String   @default("Active")
+  @@index([tenantId, expiresAt])
+}

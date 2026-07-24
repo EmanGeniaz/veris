@@ -644,7 +644,7 @@ export default function VerisZone() {
                 ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} \u00b7 ${i.lifecycle}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}})),
                 ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} \u00b7 ${m.vendor}`,go:()=>{setAiCentralView("models");setTab("aicentral");}})),
                 ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} \u00b7 ${r.system}`,go:()=>setTab("riskcenter")})),
-                ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Compliance & Standards",go:()=>setTab("compliance")})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Policy register",go:()=>setTab("policies")})),
                 ...[...new Set(acInitiatives.flatMap(i=>i.controls))].map(c=>({type:"Control",label:c,sub:"Control Library",go:()=>setTab("controls")})),
                 ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} \u00b7 ${i.name}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}}))),
                 ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>setTab("knowledge")})),
@@ -680,7 +680,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
         {showSeededData&&["playbook","templates","checklists"].includes(tab)&&<PagePlaybook key={tab} tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="academy"   &&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
-        {showSeededData&&["compliance","impl","iso27001","scope","controls","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&["compliance","impl","iso27001","scope","controls","policies","trustcenter","gapanalysis","aigov","knowledge"].includes(tab)&&<PageComplianceStandards key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="aicentral"  &&<PageAICentral role={role} setTab={setTab} showToast={showToast} view={aiCentralView} setView={setAiCentralView} navNonce={acNavNonce} initToOpen={initToOpen} onInitOpened={()=>setInitToOpen(null)} theme={theme} sessionMode={sessionMode}/>}
         {showSeededData&&tab==="hitl"       &&<PageHITL       role={role} showToast={showToast} onCountChange={setHitlCount}/>}
         {showSeededData&&["riskcenter","aira","airt","aia","aiia"].includes(tab)&&<PageRiskCenter key={tab} role={role} tab={tab} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}

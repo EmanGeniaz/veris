@@ -3,7 +3,7 @@
 import { readBus, pushBus } from "@/lib/bus";
 import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister } from "@/lib/platform-models";
+import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade } from "./riskcenter";
@@ -1958,6 +1958,35 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       <Metric label="Blocked" value={gatewayStats.blockedMtd} sub="Policy enforcement actions" color={T.red}/>
       <Metric label="Avg prompt risk" value={gatewayStats.avgRiskScore} sub="0-100 risk scoring" color={T.teal} score={gatewayStats.avgRiskScore}/>
     </div>
+    {(()=>{
+      /* Runtime rules ranked by violations - each rule traces to its policy;
+         live guardrail events from the workbench appear at the top. */
+      const live=readBus("vz-violations").slice(0,5);
+      const ranked=POLICY_REGISTER.flatMap(p=>p.rules.map(r=>({...r,policy:p})))
+        .sort((a,b)=>b.violationsMtd-a.violationsMtd).slice(0,7);
+      return <Card style={{padding:0,overflow:"hidden",marginBottom:14}}>
+        <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <h3 style={{margin:0,fontSize:14,color:T.ink,fontWeight:800,fontFamily:F.h}}>Runtime rules by violations - last 30 days</h3>
+          <button onClick={()=>setTab&&setTab("policies")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Policy register →</button>
+        </div>
+        {ranked.map((r,i)=><div key={r.id+r.policy.id} style={{display:"grid",gridTemplateColumns:"22px minmax(0,1.5fr) 1fr 96px 80px",gap:10,alignItems:"center",padding:"10px 16px",borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:11,fontFamily:F.m,fontWeight:900,color:T.ink4}}>{i+1}</span>
+          <span style={{minWidth:0}}>
+            <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b}}>{r.name}</span>
+            <button onClick={()=>setTab&&setTab("policies")} style={{background:"transparent",border:"none",padding:0,fontSize:8.5,color:AI_GOLD,fontFamily:F.m,cursor:"pointer"}}>{r.policy.key} {r.policy.name} · {r.clauseRef}</button>
+          </span>
+          <Tag label={r.action} color={r.action==="Block"?T.red:r.action==="Redact"||r.action==="Mask"?T.amber:T.blue} bg={(r.action==="Block"?T.red:r.action==="Redact"||r.action==="Mask"?T.amber:T.blue)+"14"}/>
+          <span style={{fontSize:13,fontFamily:F.m,fontWeight:900,color:T.ink,textAlign:"right"}}>{r.violationsMtd}</span>
+          <span style={{fontSize:10,fontFamily:F.m,fontWeight:800,color:r.trend.startsWith("+")?T.amber:T.green,textAlign:"right"}}>{r.trend}</span>
+        </div>)}
+        {live.length>0&&<div style={{padding:"10px 16px",background:T.s1}}>
+          <div style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Live events - this session</div>
+          {live.map((v,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>
+            <span style={{color:v.action==="Blocked"?T.red:T.amber,fontWeight:800}}>{v.action}</span> · {v.rule} · {v.policy} · {v.model||"gateway"} · {v.time}
+          </div>)}
+        </div>}
+      </Card>;
+    })()}
     <div style={{background:AI_GOLD_L,border:`1px solid ${AI_GOLD}35`,borderRadius:10,padding:"11px 14px",marginBottom:14,fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>
       <strong style={{color:AI_GOLD}}>AI Gateway is the enterprise control plane.</strong> Every AI interaction passes through it - prompt filtering, PII detection, policy enforcement, model routing and cost control. Employee Workspace consumes the Gateway; it never bypasses it.
     </div>
