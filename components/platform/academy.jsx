@@ -4,8 +4,83 @@ import { CheckCircle2, PlayCircle } from "lucide-react";
 import { acInitiatives, acCxoAlignment } from "@/lib/platform-models";
 import { T, RC, ROLES, AI_GOLD, GOVERNANCE_ACADEMY, ROLE_LEARNING_PATHS, academyEvidenceFor, F, Tag, Bar, Card, SHead } from "./core";
 
+/* Employee learner hub - the Academy as a personal learning experience.
+   Curriculum and certifications derive from role, initiative and phase;
+   managers' assignments appear alongside. */
+function EmployeeLearnerHub({role,seeded,showToast,setTab}){
+  const R=ROLES[role]||ROLES.employee;
+  const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
+  const path=pathIds.map(id=>GOVERNANCE_ACADEMY.find(v=>v.id===id)).filter(Boolean);
+  const progress=seeded?68:0;
+  const mandatory=["Prompt Injection Defense","ISO 42001 Clause 8","Human Oversight in Practice","Responsible GenAI Use v6"];
+  const recommended=["Threat Modeling for GenAI","Effective Prompt Engineering","Evaluating AI Outputs"];
+  const managerAssigned=[{name:"Customer conversation quality with AI",by:"Riley Chen",due:"Aug 08"}];
+  const certs=[["Responsible AI Practitioner","Active · Dec 2026",T.green],["Data Handling Level 2","Expiring · Aug 2026",T.amber]];
+  const sims=[["Prompt-injection fire drill","Simulation · 20 min"],["Adverse decision escalation","Simulation · 15 min"],["Spot the data leak","Challenge · weekly"],["Governed prompt golf","Challenge · leaderboard"]];
+  const history=[["Responsible AI Foundations","Completed · Jun 2026"],["Data Handling Level 2","Completed · Feb 2026"],["Secure Prompting Basics","Completed · May 2026"]];
+  const start=n=>showToast&&showToast(`"${n}" started - completion becomes governance evidence`);
+  const secHead=t=><div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:9}}>{t}</div>;
+  const row=(n,d,action)=><div key={n} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
+    <span style={{minWidth:0,flex:1}}>
+      <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b}}>{n}</span>
+      {d&&<span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:1}}>{d}</span>}
+    </span>
+    {action}
+  </div>;
+  const startBtn=n=><button onClick={()=>start(n)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Start</button>;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="Governance Academy" sub="Your learning hub - courses, certifications, simulations and challenges. Completions become governance evidence automatically."/>
+    <Card style={{padding:16,marginBottom:14,border:`1px solid ${AI_GOLD}30`}}>
+      <div style={{display:"flex",justifyContent:"space-between",gap:14,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{flex:1,minWidth:220}}>
+          <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.h,marginBottom:7}}>My learning path</div>
+          <Bar value={progress} color={AI_GOLD}/>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>{progress}% complete · assigned from your role, initiative and current lifecycle phase</div>
+        </div>
+        <div style={{display:"flex",gap:14}}>
+          {certs.map(([n,st,c])=><div key={n}>
+            <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>Certification</div>
+            <div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{n}</div>
+            <div style={{fontSize:9.5,color:c,fontFamily:F.m,fontWeight:800,marginTop:2}}>{st}</div>
+          </div>)}
+        </div>
+      </div>
+    </Card>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12}}>
+      <Card style={{padding:15}}>
+        {secHead("Mandatory courses")}
+        {mandatory.map(n=>row(n,"Required by your initiative's current phase",startBtn(n)))}
+      </Card>
+      <Card style={{padding:15}}>
+        {secHead("Recommended for you")}
+        {recommended.map(n=>row(n,"Based on your role and recent AI activity",startBtn(n)))}
+      </Card>
+      <Card style={{padding:15}}>
+        {secHead("Manager-assigned training")}
+        {managerAssigned.map(m=>row(m.name,`Assigned by ${m.by} · due ${m.due}`,startBtn(m.name)))}
+        {secHead&&<div style={{marginTop:14}}>{secHead("Company policies")}</div>}
+        {["Responsible GenAI Use v6","Data Handling Standard","Human Oversight Standard"].map(n=>row(n,"Policy learning · acknowledgement tracked",startBtn(n)))}
+      </Card>
+      <Card style={{padding:15}}>
+        {secHead("Simulations & challenges")}
+        {sims.map(([n,d])=>row(n,d,startBtn(n)))}
+      </Card>
+      <Card style={{padding:15}}>
+        {secHead("Learning history")}
+        {history.map(([n,d])=>row(n,d,<Tag label="\u2713" color={T.green} bg={T.greenL}/>))}
+      </Card>
+      <Card style={{padding:15}}>
+        {secHead("Role curriculum")}
+        {path.slice(0,5).map(v=>row(v.title,v.duration||v.level||"Module",startBtn(v.title)))}
+      </Card>
+    </div>
+  </div>;
+}
+
 export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
   const rc=RC(role), R=ROLES[role]||ROLES.caio;
+  const seededHub=sessionMode==="demo";
+  if(role==="employee")return <EmployeeLearnerHub role={role} seeded={seededHub} showToast={showToast} setTab={setTab}/>;
   const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
   const path=pathIds.map(id=>GOVERNANCE_ACADEMY.find(v=>v.id===id)).filter(Boolean);
   const seeded=sessionMode==="demo";

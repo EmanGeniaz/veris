@@ -76,7 +76,7 @@ const { chromium } = require('playwright');
 
   // ── Employee: workbench send, mask, block + idea submit ──
   await page.locator('button', { hasText: /^Employee$/ }).first().click(); await page.waitForTimeout(1200);
-  await page.locator('nav button', { hasText: 'AI Workbench' }).first().click(); await page.waitForTimeout(1000);
+  await page.locator('nav button', { hasText: 'AI Assistant' }).first().click(); await page.waitForTimeout(1000);
   const composer = () => page.locator('input[placeholder*="through the Gateway"]').first();
   await test('Workbench normal prompt gets reply', async () => {
     await composer().fill('Summarize our AI governance posture');
@@ -94,7 +94,8 @@ const { chromium } = require('playwright');
     if (!(await body()).match(/blocked/i)) throw new Error('not blocked');
   });
   await test('Submit AI idea (create + list)', async () => {
-    await page.locator('nav button', { hasText: 'My AI Ideas' }).first().click(); await page.waitForTimeout(900);
+    await page.locator('nav button', { hasText: 'My Workspace' }).first().click(); await page.waitForTimeout(900);
+    await page.locator('button:has-text("Submit new idea")').first().click(); await page.waitForTimeout(900);
     await page.locator('button:has-text("Submit"), button:has-text("New idea"), button:has-text("Submit new idea")').first().click(); await page.waitForTimeout(500);
     const vis = page.locator('input:visible:not([aria-label="Universal search"]), textarea:visible');
     await vis.first().fill('Feature Test Idea - auto triage');
