@@ -38,6 +38,12 @@ export function PageWorkbench({role,sessionMode,showToast}){
   const [hydrated,setHydrated]=useState(false);
   const [selId,setSelId]=useState(seeded?demoConversations[0].id:null);
   const [input,setInput]=useState("");
+  const [convoQ,setConvoQ]=useState("");
+  const [pinned,setPinned]=useState(()=>{try{return JSON.parse(localStorage.getItem("vz-wb-pinned")||"[]");}catch{return [];}});
+  const [archived,setArchived]=useState(()=>{try{return JSON.parse(localStorage.getItem("vz-wb-archived")||"[]");}catch{return [];}});
+  useEffect(()=>{try{localStorage.setItem("vz-wb-pinned",JSON.stringify(pinned));localStorage.setItem("vz-wb-archived",JSON.stringify(archived));}catch{}},[pinned,archived]);
+  const togglePin=id=>setPinned(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  const toggleArchive=id=>setArchived(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
   const [phase,setPhase]=useState(null); /* {convId, stageIdx} while the gateway "works" */
   const [typed,setTyped]=useState(null); /* {convId, text} during the streaming reveal */
   const timers=useRef([]);
@@ -124,24 +130,37 @@ export function PageWorkbench({role,sessionMode,showToast}){
   const gaColor=a=>a==="Blocked"?T.red:a==="Masked"?T.amber:a==="Justification required"?T.blue:T.green;
   const clsColor=c=>c==="Restricted"?T.red:c==="Confidential"?T.amber:T.blue;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Workbench" sub={`Every interaction is governed by the Enterprise AI Gateway - ${unit} routes to ${provider.name}. Enterprise knowledge enriches every prompt; sensitive data never leaves the boundary.`}/>
+    <SHead title="AI Assistant" sub="Your personal AI workspace - VerisZone silently secures every conversation through the AI Gateway."/>
     <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
-      {/* Conversations */}
+      {/* Conversations - searchable, pinned and grouped like a personal assistant */}
       <Card style={{padding:0,overflow:"hidden"}}>
-        <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <h3 style={{margin:0,fontSize:13,color:T.ink,fontWeight:800,fontFamily:F.h}}>Conversations</h3>
-          <button onClick={()=>{setSelId(null);setInput("");}} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>New</button>
+        <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center"}}>
+          <input value={convoQ} onChange={e=>setConvoQ(e.target.value)} placeholder="Search conversations..." style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+          <button onClick={()=>{setSelId(null);setInput("");}} title="Start a new chat" style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>New</button>
         </div>
-        {convos.length===0&&<div style={{padding:"18px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet - this workspace is clean. Type your first message on the right to start a governed conversation.</div>}
+        {convos.length===0&&<div style={{padding:"18px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet. Type your first message on the right - your assistant is ready.</div>}
         <div style={{maxHeight:520,overflowY:"auto"}}>
-          {convos.map(c=><button key={c.id} onClick={()=>setSelId(c.id)} style={{display:"block",width:"100%",textAlign:"left",background:c.id===selId?AI_GOLD+"10":"transparent",border:"none",borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${c.id===selId?AI_GOLD:"transparent"}`,padding:"11px 13px",cursor:"pointer"}}>
-            <div style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4,lineHeight:1.35}}>{c.title}</div>
-            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-              <span style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{c.unit}</span>
-              <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{gatewayProviders.find(p=>p.id===c.providerId)?.name||c.providerId}</span>
-              <span style={{marginLeft:"auto",fontSize:9,fontFamily:F.m,color:c.riskScore>=40?T.amber:T.green}}>{c.riskScore}</span>
-            </div>
-          </button>)}
+          <style>{`.vz-cv-row:hover .vz-cv-act{opacity:1}`}</style>
+          {(()=>{
+            const q=convoQ.trim().toLowerCase();
+            const vis=convos.filter(c=>!q||`${c.title} ${c.project||""}`.toLowerCase().includes(q));
+            const groupOf=c=>archived.includes(c.id)?"Archived":pinned.includes(c.id)?"Pinned":/^(Today|Just now)/.test(c.lastActivity)?"Today":/^Yesterday/.test(c.lastActivity)?"Yesterday":c.initiativeId?"Project conversations":"Last week";
+            const ORDER=["Pinned","Today","Yesterday","Last week","Project conversations","Archived"];
+            const groups=ORDER.map(g=>[g,vis.filter(c=>groupOf(c)===g)]).filter(([,l])=>l.length);
+            return groups.map(([g,list])=><div key={g}>
+              <div style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",padding:"10px 14px 4px"}}>{g}</div>
+              {list.map(c=><div key={c.id} className="vz-cv-row" style={{display:"flex",alignItems:"center",background:c.id===selId?AI_GOLD+"10":"transparent",borderLeft:`3px solid ${c.id===selId?AI_GOLD:"transparent"}`,borderBottom:`1px solid ${T.border}`}}>
+                <button onClick={()=>setSelId(c.id)} style={{flex:1,minWidth:0,textAlign:"left",background:"transparent",border:"none",padding:"10px 4px 10px 11px",cursor:"pointer"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b,lineHeight:1.35,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.title}</div>
+                  <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.project&&c.project!=="Unassigned"?c.project+" · ":""}{c.lastActivity}</div>
+                </button>
+                <span className="vz-cv-act" style={{display:"flex",gap:2,opacity:pinned.includes(c.id)?1:0,paddingRight:8,transition:"opacity .15s"}}>
+                  <button aria-label={pinned.includes(c.id)?"Unpin":"Pin"} onClick={()=>togglePin(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:pinned.includes(c.id)?AI_GOLD:T.ink4,fontSize:11,padding:2}}>{pinned.includes(c.id)?"\u2605":"\u2606"}</button>
+                  <button aria-label={archived.includes(c.id)?"Unarchive":"Archive"} onClick={()=>toggleArchive(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.ink4,fontSize:10,padding:2}}>{archived.includes(c.id)?"\u21a9":"\u2b07"}</button>
+                </span>
+              </div>)}
+            </div>);
+          })()}
         </div>
       </Card>
       {/* Chat - always available */}
@@ -149,10 +168,13 @@ export function PageWorkbench({role,sessionMode,showToast}){
         <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <div style={{minWidth:0,flex:1}}>
             <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.h}}>{sel?sel.title:"New conversation"}</div>
-            <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{sel?`${sel.unit} · ${sel.project} · Retention ${sel.retention} · ${sel.policyDecision}`:`${unit} · Your first message starts a governed conversation`}</div>
+            <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{sel?`Project: ${sel.project||"None"}${sel.initiativeId?" · linked to its initiative workspace":""}`:`${unit} · A new conversation starts with your first message`}</div>
           </div>
+          {!sel&&convos.length>0&&<button onClick={()=>setSelId(convos[0].id)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 12px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Continue where you left off</button>}
           <Tag label={sel?sel.classification:"Internal"} color={clsColor(sel?sel.classification:"Internal")} bg={clsColor(sel?sel.classification:"Internal")+"14"}/>
-          <Tag label={`${route.scope} → ${provider.name}`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
+          <Tag label={`${provider.name} · organization selected`} color={AI_GOLD} bg={AI_GOLD+"14"}/>
+          <Tag label="Secured by AI Gateway" color={T.green} bg={T.greenL}/>
+
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px",display:"grid",gap:12,alignContent:"start"}}>
           {(!sel||sel.messages.length===0)&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,maxWidth:560}}>
@@ -413,6 +435,15 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
           </div>
         </div>
         <div>
+          {secHead("Quick actions")}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {[["Continue working",()=>primary&&openInitiative&&openInitiative(primary.ini.id)],
+              ["Start new AI chat",()=>setTab&&setTab("workbench")],
+              ["Submit new idea",()=>setTab&&setTab("myideas")],
+              ["Open Governance Academy",()=>setTab&&setTab("academy")]].map(([l,go])=><button key={l} onClick={go} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}35`,borderRadius:9,padding:"9px 14px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{l}</button>)}
+          </div>
+        </div>
+        <div>
           {secHead("My AI initiatives")}
           <div style={{display:"grid",gap:9}}>
             {assigns.map(a=>{
@@ -448,6 +479,19 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
             </button>)}
           </div>
         </div>
+        <div>
+          {secHead("My submitted ideas")}
+          <div style={{display:"grid",gap:7}}>
+            {DEMO_IDEAS.slice(0,2).map(i=><button key={i.title} onClick={()=>setTab&&setTab("myideas")} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 13px",cursor:"pointer",textAlign:"left"}}>
+              <span style={{minWidth:0,flex:1}}>
+                <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b}}>{i.title}</span>
+                <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:2}}>{i.category} · {i.stage}</span>
+              </span>
+              <Tag label={i.stage} color={T.blue} bg={T.blue+"14"}/>
+            </button>)}
+            <button onClick={()=>setTab&&setTab("myideas")} style={{background:"transparent",border:`1px dashed ${T.border}`,borderRadius:9,padding:"8px 13px",color:T.ink3,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",textAlign:"left"}}>+ Submit new idea</button>
+          </div>
+        </div>
       </div>
       <div style={{display:"grid",gap:12,alignContent:"start"}}>
         <Card style={{padding:15,border:`1px solid ${AI_GOLD}30`}}>
@@ -458,6 +502,18 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
           <p style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.65,margin:0}}>
             {primary?`${primary.ini.name} is in ${phaseName(primary.ini)}${primary.ini.blockedBy?" and blocked on evidence - your upload is the fastest unblock":""}. Your "${training[0]||"Responsible AI Use"}" training was assigned because of this phase and your role.`:"No initiative assignments yet - your governed workbench is ready."}
           </p>
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("Compliance notifications")}
+          {[["Responsible GenAI Use policy updated to v6","Acknowledge in today's tasks"],["1 prompt was masked at the boundary this week","No action needed - recorded for audit"],["Data Handling L2 certification expires Aug 2026","Renew in the Academy"]].map(([n,d])=><div key={n} style={{padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+            <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.45}}>{n}</div>
+            <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:1}}>{d}</div>
+          </div>)}
+        </Card>
+        <Card style={{padding:15}}>
+          {secHead("Learning progress")}
+          <Bar value={employeeUsageSeed.learningProgress} color={AI_GOLD}/>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>{employeeUsageSeed.learningProgress}% of your assigned path complete</div>
         </Card>
         <Card style={{padding:15}}>
           {secHead("My governance training")}

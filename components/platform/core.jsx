@@ -264,9 +264,9 @@ export const NAV = [
   {id:"riskcenter",icon:"R", label:"Risk Center"},
   {id:"reports",   icon:"B", label:"Reports"},
   {id:"aicentral", icon:"V", label:"AI Central"},
-  {id:"myworkspace",icon:"H", label:"My AI Workspace"},
+  {id:"myworkspace",icon:"H", label:"My Workspace"},
   {id:"teamspace", icon:"T", label:"Team AI Workspace"},
-  {id:"workbench", icon:"W", label:"AI Workbench"},
+  {id:"workbench", icon:"W", label:"AI Assistant"},
   {id:"myideas",   icon:"I", label:"My AI Ideas"},
   {id:"aiusage",   icon:"U", label:"My AI Dashboard"},
   {id:"decisions", icon:"D", label:"Decisions"},
@@ -299,10 +299,10 @@ export const OWNER_SURFACE = {
 };
 
 export const EMPLOYEE_NAV_SECTIONS = [
-  {title:"My AI Workspace", items:["myworkspace","workbench","myideas"]},
+  {title:"Workspace", items:["myworkspace","workbench","academy"]},
 ];
 export const MANAGER_NAV_SECTIONS = [
-  {title:"Team AI Workspace", items:["teamspace","aiusage","myideas"]},
+  {title:"Team Workspace", items:["teamspace","workbench","aiusage","academy"]},
 ];
 
 /* Mode 1 - Enterprise AI Central: portfolio-wide command views only.
