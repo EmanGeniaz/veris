@@ -65,7 +65,7 @@ export function PageModelRegistry({setTab,openInitiative}) {
           const vendors=[...new Set(models.map(m=>m.vendor))];
           return <div key={ini.id} style={{border:`1px solid ${T.border}`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
             <button onClick={()=>setOpenGroups(g=>({...g,[ini.id]:!open}))} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.s1,border:"none",cursor:"pointer",textAlign:"left",flexWrap:"wrap"}}>
-              <span style={{fontSize:11,color:T.ink4,fontFamily:F.m,width:12}}>{open?"\u25be":"\u25b8"}</span>
+              <span style={{fontSize:11,color:T.ink4,fontFamily:F.m,width:12}}>{open?"▾":"▸"}</span>
               <div style={{flex:1,minWidth:180}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                   <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{ini.name}</span>
@@ -1274,7 +1274,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   };
   /* One Executive Summary Header: four hero metrics as typography, one
      primary recommendation. Everything else lives inside the tabs. */
-  const renderExecHeader=()=>{
+  const renderExecHeader=(compact)=>{
     const heroes=[
       ["Health",String(wsHealth),wsHealth>=80?T.green:wsHealth>=60?T.amber:T.red,"overview",`(governance ${selected.guardrail} + adoption ${selected.adoption} + value ${selected.valueScore}) / 3`],
       ["Business value",selected.expected,AI_GOLD,"value","Expected value from the approved business case"],
@@ -1287,7 +1287,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         <Tag label={selected.lifecycle} color={catColor(selected.lifecycle)} bg={catColor(selected.lifecycle)+"14"}/>
       </div>
       <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:4}}>{selected.unit} · {selected.category} · Sponsor {selected.sponsor}</div>
-      <div style={{display:"flex",gap:28,flexWrap:"wrap",margin:"16px 0 0"}}>
+      {!compact&&<div style={{display:"flex",gap:28,flexWrap:"wrap",margin:"16px 0 0"}}>
         {heroes.map(([l,v,c,tabTo,how])=><button key={l} onClick={()=>setInitTab(tabTo)} title={how} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",textAlign:"left"}}>
           <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:3}}>{l}</div>
           <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,lineHeight:1}}>{v}</div>
@@ -1296,7 +1296,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           <div style={{fontSize:8.5,color:wsRecC,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:2}}>Primary recommendation</div>
           <div style={{fontSize:13,fontWeight:900,fontFamily:F.b,color:wsRecC}}>{wsRec==="Scale"?"Continue to Scale Gate":wsRec==="Retire"?"Prepare governed retirement":wsRec==="Improve"?"Address gaps before advancing":"Continue current phase"} · {wsConfidence}%</div>
         </button>
-      </div>
+      
+      </div>}
     </div>;
   };
   const InitJourney=()=><div>
@@ -1453,7 +1454,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       {secHead("Recommendation")}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
         <Tag label={recD} color={recC} bg={recC+"16"}/>
-        <span style={{fontSize:10,fontFamily:F.m,fontWeight:900,color:T.ink3}}>confidence {conf}%</span>
+        <span style={{fontSize:10,fontFamily:F.m,fontWeight:900,color:T.ink3}}>confidence {wsConfidence}%</span>
       </div>
       <div style={{display:"grid",gap:6,fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>
         <div><strong style={{color:T.ink}}>Reason:</strong> governance {selected.guardrail}%, adoption {selected.adoption}%, value score {selected.valueScore}%.</div>
@@ -1614,32 +1615,32 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         tiles:[["Overall health",wsHealth,wsHealth>=75?T.green:T.amber],["Business value",selected.expected,AI_GOLD],["ROI",selected.roi,T.green],["Budget",`${budgetPct}% used`,budgetPct>85?T.red:T.blue],["Delivery confidence",wsConfidence+"%",wsConfidence>=70?T.green:T.amber]],
         sections:[
           {title:"Executive summary",text:`${selected.objective||selected.name} ${selected.blockedBy?"Currently blocked: "+selected.blockedBy+".":"No blockers open."} Expected impact ${selected.expected}; ${selected.actual} realized.`},
-          {title:"Major blockers",rows:selected.blockedBy?[[selected.blockedBy,"Open"]]:[["None open","\u2713"]]},
-          {title:"Top risks",rows:iniRisks.slice(0,5).map(r=>[r.title,`${r.level} \u00b7 ${r.residual}/25`])},
+          {title:"Major blockers",rows:selected.blockedBy?[[selected.blockedBy,"Open"]]:[["None open","✓"]]},
+          {title:"Top risks",rows:iniRisks.slice(0,5).map(r=>[r.title,`${r.level} · ${r.residual}/25`])},
         ]},
       cfo:{question:"Is this investment creating value?",persona:"Financial Advisor",
-        tiles:[["Investment",selected.budget||"\u2014",T.blue],["Spent",selected.spent||"\u2014",budgetPct>85?T.red:T.blue],["ROI",selected.roi,T.green],["Cost savings",selected.savings,T.green],["Revenue impact",selected.revenue,AI_GOLD]],
+        tiles:[["Investment",selected.budget||"—",T.blue],["Spent",selected.spent||"—",budgetPct>85?T.red:T.blue],["ROI",selected.roi,T.green],["Cost savings",selected.savings,T.green],["Revenue impact",selected.revenue,AI_GOLD]],
         sections:[
           {title:"Benefits realization",rows:[["Expected value",selected.expected],["Realized to date",`${selected.actual} (${benefits}%)`],["Budget variance",`${100-budgetPct}% headroom`],["Run rate",`~$${(money(selected.spent)/Math.max(1,selected.phaseIndex)).toFixed(2)}M per phase`],["Forecast accuracy",wsConfidence+"% confidence"],["Portfolio share",Math.round((money(selected.expected)/totalExp)*100)+"% of enterprise AI value"]]},
           {title:"Financial risks",rows:iniRisks.slice(0,3).map(r=>[r.title,r.level])},
         ]},
       cio:{question:"Will this integrate and scale?",persona:"Technology Advisor",
-        tiles:[["Delivery timeline",selected.timeline||"\u2014",T.blue],["Platform readiness",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Operational health",wsHealth,wsHealth>=75?T.green:T.amber],["Models deployed",models.filter(m=>m.status==="In Production").length+"/"+models.length,T.teal]],
+        tiles:[["Delivery timeline",selected.timeline||"—",T.blue],["Platform readiness",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Operational health",wsHealth,wsHealth>=75?T.green:T.amber],["Models deployed",models.filter(m=>m.status==="In Production").length+"/"+models.length,T.teal]],
         sections:[
-          {title:"Technology stack",rows:models.map(m=>[m.system,`${m.type} \u00b7 ${m.vendor}`])},
+          {title:"Technology stack",rows:models.map(m=>[m.system,`${m.type} · ${m.vendor}`])},
           {title:"Dependencies & infrastructure",rows:(pmo?pmo.raid.filter(r=>r.kind==="Dependency"):[]).map(d=>[d.item,d.status]).concat([["Technical debt","Low - reviewed at each gate"],["Availability target","99.9% (gateway-fronted)"]])},
         ]},
       ciso:{question:"Can I trust this AI?",persona:"Security & Risk Advisor",
         tiles:[["Risk score",wsRiskScore?wsRiskScore+"/25":"none",wsRiskScore>=10?T.red:wsRiskScore>=6?T.amber:T.green],["Open risks",iniRisks.length,iniRisks.length?T.amber:T.green],["Controls",selected.controls.length,T.blue],["Security testing",models.filter(m=>m.biasTest).length+"/"+models.length+" tested",T.teal],["Kill switch",models.filter(m=>m.killSwitch).length+"/"+models.length,models.every(m=>m.killSwitch)?T.green:T.amber]],
         sections:[
-          {title:"Threat exposure",rows:iniRisks.map(r=>[r.title,`${r.level} \u00b7 residual ${r.residual}/25 \u00b7 ${r.treatment.status}`])},
+          {title:"Threat exposure",rows:iniRisks.map(r=>[r.title,`${r.level} · residual ${r.residual}/25 · ${r.treatment.status}`])},
           {title:"Mitigations & evidence",rows:[["Active controls",selected.controls.join(", ")||"pending"],["Evidence trail",wsEvidence+"% of lifecycle evidenced"],["Attack surface","Gateway-mediated; no direct model exposure"]]},
         ]},
       caio:{question:"Is this AI responsible and governed?",persona:"Governance Advisor",
         tiles:[["Governance score",selected.guardrail+"%",selected.guardrail>=80?T.green:T.amber],["Lifecycle phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Approvals pending",(pmo?1:0)+(selected.blockedBy?1:0),T.amber],["Evidence",wsEvidence+"%",wsEvidence>=70?T.green:T.amber]],
         sections:[
           {title:"Responsible AI posture",rows:[["AI policies",selected.policies.join(", ")],["Human oversight","HITL gates on all high-impact decisions"],["AIRA / AIRT","Open the Risk Center for assessments and treatments"]]},
-          {title:"Decision log",rows:(pmo?pmo.decisions:[]).map(d=>[d.decision,`${d.by} \u00b7 ${d.date}`])},
+          {title:"Decision log",rows:(pmo?pmo.decisions:[]).map(d=>[d.decision,`${d.by} · ${d.date}`])},
         ]},
       cdpo:{question:"Does this protect personal information?",persona:"Privacy Advisor",
         tiles:[["DPIA",models.every(m=>m.aia)?"Complete":"In progress",models.every(m=>m.aia)?T.green:T.amber],["Privacy controls",selected.policies.length,T.blue],["Data provenance",models.filter(m=>m.dataProvenance).length+"/"+models.length,T.teal],["Privacy risks",iniRisks.filter(r=>/leak|profil|privacy|data/i.test(r.title)).length,T.amber]],
@@ -1654,9 +1655,9 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           {title:"Contracts, IP & licensing",rows:[["Vendors",[...new Set(models.map(m=>m.vendor))].join(", ")],["Liability posture","Human accountability retained on all decisions"],["Policy compliance",selected.policies.join(", ")],["Open obligations",selected.blockedBy||"None"]]},
         ]},
       coo:{question:"Will this deliver successfully?",persona:"Delivery Advisor",
-        tiles:[["Phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Completion",phaseProgress(selected)+"%",T.teal],["Sprint",pmo?`${pmo.sprint.done}/${pmo.sprint.committed} pts`:"\u2014",AI_GOLD],["Milestones at risk",pmo?pmo.milestones.filter(m=>m.status==="At Risk").length:0,T.amber]],
+        tiles:[["Phase",`${selected.phaseIndex+1}/${AC_PHASES.length}`,T.blue],["Completion",phaseProgress(selected)+"%",T.teal],["Sprint",pmo?`${pmo.sprint.done}/${pmo.sprint.committed} pts`:"—",AI_GOLD],["Milestones at risk",pmo?pmo.milestones.filter(m=>m.status==="At Risk").length:0,T.amber]],
         sections:[
-          {title:"Milestones",rows:(pmo?pmo.milestones:[]).map(m=>[m.name,`${m.due} \u00b7 ${m.status}`])},
+          {title:"Milestones",rows:(pmo?pmo.milestones:[]).map(m=>[m.name,`${m.due} · ${m.status}`])},
           {title:"RAID highlights",rows:(pmo?pmo.raid.slice(0,4):[]).map(r=>[`${r.kind}: ${r.item}`,r.status])},
         ]},
       employee:{question:"What must happen next?",persona:"Work Advisor",
@@ -1690,7 +1691,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:RC(role),textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:3}}>{(ROLES[role]||ROLES.caio).label} perspective</div>
           <div style={{fontSize:16,fontWeight:800,fontFamily:F.h,color:T.ink}}>{p.question}</div>
         </div>
-        <button onClick={()=>setProfileMode(true)} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"8px 14px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Full Initiative Profile \u2192</button>
+        <button onClick={()=>setProfileMode(true)} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"8px 14px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Full Initiative Profile →</button>
       </div>
       <div style={{display:"flex",gap:24,flexWrap:"wrap",marginBottom:18}}>
         {p.tiles.map(([l,v,c])=><div key={l}>
@@ -1714,7 +1715,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
             {sec.rows.length===0&&<div style={{fontSize:10.5,color:T.ink4,fontFamily:F.b}}>Nothing recorded yet.</div>}
             {sec.rows.map(([a,b],i)=><button key={i} onClick={secGo||undefined} disabled={!secGo} style={{display:"flex",justifyContent:"space-between",gap:12,borderBottom:`1px solid ${T.border}`,padding:"7px 2px",background:"transparent",border:"none",cursor:secGo?"pointer":"default",textAlign:"left",width:"100%"}}>
               <span style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{a}</span>
-              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:700,textAlign:"right",flexShrink:0}}>{b}{secGo?<span style={{color:T.ink4}}> \u2192</span>:null}</span>
+              <span style={{fontSize:10.5,color:T.ink,fontFamily:F.b,fontWeight:700,textAlign:"right",flexShrink:0}}>{b}{secGo?<span style={{color:T.ink4}}> →</span>:null}</span>
             </button>)}
           </div>}
         </div>;})}
@@ -1753,11 +1754,11 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
             return <button key={i.id} onClick={()=>openInitiative(i.id,"pmo")} style={{display:"grid",gridTemplateColumns:"1.3fr 2fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${riskMs?T.amber+"45":T.border}`,borderRadius:9,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
               <div style={{minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.name}</div>
-                <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,marginTop:2}}>{i.timeline} \u00b7 {pmo?pmo.sprint.name:"no sprint"}</div>
+                <div style={{fontSize:9,color:T.ink3,fontFamily:F.m,marginTop:2}}>{i.timeline} · {pmo?pmo.sprint.name:"no sprint"}</div>
               </div>
-              <div><Bar value={phaseProgress(i)} color={i.blockedBy?T.amber:T.green}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:4}}>Phase {i.phaseIndex+1}/{AC_PHASES.length} \u00b7 {phaseProgress(i)}% \u00b7 {money(i.spent).toFixed(1)} of {money(i.budget).toFixed(1)}M</div></div>
+              <div><Bar value={phaseProgress(i)} color={i.blockedBy?T.amber:T.green}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:4}}>Phase {i.phaseIndex+1}/{AC_PHASES.length} · {phaseProgress(i)}% · {money(i.spent).toFixed(1)} of {money(i.budget).toFixed(1)}M</div></div>
               {riskMs?<Tag label={`${riskMs} at risk`} color={T.amber} bg={T.amberL}/>:<Tag label="On track" color={T.green} bg={T.greenL}/>}
-              <span style={{fontSize:10,fontWeight:900,color:AI_GOLD,fontFamily:F.b}}>Open PMO \u2192</span>
+              <span style={{fontSize:10,fontWeight:900,color:AI_GOLD,fontFamily:F.b}}>Open PMO →</span>
             </button>;
           })}
         </div>
@@ -1767,7 +1768,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           {secH("Cross-initiative dependencies")}
           <div style={{display:"grid",gap:8}}>
             {deps.map((d,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
-              <div style={{minWidth:0}}><div style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{d.item}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{d.ini.name} \u00b7 {d.owner}</div></div>
+              <div style={{minWidth:0}}><div style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{d.item}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{d.ini.name} · {d.owner}</div></div>
               <span style={{fontSize:9.5,color:/due|pending/i.test(d.status)?T.amber:T.green,fontFamily:F.b,fontWeight:800,flexShrink:0}}>{d.status}</span>
             </div>)}
           </div>
@@ -1782,19 +1783,19 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
             })}
           </div>
           {openIssues.map((r,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:5}}><strong style={{color:T.amber}}>{r.ini.name}:</strong> {r.item}</div>)}
-          <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginTop:6,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risks live in the Risk Center \u2192</button>
+          <button onClick={()=>setTab&&setTab("riskcenter")} style={{marginTop:6,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Risks live in the Risk Center →</button>
         </Card>
         <Card style={{padding:16}}>
           {secH("Capacity & resources")}
           {resources.slice(0,7).map((r,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
-            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role} \u00b7 {r.ini}</div></div>
+            <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role} · {r.ini}</div></div>
             <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
           </div>)}
         </Card>
         <Card style={{padding:16}}>
           {secH("Executive reporting")}
           <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,margin:"0 0 10px"}}>Portfolio packs, value reporting and audit-ready exports are generated in Reports.</p>
-          <button onClick={()=>setTab&&setTab("reports")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"8px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Reports \u2192</button>
+          <button onClick={()=>setTab&&setTab("reports")} style={{width:"100%",background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"8px 10px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Reports →</button>
         </Card>
       </div>
     </div>;
@@ -1806,7 +1807,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       {renderPortfolioRail()}
       <div style={{minWidth:0}}>
         {createOpen&&renderCreateForm()}
-        {renderExecHeader()}
+        {renderExecHeader(!profileMode&&!!buildPerspective())}
         {!profileMode&&buildPerspective()?renderPerspective():<>
           {buildPerspective()&&<button onClick={()=>setProfileMode(false)} style={{background:"transparent",border:"none",padding:0,marginBottom:8,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>← {(ROLES[role]||ROLES.caio).label} perspective</button>}
           <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>

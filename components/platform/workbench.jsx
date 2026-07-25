@@ -160,8 +160,8 @@ export function PageWorkbench({role,sessionMode,showToast}){
                   <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.project&&c.project!=="Unassigned"?c.project+" · ":""}{c.lastActivity}</div>
                 </button>
                 <span className="vz-cv-act" style={{display:"flex",gap:2,opacity:pinned.includes(c.id)?1:0,paddingRight:8,transition:"opacity .15s"}}>
-                  <button aria-label={pinned.includes(c.id)?"Unpin":"Pin"} onClick={()=>togglePin(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:pinned.includes(c.id)?AI_GOLD:T.ink4,fontSize:11,padding:2}}>{pinned.includes(c.id)?"\u2605":"\u2606"}</button>
-                  <button aria-label={archived.includes(c.id)?"Unarchive":"Archive"} onClick={()=>toggleArchive(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.ink4,fontSize:10,padding:2}}>{archived.includes(c.id)?"\u21a9":"\u2b07"}</button>
+                  <button aria-label={pinned.includes(c.id)?"Unpin":"Pin"} onClick={()=>togglePin(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:pinned.includes(c.id)?AI_GOLD:T.ink4,fontSize:11,padding:2}}>{pinned.includes(c.id)?"★":"☆"}</button>
+                  <button aria-label={archived.includes(c.id)?"Unarchive":"Archive"} onClick={()=>toggleArchive(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:T.ink4,fontSize:10,padding:2}}>{archived.includes(c.id)?"↩":"⬇"}</button>
                 </span>
               </div>)}
             </div>);
@@ -415,10 +415,10 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
   const pendingEvidence=assigns.filter(a=>a.ini.blockedBy).map(a=>({ini:a.ini,what:a.ini.blockedBy}));
   const nextMilestone=a=>(acPmo[a.ini.id]?.milestones||[]).find(m=>m.status!=="Complete");
   const tasks=[
-    ...pendingEvidence.map(p=>({what:`Upload evidence: ${p.what}`,src:`${p.ini.name} \u00b7 ${phaseName(p.ini)}`,go:()=>openInitiative&&openInitiative(p.ini.id),urgent:true})),
-    ...(primary?[{what:`Deliverable: ${primary.deliverable}`,src:`${primary.ini.name} \u00b7 due with ${nextMilestone(primary)?.name||"next milestone"}`,go:()=>openInitiative&&openInitiative(primary.ini.id)}]:[]),
-    {what:`Complete "${training[0]||"Responsible AI Use"}" training`,src:"Governance Academy \u00b7 assigned from your initiative phase",go:()=>setTab&&setTab("academy")},
-    {what:"Acknowledge Responsible GenAI Use policy v6",src:"Policy update \u00b7 requires acknowledgement",go:()=>{pushBus("vz-gw-evidence",{item:`Policy acknowledged: Responsible GenAI Use v6`,initiative:primary?primary.ini.name:"Employee Workspace",scope:"Policy",control:"Policy acknowledgement",risk:"Compliance",owner:P.name||R.name,status:"Complete",approval:"Recorded",version:"v6",time:"Just now"});showToast&&showToast("Policy acknowledged - recorded in your audit trail");}},
+    ...pendingEvidence.map(p=>({what:`Upload evidence: ${p.what}`,src:`${p.ini.name} · ${phaseName(p.ini)}`,go:()=>openInitiative&&openInitiative(p.ini.id),urgent:true})),
+    ...(primary?[{what:`Deliverable: ${primary.deliverable}`,src:`${primary.ini.name} · due with ${nextMilestone(primary)?.name||"next milestone"}`,go:()=>openInitiative&&openInitiative(primary.ini.id)}]:[]),
+    {what:`Complete "${training[0]||"Responsible AI Use"}" training`,src:"Governance Academy · assigned from your initiative phase",go:()=>setTab&&setTab("academy")},
+    {what:"Acknowledge Responsible GenAI Use policy v6",src:"Policy update · requires acknowledgement",go:()=>{pushBus("vz-gw-evidence",{item:`Policy acknowledged: Responsible GenAI Use v6`,initiative:primary?primary.ini.name:"Employee Workspace",scope:"Policy",control:"Policy acknowledgement",risk:"Compliance",owner:P.name||R.name,status:"Complete",approval:"Recorded",version:"v6",time:"Just now"});showToast&&showToast("Policy acknowledged - recorded in your audit trail");}},
   ];
   const convos=demoConversations.slice(0,3);
   const secHead=t=><div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:9}}>{t}</div>;
@@ -435,7 +435,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
                 <span style={{display:"block",fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t2.what}</span>
                 <span style={{display:"block",fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{t2.src}</span>
               </span>
-              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900}}>\u2192</span>
+              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900}}>→</span>
             </button>)}
           </div>
         </div>
@@ -457,7 +457,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
               return <button key={a.initiativeId} onClick={()=>openInitiative&&openInitiative(a.ini.id)} style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"13px 15px",cursor:"pointer"}}>
                 <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
                   <span style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.ini.name}</span>
-                  <Tag label={`Phase ${a.ini.phaseIndex+1}/13 \u00b7 ${phaseName(a.ini)}`} color={T.blue} bg={T.blue+"14"}/>
+                  <Tag label={`Phase ${a.ini.phaseIndex+1}/13 · ${phaseName(a.ini)}`} color={T.blue} bg={T.blue+"14"}/>
                 </div>
                 <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:8}}>{a.ini.problem||a.ini.objective}</div>
                 <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:9.5,color:T.ink3,fontFamily:F.m}}>
@@ -466,7 +466,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
                   <span>Health: <strong style={{color:h>=75?T.green:T.amber}}>{h}</strong></span>
                   <span>Governance: <strong style={{color:T.ink2}}>{a.ini.guardrail}%</strong></span>
                   <span>Risk: <strong style={{color:a.ini.risk==="Critical"||a.ini.risk==="High"?T.red:T.ink2}}>{a.ini.risk}</strong></span>
-                  {ms&&<span>Next: <strong style={{color:T.ink2}}>{ms.name} \u00b7 {ms.due}</strong></span>}
+                  {ms&&<span>Next: <strong style={{color:T.ink2}}>{ms.name} · {ms.due}</strong></span>}
                 </div>
               </button>;
             })}
@@ -478,9 +478,9 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
             {convos.map(c=><button key={c.id} onClick={()=>setTab&&setTab("workbench")} style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 13px",cursor:"pointer",textAlign:"left"}}>
               <span style={{minWidth:0,flex:1}}>
                 <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.title}</span>
-                <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{c.project} \u00b7 {c.model} \u00b7 {c.classification} \u00b7 {c.lastActivity}</span>
+                <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{c.project} · {c.model} · {c.classification} · {c.lastActivity}</span>
               </span>
-              <span style={{fontSize:9.5,color:AI_GOLD,fontWeight:900,fontFamily:F.b,flexShrink:0}}>Continue \u2192</span>
+              <span style={{fontSize:9.5,color:AI_GOLD,fontWeight:900,fontFamily:F.b,flexShrink:0}}>Continue →</span>
             </button>)}
           </div>
         </div>
@@ -524,21 +524,21 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
           {secHead("My governance training")}
           {training.map(t2=><div key={t2} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{t2}</span>
-            <button onClick={()=>setTab&&setTab("academy")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Start \u2192</button>
+            <button onClick={()=>setTab&&setTab("academy")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Start →</button>
           </div>)}
-          <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}>Auto-assigned from {primary?`${primary.ini.name} \u00b7 ${phaseName(primary.ini)} phase \u00b7 your role`:"your role"}. No manual assignment.</div>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}>Auto-assigned from {primary?`${primary.ini.name} · ${phaseName(primary.ini)} phase · your role`:"your role"}. No manual assignment.</div>
         </Card>
         <Card style={{padding:15}}>
           {secHead("My certifications")}
           {CERTIFICATIONS.map(c=><div key={c.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{c.name}</span>
-            <Tag label={`${c.status} \u00b7 ${c.expires}`} color={c.status==="Active"?T.green:T.amber} bg={(c.status==="Active"?T.green:T.amber)+"14"}/>
+            <Tag label={`${c.status} · ${c.expires}`} color={c.status==="Active"?T.green:T.amber} bg={(c.status==="Active"?T.green:T.amber)+"14"}/>
           </div>)}
         </Card>
         <Card style={{padding:15}}>
           {secHead("Recent activity")}
-          {[`${employeeUsageSeed.prompts} governed prompts \u00b7 ${employeeUsageSeed.timeSavedHrs}h saved`,`${employeeUsageSeed.blocked} prompts blocked by the Trust Gateway`,`Knowledge reuse ${employeeUsageSeed.knowledgeReuse}% \u00b7 learning ${employeeUsageSeed.learningProgress}%`].map((a,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>\u00b7 {a}</div>)}
-          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open my AI dashboard \u2192</button>
+          {[`${employeeUsageSeed.prompts} governed prompts · ${employeeUsageSeed.timeSavedHrs}h saved`,`${employeeUsageSeed.blocked} prompts blocked by the Trust Gateway`,`Knowledge reuse ${employeeUsageSeed.knowledgeReuse}% · learning ${employeeUsageSeed.learningProgress}%`].map((a,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>· {a}</div>)}
+          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open my AI dashboard →</button>
         </Card>
       </div>
     </div>
@@ -587,14 +587,14 @@ export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,o
           {secHead("Team readiness")}
           <div style={{display:"grid",gap:9}}>
             {team.map(m=><div key={m.name} style={{display:"grid",gridTemplateColumns:"1.2fr 1.6fr auto",gap:12,alignItems:"center"}}>
-              <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{m.role} \u00b7 {m.certs}{m.evidence?` \u00b7 ${m.evidence} evidence pending`:""}</div></div>
+              <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{m.role} · {m.certs}{m.evidence?` · ${m.evidence} evidence pending`:""}</div></div>
               <div><Bar value={m.training} color={m.training>=70?T.green:m.training>=45?T.amber:T.red}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:3}}>training {m.training}%</div></div>
               {m.ready?<Tag label="Ready" color={T.green} bg={T.greenL}/>:<button onClick={()=>act(`Learning path assigned to ${m.name}`,`Learning path assigned to ${m.name} - completion will lift team readiness`)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Assign learning</button>}
             </div>)}
           </div>
           <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
             <button onClick={()=>act("Overdue training escalated","Overdue training escalated to the members and their initiative owners")} style={{background:T.amber+"16",border:`1px solid ${T.amber}45`,borderRadius:7,padding:"7px 12px",color:T.amber,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Escalate overdue training</button>
-            <button onClick={readinessReport} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 12px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Generate readiness report \u2193</button>
+            <button onClick={readinessReport} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 12px",color:T.ink2,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Generate readiness report ↓</button>
           </div>
         </Card>
         <div>
@@ -605,7 +605,7 @@ export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,o
                 <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.ini.name}</span>
                 <Tag label={`Adoption ${a.ini.adoption}%`} color={a.ini.adoption>=60?T.green:T.amber} bg={(a.ini.adoption>=60?T.green:T.amber)+"14"}/>
               </div>
-              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{a.myRole} \u00b7 phase {a.ini.phaseIndex+1}/13{a.ini.blockedBy?` \u00b7 blocked: ${a.ini.blockedBy}`:""}</div>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{a.myRole} · phase {a.ini.phaseIndex+1}/13{a.ini.blockedBy?` · blocked: ${a.ini.blockedBy}`:""}</div>
             </button>)}
           </div>
         </div>
@@ -630,7 +630,7 @@ export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,o
           {[["Compliance rate","92%",T.green],["Blocked events","3",T.amber],["Gateway coverage","100%",T.green]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{l}</span><span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:c}}>{v}</span>
           </div>)}
-          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open team dashboard \u2192</button>
+          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open team dashboard →</button>
         </Card>
       </div>
     </div>
