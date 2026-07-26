@@ -473,7 +473,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const [feedback,setFeedback]=useState(acFeedback);
   const [hydrated,setHydrated]=useState(false);
   const selected=items.find(i=>i.id===selectedId)||items[0];
-  const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
+  const learningEvidence=academyEvidenceFor(role,(sessionMode==="demo"||sessionMode==="aicentral"));
   const gwEvidence=(typeof window!=="undefined")?(()=>{try{return readBus("vz-gw-evidence");}catch{return [];}})():[];
   const evidenceRows=[...gwEvidence,...acEvidence,...autoEvidenceFor(items),...learningEvidence.map(e=>({...e,scope:"Organization",version:"v1"}))];
   /* Persistence: created initiatives, governed decisions and feedback survive reload. */

@@ -29,7 +29,7 @@ export function wbEnrichFor(text){
 }
 
 export function PageWorkbench({role,sessionMode,showToast}){
-  const seeded=sessionMode==="demo";
+  const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
   const U=USER_PROFILES[role==="manager"?"manager":"employee"]||USER_PROFILES.employee;
   const unit=U.department||"Engineering";
   const route=gatewayRouting.find(r=>r.scope.toLowerCase().startsWith(unit.split(" ")[0].toLowerCase()))||gatewayRouting[1];
@@ -225,7 +225,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
    the employee-side entry, not a parallel pipeline. */
 
 export function PageMyIdeas({role,sessionMode,showToast}){
-  const seeded=sessionMode==="demo";
+  const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
   const U=USER_PROFILES[role==="manager"?"manager":"employee"]||USER_PROFILES.employee;
   const [ideas,setIdeas]=useState(seeded?DEMO_IDEAS:[]);
   const [hydrated,setHydrated]=useState(false);
@@ -316,7 +316,7 @@ export function PageMyIdeas({role,sessionMode,showToast}){
 
 /* ── My AI Dashboard (employee) + Manager adoption view ───────── */
 export function PageAIUsage({role,sessionMode}){
-  const seeded=sessionMode==="demo";
+  const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
   const u=seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0};
   const isManager=role==="manager";
   const tiles=[

@@ -79,7 +79,7 @@ export function PageReports({role,sessionMode,setTab,setAiCentralView,showToast}
     if(link.ac){setAiCentralView&&setAiCentralView(link.ac);setTab&&setTab("aicentral");}
     else if(link.tab){setTab&&setTab(link.tab);}
   };
-  const learningEvidence=academyEvidenceFor(role,sessionMode==="demo");
+  const learningEvidence=academyEvidenceFor(role,(sessionMode==="demo"||sessionMode==="aicentral"));
   const stColor=s=>s==="Good"||s==="Active"?T.green:s==="Alert"||s==="Building"?T.amber:s==="Critical"?T.red:T.ink4;
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="Reports & Analytics" sub="Generated, filterable, executive-ready. Every number traces to the register or lifecycle that produced it."/>

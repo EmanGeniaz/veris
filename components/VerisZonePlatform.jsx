@@ -605,7 +605,11 @@ export default function VerisZone() {
   },[enterApp]);
   const R=ROLES[role],rc=RC(role);
   const roleHome=(role==="employee"||role==="manager")?"workbench":"home";
-  const showSeededData=sessionMode==="demo"||!SEEDED_DEMO_TABS.has(tab);
+  /* Seeded sessions: the Demo Center and the standalone AI Central demo both
+     show the full showcase data. Subscribed customer workspaces ("role" and
+     "clean") stay empty until their own records arrive. */
+  const seededSession=sessionMode==="demo"||sessionMode==="aicentral";
+  const showSeededData=seededSession||!SEEDED_DEMO_TABS.has(tab);
 
   if(!hasEntered)return <BrandEntryShell theme={theme} onTheme={()=>setTheme(theme==="dark"?"light":"dark")} onEnter={enterApp}/>;
 

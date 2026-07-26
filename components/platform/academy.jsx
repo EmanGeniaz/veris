@@ -79,11 +79,11 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
 
 export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
   const rc=RC(role), R=ROLES[role]||ROLES.caio;
-  const seededHub=sessionMode==="demo";
+  const seededHub=(sessionMode==="demo"||sessionMode==="aicentral");
   if(role==="employee")return <EmployeeLearnerHub role={role} seeded={seededHub} showToast={showToast} setTab={setTab}/>;
   const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
   const path=pathIds.map(id=>GOVERNANCE_ACADEMY.find(v=>v.id===id)).filter(Boolean);
-  const seeded=sessionMode==="demo";
+  const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
   const completed=seeded?Math.max(1,Math.floor(path.length*.55)):0;
   const progress=path.length?Math.round((completed/path.length)*100):0;
   const featured=path[0]||GOVERNANCE_ACADEMY[0];
