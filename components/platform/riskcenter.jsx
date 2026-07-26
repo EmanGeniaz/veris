@@ -14,7 +14,7 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
   const stC=st=>st==="Complete"?T.green:st==="In Progress"?T.amber:T.ink4;
   const drillTo=d=>{
     if(d.surface==="compliance")setTab&&setTab("compliance");
-    else if(d.surface==="aicentral"){setAiCentralView&&setAiCentralView("governance");setTab&&setTab("aicentral");}
+    else if(d.surface==="aicentral"){setAiCentralView&&setAiCentralView("controls");setTab&&setTab("aicentral");}
     /* riskcenter drills stay on this surface - the register/treatments tabs hold the detail */
   };
   return <div>

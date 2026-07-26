@@ -106,6 +106,8 @@ export const T = {
   coo:   "#0EA5E9", cooL:  "#071926",
   cfo:   "#22C55E", cfoL:  "#071A0E",
   chro:  "#EC4899", chroL: "#240716",
+  cro:   "#E0654E", croL:  "#210C08",
+  legal: "#8B6FE0", legalL:"#130D2E",
   /* Semantic */
   red:    "#C94040", redL:   "#1A0909",
   amber:  "#C8842A", amberL: "#221408",
@@ -142,6 +144,8 @@ export const LIGHT_T = {
   cio:   "#0B4EA2", cioL:  "#EAF2FF",
   cdpo:  "#C99A2E", cdpoL: "#FAF4E6",
   cgo:   "#C99A2E", cgoL:  "#FAF4E6",
+  cro:   "#B42318", croL:  "#FEF3F2",
+  legal: "#334155", legalL:"#F1F5F9",
   red:    "#B42318", redL:   "#FEF3F2",
   amber:  "#C99A2E", amberL: "#FAF4E6",
   green:  "#2F6F63", greenL: "#E7F3F0",
@@ -219,6 +223,8 @@ export const ROLES = {
   cio: {id:"cio", label:"CIO", title:"Chief Information Officer",name:"Marcus Reid",initials:"MR",frameworks:["ISO 27001","NIST CSF","GDPR","SOC 2"]},
   cdpo:{id:"cdpo",label:"CDPO",title:"Chief Data Privacy Officer",name:"Niamh Lynch",initials:"NL",frameworks:["GDPR","ISO 27701","CCPA/CPRA","ePrivacy"]},
   cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
+  cro: {id:"cro", label:"CRO", title:"Chief Risk Officer",name:"Deepa Nair",initials:"DN",frameworks:["COSO ERM","ISO 31000","NIST AI RMF","Operational Risk"]},
+  legal:{id:"legal",label:"Legal",title:"General Counsel & Compliance",name:"Thomas Beck",initials:"TB",frameworks:["EU AI Act","GDPR","Contract & IP","Regulatory Defense"]},
   employee:{id:"employee",label:"Employee",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
   manager:{id:"manager",label:"Manager",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
 };
@@ -234,6 +240,8 @@ export const USER_PROFILES = {
   cio:{name:"Marcus Reid",email:"marcus.reid@veriszone.ai",password:"VerisZone-CIO-2026",role:"CIO",title:"Chief Information Officer",department:"Enterprise Technology",organization:"VerisZone Digital Platforms",phone:"+44 20 7946 0184",region:"UK / EU",timezone:"Europe/London",manager:"Executive Technology Council",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 08:50"},
   cdpo:{name:"Niamh Lynch",email:"niamh.lynch@veriszone.ai",password:"VerisZone-CDPO-2026",role:"CDPO",title:"Chief Data Privacy Officer",department:"Privacy and Data Protection",organization:"VerisZone Privacy Office",phone:"+353 1 555 0198",region:"EU",timezone:"Europe/Dublin",manager:"Data Protection Board",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 10:11"},
   cgo:{name:"Rafael Torres",email:"rafael.torres@veriszone.ai",password:"VerisZone-CGO-2026",role:"CGO",title:"Chief Governance Officer",department:"Governance, Risk and Compliance",organization:"VerisZone Governance Office",phone:"+1 212 555 0176",region:"US / LATAM",timezone:"America/New_York",manager:"Audit and Risk Committee",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 07:38"},
+  cro:{name:"Deepa Nair",email:"deepa.nair@veriszone.ai",password:"VerisZone-CRO-2026",role:"CRO",title:"Chief Risk Officer",department:"Enterprise Risk Management",organization:"VerisZone Risk Office",phone:"+1 617 555 0159",region:"US / EU",timezone:"America/New_York",manager:"Board Risk Committee",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 07:52"},
+  legal:{name:"Thomas Beck",email:"thomas.beck@veriszone.ai",password:"VerisZone-LEGAL-2026",role:"Legal",title:"General Counsel & Compliance",department:"Legal, Regulatory and Compliance",organization:"VerisZone Office of General Counsel",phone:"+49 89 555 0133",region:"EU / US",timezone:"Europe/Berlin",manager:"Board Governance Committee",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 08:04"},
   aicentral:{name:"AI Central",email:"ai.central@veriszone.ai",password:"govern-with-certainty",role:"AI Central",title:"Execution and Assurance Workspace",department:"AI Central Operations",organization:"VerisZone AI Operating Center",phone:"+1 415 555 0150",region:"Global",timezone:"UTC",manager:"AI Transformation Office",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:40"},
   employee:{name:"Jamie Park",email:"jamie.park@veriszone.ai",password:"govern-with-certainty",role:"Employee",title:"Product Engineer",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0171",region:"US",timezone:"America/Los_Angeles",manager:"Riley Chen",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 09:10"},
   manager:{name:"Riley Chen",email:"riley.chen@veriszone.ai",password:"govern-with-certainty",role:"Manager",title:"Engineering Manager",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0164",region:"US",timezone:"America/Los_Angeles",manager:"Priya Mehta",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 08:45"},
@@ -360,26 +368,47 @@ export const MANAGER_NAV_SECTIONS = [
 
 /* Mode 1 - Enterprise AI Central: portfolio-wide command views only.
    Mode 2 - the AI Initiative Workspace - opens from any initiative. */
+/* The 15 modules of AI Central - the enterprise AI governance operating
+   model. Each module carries its accountable owner and higher oversight so
+   the operating model is visible in-product. Employee Workspace is governed
+   by AI Central but stays a separate surface, so it is not a module here. */
 export const AI_CENTRAL_NAV = [
-  {id:"dashboard", label:"Portfolio Overview", sub:"Enterprise command center"},
-  {id:"initiatives", label:"AI Initiatives", sub:"Initiative workspaces"},
-  {id:"pmo", label:"AI PMO", sub:"Portfolio delivery office"},
-  {id:"models", label:"AI Models", sub:"Enterprise model registry"},
-  {id:"governance", label:"AI Governance", sub:"Controls and compliance"},
-  {id:"evidence", label:"Trust & Evidence", sub:"Enterprise evidence"},
-  {id:"approvals", label:"Approvals", sub:"Executive decision queue"},
-  {id:"portfolio", label:"Portfolio", sub:"Units, maturity, use cases"},
-  {id:"gateway", label:"AI Gateway", sub:"Enterprise control plane"},
-  {id:"admin", label:"Administration", sub:"Providers, routing, policies"},
-  {id:"academy", label:"Governance Academy", sub:"Readiness and learning"},
+  {id:"dashboard", label:"Executive Dashboard", sub:"Enterprise command center", owner:"CAIO", oversight:"Board"},
+  {id:"strategy", label:"AI Strategy", sub:"Ambition, investment and roadmap", owner:"CAIO", oversight:"Board"},
+  {id:"portfolio", label:"AI Portfolio", sub:"Initiatives by business unit", owner:"Business CXOs", oversight:"CAIO"},
+  {id:"repository", label:"AI Repository", sub:"Models, agents, prompts, tools", owner:"CIO", oversight:"AI Governance Office"},
+  {id:"inventory", label:"AI Inventory", sub:"Systems, datasets, vendors", owner:"CIO", oversight:"AI Governance Office"},
+  {id:"lifecycle", label:"AI Lifecycle", sub:"Governed pilot-to-scale journey", owner:"AI Governance Office", oversight:"CAIO"},
+  {id:"gateway", label:"AI Gateway", sub:"Runtime control plane", owner:"CISO", oversight:"CIO"},
+  {id:"risk", label:"Risk Center", sub:"AI risk framework and treatment", owner:"CRO", oversight:"CAIO"},
+  {id:"trust", label:"Trust Center", sub:"Live posture and attestations", owner:"CDPO", oversight:"CISO"},
+  {id:"evidence", label:"Evidence Fabric", sub:"Searchable, versioned proof", owner:"AI Governance Office", oversight:"CAIO"},
+  {id:"controls", label:"Controls & Compliance", sub:"Control matrix and frameworks", owner:"Legal & Compliance", oversight:"CRO"},
+  {id:"policies", label:"Policies & Standards", sub:"Policy library and standards", owner:"Legal & Compliance", oversight:"CAIO"},
+  {id:"value", label:"Value Realization", sub:"Expected vs realized ROI", owner:"CFO", oversight:"Business CXOs"},
+  {id:"academy", label:"Governance Academy", sub:"Readiness and learning", owner:"CHRO", oversight:"AI Governance Office"},
+  {id:"audit", label:"Audit Center", sub:"Immutable audit trail", owner:"CRO", oversight:"Internal Audit"},
 ];
 
-/* Pre-consolidation view ids still reachable via old URLs/hashes */
+/* Governance ownership model - Board down to AI Central. Rendered as the
+   operating-model map inside the Executive Dashboard. */
+export const AC_OWNERSHIP_MODEL = [
+  {tier:"Strategic oversight", node:"Board / Executive Steering Committee", role:"Investment approval and enterprise risk appetite"},
+  {tier:"Accountable owner", node:"Chief AI Officer (CAIO)", role:"Overall owner, governance strategy and AI roadmap"},
+  {tier:"Functional owners", node:"CIO · CISO · CDPO · CRO · Legal & Compliance · Business CXOs", role:"Each owns their governance domain"},
+  {tier:"Daily operator", node:"AI Governance Office", role:"Operates AI Central, monitors policies, evidence and audits"},
+  {tier:"Operating system", node:"AI Central", role:"Coordinates every capability into one operating model"},
+  {tier:"Governs", node:"All AI systems, initiatives and the Employee Workspace", role:"Nothing goes live without governance, monitoring and visibility"},
+];
+
+/* Pre-consolidation view ids still reachable via old URLs/hashes, mapped to
+   the new 15-module taxonomy. Internal drill-in views keep their own ids. */
 export const AC_LEGACY_VIEWS = {
-  registry:"models", pilot:"initiatives", detail:"initiatives", lifecycle:"initiatives",
-  dna:"initiatives", scalegate:"initiatives",
-  guardrails:"governance", controlmatrix:"governance", riskdrift:"governance", spine:"governance",
-  cxo:"dashboard", value:"dashboard", maturitymap:"dashboard",
+  models:"repository", registry:"repository",
+  governance:"controls", guardrails:"controls", controlmatrix:"controls", riskdrift:"controls", spine:"controls",
+  pilot:"lifecycle", detail:"initiatives", dna:"initiatives", scalegate:"lifecycle",
+  admin:"gateway", approvals:"lifecycle",
+  cxo:"dashboard", maturitymap:"dashboard",
   evidenceconfidence:"evidence",
 };
 
@@ -1593,6 +1622,8 @@ export const LOGIN_PROFILES = [
   {id:"cio",label:"CIO",role:"cio",target:"home",accent:"#06B6D4",title:"CIO AI Portfolio Control",subtitle:"AI systems portfolio, implementation roadmap, platform controls, data readiness and enterprise adoption.",email:"marcus.chen@veriszone.ai",kpis:[["47","AI assets"],["12","Roadmap items"],["79%","Controls"]]},
   {id:"cdpo",label:"CDPO",role:"cdpo",target:"home",accent:"#14B8A6",title:"CDPO Privacy Oversight",subtitle:"DPIAs, GDPR Article 22, data processing controls, consent evidence and regulatory response readiness.",email:"elena.rossi@veriszone.ai",kpis:[["11","DPIAs"],["83%","GDPR"],["4","Deadlines"]]},
   {id:"cgo",label:"CGO",role:"cgo",target:"home",accent:"#F59E0B",title:"CGO Governance Office",subtitle:"Policy lifecycle, framework mapping, approvals, escalations and assurance reporting for leadership.",email:"rafael.torres@veriszone.ai",kpis:[["24","Policies"],["61%","ISO 42001 A"],["9","Reports"]]},
+  {id:"cro",label:"CRO",role:"cro",target:"home",accent:"#E0654E",title:"CRO Enterprise Risk",subtitle:"AI risk appetite, enterprise risk register, control effectiveness, key risk indicators and audit readiness.",email:"deepa.nair@veriszone.ai",kpis:[["Amber","AI risk"],["88%","Controls"],["1","Critical risk"]]},
+  {id:"legal",label:"Legal",role:"legal",target:"home",accent:"#8B6FE0",title:"Legal & Compliance",subtitle:"Regulatory obligations, EU AI Act conformity, AI vendor contracts, IP provenance and legal defensibility.",email:"thomas.beck@veriszone.ai",kpis:[["88%","Defensible"],["1","Conformity gap"],["5","Frameworks"]]},
   {id:"employee",label:"Employee",role:"employee",target:"myworkspace",accent:"#2BA88A",title:"My AI Workspace",subtitle:"One governed workbench for every AI interaction - approved models, enterprise knowledge and automatic compliance, faster than any public chat.",email:"jamie.park@veriszone.ai",kpis:[["84","Prompts governed"],["11.5h","Time saved"],["0","Data leaks"]]},
   {id:"manager",label:"Manager",role:"manager",target:"teamspace",accent:"#0EA5E9",title:"Team AI Workspace",subtitle:"Team adoption, value and compliance without reading private prompts - aggregates only, by policy.",email:"riley.chen@veriszone.ai",kpis:[["64%","Team adoption"],["92%","Compliance"],["3","Blocked events"]]},
   {id:"aicentral",label:"AI Central",role:"caio",target:"aicentral",mode:"aicentral",accent:AI_GOLD,title:"AI Central Demo",subtitle:"The seeded Enterprise AI Command Center - initiative digital twins, AI PMO, model registry, governance, evidence, policies and the AI Gateway, without the CXO workspaces.",email:"ai.central@veriszone.ai",kpis:[["4","Initiatives"],["8","AI models"],["Live","Gateway"]]}

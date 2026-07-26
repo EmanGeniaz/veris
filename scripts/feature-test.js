@@ -24,7 +24,8 @@ const { chromium } = require('playwright');
   await page.locator('button', { hasText: /^CAIO$/ }).first().click(); await page.waitForTimeout(900);
   await test('Create AI Initiative', async () => {
     await page.locator('nav button', { hasText: 'AI Central' }).first().click(); await page.waitForTimeout(1000);
-    await page.getByRole('button', { name: 'AI Initiatives', exact: true }).first().click(); await page.waitForTimeout(800);
+    await page.getByRole('button', { name: 'AI Lifecycle', exact: true }).first().click(); await page.waitForTimeout(800);
+    await page.getByRole('button', { name: 'Initiative Workspaces', exact: true }).first().click(); await page.waitForTimeout(700);
     await page.locator('button:has-text("New AI Initiative")').first().click(); await page.waitForTimeout(600);
     const labels=[['Initiative name','Feature Test Initiative'],['Business unit','QA Lab'],['Business owner','Test Owner'],['Executive sponsor','Test Sponsor'],['Expected value','$1.0M']];
     for(const [l,v] of labels){ await page.locator(`label:has-text("${l}") input`).first().fill(v); }
@@ -34,7 +35,8 @@ const { chromium } = require('playwright');
 
   // ── Insights: feedback edit + decision ──
   await test('Feedback sliders + gate decision visible', async () => {
-    await page.getByRole('button', { name: 'AI Initiatives', exact: true }).first().click(); await page.waitForTimeout(700);
+    await page.getByRole('button', { name: 'AI Lifecycle', exact: true }).first().click(); await page.waitForTimeout(700);
+    await page.getByRole('button', { name: 'Initiative Workspaces', exact: true }).first().click(); await page.waitForTimeout(700);
     await page.locator('button:has-text("Finance Close Automation")').first().click(); await page.waitForTimeout(800);
     await page.getByRole('button', { name: 'Value', exact: true }).first().click(); await page.waitForTimeout(700);
     const t = await body();

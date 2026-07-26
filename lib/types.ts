@@ -2,16 +2,27 @@
 
 export type ACModuleId =
   | "dashboard"
+  | "strategy"
+  | "portfolio"
+  | "repository"
+  | "inventory"
+  | "lifecycle"
+  | "gateway"
+  | "risk"
+  | "trust"
+  | "evidence"
+  | "controls"
+  | "policies"
+  | "value"
+  | "academy"
+  | "audit"
+  /* internal drill-in views, still valid module ids */
   | "initiatives"
   | "pmo"
-  | "models"
-  | "approvals"
-  | "portfolio"
-  | "governance"
-  | "evidence"
-  | "gateway"
   | "admin"
-  | "academy";
+  | "models"
+  | "governance"
+  | "approvals";
 
 export type ACLens =
   | "Executive"
@@ -22,7 +33,9 @@ export type ACLens =
   | "Governance"
   | "Delivery"
   | "Privacy"
-  | "Compliance";
+  | "Compliance"
+  | "Risk"
+  | "Legal";
 
 export type ACRoleAccess = {
   lens: ACLens;
