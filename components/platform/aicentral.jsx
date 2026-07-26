@@ -9,6 +9,7 @@ import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisio
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
+import { acLensFor } from "@/lib/ai-central-lens";
 
 export function PageModelRegistry({setTab,openInitiative}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -526,10 +527,52 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
 
   /* Plain typographic module header. Approval awareness lives in Veris
      Intelligence, and the selected initiative is the page's visual focus. */
-  const Header=()=><div style={{margin:"4px 0 20px"}}>
+  const lens=acLensFor(role);
+  const LENSC={good:T.green,warn:T.amber,crit:T.red,info:T.blue,violet:T.violet,teal:T.teal,gold:AI_GOLD,ink3:T.ink3,ink:T.ink};
+  const lensCol=k=>LENSC[k]||T.ink;
+  const Header=()=><div style={{margin:"4px 0 16px"}}>
+    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.blue,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:5}}>AI Central · {access.lens} lens</div>
     <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
-    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b}}>{activeModule==="initiatives"?"AI Initiative Workspace - the digital twin of one initiative":activeModule==="dashboard"?"Enterprise AI Command Center - portfolio-wide visibility":activeModule==="pmo"?"Portfolio Delivery Office - delivery across every initiative":access.focus}</p>
+    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b,fontStyle:"italic"}}>{lens.question}</p>
   </div>;
+
+  /* ── Role lens band: the AI Central Overview, reframed for this role.
+     Same initiative portfolio, role-specific hero metric, KPIs and
+     columns. Rows open the initiative workspace. ── */
+  const RoleLensBand=()=>{
+    const rows=lens.filter?items.filter(lens.filter):items;
+    const cell=v=>Array.isArray(v)?<span style={{display:"inline-flex",alignItems:"center",fontSize:9.5,fontWeight:800,fontFamily:F.m,padding:"2px 9px",borderRadius:20,background:lensCol(v[1])+"22",color:lensCol(v[1])}}>{v[0]}</span>:v;
+    return <div style={{marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16,flexWrap:"wrap",marginBottom:14}}>
+        <div style={{display:"flex",gap:14,alignItems:"center",background:"linear-gradient(135deg,#2a4a86,#3a6fd0 60%,#2f5bb0)",border:"1px solid #6f9bf0",borderRadius:14,padding:"11px 18px",boxShadow:"0 12px 30px #5b8df040"}}>
+          <div style={{fontSize:30,fontWeight:800,color:"#eaf1ff",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{lens.hero[0]}</div>
+          <div><div style={{fontSize:9.5,letterSpacing:"0.09em",textTransform:"uppercase",color:"#cfe0ff",fontWeight:900,fontFamily:F.m}}>{lens.hero[1]}</div><div style={{fontSize:10,color:"#a9c4f5",marginTop:3,fontWeight:600,fontFamily:F.b}}>{lens.hero[2]}</div></div>
+        </div>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:700,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px",alignSelf:"center"}}>🔒 RBAC · {access.modules.length} of {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").length} modules enabled</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:14}}>
+        {lens.kpis.map((k,i)=><div key={i} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 14px"}}>
+          <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{k[0]}</div>
+          <div style={{fontSize:21,fontWeight:800,marginTop:6,fontFamily:F.m,color:lensCol(k[2])}}>{k[1]}</div>
+          <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{k[3]}</div>
+        </div>)}
+      </div>
+      <Card style={{padding:"16px 18px"}}>
+        <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:4}}>Initiative portfolio · {access.lens} columns</div>
+        <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>{lens.filter?"Your initiatives":"All AI initiatives"} — the same portfolio, framed for {R.label}</div>
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+          <thead><tr>{lens.cols.map(c=><th key={c[0]} style={{textAlign:"left",fontSize:9,letterSpacing:"0.07em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{c[0]}</th>)}</tr></thead>
+          <tbody>{rows.map(i=><tr key={i.id} onClick={()=>openInitiative(i.id,"overview")} style={{cursor:"pointer"}} className="vz-pn-row">
+            {lens.cols.map((c,ci)=><td key={ci} style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:ci===0?T.ink:T.ink2,fontWeight:ci===0?700:400}}>{cell(c[1](i))}</td>)}
+          </tr>)}</tbody>
+        </table></div>
+      </Card>
+      <div style={{display:"flex",alignItems:"center",gap:8,margin:"18px 0 4px"}}>
+        <span style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",whiteSpace:"nowrap"}}>Full portfolio detail</span>
+        <span style={{flex:1,height:1,background:`linear-gradient(90deg,${T.border},transparent)`}}/>
+      </div>
+    </div>;
+  };
 
   /* ── Dashboard ─────────────────────────────────────────────── */
   /* Every tile opens the surface that OWNS its metric - no two tiles may
@@ -2055,7 +2098,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
 
   return <div style={{animation:"up .3s ease"}}>
     <Header/>
-    {activeModule==="dashboard"&&<Dashboard/>}
+    {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/></>}
     {activeModule==="initiatives"&&<Initiatives/>}
     {activeModule==="pmo"&&renderEnterprisePmo()}
     {activeModule==="models"&&<PageModelRegistry setTab={setTab} openInitiative={openInitiative}/>}

@@ -327,13 +327,15 @@ export const CAIO_NAV_SECTIONS = [
    the sidebar section is built per role. Overview is the shared `home`. */
 export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
   cfg.surfaces.map(s => ({ id: s.id, icon: "D", label: s.label, badge: s.badge })));
-const ROLE_ENTERPRISE = {
-  employee: [], manager: [],
-}; /* C-suite roles get a slim Enterprise group; employee/manager stay scoped */
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
   const primary = { title: cfg.navHd, items: ["home", ...cfg.surfaces.map(s => s.id)] };
   const isScoped = role === "employee" || role === "manager";
-  return [role, isScoped ? [primary] : [primary, { title: "Enterprise", items: ["aicentral", "academy"] }]];
+  /* AI Central is reachable by everyone - RBAC decides which modules open,
+     not whether the surface exists. Scoped roles get a minimal Enterprise
+     group with just AI Central; C-suite roles also get Academy. */
+  return [role, isScoped
+    ? [primary, { title: "Enterprise", items: ["aicentral"] }]
+    : [primary, { title: "Enterprise", items: ["aicentral", "academy"] }]];
 }));
 
 /* Which surface owns each contextual page - keeps the owning sidebar
