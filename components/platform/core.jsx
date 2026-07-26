@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_RBAC, acInitiatives, KPI_INSIGHTS } from "@/lib/platform-models";
+import { ROLE_CENTERS } from "@/lib/role-centers";
 
 export const FEEDBACK_DIMS = [
   ["user","User feedback"],["business","Business owner"],["executive","Executive"],
@@ -320,6 +321,20 @@ export const CAIO_NAV_SECTIONS = [
   {title:"AI Governance Office", items:["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"]},
   {title:"Enterprise", items:["aicentral","academy"]},
 ];
+
+/* Role Command Centers (COO/CFO/CHRO/CISO/CIO/CDPO/CGO/employee/manager)
+   are generated from lib/role-centers. Each surface becomes a nav item;
+   the sidebar section is built per role. Overview is the shared `home`. */
+export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
+  cfg.surfaces.map(s => ({ id: s.id, icon: "D", label: s.label, badge: s.badge })));
+const ROLE_ENTERPRISE = {
+  employee: [], manager: [],
+}; /* C-suite roles get a slim Enterprise group; employee/manager stay scoped */
+export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
+  const primary = { title: cfg.navHd, items: ["home", ...cfg.surfaces.map(s => s.id)] };
+  const isScoped = role === "employee" || role === "manager";
+  return [role, isScoped ? [primary] : [primary, { title: "Enterprise", items: ["aicentral", "academy"] }]];
+}));
 
 /* Which surface owns each contextual page - keeps the owning sidebar
    item highlighted while the user drills into contextual destinations. */
@@ -1155,6 +1170,16 @@ export function glyphIconFor(value) {
   if(v.includes("incident")) return AlertTriangle;
   if(v.includes("impact assessment")) return ClipboardCheck;
   if(v.includes("risk center")) return ShieldCheck;
+  if(v.includes("automation")||v.includes("process")) return Workflow;
+  if(v.includes("threat")||v.includes("vulnerab")||v.includes("guardrail")||v.includes("red-team")) return ShieldCheck;
+  if(v.includes("sentiment")||v.includes("feedback")) return MessageSquare;
+  if(v.includes("gateway")||v.includes("routing")||v.includes("integration")) return Network;
+  if(v.includes("platform")||v.includes("health")) return Activity;
+  if(v.includes("skill")||v.includes("adoption")||v.includes("enablement")||v.includes("capacity")||v.includes("roster")) return Users;
+  if(v.includes("value")||v.includes("roi")||v.includes("cost")||v.includes("run-rate")||v.includes("performance")||v.includes("investment")||v.includes("sla")) return LineChart;
+  if(v.includes("residency")||v.includes("data map")) return Database;
+  if(v.includes("consent")||v.includes("rights")||v.includes("approval")) return ClipboardCheck;
+  if(v.includes("regulatory")||v.includes("board")||v.includes("audit")) return Scale;
   if(v.includes("register")) return ClipboardList;
   if(v.includes("start")||v.includes("playbook")||v.includes("runbook")) return PlayCircle;
   if(v.includes("academy")||v.includes("learning")||v.includes("video")) return PlayCircle;
