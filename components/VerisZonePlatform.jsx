@@ -143,10 +143,12 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     return <div key={item.id}>
       {btn}
       <div style={{margin:"2px 0 6px 14px",paddingLeft:12,borderLeft:`1px solid ${T.border}`}}>
-        {AI_CENTRAL_NAV.filter(m=>m.id!=="academy"&&acAccessFor(role).modules.includes(m.id)).map(m=>{
+        {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").map(m=>{
           const on=aiCentralView===m.id;
-          return <button key={m.id} onClick={()=>{if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"14":"transparent",border:`1px solid ${on?AI_GOLD+"3d":"transparent"}`,color:on?AI_GOLD:T.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:"pointer"}}>
+          const locked=!acAccessFor(role).modules.includes(m.id);
+          return <button key={m.id} disabled={locked} onClick={()=>{if(locked)return;if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} title={locked?"Not available for your role":undefined} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"14":"transparent",border:`1px solid ${on?AI_GOLD+"3d":"transparent"}`,color:on?AI_GOLD:T.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1}}>
             <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.id==="dashboard"?"Overview":m.label}</span>
+            {locked&&<span style={{marginLeft:"auto",fontSize:9,opacity:.8}}>🔒</span>}
           </button>;
         })}
       </div>
@@ -180,9 +182,11 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
         </div>}
-        {acOnly&&AI_CENTRAL_NAV.filter(item=>acAccessFor(role).modules.includes(item.id)).map((item,idx)=>{
+        {acOnly&&AI_CENTRAL_NAV.map((item,idx)=>{
           const isA=aiCentralView===item.id;
-          return <button key={item.id} className={`vz-nav-btn ${themeClass}`} onClick={()=>{if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+          const locked=!acAccessFor(role).modules.includes(item.id);
+          return <button key={item.id} disabled={locked} className={`vz-nav-btn ${themeClass}`} title={locked?"Not available for your role":undefined} onClick={()=>{if(locked)return;if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1,animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+            {locked&&<span style={{position:"absolute",right:9,top:10,fontSize:9,zIndex:2,opacity:.8}}>🔒</span>}
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
