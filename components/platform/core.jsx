@@ -279,10 +279,28 @@ export const CAIO_EXTRA_NAV = [
   {id:"usecases",icon:"U", label:"Use Case Pipeline"},
 ];
 
+/* CEO Command Center surfaces - each is a tab that renders a view of the
+   CEOCommandCenter. Overview is the `home` tab; the rest are dedicated. */
+export const CEO_NAV = [
+  {id:"ceoplaybook", icon:"P", label:"CEO Playbook"},
+  {id:"ceoportfolio",icon:"T", label:"Portfolio"},
+  {id:"ceobudget",   icon:"B", label:"Budget"},
+  {id:"ceorisk",     icon:"R", label:"Risk Center"},
+  {id:"ceoactions",  icon:"H", label:"My Action Items"},
+  {id:"ceoreporting",icon:"B", label:"Reporting"},
+];
+
 /* FINAL platform sidebar - seven surfaces, nothing else. Every other
    page is a contextual destination underneath one of these owners. */
 export const PLATFORM_NAV_SECTIONS = [
   {title:"Platform", items:["home","aicentral","playbook","compliance","riskcenter","reports","academy"]},
+];
+
+/* CEO gets a dedicated command-center sidebar. "Overview" is the home tab.
+   A slim Enterprise group keeps the deep platform reachable. */
+export const CEO_NAV_SECTIONS = [
+  {title:"CEO Cockpit", items:["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"]},
+  {title:"Enterprise", items:["aicentral","compliance","academy"]},
 ];
 
 /* Which surface owns each contextual page - keeps the owning sidebar
@@ -1112,7 +1130,10 @@ export function cleanText(value) {
 
 export function glyphIconFor(value) {
   const v=cleanText(value).toLowerCase();
-  if(v.includes("dashboard")||v.includes("command")) return LayoutDashboard;
+  if(v.includes("dashboard")||v.includes("command")||v.includes("overview")) return LayoutDashboard;
+  if(v.includes("portfolio")) return BriefcaseBusiness;
+  if(v.includes("budget")) return LineChart;
+  if(v.includes("action item")) return ClipboardCheck;
   if(v.includes("register")) return ClipboardList;
   if(v.includes("start")||v.includes("playbook")||v.includes("runbook")) return PlayCircle;
   if(v.includes("academy")||v.includes("learning")||v.includes("video")) return PlayCircle;
