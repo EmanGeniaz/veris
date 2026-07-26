@@ -213,10 +213,21 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [ob,setOb]=useState({name:"",slug:"",mode:"clean",token:""});
   const [obMsg,setObMsg]=useState("");
   Object.assign(T, theme==="light"?LIGHT_T:DARK_T);
-  const [selected,setSelected]=useState("demo");
+  const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
+  const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
+  const executiveProfiles=LOGIN_PROFILES.filter(p=>EXECUTIVE_ROLE_IDS.includes(p.role));
+  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral","employee","manager"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
+  const employeeProfiles=LOGIN_PROFILES.filter(p=>["employee","manager"].includes(p.id));
+  /* All real-user identities behind "Employee Login". In production a single
+     SSO sign-in resolves the user's role via RBAC and routes them to their
+     command center; the demo lets you pick which role to enter as. */
+  const roleProfiles=[...executiveProfiles,...governanceProfiles,...employeeProfiles];
+  const [topChoice,setTopChoice]=useState("demo");
+  const [empRole,setEmpRole]=useState(roleProfiles[0]?.id||"ceo");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("govern-with-certainty");
   const [loginError,setLoginError]=useState("");
+  const selected=topChoice==="demo"?"demo":topChoice==="aicentral"?(aiCentralProfile?.id||"aicentral"):empRole;
   const profile=LOGIN_PROFILES.find(p=>p.id===selected)||LOGIN_PROFILES[0];
   useEffect(()=>{
     setEmail(profile.email);
@@ -238,11 +249,6 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
     if(!canEnter())return;
     onEnter(profile);
   };
-  const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
-  const executiveProfiles=LOGIN_PROFILES.filter(p=>EXECUTIVE_ROLE_IDS.includes(p.role));
-  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral","employee","manager"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
-  const employeeProfiles=LOGIN_PROFILES.filter(p=>["employee","manager"].includes(p.id));
-  const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
   const enterDemoLink=()=>onEnter(demoProfile);
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
   return <div style={{minHeight:"100vh",background:theme==="light"?`linear-gradient(135deg, #F7F8FA, #FFFFFF 54%, #F3F6FB)`:`radial-gradient(circle at 20% 10%, ${profile.accent}18, transparent 30%), linear-gradient(135deg, ${T.bg}, ${T.s1})`,color:T.ink,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,420px),1fr))",gap:0,position:"relative",overflow:"hidden"}}>
@@ -309,28 +315,30 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
           <button type="button" onClick={onTheme} style={{position:"absolute",top:0,right:0,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"7px 11px",color:T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{theme==="dark"?"Light":"Dark"}</button>
         </div>
         <div style={{fontSize:24,fontWeight:400,fontFamily:F.e,marginBottom:6}}>Secure control-plane sign in</div>
-        <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:13}}>Use Demo Center for seeded sales storytelling. Subscribed CXO and AI Central workspaces open clean, ready for customer-owned data.</div>
+        <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:13}}>Three ways in: <strong style={{color:T.ink2}}>Demo Center</strong> is the seeded sales showcase. <strong style={{color:T.ink2}}>Employee Login</strong> is how real users sign in — RBAC routes each person to their own command center. <strong style={{color:T.ink2}}>AI Central</strong> opens the standalone control plane.</div>
         <div style={{display:"grid",gap:9,marginBottom:13}}>
           <label style={{display:"grid",gap:6}}>
-            <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Workspace</span>
-            <select aria-label="Workspace" value={selected} onChange={e=>setSelected(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
-              <optgroup label="Sales showcase">
-                <option value={demoProfile.id}>{demoProfile.label} - Full platform demo</option>
-              </optgroup>
-              <optgroup label="Executive workspaces">
-                {executiveProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
-              </optgroup>
-              <optgroup label="Governance workspaces">
-                {governanceProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
-              </optgroup>
-              <optgroup label="Employee workspace">
-                {employeeProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
-              </optgroup>
-              {aiCentralProfile&&<optgroup label="Execution and assurance">
-                <option value={aiCentralProfile.id}>{aiCentralProfile.label} - Standalone command center</option>
-              </optgroup>}
+            <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Sign in to</span>
+            <select aria-label="Sign in to" value={topChoice} onChange={e=>setTopChoice(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
+              <option value="demo">Demo Center — Full platform demo</option>
+              <option value="employee">Employee Login — your role &amp; access via RBAC</option>
+              {aiCentralProfile&&<option value="aicentral">AI Central — standalone command center</option>}
             </select>
           </label>
+          {topChoice==="employee"&&<label style={{display:"grid",gap:6}}>
+            <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Sign in as <span style={{color:T.ink3,fontWeight:700,textTransform:"none",letterSpacing:0}}>· demo picks your role (production uses SSO)</span></span>
+            <select aria-label="Sign in as" value={empRole} onChange={e=>setEmpRole(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
+              <optgroup label="Executives">
+                {executiveProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
+              </optgroup>
+              <optgroup label="Governance">
+                {governanceProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
+              </optgroup>
+              <optgroup label="Team">
+                {employeeProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
+              </optgroup>
+            </select>
+          </label>}
           <input aria-label="Email" value={email} onChange={e=>{setEmail(e.target.value);setLoginError("");}} style={fieldStyle}/>
           <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");}} style={fieldStyle}/>
         </div>
