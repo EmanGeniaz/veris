@@ -10,6 +10,7 @@ import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
 import { acLensFor } from "@/lib/ai-central-lens";
+import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 
 export function PageModelRegistry({setTab,openInitiative}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -570,6 +571,33 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       <div style={{display:"flex",alignItems:"center",gap:8,margin:"18px 0 4px"}}>
         <span style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",whiteSpace:"nowrap"}}>Full portfolio detail</span>
         <span style={{flex:1,height:1,background:`linear-gradient(90deg,${T.border},transparent)`}}/>
+      </div>
+    </div>;
+  };
+
+  /* ── Module lens band: the same role lens, carried into each module.
+     A compact framing question + three role-relevant signals above the
+     module's own content. Falls back to the module default for roles
+     without a distinct angle. ── */
+  const ModuleLensBand=({module})=>{
+    const ml=acModuleLensFor(module,role);
+    if(!ml)return null;
+    return <div style={{marginBottom:14}}>
+      <div style={{background:`linear-gradient(135deg,${T.s2},${T.s1})`,border:`1px solid ${T.border}`,borderLeft:`3px solid ${T.blue}`,borderRadius:12,padding:"13px 16px"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:14,flexWrap:"wrap"}}>
+          <div style={{minWidth:220,flex:1}}>
+            <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.blue,textTransform:"uppercase",letterSpacing:"0.13em",marginBottom:5}}>{ml.angle} · {R.label}</div>
+            <div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,letterSpacing:"-0.01em",lineHeight:1.25}}>{ml.question}</div>
+            <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:3}}>{ml.sub}</div>
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {ml.chips.map((c,i)=><div key={i} style={{background:T.bg,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 12px",minWidth:96}}>
+              <div style={{fontSize:8,fontFamily:F.m,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:800}}>{c[0]}</div>
+              <div style={{fontSize:17,fontWeight:800,fontFamily:F.m,color:lensCol(c[2]),marginTop:4,letterSpacing:"-0.02em"}}>{c[1]}</div>
+              <div style={{fontSize:8.5,color:T.ink3,fontFamily:F.b,marginTop:1}}>{c[3]}</div>
+            </div>)}
+          </div>
+        </div>
       </div>
     </div>;
   };
@@ -2101,10 +2129,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/></>}
     {activeModule==="initiatives"&&<Initiatives/>}
     {activeModule==="pmo"&&renderEnterprisePmo()}
-    {activeModule==="models"&&<PageModelRegistry setTab={setTab} openInitiative={openInitiative}/>}
-    {activeModule==="governance"&&<Governance/>}
-    {activeModule==="evidence"&&<EvidenceModule/>}
-    {activeModule==="portfolio"&&<Portfolio/>}
+    {activeModule==="models"&&<><ModuleLensBand module="models"/><PageModelRegistry setTab={setTab} openInitiative={openInitiative}/></>}
+    {activeModule==="governance"&&<><ModuleLensBand module="governance"/><Governance/></>}
+    {activeModule==="evidence"&&<><ModuleLensBand module="evidence"/><EvidenceModule/></>}
+    {activeModule==="portfolio"&&<><ModuleLensBand module="portfolio"/><Portfolio/></>}
     {activeModule==="gateway"&&<Gateway/>}
     {activeModule==="admin"&&<Administration/>}
     {activeModule==="academy"&&<Academy/>}
