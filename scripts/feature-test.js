@@ -48,6 +48,11 @@ const { chromium } = require('playwright');
     if (downloads <= before) throw new Error('no download fired');
   });
 
+  // The platform Risk Center & Reports live under the standard governance
+  // sidebar. CAIO now runs a dedicated command center, so exercise these two
+  // platform surfaces under COO (which keeps PLATFORM_NAV_SECTIONS).
+  await page.locator('button', { hasText: /^COO$/ }).first().click(); await page.waitForTimeout(900);
+
   // ── Risk Center: treatment advance (edit/save + evidence) ──
   await test('Risk treatment advance records evidence', async () => {
     await page.locator('nav button', { hasText: 'Risk Center' }).first().click(); await page.waitForTimeout(900);

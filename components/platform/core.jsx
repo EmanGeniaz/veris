@@ -279,6 +279,18 @@ export const CAIO_EXTRA_NAV = [
   {id:"usecases",icon:"U", label:"Use Case Pipeline"},
 ];
 
+/* CAIO Command Center surfaces - Overview is the `home` tab; the rest are
+   dedicated tabs rendering a view of the CAIOCommandCenter. */
+export const CAIO_NAV = [
+  {id:"caioplaybook", icon:"P", label:"My Playbook"},
+  {id:"caiogov",      icon:"C", label:"Governance & Compliance"},
+  {id:"caioreports",  icon:"B", label:"Reports"},
+  {id:"caioincidents",icon:"H", label:"AI Incidents"},
+  {id:"caioaia",      icon:"A", label:"Impact Assessment (AIA)"},
+  {id:"caiorisk",     icon:"R", label:"Risk Center"},
+  {id:"caiolibrary",  icon:"L", label:"Governance Library"},
+];
+
 /* CEO Command Center surfaces - each is a tab that renders a view of the
    CEOCommandCenter. Overview is the `home` tab; the rest are dedicated. */
 export const CEO_NAV = [
@@ -301,6 +313,12 @@ export const PLATFORM_NAV_SECTIONS = [
 export const CEO_NAV_SECTIONS = [
   {title:"CEO Cockpit", items:["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"]},
   {title:"Enterprise", items:["aicentral","compliance","academy"]},
+];
+
+/* CAIO gets the AI Governance Office command center. "Overview" is home. */
+export const CAIO_NAV_SECTIONS = [
+  {title:"AI Governance Office", items:["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"]},
+  {title:"Enterprise", items:["aicentral","academy"]},
 ];
 
 /* Which surface owns each contextual page - keeps the owning sidebar
@@ -1134,6 +1152,9 @@ export function glyphIconFor(value) {
   if(v.includes("portfolio")) return BriefcaseBusiness;
   if(v.includes("budget")) return LineChart;
   if(v.includes("action item")) return ClipboardCheck;
+  if(v.includes("incident")) return AlertTriangle;
+  if(v.includes("impact assessment")) return ClipboardCheck;
+  if(v.includes("risk center")) return ShieldCheck;
   if(v.includes("register")) return ClipboardList;
   if(v.includes("start")||v.includes("playbook")||v.includes("runbook")) return PlayCircle;
   if(v.includes("academy")||v.includes("learning")||v.includes("video")) return PlayCircle;
