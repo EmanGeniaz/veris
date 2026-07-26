@@ -48,14 +48,15 @@ const { chromium } = require('playwright');
     if (downloads <= before) throw new Error('no download fired');
   });
 
-  // The platform Risk Center & Reports live under the standard governance
-  // sidebar. CAIO now runs a dedicated command center, so exercise these two
-  // platform surfaces under COO (which keeps PLATFORM_NAV_SECTIONS).
-  await page.locator('button', { hasText: /^COO$/ }).first().click(); await page.waitForTimeout(900);
+  // Every role now runs a command center. The deep platform Risk Center is
+  // reachable from the CAIO command center ("Open full Risk Center →"); the
+  // platform Reports (board pack / CSV) is delegated to each role's Reports.
 
   // ── Risk Center: treatment advance (edit/save + evidence) ──
   await test('Risk treatment advance records evidence', async () => {
-    await page.locator('nav button', { hasText: 'Risk Center' }).first().click(); await page.waitForTimeout(900);
+    await page.locator('button', { hasText: /^CAIO$/ }).first().click(); await page.waitForTimeout(900);
+    await page.locator('nav button', { hasText: 'Risk Center' }).first().click(); await page.waitForTimeout(700);
+    await page.locator('button:has-text("Open full Risk Center")').first().click(); await page.waitForTimeout(900);
     await page.locator('button:has-text("Treatments")').first().click(); await page.waitForTimeout(600);
     const evBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('vz-gw-evidence') || '[]').length);
     await page.locator('button:has-text("Start treatment")').first().click(); await page.waitForTimeout(700);
@@ -63,8 +64,9 @@ const { chromium } = require('playwright');
     if (evAfter <= evBefore) throw new Error('evidence not recorded');
   });
 
-  // ── Reports: generated packs ──
+  // ── Reports: generated packs (platform Reports via a role's Reports surface) ──
   await test('Board pack + risk CSV downloads', async () => {
+    await page.locator('button', { hasText: /^COO$/ }).first().click(); await page.waitForTimeout(700);
     await page.locator('nav button', { hasText: /^Reports$/ }).first().click(); await page.waitForTimeout(900);
     const before = downloads;
     await page.locator('button:has-text("Executive Board Pack")').first().click(); await page.waitForTimeout(800);
@@ -99,14 +101,10 @@ const { chromium } = require('playwright');
     if (!(await body()).match(/blocked/i)) throw new Error('not blocked');
   });
   await test('Submit AI idea (create + list)', async () => {
-    await page.locator('nav button', { hasText: 'My Workspace' }).first().click(); await page.waitForTimeout(900);
-    await page.locator('button:has-text("Submit new idea")').first().click(); await page.waitForTimeout(900);
-    await page.locator('button:has-text("Submit"), button:has-text("New idea"), button:has-text("Submit new idea")').first().click(); await page.waitForTimeout(500);
-    const vis = page.locator('input:visible:not([aria-label="Universal search"]), textarea:visible');
-    await vis.first().fill('Feature Test Idea - auto triage');
-    const n = await vis.count();
-    for (let i = 1; i < Math.min(n, 3); i++) { try { await vis.nth(i).fill('Testing the idea pipeline'); } catch {} }
-    await page.locator('button:has-text("Submit")').last().click(); await page.waitForTimeout(800);
+    await page.locator('nav button', { hasText: 'My Ideas' }).first().click(); await page.waitForTimeout(900);
+    await page.locator('input[placeholder*="Auto-draft"]').first().fill('Feature Test Idea - auto triage');
+    await page.locator('textarea[placeholder*="friction"]').first().fill('Testing the idea pipeline'); await page.waitForTimeout(200);
+    await page.locator('button:has-text("Submit idea")').first().click(); await page.waitForTimeout(800);
     if (!(await body()).includes('Feature Test Idea')) throw new Error('idea not listed');
   });
 

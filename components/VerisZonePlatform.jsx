@@ -3,17 +3,25 @@
 import { Scale, Settings } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
+import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
 import dynamic from "next/dynamic";
 import { hydrateBus } from "@/lib/bus";
+import { ROLE_CENTERS } from "@/lib/role-centers";
+/* Employee/Manager command-center surfaces that delegate to a real,
+   fully-built platform page rather than a config block — so the governed
+   AI Assistant (with safe-use guardrails), ideas, usage and academy keep
+   their working depth inside the new command center. */
+const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",emp_ideas:"myideas",emp_usage:"aiusage",emp_learning:"academy",mgr_learning:"academy",
+  coo_reports:"reports",cfo_reports:"reports",chro_reports:"reports",ciso_reports:"reports",cio_reports:"reports",cdpo_reports:"reports",cgo_reports:"reports",mgr_reports:"reports"};
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
 const PageHome=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHome),{ssr:false,loading:vzLoading});
 const CEOCommandCenter=dynamic(()=>import("./platform/ceo").then(m=>m.CEOCommandCenter),{ssr:false,loading:vzLoading});
 const CAIOCommandCenter=dynamic(()=>import("./platform/caio").then(m=>m.CAIOCommandCenter),{ssr:false,loading:vzLoading});
+const RoleCommandCenter=dynamic(()=>import("./platform/rolecenters").then(m=>m.RoleCommandCenter),{ssr:false,loading:vzLoading});
 const PageOnboard=dynamic(()=>import("./platform/dashboard").then(m=>m.PageOnboard),{ssr:false,loading:vzLoading});
 const PageOpportunityIntake=dynamic(()=>import("./platform/dashboard").then(m=>m.PageOpportunityIntake),{ssr:false,loading:vzLoading});
 const PageStrategy=dynamic(()=>import("./platform/dashboard").then(m=>m.PageStrategy),{ssr:false,loading:vzLoading});
@@ -114,21 +122,21 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
   const acOnly=sessionMode==="aicentral";
-  const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV,...CEO_NAV,...CAIO_NAV].map(item=>[item.id,item]));
-  const roleNavSections=role==="employee"?EMPLOYEE_NAV_SECTIONS:role==="manager"?MANAGER_NAV_SECTIONS:role==="ceo"?CEO_NAV_SECTIONS:role==="caio"?CAIO_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
+  const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV,...CEO_NAV,...CAIO_NAV,...ROLE_NAV].map(item=>[item.id,item]));
+  const roleNavSections=ROLE_NAV_SECTIONS[role]?ROLE_NAV_SECTIONS[role]:role==="ceo"?CEO_NAV_SECTIONS:role==="caio"?CAIO_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
   const renderNavButton=(item)=>{
     const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
-    const badge=item.id==="home"&&hitlCount>0;
+    const badge=(item.id==="home"&&hitlCount>0)?hitlCount:item.badge||null;
     const delay=Math.min(navIdx++*0.018,0.28);
     const btn=<button key="btn" className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
       {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`,boxShadow:theme==="light"?"none":`inset 0 0 20px ${rc}0D`}}/>}
       {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
       <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?rc:T.ink3} size={14}/></span>
       <span style={{position:"relative",zIndex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
-      {badge&&<span style={{position:"absolute",right:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{hitlCount}</span>}
+      {badge&&<span style={{position:"absolute",right:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{badge}</span>}
     </button>;
     if(!(item.id==="aicentral"&&isAICentral&&!acOnly))return <div key={item.id}>{btn}</div>;
     /* AI Central modules nest under their owning surface - one sidebar, contextual depth. */
@@ -162,7 +170,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
       </div>
       <nav className="vz-side-nav" style={{flex:1,padding:"10px 9px",overflowY:"auto"}}>
         {!acOnly&&roleNavSections.map(section=>{
-          const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>(role==="ceo"||role==="caio")&&it.id==="home"?{...it,label:"Overview"}:it);
+          const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>(role==="ceo"||role==="caio"||ROLE_NAV_SECTIONS[role])&&it.id==="home"?{...it,label:"Overview"}:it);
           return <div key={section.title} style={{marginBottom:4}}>
             {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
@@ -538,7 +546,7 @@ export default function VerisZone() {
 
   /* Switching role inside AI Central keeps the initiative open - only the
      executive perspective changes. Elsewhere it opens that role's home. */
-  const switchRole=r=>{setRole(r);setTab(r==="employee"?"myworkspace":r==="manager"?"teamspace":tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
+  const switchRole=r=>{setRole(r);const scoped=r==="employee"||r==="manager";setTab(!scoped&&tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
     setTab("home");
@@ -548,7 +556,9 @@ export default function VerisZone() {
   },[]);
   const enterApp=useCallback((profile=LOGIN_PROFILES[0])=>{
     setRole(profile.role);
-    setTab(profile.target);
+    /* Role-command-center roles (incl. employee/manager) open on their
+       Overview (home) rather than a legacy target surface. */
+    setTab(ROLE_CENTERS[profile.role]?"home":profile.target);
     setHitlCount(profile.mode==="demo"?(HITL[profile.role]||[]).length:0);
     setSessionMode(profile.mode||"role");
     setHasEntered(true);
@@ -617,7 +627,7 @@ export default function VerisZone() {
     };
   },[enterApp]);
   const R=ROLES[role],rc=RC(role);
-  const roleHome=(role==="employee"||role==="manager")?"workbench":"home";
+  const roleHome="home";
   /* Seeded sessions: the Demo Center and the standalone AI Central demo both
      show the full showcase data. Subscribed customer workspaces ("role" and
      "clean") stay empty until their own records arrive. */
@@ -693,7 +703,13 @@ export default function VerisZone() {
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
         {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&ROLE_CENTERS[role]&&(tab==="home"||ROLE_CENTERS[role].surfaces.some(s=>s.id===tab))&&!ROLE_PAGE_OVERRIDE[tab]&&<RoleCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {ROLE_PAGE_OVERRIDE[tab]==="workbench"&&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="myideas"&&<PageMyIdeas role={role} sessionMode={sessionMode} showToast={showToast}/>}
+        {ROLE_PAGE_OVERRIDE[tab]==="aiusage"&&<PageAIUsage role={role} sessionMode={sessionMode}/>}
+        {ROLE_PAGE_OVERRIDE[tab]==="academy"&&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="reports"&&<PageReports role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
