@@ -147,10 +147,16 @@ function PageHead({title,sub}){
   </div>;
 }
 
+/* Overview dashboard lenses — derived from the role's surfaces (excluding
+   playbook, reports and assistant, which are pages rather than lenses).
+   Mirrors the CEO/CAIO in-surface tabs so every role is consistent. */
 function Overview({role,cfg,ctx}){
   const name=(ROLES[role]||ROLES.caio).name.split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const lenses=cfg.surfaces.filter(s=>!/reports$|playbook$|assistant$/.test(s.id)).slice(0,4);
+  const [tab,setTab]=useState(0);
+  const TABS=[{label:"Overview"},...lenses.map(s=>({label:s.label,blocks:s.blocks}))];
   return <div style={{animation:"up .3s ease"}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
@@ -163,10 +169,12 @@ function Overview({role,cfg,ctx}){
         <div style={{textAlign:"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{cfg.hero[1]}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{cfg.hero[2]}</div></div>
       </div>
     </div>
-    <div style={{height:18}}/>
-    <Attn items={cfg.attn}/>
-    <Kpis items={cfg.kpis}/>
-    <Blocks blocks={cfg.panels} ctx={ctx}/>
+    <div style={{display:"flex",gap:6,margin:"18px 0",flexWrap:"wrap"}}>
+      {TABS.map((t,i)=><button key={i} onClick={()=>setTab(i)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
+    </div>
+    {tab===0
+      ? <div style={{animation:"up .2s ease"}}><Attn items={cfg.attn}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={ctx}/></div>
+      : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={ctx}/></div>}
   </div>;
 }
 
