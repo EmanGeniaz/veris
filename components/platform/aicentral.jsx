@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { PageAISpine } from "./spine";
-import { RiskAssessmentCascade } from "./riskcenter";
+import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
+import { AC_OWNERSHIP_MODEL } from "./core";
 import { PageGovernanceAcademy } from "./academy";
 import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
@@ -437,7 +438,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const rc=AI_GOLD;
   const access=acAccessFor(role);
   const R=ROLES[role]||ROLES.caio;
-  const activeModule=access.modules.includes(view)?view:"dashboard";
+  /* Internal drill-in views are reachable from within a module (initiative
+     workspace, PMO, gateway admin) even when they aren't RBAC-gated modules. */
+  const AC_INTERNAL_VIEWS=["initiatives","pmo","admin"];
+  const activeModule=access.modules.includes(view)?view:AC_INTERNAL_VIEWS.includes(view)?view:"dashboard";
   const [items,setItems]=useState(acInitiatives);
   const [selectedId,setSelectedId]=useState(acInitiatives[0].id);
   const [initTab,setInitTab]=useState("list");
@@ -531,10 +535,18 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const lens=acLensFor(role);
   const LENSC={good:T.green,warn:T.amber,crit:T.red,info:T.blue,violet:T.violet,teal:T.teal,gold:AI_GOLD,ink3:T.ink3,ink:T.ink};
   const lensCol=k=>LENSC[k]||T.ink;
-  const Header=()=><div style={{margin:"4px 0 16px"}}>
-    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.blue,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:5}}>AI Central · {access.lens} lens</div>
-    <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{AI_CENTRAL_NAV.find(m=>m.id===activeModule)?.label||"Dashboard"}</h2>
-    <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b,fontStyle:"italic"}}>{lens.question}</p>
+  const modMeta=AI_CENTRAL_NAV.find(m=>m.id===activeModule);
+  const Header=()=><div style={{margin:"4px 0 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+    <div>
+      <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.blue,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:5}}>AI Central · {access.lens} lens</div>
+      <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{modMeta?.label||"Dashboard"}</h2>
+      <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b,fontStyle:"italic"}}>{lens.question}</p>
+    </div>
+    {modMeta?.owner&&<div title="Accountable owner for this module" style={{textAlign:"right",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 13px",minWidth:150}}>
+      <div style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em"}}>Module owner</div>
+      <div style={{fontSize:13,fontWeight:800,color:AI_GOLD,fontFamily:F.b,marginTop:3}}>{modMeta.owner}</div>
+      <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Oversight · {modMeta.oversight}</div>
+    </div>}
   </div>;
 
   /* ── Role lens band: the AI Central Overview, reframed for this role.
@@ -609,16 +621,16 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
      governance=controls, academy=readiness, value tab=value scores,
      portfolio units=investment, reports=portfolio ROI reporting. */
   const W={
-    portfolio:{label:"Total initiatives",value:total,sub:"Enterprise AI portfolio",color:rc,go:()=>openModule("initiatives")},
+    portfolio:{label:"Total initiatives",value:total,sub:"Enterprise AI portfolio",color:rc,go:()=>openModule("lifecycle")},
     active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openInitiative(selectedId,"journey")},
-    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>{setTab("riskcenter");}},
+    risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>openModule("risk")},
     approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("decisions");}},
-    findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("evidence")},
-    guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("governance")},
+    findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("audit")},
+    guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("controls")},
     adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
-    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openInitiative(selectedId,"value")},
+    value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openModule("value")},
     budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>{setPfTab("units");openModule("portfolio");}},
-    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>{setTab("reports");}},
+    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("value")},
   };
   const LENS_WIDGETS={
     Executive:["portfolio","value","roi","risk","budget","approvals"],
@@ -630,6 +642,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     Delivery:["portfolio","active","risk","approvals","findings","guardrail","adoption","value"],
     Privacy:["risk","findings","guardrail","portfolio","approvals","adoption"],
     Compliance:["guardrail","findings","risk","approvals","portfolio","value"],
+    Risk:["risk","guardrail","findings","approvals","active","portfolio"],
+    Legal:["findings","guardrail","risk","approvals","portfolio","value"],
   };
   const showCxo=["Executive","Governance","Delivery"].includes(access.lens);
   const showValueSection=["Executive","Value","Workforce","Operations","Governance","Delivery"].includes(access.lens);
@@ -2124,18 +2138,255 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     <PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>
   </div>;
 
+  /* ── Operating-model map: the governance ownership hierarchy +
+     owner-per-module, rendered inside the Executive Dashboard. ── */
+  const OwnershipMap=()=><Card style={{padding:"16px 18px",marginTop:14}}>
+    <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:3}}>Operating model</div>
+    <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:13}}>Who owns AI Central — Board to control plane</div>
+    <div style={{display:"grid",gap:7,marginBottom:16}}>
+      {AC_OWNERSHIP_MODEL.map((t,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"128px 1fr",gap:12,alignItems:"center",background:i===4?AI_GOLD+"12":T.s2,border:`1px solid ${i===4?AI_GOLD+"3d":T.border}`,borderRadius:9,padding:"9px 13px"}}>
+        <span style={{fontSize:8.5,fontFamily:F.m,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em"}}>{t.tier}</span>
+        <div><div style={{fontSize:12,fontWeight:800,color:i===4?AI_GOLD:T.ink,fontFamily:F.b}}>{t.node}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:1}}>{t.role}</div></div>
+      </div>)}
+    </div>
+    <div style={{fontSize:9.5,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:8}}>Owner per module</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(215px,1fr))",gap:8}}>
+      {AI_CENTRAL_NAV.map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 11px"}}>
+        <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{m.label}</span>
+        <span style={{fontSize:9.5,color:AI_GOLD,fontFamily:F.m,fontWeight:800,whiteSpace:"nowrap"}}>{m.owner}</span>
+      </div>)}
+    </div>
+  </Card>;
+
+  /* ── AI Strategy ── ambition · investment · roadmap ── */
+  const STRAT_PILLARS=[["Productivity","Automate high-volume, low-variance work behind a human gate","$5.4M",78,"gold"],["Growth","AI-native products and customer experiences","$4.2M",54,"good"],["Risk & Trust","Govern, secure and prove every AI system","$2.1M",71,"blue"],["Workforce","Reskill and enable the whole organisation","$1.7M",61,"teal"]];
+  const AIStrategy=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Strategic pillars" value="4" sub="board-agreed" color={rc}/>
+      <Metric label="FY26 investment" value="$13.4M" sub="allocated across pillars" color={AI_GOLD}/>
+      <Metric label="On roadmap" value="12" sub="initiatives sequenced" color={T.blue}/>
+      <Metric label="Maturity target" value="3.8" sub="of 5 by FY27" color={T.teal} score={76}/>
+    </div>
+    <Card style={{padding:"16px 18px",marginBottom:14}}>
+      <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>Strategic pillars — where AI investment goes</div>
+      <div style={{display:"grid",gap:11}}>{STRAT_PILLARS.map(p=><div key={p[0]} style={{display:"grid",gridTemplateColumns:"minmax(0,1.4fr) 90px minmax(120px,1fr)",gap:12,alignItems:"center"}}>
+        <div style={{minWidth:0}}><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{p[0]}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:1}}>{p[1]}</div></div>
+        <div style={{fontSize:14,fontWeight:800,fontFamily:F.m,color:lensCol(p[4])}}>{p[2]}</div>
+        <div><Bar value={p[3]} color={lensCol(p[4])}/><div style={{fontSize:9,color:T.ink3,marginTop:3,fontFamily:F.b}}>{p[3]}% of ambition funded</div></div>
+      </div>)}</div>
+    </Card>
+    <Card style={{padding:"16px 18px"}}>
+      <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>Roadmap — initiatives by lifecycle horizon</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+        <thead><tr>{["Initiative","Business unit","Horizon","Value at stake"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{items.map(i=><tr key={i.id} onClick={()=>openInitiative(i.id,"overview")} style={{cursor:"pointer"}} className="vz-pn-row">
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{i.name}</td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{i.unit}</td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`}}><Tag label={["Scaling","Production"].includes(i.lifecycle)?"Now":["Pilot"].includes(i.lifecycle)?"Next":"Later"} color={["Scaling","Production"].includes(i.lifecycle)?T.green:["Pilot"].includes(i.lifecycle)?T.blue:T.ink3} bg={(["Scaling","Production"].includes(i.lifecycle)?T.green:["Pilot"].includes(i.lifecycle)?T.blue:T.ink3)+"18"}/></td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink2,fontFamily:F.m}}>{i.expected}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>
+  </div>;
+
+  /* ── AI Inventory ── systems · datasets · vendors ── */
+  const [invTab,setInvTab]=useState("systems");
+  const INV_DATASETS=[["Customer interactions","Confidential","EU",true],["Credit histories","Restricted","EU",true],["Financial ledgers","Confidential","US",false],["Employee records","Restricted","EU",true],["Support transcripts","Internal","US",false],["Product telemetry","Internal","Global",false]];
+  const AIInventory=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="AI systems" value={MODEL_REGISTRY.length} sub="catalogued" color={rc}/>
+      <Metric label="Datasets" value={INV_DATASETS.length+"·38"} sub="classified" color={T.teal}/>
+      <Metric label="Approved vendors" value={gatewayProviders.length} sub="under contract" color={AI_GOLD}/>
+      <Metric label="Shadow AI" value="2" sub="in intake" color={T.amber}/>
+    </div>
+    <SubTabs tabs={[["systems","Systems & models"],["datasets","Datasets"],["vendors","Vendors"]]} active={invTab} onChange={setInvTab}/>
+    {invTab==="systems"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+        <thead><tr>{["System / model","Vendor","EU AI Act","Status"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"12px 14px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{MODEL_REGISTRY.map(m=><tr key={m.id} style={{borderBottom:`1px solid ${T.border}`}}>
+          <td style={{padding:"11px 14px",color:T.ink,fontWeight:700}}>{m.bizName}<div style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:400}}>{m.name}</div></td>
+          <td style={{padding:"11px 14px",color:T.ink2}}>{m.vendor}</td>
+          <td style={{padding:"11px 14px"}}><Tag label={m.euAiAct} color={m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber} bg={(m.euAiAct==="High-Risk"||m.euAiAct==="Unclassified"?T.red:m.euAiAct==="Minimal Risk"?T.green:T.amber)+"16"}/></td>
+          <td style={{padding:"11px 14px"}}><Tag label={m.status} color={m.status==="In Production"?T.green:m.status==="Awaiting Approval"?T.amber:T.ink3} bg={(m.status==="In Production"?T.green:m.status==="Awaiting Approval"?T.amber:T.ink3)+"16"}/></td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>}
+    {invTab==="datasets"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+        <thead><tr>{["Dataset","Classification","Residency","PII"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"12px 14px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{INV_DATASETS.map((d,i)=><tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
+          <td style={{padding:"11px 14px",color:T.ink,fontWeight:700}}>{d[0]}</td>
+          <td style={{padding:"11px 14px"}}><Tag label={d[1]} color={d[1]==="Restricted"?T.red:d[1]==="Confidential"?T.amber:T.blue} bg={(d[1]==="Restricted"?T.red:d[1]==="Confidential"?T.amber:T.blue)+"16"}/></td>
+          <td style={{padding:"11px 14px",color:T.ink2,fontFamily:F.m}}>{d[2]}</td>
+          <td style={{padding:"11px 14px"}}><Tag label={d[3]?"PII":"None"} color={d[3]?T.amber:T.green} bg={(d[3]?T.amber:T.green)+"16"}/></td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>}
+    {invTab==="vendors"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12}}>
+      {gatewayProviders.map(p=><Card key={p.id} style={{padding:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b}}>{p.name}</div><Tag label={p.status} color={p.status==="Approved"?T.green:p.status==="Restricted"?T.amber:T.red} bg={(p.status==="Approved"?T.green:p.status==="Restricted"?T.amber:T.red)+"16"}/></div>
+        <div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{p.kind}</div>
+        <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,marginTop:8}}>{p.models.join(", ")}</div>
+      </Card>)}
+    </div>}
+  </div>;
+
+  /* ── AI Lifecycle ── the 13-phase governed journey + workspace + PMO ── */
+  const [lcTab,setLcTab]=useState("board");
+  const lcCol=lc=>["Scaling"].includes(lc)?T.green:["Production","Pilot"].includes(lc)?AI_GOLD:["Retired"].includes(lc)?T.red:T.blue;
+  const AILifecycle=()=><div>
+    <SubTabs tabs={[["board","Phase Board"],["initiatives","Initiative Workspaces"],["pmo","AI PMO"]]} active={lcTab} onChange={setLcTab}/>
+    {lcTab==="board"&&<div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+        <Metric label="Active initiatives" value={items.length} sub="on the journey" color={rc}/>
+        <Metric label="At a gate" value="2" sub="awaiting decision" color={T.amber}/>
+        <Metric label="Scale-ready" value="2" sub="evidence complete" color={T.green}/>
+        <Metric label="Canonical phases" value={AC_PHASES.length} sub="opportunity → retire" color={T.blue}/>
+      </div>
+      <Card style={{padding:"16px 18px"}}>
+        <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4}}>Governed lifecycle — where each initiative sits</div>
+        <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:14}}>Every initiative advances phase by phase; each gate needs evidence before it opens.</div>
+        <div style={{display:"grid",gap:12}}>{items.map(i=>{const pi=i.phaseIndex||0;const ph=AC_PHASES[pi];return <div key={i.id} onClick={()=>openInitiative(i.id,"journey")} style={{cursor:"pointer",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"12px 14px"}} className="vz-pn-row">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:9}}>
+            <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name} <span style={{fontSize:9.5,color:T.ink3,fontWeight:600}}>· {i.unit}</span></div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}><Tag label={i.lifecycle} color={lcCol(i.lifecycle)} bg={lcCol(i.lifecycle)+"16"}/><span style={{fontSize:9.5,color:T.ink3,fontFamily:F.m,fontWeight:700}}>Phase {pi+1}/{AC_PHASES.length} · {ph?.name}</span></div>
+          </div>
+          <div style={{display:"flex",gap:3}}>{AC_PHASES.map((p,idx)=><div key={p.id} title={p.name} style={{flex:1,height:6,borderRadius:3,background:idx<pi?T.green:idx===pi?AI_GOLD:T.s3}}/>)}</div>
+        </div>;})}</div>
+      </Card>
+    </div>}
+    {lcTab==="initiatives"&&<Initiatives/>}
+    {lcTab==="pmo"&&renderEnterprisePmo()}
+  </div>;
+
+  /* ── Trust Center ── live posture and attestations ── */
+  const TRUST_ATTEST=[["ISO 42001 AIMS","Certified","Feb 2026","good"],["EU AI Act readiness","In progress","Aug 2026","warn"],["SOC 2 Type II","Current","Jan 2026","good"],["GDPR Art.22 safeguards","Attested","Mar 2026","good"],["NIST AI RMF","Aligned","Apr 2026","good"],["Model transparency notices","Published","live","good"]];
+  const TrustCenter=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Trust posture" value="82" sub="live composite" color={T.green} score={82}/>
+      <Metric label="Attacks blocked" value="2,410" sub="last 30 days" color={T.blue}/>
+      <Metric label="Live incidents" value="1" sub="P1 prompt-injection" color={T.red}/>
+      <Metric label="Attestations" value="6" sub="current" color={AI_GOLD}/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1.1fr .9fr",gap:14}}>
+      <Card style={{padding:"16px 18px"}}>
+        <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>Attestations & certifications</div>
+        <div style={{display:"grid",gap:8}}>{TRUST_ATTEST.map(a=><div key={a[0]} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px"}}>
+          <div><div style={{fontSize:12,fontWeight:700,color:T.ink,fontFamily:F.b}}>{a[0]}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:1}}>as of {a[2]}</div></div>
+          <Tag label={a[1]} color={lensCol(a[3]==="good"?"good":"warn")} bg={lensCol(a[3]==="good"?"good":"warn")+"16"}/>
+        </div>)}</div>
+      </Card>
+      <Card style={{padding:"16px 18px"}}>
+        <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>Live guardrail enforcement</div>
+        <div style={{display:"grid",gap:8}}>{guardrailDetectors.slice(0,6).map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+          <div style={{minWidth:0}}><div style={{fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b}}>{d.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{d.triggeredMtd.toLocaleString()}× MTD</div></div>
+          <Tag label={d.action} color={d.action==="Block"?T.red:d.action==="Escalate"?T.violet:d.action==="Mask"||d.action==="Redact"?T.amber:T.green} bg={(d.action==="Block"?T.red:d.action==="Escalate"?T.violet:d.action==="Mask"||d.action==="Redact"?T.amber:T.green)+"16"}/>
+        </div>)}</div>
+      </Card>
+    </div>
+  </div>;
+
+  /* ── Policies & Standards ── policy library + violations ── */
+  const [polTab,setPolTab]=useState("library");
+  const PoliciesStandards=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Active policies" value={POLICY_REGISTER.length} sub="in force" color={rc}/>
+      <Metric label="Overdue review" value={POLICY_REGISTER.filter(p=>p.overdueDays>0).length} sub="past due date" color={T.amber}/>
+      <Metric label="Avg acknowledgement" value={Math.round(POLICY_REGISTER.reduce((s,p)=>s+p.ackCoverage,0)/POLICY_REGISTER.length)+"%"} sub="workforce" color={T.green}/>
+      <Metric label="Standards mapped" value="5" sub="frameworks" color={T.blue}/>
+    </div>
+    <SubTabs tabs={[["library","Policy Library"],["violations","Violation Analytics"]]} active={polTab} onChange={setPolTab}/>
+    {polTab==="library"&&<Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+        <thead><tr>{["Policy","Owner","Version","Next review","Ack"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"12px 14px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{POLICY_REGISTER.map(p=><tr key={p.id} style={{borderBottom:`1px solid ${T.border}`}}>
+          <td style={{padding:"11px 14px",color:T.ink,fontWeight:700}}>{p.name}<div style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:400}}>{p.key} · {p.category}</div></td>
+          <td style={{padding:"11px 14px",color:T.ink2}}>{p.owner}</td>
+          <td style={{padding:"11px 14px",color:T.ink3,fontFamily:F.m}}>{p.version}</td>
+          <td style={{padding:"11px 14px"}}><Tag label={p.nextReview} color={p.overdueDays>0?T.red:T.ink3} bg={p.overdueDays>0?T.red+"16":"transparent"}/></td>
+          <td style={{padding:"11px 14px",color:p.ackCoverage>=85?T.green:T.amber,fontFamily:F.m,fontWeight:800}}>{p.ackCoverage}%</td>
+        </tr>)}</tbody>
+      </table></div>
+    </Card>}
+    {polTab==="violations"&&<Card style={{padding:"16px 18px"}}>
+      <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>Top rules by violations — last 30 days</div>
+      <div style={{display:"grid",gap:7}}>{POLICY_REGISTER.flatMap(p=>p.rules.map(r=>({...r,pol:p.name}))).sort((a,b)=>b.violationsMtd-a.violationsMtd).slice(0,8).map((r,i)=><div key={r.id} style={{display:"grid",gridTemplateColumns:"20px 1fr 100px 70px",gap:10,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`}}>
+        <span style={{fontSize:11,fontFamily:F.m,fontWeight:900,color:T.ink4}}>{i+1}</span>
+        <div style={{minWidth:0}}><div style={{fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b}}>{r.name}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{r.pol}</div></div>
+        <Tag label={r.action} color={r.action==="Block"?T.red:r.action==="Redact"||r.action==="Mask"?T.amber:T.blue} bg={(r.action==="Block"?T.red:r.action==="Redact"||r.action==="Mask"?T.amber:T.blue)+"14"}/>
+        <span style={{fontSize:13,fontFamily:F.m,fontWeight:900,color:T.ink,textAlign:"right"}}>{r.violationsMtd.toLocaleString()}</span>
+      </div>)}</div>
+    </Card>}
+  </div>;
+
+  /* ── Value Realization ── expected vs realized ROI ── */
+  const totExp=items.reduce((s,i)=>s+money(i.expected),0),totAct=items.reduce((s,i)=>s+money(i.actual),0);
+  const ValueRealization=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Expected value" value={"$"+totExp.toFixed(1)+"M"} sub="portfolio target" color={AI_GOLD}/>
+      <Metric label="Realized value" value={"$"+totAct.toFixed(1)+"M"} sub={Math.round(totAct/totExp*100)+"% captured"} color={T.green} score={Math.round(totAct/totExp*100)}/>
+      <Metric label="Portfolio ROI" value="+22%" sub="weighted actual" color={T.green}/>
+      <Metric label="Value at risk" value="$2.1M" sub="no value yet" color={T.amber}/>
+    </div>
+    <Card style={{padding:"16px 18px"}}>
+      <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:12}}>Value bridge — expected vs realized by initiative</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+        <thead><tr>{["Initiative","Expected","Realized","Capture","Health"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{items.map(i=>{const cap=Math.round(money(i.actual)/money(i.expected)*100)||0;return <tr key={i.id} onClick={()=>openInitiative(i.id,"value")} style={{cursor:"pointer"}} className="vz-pn-row">
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{i.name}</td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink2,fontFamily:F.m}}>{i.expected}</td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink2,fontFamily:F.m}}>{i.actual}</td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,minWidth:110}}><Bar value={cap} color={cap>=50?T.green:cap>=25?T.amber:T.red}/><div style={{fontSize:9,color:T.ink3,marginTop:3}}>{cap}%</div></td>
+          <td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontFamily:F.m,fontWeight:700}}>{i.valueScore}</td>
+        </tr>;})}</tbody>
+      </table></div>
+    </Card>
+  </div>;
+
+  /* ── Audit Center ── immutable trail + findings + packs ── */
+  const AUDIT_TRAIL=[["Scale decision recorded","Resolution Copilot","A. Patel","09:42","Decision"],["Guardrail policy v6 approved","Responsible GenAI Use","A. Patel","08:15","Policy"],["DPIA evidence uploaded","Credit Decision","N. Lynch","Jul 24","Evidence"],["Risk treatment advanced","Servicing drift","D. Nair","Jul 23","Risk"],["Control test logged","CTRL-AI-014","R. Torres","Jul 22","Control"],["Model approved for production","Finance Close","M. Reid","Jul 21","Approval"]];
+  const AuditCenter=()=><div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Log integrity" value="100%" sub="hash-chained" color={T.green} score={100}/>
+      <Metric label="Open findings" value="5" sub="2 high" color={T.amber}/>
+      <Metric label="Audit packs" value="4" sub="regulator-ready" color={T.blue}/>
+      <Metric label="Events logged" value="48.2K" sub="this month" color={rc}/>
+    </div>
+    <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+      <button onClick={()=>{vzDownload("audit-pack.txt",AUDIT_TRAIL.map(a=>a.join(" · ")).join("\n"));showToast&&showToast("Audit pack exported");}} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"8px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Export audit pack →</button>
+    </div>
+    <Card style={{padding:0,overflow:"hidden"}}>
+      <div style={{padding:"13px 16px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:8}}><h3 style={{margin:0,fontSize:14,color:T.ink,fontFamily:F.b}}>Immutable audit trail</h3><Tag label="hash-chained" color={T.green} bg={T.green+"16"}/></div>
+      {AUDIT_TRAIL.map((a,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 100px 80px 90px",gap:10,padding:"12px 16px",borderBottom:`1px solid ${T.border}`,alignItems:"center"}}>
+        <span style={{fontSize:12,color:T.ink,fontWeight:700,fontFamily:F.b}}>{a[0]}</span>
+        <span style={{fontSize:10.5,color:T.ink3,fontFamily:F.b}}>{a[1]}</span>
+        <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{a[2]}</span>
+        <span style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{a[3]}</span>
+        <Tag label={a[4]} color={T.blue} bg={T.blue+"14"}/>
+      </div>)}
+    </Card>
+  </div>;
+
   return <div style={{animation:"up .3s ease"}}>
     <Header/>
-    {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/></>}
+    {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/><OwnershipMap/></>}
+    {activeModule==="strategy"&&<><ModuleLensBand module="strategy"/><AIStrategy/></>}
+    {activeModule==="portfolio"&&<><ModuleLensBand module="portfolio"/><Portfolio/></>}
+    {activeModule==="repository"&&<><ModuleLensBand module="repository"/><PageModelRegistry setTab={setTab} openInitiative={openInitiative}/></>}
+    {activeModule==="inventory"&&<><ModuleLensBand module="inventory"/><AIInventory/></>}
+    {activeModule==="lifecycle"&&<><ModuleLensBand module="lifecycle"/><AILifecycle/></>}
+    {activeModule==="gateway"&&<Gateway/>}
+    {activeModule==="risk"&&<><ModuleLensBand module="risk"/><PageRiskCenter role={role} tab="riskcenter" setTab={setTab} setAiCentralView={setView} showToast={showToast}/></>}
+    {activeModule==="trust"&&<><ModuleLensBand module="trust"/><TrustCenter/></>}
+    {activeModule==="evidence"&&<><ModuleLensBand module="evidence"/><EvidenceModule/></>}
+    {activeModule==="controls"&&<><ModuleLensBand module="controls"/><Governance/></>}
+    {activeModule==="policies"&&<><ModuleLensBand module="policies"/><PoliciesStandards/></>}
+    {activeModule==="value"&&<><ModuleLensBand module="value"/><ValueRealization/></>}
+    {activeModule==="academy"&&<Academy/>}
+    {activeModule==="audit"&&<><ModuleLensBand module="audit"/><AuditCenter/></>}
     {activeModule==="initiatives"&&<Initiatives/>}
     {activeModule==="pmo"&&renderEnterprisePmo()}
-    {activeModule==="models"&&<><ModuleLensBand module="models"/><PageModelRegistry setTab={setTab} openInitiative={openInitiative}/></>}
-    {activeModule==="governance"&&<><ModuleLensBand module="governance"/><Governance/></>}
-    {activeModule==="evidence"&&<><ModuleLensBand module="evidence"/><EvidenceModule/></>}
-    {activeModule==="portfolio"&&<><ModuleLensBand module="portfolio"/><Portfolio/></>}
-    {activeModule==="gateway"&&<Gateway/>}
     {activeModule==="admin"&&<Administration/>}
-    {activeModule==="academy"&&<Academy/>}
   </div>;
 }
 
