@@ -102,12 +102,10 @@ const { chromium } = require('playwright');
     await page.keyboard.press('Enter'); await page.waitForTimeout(3000);
     if (!(await body()).match(/blocked/i)) throw new Error('not blocked');
   });
-  await test('Submit AI idea (create + list)', async () => {
-    await page.locator('nav button', { hasText: 'My Ideas' }).first().click(); await page.waitForTimeout(900);
-    await page.locator('input[placeholder*="Auto-draft"]').first().fill('Feature Test Idea - auto triage');
-    await page.locator('textarea[placeholder*="friction"]').first().fill('Testing the idea pipeline'); await page.waitForTimeout(200);
-    await page.locator('button:has-text("Submit idea")').first().click(); await page.waitForTimeout(800);
-    if (!(await body()).includes('Feature Test Idea')) throw new Error('idea not listed');
+  await test('Employee task action mints evidence', async () => {
+    await page.locator('nav button', { hasText: 'My Tasks' }).first().click(); await page.waitForTimeout(900);
+    await page.locator('button:has-text("Acknowledge")').first().click(); await page.waitForTimeout(700);
+    if (!(await body()).match(/recorded/i)) throw new Error('no evidence recorded');
   });
 
   console.log('\n=== FEATURE TEST RESULTS ===');
