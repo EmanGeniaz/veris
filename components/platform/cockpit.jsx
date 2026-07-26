@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { acInitiatives, acFeedback, riskRegister, EXEC_DECISIONS, EXEC_RECENT_CHANGES, EXEC_BRIEF } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
+import { navigateTo } from "@/lib/navigation";
 import { T, F, AI_GOLD, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } from "./core";
 
 /* ── CEO Executive Cockpit ─────────────────────────────────────────
@@ -17,6 +18,8 @@ import { T, F, AI_GOLD, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } f
 export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast}){
   const [decided,setDecided]=useState({});
   const goAC=v=>{setAiCentralView&&setAiCentralView(v);setTab("aicentral");};
+  /* Every KPI resolves its canonical destination through the registry. */
+  const nav=(objectType,ctx={})=>navigateTo(objectType,ctx,{setTab,setAiCentralView});
   const money=v=>parseFloat(String(v).replace(/[^0-9.]/g,""))||0;
   const expected=acInitiatives.reduce((a,i)=>a+money(i.expected),0);
   const realized=acInitiatives.reduce((a,i)=>a+money(i.actual),0);
@@ -40,19 +43,19 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
     `Approving today's recommendations unlocks an estimated $${(expected-realized).toFixed(1)}M in enterprise value.`,
   ].filter(Boolean).slice(0,5);
   const hero=[
-    ["Portfolio value",`$${realized.toFixed(1)}M`,AI_GOLD,()=>setTab("reports"),"Value reporting lives in Reports"],
-    ["Enterprise health",`${health}`,health>=75?T.green:T.amber,()=>goAC("portfolio"),"Execution health lives in AI Central"],
-    ["Decisions waiting",decisions,T.blue,()=>setTab("decisions"),"Open the Decision Center"],
-    ["Active risks",risksOpen,critHigh?T.red:T.green,()=>setTab("riskcenter"),"Every risk lives in the Risk Center"],
-    ["Compliance confidence",`${compliance}%`,T.green,()=>setTab("compliance"),"Controls live in Compliance & Standards"],
+    ["Portfolio value",`$${realized.toFixed(1)}M`,AI_GOLD,()=>nav("kpiValue"),"Value reporting lives in Reports"],
+    ["Enterprise health",`${health}`,health>=75?T.green:T.amber,()=>nav("kpiHealth"),"Execution health lives in AI Central"],
+    ["Decisions waiting",decisions,T.blue,()=>nav("kpiDecisions"),"Open the Decision Center"],
+    ["Active risks",risksOpen,critHigh?T.red:T.green,()=>nav("kpiRisks"),"Every risk lives in the Risk Center"],
+    ["Compliance confidence",`${compliance}%`,T.green,()=>nav("kpiCompliance"),"Controls live in Compliance & Standards"],
   ];
   const snapshot=[
-    ["Enterprise AI value",`$${expected.toFixed(1)}M`,"expected",AI_GOLD,()=>setTab("reports")],
-    ["Portfolio health",`${health}/100`,"execution",T.green,()=>goAC("portfolio")],
-    ["AI maturity",`${maturity}/100`,"capability",T.blue,()=>setTab("academy")],
-    ["Compliance confidence",`${compliance}%`,"all frameworks",T.teal,()=>setTab("compliance")],
-    ["Enterprise risk",`${critHigh} high+`,"of "+risksOpen+" open",T.red,()=>setTab("riskcenter")],
-    ["Active programs",acInitiatives.length,"in lifecycle",T.violet,()=>goAC("initiatives")],
+    ["Enterprise AI value",`$${expected.toFixed(1)}M`,"expected",AI_GOLD,()=>nav("kpiValue")],
+    ["Portfolio health",`${health}/100`,"execution",T.green,()=>nav("kpiHealth")],
+    ["AI maturity",`${maturity}/100`,"capability",T.blue,()=>nav("kpiMaturity")],
+    ["Compliance confidence",`${compliance}%`,"all frameworks",T.teal,()=>nav("kpiCompliance")],
+    ["Enterprise risk",`${critHigh} high+`,"of "+risksOpen+" open",T.red,()=>nav("kpiRisks")],
+    ["Active programs",acInitiatives.length,"in lifecycle",T.violet,()=>nav("initiative",{id:acInitiatives[0]?.id})],
   ];
   const blockedIni=acInitiatives.filter(i=>i.blockedBy).sort((a,b)=>(b.risk==="Critical")-(a.risk==="Critical"))[0];
   const lowAdopt=[...acInitiatives].sort((a,b)=>a.adoption-b.adoption)[0];

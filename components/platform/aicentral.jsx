@@ -1,6 +1,7 @@
 "use client";
 
 import { readBus, pushBus } from "@/lib/bus";
+import { navigateTo } from "@/lib/navigation";
 import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
@@ -454,7 +455,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const [profileMode,setProfileMode]=useState(role==="caio");
   useEffect(()=>{setProfileMode(role==="caio");},[role]);
   /* Deep-open from universal search: land directly on the requested initiative. */
-  useEffect(()=>{if(initToOpen){openInitiative(initToOpen);onInitOpened&&onInitOpened();}},[initToOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(initToOpen){const id=typeof initToOpen==="object"?initToOpen.id:initToOpen;const it=typeof initToOpen==="object"?initToOpen.initTab:"overview";openInitiative(id,it);onInitOpened&&onInitOpened();}},[initToOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [govTab,setGovTab]=useState("controls");
   const [evTab,setEvTab]=useState("repository");
   const [gwTab,setGwTab]=useState("overview");
@@ -504,6 +505,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const avgAdopt=Math.round(items.reduce((s,i)=>s+i.adoption,0)/total);
   const avgValue=Math.round(items.reduce((s,i)=>s+i.valueScore,0)/total);
   const openInitiative=(id,tab="overview")=>{setSelectedId(id);setInitTab(tab);setPhaseSel(null);setView("initiatives");setRecentIds(r=>[id,...r.filter(x=>x!==id)].slice(0,4));};
+  /* Registry-bound navigation for every clickable object inside AI Central. */
+  const nav=(objectType,ctx={})=>navigateTo(objectType,ctx,{setTab,setAiCentralView:setView,setInitToOpen:(id,it)=>openInitiative(id,it)});
   const openModule=id=>{if(access.modules.includes(id))setView(id);};
 
   const SubTabs=({tabs,active:a,onChange})=><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
@@ -1701,12 +1704,12 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       </div>
       <div style={{display:"grid",gap:18}}>
         {p.sections.map(sec=>{
-          const secGo=/risk|threat/i.test(sec.title)?()=>setTab&&setTab("riskcenter")
-            :/benefit|financ|value|kpi/i.test(sec.title)?()=>setInitTab("value")
-            :/milestone|raid|task/i.test(sec.title)?()=>setInitTab("pmo")
-            :/decision/i.test(sec.title)?()=>setTab&&setTab("decisions")
-            :/stack|dependen|infra|technology/i.test(sec.title)?()=>setInitTab("pmo")
-            :/mitigation|evidence|posture|regulat|contract|privacy|responsible|workforce|blocker|summary/i.test(sec.title)?()=>setInitTab(/evidence|posture/i.test(sec.title)?"monitoring":"governance")
+          const secGo=/risk|threat/i.test(sec.title)?()=>nav("risk")
+            :/benefit|financ|value|kpi/i.test(sec.title)?()=>nav("value",{id:selected.id})
+            :/milestone|raid|task|stack|dependen|infra|technology/i.test(sec.title)?()=>nav("pmo",{id:selected.id})
+            :/decision/i.test(sec.title)?()=>nav("decision")
+            :/evidence|posture/i.test(sec.title)?()=>nav("monitoring",{id:selected.id})
+            :/mitigation|regulat|contract|privacy|responsible|workforce|blocker|summary/i.test(sec.title)?()=>nav("governance",{id:selected.id})
             :null;
           return <div key={sec.title}>
           <h3 style={{fontSize:13,color:T.ink,margin:"0 0 8px",fontFamily:F.h,fontWeight:800}}>{sec.title}</h3>

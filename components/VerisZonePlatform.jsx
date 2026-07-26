@@ -4,6 +4,7 @@ import { Scale, Settings } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, PLATFORM_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
+import { navigateTo } from "@/lib/navigation";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
 import dynamic from "next/dynamic";
@@ -477,6 +478,16 @@ export default function VerisZone() {
   const [searchQ,setSearchQ]=useState("");
   const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
+  /* Central navigation: every clickable business object resolves its
+     canonical destination through the Navigation Registry, never by
+     hand-writing setTab/setView here. Context (role, selected initiative,
+     filters) lives in this state and is preserved across navigation. */
+  const navActions={
+    setTab,
+    setAiCentralView,
+    setInitToOpen:(id,initTab)=>setInitToOpen({id,initTab:initTab||"overview"}),
+  };
+  const navigate=(objectType,ctx={})=>navigateTo(objectType,ctx,navActions);
   /* Bumped on every AI Central left-nav click so the module resets to its root view,
      even when the target module is already active (e.g. leaving an initiative workspace). */
   const [acNavNonce,setAcNavNonce]=useState(0);
@@ -645,15 +656,15 @@ export default function VerisZone() {
               const q=searchQ.trim().toLowerCase();
               const openIni=(id,label)=>({label,go:()=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}});
               const idx=[
-                ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} · ${i.lifecycle}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}})),
-                ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} · ${m.vendor}`,go:()=>{setAiCentralView("models");setTab("aicentral");}})),
-                ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} · ${r.system}`,go:()=>setTab("riskcenter")})),
-                ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Policy register",go:()=>setTab("policies")})),
-                ...[...new Set(acInitiatives.flatMap(i=>i.controls))].map(c=>({type:"Control",label:c,sub:"Control Library",go:()=>setTab("controls")})),
-                ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} · ${i.name}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}}))),
-                ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>setTab("knowledge")})),
-                ...TEMPLATES.map(t2=>({type:"Template",label:t2.name,sub:t2.cat,go:()=>setTab("templates")})),
-                {type:"Approvals",label:"Executive decision queue",sub:"Approvals, HITL and gates",go:()=>setTab("decisions")},
+                ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} · ${i.lifecycle}`,go:()=>navigate("initiative",{id:i.id})})),
+                ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} · ${m.vendor}`,go:()=>navigate("model",{id:m.id})})),
+                ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} · ${r.system}`,go:()=>navigate("risk",{id:r.id})})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Policy register",go:()=>navigate("policy",{id:p})})),
+                ...[...new Set(acInitiatives.flatMap(i=>i.controls))].map(c=>({type:"Control",label:c,sub:"Control Library",go:()=>navigate("control",{id:c})})),
+                ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} · ${i.name}`,go:()=>navigate("person",{initiativeId:i.id})}))),
+                ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>navigate("knowledge",{id:k.id})})),
+                ...TEMPLATES.map(t2=>({type:"Template",label:t2.name,sub:t2.cat,go:()=>navigate("template",{id:t2.id})})),
+                {type:"Approvals",label:"Executive decision queue",sub:"Approvals, HITL and gates",go:()=>navigate("approval",{})},
               ].filter(e=>`${e.label} ${e.sub} ${e.type}`.toLowerCase().includes(q)).slice(0,9);
               return <div style={{position:"absolute",top:38,right:0,width:340,maxHeight:420,overflowY:"auto",background:T.card,border:`1px solid ${AI_GOLD}35`,borderRadius:12,boxShadow:"0 24px 60px rgba(0,0,0,.5)",zIndex:300,padding:6}}>
                 {idx.length===0&&<div style={{padding:"12px 14px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No matching enterprise objects.</div>}
@@ -695,8 +706,8 @@ export default function VerisZone() {
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
         {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {tab==="myworkspace"&&<PageMyWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}}/>}
-        {tab==="teamspace" &&<PageTeamWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}}/>}
+        {tab==="myworkspace"&&<PageMyWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>navigate("initiative",{id})}/>}
+        {tab==="teamspace" &&<PageTeamWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>navigate("initiative",{id})}/>}
         {tab==="workbench" &&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {tab==="myideas"   &&<PageMyIdeas   role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&tab==="decisions" &&<PageDecisions role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
