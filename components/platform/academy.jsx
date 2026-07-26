@@ -67,7 +67,7 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
       </Card>
       <Card style={{padding:15}}>
         {secHead("Learning history")}
-        {history.map(([n,d])=>row(n,d,<Tag label="\u2713" color={T.green} bg={T.greenL}/>))}
+        {history.map(([n,d])=>row(n,d,<Tag label="✓" color={T.green} bg={T.greenL}/>))}
       </Card>
       <Card style={{padding:15}}>
         {secHead("Role curriculum")}

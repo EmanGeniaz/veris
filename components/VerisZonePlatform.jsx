@@ -641,12 +641,12 @@ export default function VerisZone() {
               const q=searchQ.trim().toLowerCase();
               const openIni=(id,label)=>({label,go:()=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}});
               const idx=[
-                ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} \u00b7 ${i.lifecycle}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}})),
-                ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} \u00b7 ${m.vendor}`,go:()=>{setAiCentralView("models");setTab("aicentral");}})),
-                ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} \u00b7 ${r.system}`,go:()=>setTab("riskcenter")})),
+                ...acInitiatives.map(i=>({type:"Initiative",label:i.name,sub:`${i.unit} · ${i.lifecycle}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}})),
+                ...MODEL_REGISTRY.map(m=>({type:"AI Model",label:m.bizName,sub:`${m.name} · ${m.vendor}`,go:()=>{setAiCentralView("models");setTab("aicentral");}})),
+                ...riskRegister.map(r=>({type:"Risk",label:`${r.id} ${r.title}`,sub:`${r.level} · ${r.system}`,go:()=>setTab("riskcenter")})),
                 ...[...new Set(acInitiatives.flatMap(i=>i.policies))].map(p=>({type:"Policy",label:p,sub:"Policy register",go:()=>setTab("policies")})),
                 ...[...new Set(acInitiatives.flatMap(i=>i.controls))].map(c=>({type:"Control",label:c,sub:"Control Library",go:()=>setTab("controls")})),
-                ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} \u00b7 ${i.name}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}}))),
+                ...acInitiatives.flatMap(i=>[["Executive sponsor",i.sponsor],["Business owner",i.businessOwner],["AI champion",i.champion]].map(([role2,name])=>({type:"Person",label:name,sub:`${role2} · ${i.name}`,go:()=>{setInitToOpen(i.id);setAiCentralView("initiatives");setTab("aicentral");}}))),
                 ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>setTab("knowledge")})),
                 ...TEMPLATES.map(t2=>({type:"Template",label:t2.name,sub:t2.cat,go:()=>setTab("templates")})),
                 {type:"Approvals",label:"Executive decision queue",sub:"Approvals, HITL and gates",go:()=>setTab("decisions")},
