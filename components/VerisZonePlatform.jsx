@@ -3,7 +3,7 @@
 import { Scale, Settings } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
+import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
@@ -13,6 +13,7 @@ const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",f
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
 const PageHome=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHome),{ssr:false,loading:vzLoading});
 const CEOCommandCenter=dynamic(()=>import("./platform/ceo").then(m=>m.CEOCommandCenter),{ssr:false,loading:vzLoading});
+const CAIOCommandCenter=dynamic(()=>import("./platform/caio").then(m=>m.CAIOCommandCenter),{ssr:false,loading:vzLoading});
 const PageOnboard=dynamic(()=>import("./platform/dashboard").then(m=>m.PageOnboard),{ssr:false,loading:vzLoading});
 const PageOpportunityIntake=dynamic(()=>import("./platform/dashboard").then(m=>m.PageOpportunityIntake),{ssr:false,loading:vzLoading});
 const PageStrategy=dynamic(()=>import("./platform/dashboard").then(m=>m.PageStrategy),{ssr:false,loading:vzLoading});
@@ -113,8 +114,8 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
   const isAICentral=tab==="aicentral";
   const acOnly=sessionMode==="aicentral";
-  const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV,...CEO_NAV].map(item=>[item.id,item]));
-  const roleNavSections=role==="employee"?EMPLOYEE_NAV_SECTIONS:role==="manager"?MANAGER_NAV_SECTIONS:role==="ceo"?CEO_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
+  const navById=Object.fromEntries([...NAV,...CAIO_EXTRA_NAV,...CEO_NAV,...CAIO_NAV].map(item=>[item.id,item]));
+  const roleNavSections=role==="employee"?EMPLOYEE_NAV_SECTIONS:role==="manager"?MANAGER_NAV_SECTIONS:role==="ceo"?CEO_NAV_SECTIONS:role==="caio"?CAIO_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
   let navIdx=0;
@@ -161,7 +162,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
       </div>
       <nav className="vz-side-nav" style={{flex:1,padding:"10px 9px",overflowY:"auto"}}>
         {!acOnly&&roleNavSections.map(section=>{
-          const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>role==="ceo"&&it.id==="home"?{...it,label:"Overview"}:it);
+          const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>(role==="ceo"||role==="caio")&&it.id==="home"?{...it,label:"Overview"}:it);
           return <div key={section.title} style={{marginBottom:4}}>
             {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
@@ -420,7 +421,7 @@ function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut}
 
 function FreshWorkspaceEmpty({role,tab,aiCentralView,setTab}) {
   const rc=RC(role), R=ROLES[role]||ROLES.caio;
-  const allNav=[...NAV,...CAIO_EXTRA_NAV,...CEO_NAV,{id:"profile",label:"Profile"},{id:"settings",label:"Settings"}];
+  const allNav=[...NAV,...CAIO_EXTRA_NAV,...CEO_NAV,...CAIO_NAV,{id:"profile",label:"Profile"},{id:"settings",label:"Settings"}];
   const navItem=allNav.find(item=>item.id===tab);
   const aiItem=AI_CENTRAL_NAV.find(item=>item.id===aiCentralView);
   const isAI=tab==="aicentral";
@@ -691,7 +692,8 @@ export default function VerisZone() {
       <div style={{flex:1,padding:"20px 16px 60px",maxWidth:1140,width:"100%",margin:"0 auto"}}>
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
         {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&tab==="home"&&role!=="ceo"&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
