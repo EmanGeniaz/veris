@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { pushBus } from "@/lib/bus";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
@@ -32,9 +32,9 @@ function Kpis({items}){
     </div>)}
   </div>;
 }
-function Attn({items}){
+function Attn({items,ctx}){
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((a,i)=><Card key={i} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:"pointer"}}>
+    {items.map((a,i)=><Card key={i} onClick={()=>a[4]&&ctx&&ctx.setTab&&ctx.setTab(a[4])} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:"pointer"}}>
       <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a[0]}</div>
       <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a[1]}</div>
       <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a[2]} →</div>
@@ -60,6 +60,97 @@ function Tbl({eye,h3,head,rows}){
       <tbody>{rows.map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{padding:"11px 10px",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",color:j===0?T.ink:T.ink2,fontWeight:j===0?700:400}}>{cell(c)}</td>)}</tr>)}</tbody>
     </table></div>
   </Card>;
+}
+/* ── Register + drill-in drawer ─────────────────────────────────────
+   A register is the deep counterpart to a glance table: every row is an
+   object (incident, vulnerability, risk) that opens a detail drawer with
+   its owning project, owner, timeline and an action / treatment plan —
+   and jumps to that project or the Risk Center. In `compact` mode (used
+   on the overview lenses) it previews the top rows with a link to the
+   full register; the sidebar surface renders it in full. */
+function Drawer({rec,onClose,ctx}){
+  const [done,setDone]=useState({});
+  useEffect(()=>{const h=e=>{if(e.key==="Escape")onClose();};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[onClose]);
+  const record=(idx,step)=>{
+    setDone(d=>({...d,[idx]:true}));
+    pushBus("vz-gw-evidence",{item:`${rec.ref} — ${step}`,initiative:rec.project||"Enterprise",scope:"Security",control:`${rec.kindLabel||"Item"} treatment`,risk:rec.title,owner:rec.owner||"Security",status:"In Progress",approval:"Action recorded",version:"v1",time:"Just now"});
+    ctx.showToast&&ctx.showToast(`Action recorded on ${rec.ref} — evidence minted`);
+  };
+  const openProject=()=>{ onClose(); if(rec.projectId&&ctx.navigate)ctx.navigate("initiative",{id:rec.projectId}); else if(ctx.setTab)ctx.setTab("riskcenter"); };
+  const openRisk=()=>{ onClose(); ctx.setTab&&ctx.setTab("riskcenter"); };
+  const meta=[["Project",rec.project||"—"],["Owner",rec.owner||"—"],["Detected",rec.detected||"—"],["SLA / due",rec.due||"—"]];
+  return <div onMouseDown={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(4,7,20,.5)",backdropFilter:"blur(2px)",display:"flex",justifyContent:"flex-end"}}>
+    <div onMouseDown={e=>e.stopPropagation()} style={{width:460,maxWidth:"92vw",height:"100%",overflowY:"auto",background:T.card||T.s1,borderLeft:`1px solid ${T.border}`,boxShadow:"-24px 0 60px rgba(0,0,0,.4)",animation:"slideIn .22s ease"}}>
+      <style>{`@keyframes slideIn{from{transform:translateX(30px);opacity:.4}to{transform:translateX(0);opacity:1}}`}</style>
+      <div style={{padding:"16px 18px",borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,background:T.card||T.s1,zIndex:1}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
+            <span style={{fontSize:10,fontFamily:F.m,fontWeight:900,color:T.ink4}}>{rec.ref}</span>
+            {rec.severity&&<Pill c={col(rec.severity[1])}>{rec.severity[0]}</Pill>}
+            {rec.status&&<Pill c={col(rec.status[1])}>{rec.status[0]}</Pill>}
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,width:26,height:26,color:T.ink3,fontSize:13,cursor:"pointer",flexShrink:0}}>✕</button>
+        </div>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:"9px 0 0",lineHeight:1.3}}>{rec.title}</h3>
+      </div>
+      <div style={{padding:18}}>
+        {rec.summary&&<p style={{fontSize:11.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:"0 0 14px"}}>{rec.summary}</p>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 14px",marginBottom:16}}>
+          {meta.map(([l,v])=><div key={l}><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>{l}</div>
+            {l==="Project"&&rec.project?<button onClick={openProject} style={{background:"none",border:"none",padding:0,fontSize:11.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b,cursor:"pointer",textAlign:"left"}}>{v} →</button>
+              :<div style={{fontSize:11.5,color:T.ink,fontWeight:600,fontFamily:F.b}}>{v}</div>}
+          </div>)}
+        </div>
+        {rec.plan&&rec.plan.length>0&&<div style={{marginBottom:16}}>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>{rec.planLabel||"Action / treatment plan"}</div>
+          <div style={{display:"grid",gap:7}}>
+            {rec.plan.map((s,i)=>{const label=Array.isArray(s)?s[0]:s;const st=Array.isArray(s)?s[1]:"ink3";const isDone=done[i]||st==="good";return <div key={i} style={{display:"flex",gap:9,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px"}}>
+              <span style={{width:16,height:16,borderRadius:5,flexShrink:0,display:"grid",placeItems:"center",fontSize:10,fontWeight:900,background:isDone?T.green+"22":col(st)+"18",color:isDone?T.green:col(st)}}>{isDone?"✓":i+1}</span>
+              <span style={{flex:1,fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.4,textDecoration:isDone?"line-through":"none",opacity:isDone?.7:1}}>{label}</span>
+              {!isDone&&<button onClick={()=>record(i,label)} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"3px 9px",color:AI_GOLD,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Record</button>}
+            </div>;})}
+          </div>
+        </div>}
+        {rec.timeline&&rec.timeline.length>0&&<div style={{marginBottom:16}}>
+          <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Timeline</div>
+          <div style={{display:"grid",gap:0}}>
+            {rec.timeline.map((t,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"78px 1fr",gap:10,padding:"6px 0",borderBottom:i<rec.timeline.length-1?`1px solid ${T.border}`:"none"}}>
+              <span style={{fontSize:9.5,color:T.ink4,fontFamily:F.m,fontWeight:700}}>{t[0]}</span><span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{t[1]}</span>
+            </div>)}
+          </div>
+        </div>}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={openProject} style={{background:AI_GOLD,border:"none",borderRadius:8,padding:"9px 14px",color:"#0b0e24",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{rec.projectId?"Open project workspace →":"Open in Risk Center →"}</button>
+          <button onClick={openRisk} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 14px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>View in Risk Center →</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+function Register({eye,h3,kind,kindLabel,items,ctx}){
+  const [sel,setSel]=useState(null);
+  const compact=ctx&&ctx.deep===false;
+  const shown=compact?items.slice(0,3):items;
+  const open=r=>setSel({...r,kind,kindLabel});
+  return <><Card style={cardPad}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <div>{eye&&<Eyebrow>{eye}</Eyebrow>}{h3&&<H3 style={{margin:0}}>{h3}</H3>}</div>
+      {compact&&ctx.goSurface&&<button onClick={()=>ctx.goSurface()} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 12px",color:T.ink2,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Open full register →</button>}
+    </div>
+    <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+      <thead><tr>{["Ref","Item","Project","Severity","Status",""].map((hh,i)=><th key={i} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{hh}</th>)}</tr></thead>
+      <tbody>{shown.map((r,i)=><tr key={i} onClick={()=>open(r)} className="vz-reg-row" style={{cursor:"pointer"}}>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:T.ink,fontWeight:700}}>{r.ref}</td>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:T.ink2}}>{r.title}</td>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:AI_GOLD,fontWeight:700}}>{r.project||"—"}</td>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none"}}>{r.severity?<Pill c={col(r.severity[1])}>{r.severity[0]}</Pill>:"—"}</td>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none"}}>{r.status?<Pill c={col(r.status[1])}>{r.status[0]}</Pill>:"—"}</td>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:T.ink4,textAlign:"right",fontWeight:800}}>→</td>
+      </tr>)}</tbody>
+    </table></div>
+    <style>{`.vz-reg-row:hover td{background:${T.s2}}`}</style>
+  </Card>
+  {sel&&<Drawer rec={sel} onClose={()=>setSel(null)} ctx={ctx}/>}</>;
 }
 function Scores({eye,h3,ring,rows}){
   return <Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
@@ -128,12 +219,13 @@ function renderBlock(b, i, ctx){
     case "library": return <Library key={i} items={b.items}/>;
     case "report":  return <Report key={i} {...b} showToast={ctx.showToast}/>;
     case "actions": return <Actions key={i} {...b} role={ctx.role} showToast={ctx.showToast}/>;
+    case "register":return <Register key={i} {...b} ctx={ctx}/>;
     default:        return null;
   }
 }
 /* Card-type blocks flow into a responsive 2-col grid; full-width blocks
    (kpis, attn, actions, report, library) render on their own row. */
-const FULL = new Set(["kpis","attn","actions","report","library"]);
+const FULL = new Set(["kpis","attn","actions","report","library","register"]);
 function Blocks({blocks, ctx}){
   const out=[]; let bucket=[];
   const flush=()=>{ if(bucket.length){ out.push(<div key={"g"+out.length} style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:16,marginBottom:16}}>{bucket}</div>); bucket=[]; } };
@@ -158,7 +250,7 @@ function Overview({role,cfg,ctx}){
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const lenses=cfg.surfaces.filter(s=>!/reports$|playbook$|assistant$/.test(s.id)).slice(0,4);
   const [tab,setTab]=useState(0);
-  const TABS=[{label:"Overview"},...lenses.map(s=>({label:s.label,blocks:s.blocks}))];
+  const TABS=[{label:"Overview"},...lenses.map(s=>({label:s.label,blocks:s.blocks,id:s.id}))];
   return <div style={{animation:"up .3s ease"}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
@@ -175,19 +267,21 @@ function Overview({role,cfg,ctx}){
       {TABS.map((t,i)=><button key={i} onClick={()=>setTab(i)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
     </div>
     {tab===0
-      ? <div style={{animation:"up .2s ease"}}><Attn items={cfg.attn}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={ctx}/></div>
-      : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={ctx}/></div>}
+      ? <div style={{animation:"up .2s ease"}}><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={{...ctx,deep:false}}/></div>
+      : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={{...ctx,deep:false,goSurface:()=>ctx.setTab&&ctx.setTab(TABS[tab].id)}}/></div>}
   </div>;
 }
 
-export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,showToast}){
+export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast}){
   const cfg=ROLE_CENTERS[role]; if(!cfg) return null;
-  const ctx={role,setTab,setAiCentralView,showToast};
+  const ctx={role,setTab,setAiCentralView,navigate,showToast};
   if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx}/>;
   const s=cfg.surfaces.find(x=>x.id===tab);
   if(!s) return <Overview role={role} cfg={cfg} ctx={ctx}/>;
+  /* Sidebar surface = the deep workspace: registers render in full with
+     drill-in drawers. */
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title={s.label} sub={s.sub}/>
-    <Blocks blocks={s.blocks} ctx={ctx}/>
+    <Blocks blocks={s.blocks} ctx={{...ctx,deep:true}}/>
   </div>;
 }
