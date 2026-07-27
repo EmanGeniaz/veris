@@ -14,14 +14,34 @@ import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 import { SmartSelect } from "./smartselect";
 
-export function PageModelRegistry({setTab,openInitiative}) {
+export function PageModelRegistry({setTab,openInitiative,role="caio",showToast}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
      Business Unit -> Executive owner. A model is never shown without its
      business context; models outside a governed initiative are flagged
      for intake. */
+  const R=ROLES[role]||ROLES.caio;
+  const [extra,setExtra]=useState([]);
+  const [mHydrated,setMHydrated]=useState(false);
+  const [createOpen,setCreateOpen]=useState(false);
+  const [mdraft,setMdraft]=useState({bizName:"",system:"",type:"",vendor:"",dept:"",owner:"",euAiAct:"",category:"",status:"Awaiting Approval",risk:"Medium"});
+  useEffect(()=>{try{const s=JSON.parse(localStorage.getItem("vz-ac-models")||"[]");if(Array.isArray(s)&&s.length)setExtra(s);}catch{/* ignore */}setMHydrated(true);},[]);
+  useEffect(()=>{if(!mHydrated)return;try{localStorage.setItem("vz-ac-models",JSON.stringify(extra));}catch{/* ignore */}},[extra,mHydrated]);
+  const ALL_MODELS=[...extra,...MODEL_REGISTRY];
   const [selId,setSelId]=useState(MODEL_REGISTRY[0].id);
   const [openGroups,setOpenGroups]=useState({[MODEL_REGISTRY[0].initiativeId]:true});
-  const sel=MODEL_REGISTRY.find(m=>m.id===selId)||MODEL_REGISTRY[0];
+  const sel=ALL_MODELS.find(m=>m.id===selId)||MODEL_REGISTRY[0];
+  const setMK=k=>v=>setMdraft(d=>({...d,[k]:v}));
+  const registerModel=()=>{
+    if(!mdraft.bizName.trim()||!mdraft.system.trim()){showToast&&showToast("Model name and AI system are required","error");return;}
+    const rec={id:`mx-${Date.now().toString(36)}`,initiativeId:null,system:mdraft.system.trim(),bizName:mdraft.bizName.trim(),
+      name:mdraft.bizName.trim(),type:mdraft.type||"Generative AI / LLM",status:mdraft.status,risk:mdraft.risk,
+      euAiAct:mdraft.euAiAct||"Unclassified",owner:mdraft.owner||"Unassigned",dept:mdraft.dept||"—",vendor:mdraft.vendor||"Internal",
+      deployed:"Pending",accuracy:"Not tested",drift:"Not deployed",lastAudit:"Never",modelCard:false,aia:false,biasTest:false,
+      killSwitch:false,dataProvenance:false,transparency:0,clause:"Pending classification · ISO 42001 C.8.4"};
+    setExtra([rec,...extra]);setSelId(rec.id);setCreateOpen(false);
+    setMdraft({bizName:"",system:"",type:"",vendor:"",dept:"",owner:"",euAiAct:"",category:"",status:"Awaiting Approval",risk:"Medium"});
+    showToast&&showToast("Model registered — governed intake required to classify");
+  };
   const selIni=acInitiatives.find(i=>i.id===sel.initiativeId);
   const rCol=r=>r==="Critical"?T.red:r==="High"?T.amber:r==="Medium"?T.blue:r==="Unknown"?T.ink4:T.green;
   const sCol=s=>s==="In Production"?T.green:s==="Awaiting Approval"?T.amber:s==="Suspended"?T.red:s==="Unclassified"?T.red:T.ink3;
@@ -32,8 +52,8 @@ export function PageModelRegistry({setTab,openInitiative}) {
     </div>
     <span style={{fontSize:10,color:v?T.ink2:T.ink4,fontFamily:F.b}}>{label}</span>
   </div>;
-  const unclassified=MODEL_REGISTRY.filter(m=>m.euAiAct==="Unclassified").length;
-  const critical=MODEL_REGISTRY.filter(m=>m.risk==="Critical").length;
+  const unclassified=ALL_MODELS.filter(m=>m.euAiAct==="Unclassified").length;
+  const critical=ALL_MODELS.filter(m=>m.risk==="Critical").length;
   const ungoverned=MODEL_REGISTRY.filter(m=>!m.initiativeId);
   const groups=acInitiatives.map(ini=>({ini,models:MODEL_REGISTRY.filter(m=>m.initiativeId===ini.id)})).filter(g=>g.models.length);
   const evConfidence=ini=>Math.round(((ini.phaseIndex+ini.phaseArtifactsDone/(AC_PHASES[ini.phaseIndex]?.deliverables.length||1))/AC_PHASES.length)*100);
@@ -49,10 +69,38 @@ export function PageModelRegistry({setTab,openInitiative}) {
     <Tag label={m.risk} color={rCol(m.risk)} bg={rCol(m.risk)+"16"}/>
   </button>;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="AI Model Registry" sub="Every model in its business context - initiative, executive owner and lifecycle. ISO 42001 C.8.4"/>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+      <SHead title="AI Model Registry" sub="Every model in its business context - initiative, executive owner and lifecycle. ISO 42001 C.8.4"/>
+      <button onClick={()=>setCreateOpen(o=>!o)} style={{flexShrink:0,background:createOpen?"transparent":AI_GOLD+"16",border:`1px solid ${AI_GOLD}${createOpen?"55":"45"}`,borderRadius:8,padding:"9px 15px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{createOpen?"Close":"+ Register model"}</button>
+    </div>
+    {createOpen&&(()=>{
+      const fLabel=l=><span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>;
+      const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
+      return <Card style={{padding:18,marginBottom:14,border:`1px solid ${AI_GOLD}45`,animation:"up .25s ease"}}>
+        <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Register an AI model</h3>
+        <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Governed fields are picked from the enterprise vocabulary — add or request a value inline. New models enter unclassified and require intake to be brought under an initiative.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
+          <label style={{display:"grid",gap:5}}>{fLabel("Model name")}<input value={mdraft.bizName} onChange={e=>setMdraft({...mdraft,bizName:e.target.value})} placeholder="e.g. Contract Review Model" style={fieldStyle}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("AI system")}<input value={mdraft.system} onChange={e=>setMdraft({...mdraft,system:e.target.value})} placeholder="e.g. Legal Assistant" style={fieldStyle}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("Model type")}<SmartSelect vocab="modelType" value={mdraft.type} onChange={setMK("type")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("Vendor")}<SmartSelect vocab="vendor" value={mdraft.vendor} onChange={setMK("vendor")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("Department")}<SmartSelect vocab="dept" value={mdraft.dept} onChange={setMK("dept")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("Model owner")}<SmartSelect vocab="person" value={mdraft.owner} onChange={setMK("owner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("EU AI Act risk class")}<SmartSelect vocab="risk" value={mdraft.euAiAct} onChange={setMK("euAiAct")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("AI system category")}<SmartSelect vocab="category" value={mdraft.category} onChange={setMK("category")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+          <label style={{display:"grid",gap:5}}>{fLabel("Lifecycle status")}
+            <select value={mdraft.status} onChange={e=>setMdraft({...mdraft,status:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Awaiting Approval","In Production","Suspended","Unclassified"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+          </label>
+          <label style={{display:"grid",gap:5}}>{fLabel("Risk severity")}
+            <select value={mdraft.risk} onChange={e=>setMdraft({...mdraft,risk:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Low","Medium","High","Critical","Unknown"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+          </label>
+        </div>
+        <button onClick={registerModel} style={{background:AI_GOLD,border:"none",borderRadius:8,padding:"10px 16px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Register model</button>
+      </Card>;
+    })()}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
       {[
-        {label:"Total Models",value:MODEL_REGISTRY.length,color:T.caio,sub:`across ${groups.length} governed initiatives`},
+        {label:"Total Models",value:ALL_MODELS.length,color:T.caio,sub:`across ${groups.length} governed initiatives`},
         {label:"Ungoverned",value:ungoverned.length,color:T.amber,sub:"No initiative - intake required"},
         {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap"},
         {label:"Critical Risk",value:critical,color:T.red,sub:"Require treatment"},
@@ -64,6 +112,16 @@ export function PageModelRegistry({setTab,openInitiative}) {
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14,alignItems:"start"}}>
       <div>
+        {extra.length>0&&<div style={{border:`1px solid ${T.green}45`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.greenL||T.s1,flexWrap:"wrap"}}>
+            <div style={{flex:1,minWidth:180}}>
+              <div style={{fontSize:12.5,fontWeight:800,color:T.green,fontFamily:F.b}}>Registered this session</div>
+              <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:3}}>Newly registered models awaiting governed intake and EU AI Act classification.</div>
+            </div>
+            <span style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px",fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink2}}>{extra.length} model{extra.length>1?"s":""}</span>
+          </div>
+          {extra.map(modelRow)}
+        </div>}
         {groups.map(({ini,models})=>{
           const open=!!openGroups[ini.id];
           const techs=[...new Set(models.map(m=>m.type.split(" / ")[0]))];
@@ -476,6 +534,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:"",phase:"",risk:"",dataClass:""});
   const [evQuery,setEvQuery]=useState("");
   const [evScope,setEvScope]=useState("All");
+  const [evLog,setEvLog]=useState({open:false,item:"",owner:"",control:"",status:"In Review",approval:"Awaiting Approval"});
   const [decisions,setDecisions]=useState({});
   const [retireDraft,setRetireDraft]=useState({reason:RETIREMENT_REASONS[0],rationale:""});
   const [feedback,setFeedback]=useState(acFeedback);
@@ -811,17 +870,13 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         {[["Initiative name","name","e.g. Resolution Copilot"],["Expected value (USD m)","expected","e.g. 3.4"]].map(([l,k,ph])=><label key={k} style={{display:"grid",gap:5}}>
           {fLabel(l)}<input value={draft[k]} onChange={e=>setDraft({...draft,[k]:e.target.value})} placeholder={ph} style={fieldStyle}/>
         </label>)}
-        <label style={{display:"grid",gap:5}}>{fLabel("Business unit")}<SmartSelect vocab="unit" value={draft.unit} onChange={setK("unit")} role={role} showToast={showToast}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Business owner")}<SmartSelect vocab="person" value={draft.businessOwner} onChange={setK("businessOwner")} role={role} showToast={showToast} placeholder="Choose or add an owner"/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Executive sponsor")}<SmartSelect vocab="person" value={draft.sponsor} onChange={setK("sponsor")} role={role} showToast={showToast} placeholder="Choose or add a sponsor"/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Lifecycle phase")}<SmartSelect vocab="phase" value={draft.phase} onChange={setK("phase")} role={role} showToast={showToast}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("EU AI Act risk class")}<SmartSelect vocab="risk" value={draft.risk} onChange={setK("risk")} role={role} showToast={showToast}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Data classification")}<SmartSelect vocab="data" value={draft.dataClass} onChange={setK("dataClass")} role={role} showToast={showToast}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Category")}
-          <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
-            {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow","Internal Model"].map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
-        </label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Business unit")}<SmartSelect vocab="unit" value={draft.unit} onChange={setK("unit")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Business owner")}<SmartSelect vocab="person" value={draft.businessOwner} onChange={setK("businessOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Executive sponsor")}<SmartSelect vocab="person" value={draft.sponsor} onChange={setK("sponsor")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add a sponsor"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Lifecycle phase")}<SmartSelect vocab="phase" value={draft.phase} onChange={setK("phase")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("EU AI Act risk class")}<SmartSelect vocab="risk" value={draft.risk} onChange={setK("risk")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Data classification")}<SmartSelect vocab="data" value={draft.dataClass} onChange={setK("dataClass")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Category")}<SmartSelect vocab="category" value={draft.category} onChange={setK("category")} role={role} showToast={showToast} requestedBy={R.name}/></label>
       </div>;
     })()}
     <button onClick={createInitiative} style={{background:rc,border:"none",borderRadius:8,padding:"10px 16px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create initiative</button>
@@ -1028,6 +1083,31 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
               <Tag label={f.status} color={T.blue} bg={T.blue+"14"}/>
             </div>)}
           </div>}
+          <div style={{marginTop:12,borderTop:`1px solid ${T.border}`,paddingTop:12}}>
+            <button onClick={()=>setEvLog(e=>({...e,open:!e.open}))} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>{evLog.open?"– Cancel evidence record":"+ Log an evidence record (governed owner)"}</button>
+            {evLog.open&&(()=>{
+              const fLabel=l=><span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>;
+              const logEvidence=()=>{
+                if(!evLog.item.trim()){showToast&&showToast("Describe the evidence item","error");return;}
+                pushBus("vz-gw-evidence",{item:evLog.item.trim(),initiative:selected.name,scope:"Phase "+phase.order+" - "+phase.name,control:evLog.control||"Evidence intake",risk:"Lifecycle evidence",owner:evLog.owner||R.label,status:evLog.status,approval:evLog.approval,version:"v1",time:"Just now"});
+                setPhaseFiles(f=>({...f,[pKey]:[{name:evLog.item.trim(),owner:evLog.owner||R.label,time:stamp(),status:evLog.status,version:"v1"},...(f[pKey]||[])]}));
+                showToast&&showToast(`Evidence "${evLog.item.trim()}" recorded — owner ${evLog.owner||R.label}`);
+                setEvLog({open:false,item:"",owner:"",control:"",status:"In Review",approval:"Awaiting Approval"});
+              };
+              return <div style={{marginTop:10,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:9}}>
+                <label style={{display:"grid",gap:4,gridColumn:"1/-1"}}>{fLabel("Evidence item")}<input value={evLog.item} onChange={e=>setEvLog({...evLog,item:e.target.value})} placeholder="e.g. Human oversight design record" style={fieldStyle}/></label>
+                <label style={{display:"grid",gap:4}}>{fLabel("Owner")}<SmartSelect vocab="person" value={evLog.owner} onChange={v=>setEvLog(e=>({...e,owner:v}))} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
+                <label style={{display:"grid",gap:4}}>{fLabel("Control framework")}<SmartSelect vocab="framework" value={evLog.control} onChange={v=>setEvLog(e=>({...e,control:v}))} role={role} showToast={showToast} requestedBy={R.name}/></label>
+                <label style={{display:"grid",gap:4}}>{fLabel("Status")}
+                  <select value={evLog.status} onChange={e=>setEvLog({...evLog,status:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["In Review","In Progress","Complete"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+                </label>
+                <label style={{display:"grid",gap:4}}>{fLabel("Approval")}
+                  <select value={evLog.approval} onChange={e=>setEvLog({...evLog,approval:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Awaiting Approval","Pending","Approved"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+                </label>
+                <button onClick={logEvidence} style={{gridColumn:"1/-1",justifySelf:"start",background:AI_GOLD,border:"none",borderRadius:7,padding:"8px 15px",color:"#111",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record evidence</button>
+              </div>;
+            })()}
+          </div>
         </Card>
         <div style={{display:"grid",gap:12,alignContent:"start"}}>
           <Card style={{padding:16,border:`1px solid ${AI_GOLD}30`}}>
@@ -2381,7 +2461,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/><OwnershipMap/></>}
     {activeModule==="strategy"&&<><ModuleLensBand module="strategy"/><AIStrategy/></>}
     {activeModule==="portfolio"&&<><ModuleLensBand module="portfolio"/><Portfolio/></>}
-    {activeModule==="repository"&&<><ModuleLensBand module="repository"/><PageModelRegistry setTab={setTab} openInitiative={openInitiative}/></>}
+    {activeModule==="repository"&&<><ModuleLensBand module="repository"/><PageModelRegistry setTab={setTab} openInitiative={openInitiative} role={role} showToast={showToast}/></>}
     {activeModule==="inventory"&&<><ModuleLensBand module="inventory"/><AIInventory/></>}
     {activeModule==="lifecycle"&&<><ModuleLensBand module="lifecycle"/><AILifecycle/></>}
     {activeModule==="gateway"&&<Gateway/>}

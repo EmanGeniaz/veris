@@ -9,7 +9,9 @@ import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-mod
 
 import dynamic from "next/dynamic";
 import { hydrateBus } from "@/lib/bus";
+import { hydrateTaxonomy } from "@/lib/taxonomy";
 import { ROLE_CENTERS } from "@/lib/role-centers";
+import { CommandPalette } from "./platform/palette";
 /* Employee/Manager command-center surfaces that delegate to a real,
    fully-built platform page rather than a config block — so the governed
    AI Assistant (with safe-use guardrails), ideas, usage and academy keep
@@ -498,6 +500,7 @@ export default function VerisZone() {
   /* Universal search + cross-module deep-open: any enterprise object is
      reachable from anywhere; selecting an initiative opens its workspace. */
   const [searchQ,setSearchQ]=useState("");
+  const [paletteOpen,setPaletteOpen]=useState(false);
   const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
   /* Central navigation: every clickable business object resolves its
@@ -515,7 +518,7 @@ export default function VerisZone() {
   const [acNavNonce,setAcNavNonce]=useState(0);
   const [hasEntered,setHasEntered]=useState(false);
   const [sessionMode,setSessionMode]=useState("demo");
-  useEffect(()=>{hydrateBus();},[]);
+  useEffect(()=>{hydrateBus().finally(()=>hydrateTaxonomy());},[]);
   const [userProfiles,setUserProfiles]=useState(()=>{
     if(typeof window==="undefined")return USER_PROFILES;
     try{
@@ -548,6 +551,14 @@ export default function VerisZone() {
   useEffect(()=>{
     const handler=()=>setIsMobile(window.innerWidth<768);
     window.addEventListener("resize",handler);return()=>window.removeEventListener("resize",handler);
+  },[]);
+
+  /* ⌘K / Ctrl-K opens the command palette from anywhere in the app. */
+  useEffect(()=>{
+    const h=e=>{
+      if((e.metaKey||e.ctrlKey)&&(e.key==="k"||e.key==="K")){e.preventDefault();setPaletteOpen(o=>!o);}
+    };
+    window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);
   },[]);
 
   const showToast=useCallback((msg,type="success")=>{
@@ -675,7 +686,8 @@ export default function VerisZone() {
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
           {!isMobile&&showSeededData&&<div style={{position:"relative"}}>
-            <input aria-label="Universal search" placeholder="Search everything..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
+            <input aria-label="Universal search" placeholder="Search everything..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 46px 6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
+            <button type="button" onClick={()=>setPaletteOpen(true)} title="Command palette (⌘K)" aria-label="Open command palette" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:"2px 7px",color:T.ink4,fontSize:9.5,fontWeight:800,fontFamily:F.m,cursor:"pointer",lineHeight:1.4}}>⌘K</button>
             {searchQ.trim().length>1&&(()=>{
               const q=searchQ.trim().toLowerCase();
               const openIni=(id,label)=>({label,go:()=>{setInitToOpen(id);setAiCentralView("initiatives");setTab("aicentral");}});
@@ -747,6 +759,7 @@ export default function VerisZone() {
       </div>
     </div>
     {<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
+    <CommandPalette open={paletteOpen} onClose={()=>setPaletteOpen(false)} role={role} theme={theme} actions={{navigate,setTab,setAiCentralView,setInitToOpen,setTheme}}/>
   </div>;
 }
 

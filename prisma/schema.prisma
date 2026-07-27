@@ -24,6 +24,8 @@ model Tenant {
   ideas       Idea[]
   convos      Conversation[]
   assets      KnowledgeAsset[]
+  taxonomyAdds     TaxonomyAdd[]
+  taxonomyRequests TaxonomyRequest[]
 }
 
 model User {
@@ -155,6 +157,31 @@ model Idea {
   submitter String
   stage     String   // Submitted | Review | AI Central intake | ...
   createdAt DateTime @default(now())
+}
+
+model TaxonomyAdd {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  vocab     String
+  value     String
+  noun      String
+  addedBy   String
+  status    String   @default("Approved")
+  createdAt DateTime @default(now())
+}
+
+model TaxonomyRequest {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  vocab       String
+  value       String
+  noun        String
+  owner       String
+  requestedBy String
+  status      String   @default("Pending") // Pending | Approved | Declined
+  createdAt   DateTime @default(now())
 }
 
 model Conversation {

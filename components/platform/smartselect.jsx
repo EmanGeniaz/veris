@@ -16,7 +16,7 @@ import { TAXONOMY, canEditTaxonomy, optionsFor, addSessionValue, addPendingValue
 const CMAP = { green: T.green, blue: T.blue, amber: T.amber, red: T.red, teal: T.teal, violet: T.violet };
 const initials = n => n.split(" ").map(x => x[0]).join("").slice(0, 2).toUpperCase();
 
-export function SmartSelect({ vocab, value, onChange, role = "employee", showToast, placeholder }) {
+export function SmartSelect({ vocab, value, onChange, role = "employee", showToast, placeholder, requestedBy }) {
   const cfg = TAXONOMY[vocab] || {};
   const noun = cfg.noun || "value";
   const owner = cfg.owner || "the owner";
@@ -48,12 +48,12 @@ export function SmartSelect({ vocab, value, onChange, role = "employee", showToa
   function choose(v) { onChange && onChange(v); close(); }
   function doAdd() {
     const nv = typed; if (!nv) { inputRef.current && inputRef.current.focus(); return; }
-    addSessionValue(vocab, nv); force(x => x + 1); onChange && onChange(nv);
+    addSessionValue(vocab, nv, requestedBy || role); force(x => x + 1); onChange && onChange(nv);
     showToast && showToast(`Added “${nv}” to ${noun} — logged`); close();
   }
   function doRequest() {
     const nv = typed; if (!nv) { inputRef.current && inputRef.current.focus(); return; }
-    addPendingValue(vocab, nv, owner);
+    addPendingValue(vocab, nv, owner, requestedBy || role);
     showToast && showToast(`Request sent to ${owner} — “${nv}” pending approval`);
     setSent(`Request sent to ${owner} — “${nv}” is pending approval.`);
     setTimeout(close, 1900);

@@ -5,6 +5,7 @@ import { pushBus } from "@/lib/bus";
 import { Activity, Cloud, Library, Map, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_FRAMEWORK_POSTURE, knowledgeAssets , POLICY_REGISTER, acInitiatives} from "@/lib/platform-models";
+import { SmartSelect } from "./smartselect";
 import { T, RC, RCL, ROLES, AI_GOLD, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -1248,11 +1249,30 @@ export function PageKnowledge({role,setTab,showToast}){
    rules. Answers "which policies have overdue reviews?" at a glance and
    drills from any policy into its rules, mappings and version history. ── */
 export function PagePolicies({role,setTab,showToast}){
+  const R=ROLES[role]||ROLES.caio;
   const [sel,setSel]=useState(null);
   const [q,setQ]=useState("");
   const [cat,setCat]=useState("All");
-  const cats=["All",...new Set(POLICY_REGISTER.map(p=>p.category))];
-  const list=POLICY_REGISTER.filter(p=>(cat==="All"||p.category===cat)&&(!q.trim()||`${p.key} ${p.name} ${p.owner}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const [extra,setExtra]=useState([]);
+  const [pHydrated,setPHydrated]=useState(false);
+  const [createOpen,setCreateOpen]=useState(false);
+  const [pdraft,setPdraft]=useState({name:"",category:"",owner:"",framework:"",status:"Draft",reviewCycle:"365"});
+  useEffect(()=>{try{const s=JSON.parse(localStorage.getItem("vz-policies")||"[]");if(Array.isArray(s)&&s.length)setExtra(s);}catch{/* ignore */}setPHydrated(true);},[]);
+  useEffect(()=>{if(!pHydrated)return;try{localStorage.setItem("vz-policies",JSON.stringify(extra));}catch{/* ignore */}},[extra,pHydrated]);
+  const ALL_POLICIES=[...extra,...POLICY_REGISTER];
+  const setPK=k=>v=>setPdraft(d=>({...d,[k]:v}));
+  const createPolicy=()=>{
+    if(!pdraft.name.trim()){showToast&&showToast("A policy name is required","error");return;}
+    const n=extra.length+POLICY_REGISTER.length+1;
+    const rec={id:`pl-x${n}`,key:`POL-NEW-${String(n).padStart(3,"0")}`,name:pdraft.name.trim(),category:pdraft.category||"Responsible AI",status:pdraft.status,owner:pdraft.owner||"Unassigned",
+      version:"v1",reviewCycleDays:Number(pdraft.reviewCycle)||365,lastReviewed:"New",nextReview:"Scheduled",overdueDays:0,rules:[],
+      controls:[],standards:pdraft.framework?[pdraft.framework]:[],initiativeIds:[],ackCoverage:0,versionHistory:[{version:"v1",date:"Today",summary:"Policy created",approvedBy:R.name}]};
+    setExtra([rec,...extra]);setSel(rec);setCreateOpen(false);
+    setPdraft({name:"",category:"",owner:"",framework:"",status:"Draft",reviewCycle:"365"});
+    showToast&&showToast(`Policy ${rec.key} created — draft registered`);
+  };
+  const cats=["All",...new Set(ALL_POLICIES.map(p=>p.category))];
+  const list=ALL_POLICIES.filter(p=>(cat==="All"||p.category===cat)&&(!q.trim()||`${p.key} ${p.name} ${p.owner}`.toLowerCase().includes(q.trim().toLowerCase())));
   const overdue=list.filter(p=>p.overdueDays>0).sort((a,b)=>b.overdueDays-a.overdueDays);
   const onSchedule=list.filter(p=>p.overdueDays===0);
   const iniName=id=>acInitiatives.find(i=>i.id===id)?.name||id;
@@ -1273,7 +1293,29 @@ export function PagePolicies({role,setTab,showToast}){
       {p.category} · owner {p.owner} · next review {p.nextReview} · {p.rules.length} runtime rule{p.rules.length===1?"":"s"} · ack {p.ackCoverage}%
     </div>
   </button>;
+  const fLabel=l=><span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>;
+  const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
   return <div style={{animation:"up .3s ease"}}>
+    <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
+      <button onClick={()=>setCreateOpen(o=>!o)} style={{background:createOpen?"transparent":T.blue+"16",border:`1px solid ${T.blue}${createOpen?"55":"45"}`,borderRadius:8,padding:"8px 14px",color:T.blue,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{createOpen?"Close":"+ New policy"}</button>
+    </div>
+    {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${T.blue}45`,animation:"up .25s ease"}}>
+      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Create a policy</h3>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Category, owner and control framework are governed vocabularies — pick a value, or add/request one inline. New policies register as drafts.</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
+        <label style={{display:"grid",gap:5}}>{fLabel("Policy name")}<input value={pdraft.name} onChange={e=>setPdraft({...pdraft,name:e.target.value})} placeholder="e.g. Agentic Workflow Standard" style={fieldStyle}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Category")}<SmartSelect vocab="policyCategory" value={pdraft.category} onChange={setPK("category")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Owner")}<SmartSelect vocab="person" value={pdraft.owner} onChange={setPK("owner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Control framework")}<SmartSelect vocab="framework" value={pdraft.framework} onChange={setPK("framework")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Status")}
+          <select value={pdraft.status} onChange={e=>setPdraft({...pdraft,status:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Draft","Active","Needs Update"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        </label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Review cadence (days)")}
+          <select value={pdraft.reviewCycle} onChange={e=>setPdraft({...pdraft,reviewCycle:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["90","180","365","730"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        </label>
+      </div>
+      <button onClick={createPolicy} style={{background:T.blue,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create policy</button>
+    </Card>}
     <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
       <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search policies..." style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none",width:220}}/>
       {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{background:cat===c?T.blue+"18":T.s2,border:`1px solid ${cat===c?T.blue+"45":T.border}`,borderRadius:999,padding:"5px 12px",color:cat===c?T.blue:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{c}</button>)}

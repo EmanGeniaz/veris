@@ -1,6 +1,7 @@
 "use client";
 
 import { readBus, pushBus } from "@/lib/bus";
+import { pendingForRole, approveRequest, rejectRequest, addPendingValue, ownerLabelFor, TAXONOMY } from "@/lib/taxonomy";
 import { ExecutiveCockpit } from "./cockpit";
 import { Map, Scale, Target, Users } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -520,6 +521,66 @@ export function PageRoadmap({role,setTab,setAiCentralView}) {
 }
 
 /* Section */
+/* ── Taxonomy vocabulary requests ──────────────────────────────────
+   The owner's Approvals inbox for governed-vocabulary additions. When a
+   contributor requests a new value in a SmartSelect, it lands here for the
+   role that owns that vocabulary (its editors). Approve promotes the value
+   into the taxonomy so it becomes selectable everywhere; Decline closes it.
+   A pure demo has no requests until one is raised, so we self-seed one
+   illustrative pending request per owning role on first view. */
+const SEEDED_TAXONOMY_REQ = {
+  caio: { vocab: "category", value: "Multi-Agent Orchestration", by: "Maya Chen (CEO)" },
+  ciso: { vocab: "riskCategory", value: "Supply-Chain Model Risk", by: "Marcus Reid (CIO)" },
+  cro:  { vocab: "riskCategory", value: "Third-Party Concentration", by: "Elena Rossi (CFO)" },
+  cdpo: { vocab: "data", value: "Regulated Health Data", by: "Priya Mehta (COO)" },
+  coo:  { vocab: "unit", value: "Shared Services", by: "Hannah Lee (CHRO)" },
+  cio:  { vocab: "vendor", value: "Cohere API", by: "Aisha Patel (CAIO)" },
+};
+let TAX_SEEDED = false;
+export function TaxonomyApprovals({role,showToast}){
+  const [,force]=useState(0);
+  const rerender=()=>force(x=>x+1);
+  useEffect(()=>{
+    if(TAX_SEEDED)return; TAX_SEEDED=true;
+    /* Seed one illustrative pending request for each owning role so the inbox
+       is never empty on first look; real requests from SmartSelect join these. */
+    try{
+      Object.entries(SEEDED_TAXONOMY_REQ).forEach(([,r])=>addPendingValue(r.vocab,r.value,ownerLabelFor(r.vocab),r.by));
+    }catch{/* seeding is best-effort */}
+    rerender();
+  },[]);
+  const mine=pendingForRole(role);
+  const decide=(id,ok,value)=>{
+    if(ok){approveRequest(id,ROLES[role]?.name||role);showToast&&showToast(`Approved "${value}" — added to the taxonomy`);}
+    else{rejectRequest(id,ROLES[role]?.name||role);showToast&&showToast(`Declined "${value}"`,"error");}
+    rerender();
+  };
+  return <Card style={{padding:16,marginBottom:12}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <div>
+        <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Taxonomy requests</h3>
+        <span style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>New governed-vocabulary values awaiting your approval. Approve to make them selectable enterprise-wide.</span>
+      </div>
+      <Tag label={`${mine.length} pending`} color={mine.length?AI_GOLD:T.ink3} bg={(mine.length?AI_GOLD:T.ink3)+"16"}/>
+    </div>
+    {mine.length===0
+      ? <div style={{fontSize:11.5,color:T.ink3,fontFamily:F.b,padding:"10px 2px"}}>No vocabulary requests are waiting on you. Requests you own appear here the moment a contributor raises one.</div>
+      : <div style={{display:"grid",gap:8}}>
+        {mine.map(r=>{
+          const cfg=TAXONOMY[r.vocab]||{};
+          return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>“{r.value}” <span style={{fontWeight:600,color:T.ink3}}>→ {cfg.label||r.noun}</span></div>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>Requested by {r.requestedBy} · owner {r.owner} · {r.at}</div>
+            </div>
+            <button onClick={()=>decide(r.id,true,r.value)} style={{background:T.green+"18",border:`1px solid ${T.green}45`,borderRadius:7,padding:"7px 13px",color:T.green,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Approve</button>
+            <button onClick={()=>decide(r.id,false,r.value)} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 13px",color:T.ink3,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Decline</button>
+          </div>;
+        })}
+      </div>}
+  </Card>;
+}
+
 export function PageDecisions({role,setTab,setAiCentralView,showToast}){
   const goto=link=>{
     if(!link)return;
@@ -547,6 +608,7 @@ export function PageDecisions({role,setTab,setAiCentralView,showToast}){
       </Card>)}
     </div>
     <ExecDecisionCenter role={role} goto={goto} showToast={showToast}/>
+    <TaxonomyApprovals role={role} showToast={showToast}/>
     <Card style={{padding:16,marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Scale / retire gates</h3>

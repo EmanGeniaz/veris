@@ -5,6 +5,7 @@ import { Library, Scale, Workflow } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
 import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
+import { SmartSelect } from "./smartselect";
 
 export function wbInspectPrompt(text){
   if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
@@ -272,9 +273,7 @@ export function PageMyIdeas({role,sessionMode,showToast}){
           </label>
           <label style={{display:"grid",gap:5}}>
             <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
-            <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
-              {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow"].map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
+            <SmartSelect vocab="category" value={draft.category} onChange={v=>setDraft({...draft,category:v})} role={role} showToast={showToast} requestedBy={U.name}/>
           </label>
           <button onClick={submit} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 14px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Submit idea</button>
         </div>
