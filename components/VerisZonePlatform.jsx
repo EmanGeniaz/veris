@@ -25,6 +25,7 @@ const CEOCommandCenter=dynamic(()=>import("./platform/ceo").then(m=>m.CEOCommand
 const CAIOCommandCenter=dynamic(()=>import("./platform/caio").then(m=>m.CAIOCommandCenter),{ssr:false,loading:vzLoading});
 const RoleCommandCenter=dynamic(()=>import("./platform/rolecenters").then(m=>m.RoleCommandCenter),{ssr:false,loading:vzLoading});
 const PageOnboard=dynamic(()=>import("./platform/dashboard").then(m=>m.PageOnboard),{ssr:false,loading:vzLoading});
+const PageAdmin=dynamic(()=>import("./platform/admin").then(m=>m.PageAdmin),{ssr:false,loading:vzLoading});
 const PageOpportunityIntake=dynamic(()=>import("./platform/dashboard").then(m=>m.PageOpportunityIntake),{ssr:false,loading:vzLoading});
 const PageStrategy=dynamic(()=>import("./platform/dashboard").then(m=>m.PageStrategy),{ssr:false,loading:vzLoading});
 const PageHITL=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHITL),{ssr:false,loading:vzLoading});
@@ -224,7 +225,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
               <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)} · {R.label}</div>
             </div>
             <Item icon={<UserCog size={15}/>} label="Account Settings" sub="Profile, role & identity" onClick={()=>go("profile")}/>
-            {canAdmin&&<Item icon={<Shield size={15}/>} label="Admin Console" sub="Tenant, users & provisioning" onClick={()=>go("onboard")}/>}
+            {canAdmin&&<Item icon={<Shield size={15}/>} label="Admin Console" sub="Users, roles, RBAC & org settings" onClick={()=>go("admin")}/>}
             <Item icon={<SlidersHorizontal size={15}/>} label="Workspace Settings" sub="Preferences & defaults" onClick={()=>go("settings")}/>
             <Item icon={theme==="dark"?<Sun size={15}/>:<Moon size={15}/>} label={`${theme==="dark"?"Light":"Dark"} appearance`} sub="Switch theme" onClick={()=>{setMenuOpen(false);setTheme&&setTheme(theme==="dark"?"light":"dark");}}/>
             <Item icon={<LifeBuoy size={15}/>} label="Help & Documentation" sub="Guides & governance academy" onClick={()=>go("academy")}/>
@@ -772,6 +773,7 @@ export default function VerisZone() {
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="reports"&&<PageReports role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
+        {tab==="admin"      &&<PageAdmin      role={role} showToast={showToast} setTab={setTab}/>}
         {showSeededData&&tab==="intake"     &&<PageOpportunityIntake role={role} setTab={setTab} showToast={showToast}/>}
         {showSeededData&&tab==="strategy"   &&<PageStrategy   role={role} setTab={setTab}/>}
         {showSeededData&&["playbook","templates","checklists"].includes(tab)&&<PagePlaybook key={tab} tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
