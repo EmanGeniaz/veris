@@ -1,7 +1,7 @@
 "use client";
 
-import { Scale, Settings } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Scale, Settings, UserCog, Shield, SlidersHorizontal, Sun, Moon, LogOut, LifeBuoy } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
@@ -116,8 +116,17 @@ function LoginAICentralBrand({theme,width=104,style={}}) {
   </div>;
 }
 
-function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,onAcNav,theme,profiles,sessionMode}) {
+function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,onAcNav,theme,setTheme,onSignOut,profiles,sessionMode}) {
   const rc=RC(role), R=ROLES[role];
+  const [menuOpen,setMenuOpen]=useState(false);
+  const menuRef=useRef(null);
+  useEffect(()=>{
+    if(!menuOpen)return;
+    const h=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setMenuOpen(false);};
+    const k=e=>{if(e.key==="Escape")setMenuOpen(false);};
+    document.addEventListener("mousedown",h);document.addEventListener("keydown",k);
+    return()=>{document.removeEventListener("mousedown",h);document.removeEventListener("keydown",k);};
+  },[menuOpen]);
   const profileKey=sessionMode==="demo"?"demo":sessionMode==="aicentral"?"aicentral":role;
   const U=profiles?.[profileKey]||USER_PROFILES[profileKey]||R;
   const initials=(U.name||R.name).split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
@@ -196,19 +205,47 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           </button>;
         })}
       </nav>
-      <a href="/profile" className={`vz-profile-btn ${themeClass}`} onClick={(e)=>{e.preventDefault();setTab("profile");if(isMobile)onClose();}} style={{cursor:"pointer",width:"100%",padding:"13px 14px",border:0,borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:10,background:"transparent",textAlign:"left",textDecoration:"none"}}>
-      <div style={{position:"relative",flexShrink:0}}>
-        <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${theme==="light"?T.blue:AI_GOLD})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 12px 28px ${rc}30`}}>
-          <span style={{color:"#fff",fontSize:11,fontWeight:900,fontFamily:F.b,letterSpacing:0}}>{initials}</span>
-        </div>
-        <span style={{position:"absolute",right:-1,bottom:-1,width:9,height:9,borderRadius:"50%",background:T.green,border:`2px solid ${theme==="light"?"#FFFFFF":T.bg}`}}/>
-      </div>
-        <div style={{overflow:"hidden",flex:1}}>
-          <div style={{fontSize:12,fontWeight:900,color:T.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:F.b}}>{cleanText(U.name||R.name)}</div>
-          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)}</div>
-        </div>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,color:T.ink4}}><path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      </a>
+      {(()=>{
+        const canAdmin=!["employee","manager"].includes(role);
+        const go=t=>{setMenuOpen(false);setTab(t);if(isMobile)onClose();};
+        const Item=({icon,label,sub,onClick,danger})=><button role="menuitem" onClick={onClick} className="vz-menu-item" style={{width:"100%",display:"flex",alignItems:"center",gap:11,padding:"9px 10px",borderRadius:9,background:"transparent",border:"1px solid transparent",cursor:"pointer",textAlign:"left",transition:"background .12s"}}>
+          <span style={{width:28,height:28,borderRadius:8,flexShrink:0,display:"grid",placeItems:"center",background:danger?T.red+"14":T.s2,border:`1px solid ${danger?T.red+"30":T.border}`,color:danger?T.red:T.ink2}}>{icon}</span>
+          <span style={{minWidth:0,flex:1}}>
+            <span style={{display:"block",fontSize:12,fontWeight:700,color:danger?T.red:T.ink,fontFamily:F.b}}>{label}</span>
+            {sub&&<span style={{display:"block",fontSize:9.5,color:T.ink4,fontFamily:F.b,marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</span>}
+          </span>
+        </button>;
+        return <div ref={menuRef} style={{position:"relative",borderTop:`1px solid ${T.border}`}}>
+          <style>{`.vz-menu-item:hover{background:${theme==="light"?T.s2:T.s3||T.s2}}`}</style>
+          {menuOpen&&<div role="menu" style={{position:"absolute",bottom:"calc(100% + 6px)",left:10,right:10,zIndex:60,background:theme==="light"?"#FFFFFF":T.s1,border:`1px solid ${T.border}`,borderRadius:13,boxShadow:"0 22px 60px -14px rgba(4,7,20,.6)",padding:6,animation:"vzMenuIn .16s ease"}}>
+            <style>{`@keyframes vzMenuIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+            <div style={{padding:"8px 10px 9px",borderBottom:`1px solid ${T.border}`,marginBottom:4}}>
+              <div style={{fontSize:12,fontWeight:900,color:T.ink,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.name||R.name)}</div>
+              <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)} · {R.label}</div>
+            </div>
+            <Item icon={<UserCog size={15}/>} label="Account Settings" sub="Profile, role & identity" onClick={()=>go("profile")}/>
+            {canAdmin&&<Item icon={<Shield size={15}/>} label="Admin Console" sub="Tenant, users & provisioning" onClick={()=>go("onboard")}/>}
+            <Item icon={<SlidersHorizontal size={15}/>} label="Workspace Settings" sub="Preferences & defaults" onClick={()=>go("settings")}/>
+            <Item icon={theme==="dark"?<Sun size={15}/>:<Moon size={15}/>} label={`${theme==="dark"?"Light":"Dark"} appearance`} sub="Switch theme" onClick={()=>{setMenuOpen(false);setTheme&&setTheme(theme==="dark"?"light":"dark");}}/>
+            <Item icon={<LifeBuoy size={15}/>} label="Help & Documentation" sub="Guides & governance academy" onClick={()=>go("academy")}/>
+            <div style={{height:1,background:T.border,margin:"5px 6px"}}/>
+            <Item icon={<LogOut size={15}/>} label="Sign out" sub="End this session" danger onClick={()=>{setMenuOpen(false);onSignOut&&onSignOut();}}/>
+          </div>}
+          <button aria-haspopup="menu" aria-expanded={menuOpen} className={`vz-profile-btn ${themeClass}`} onClick={()=>setMenuOpen(o=>!o)} style={{cursor:"pointer",width:"100%",padding:"13px 14px",border:0,display:"flex",alignItems:"center",gap:10,background:menuOpen?(theme==="light"?T.s2:T.s3||T.s2):"transparent",textAlign:"left"}}>
+            <div style={{position:"relative",flexShrink:0}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${theme==="light"?T.blue:AI_GOLD})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 12px 28px ${rc}30`}}>
+                <span style={{color:"#fff",fontSize:11,fontWeight:900,fontFamily:F.b,letterSpacing:0}}>{initials}</span>
+              </div>
+              <span style={{position:"absolute",right:-1,bottom:-1,width:9,height:9,borderRadius:"50%",background:T.green,border:`2px solid ${theme==="light"?"#FFFFFF":T.bg}`}}/>
+            </div>
+            <div style={{overflow:"hidden",flex:1}}>
+              <div style={{fontSize:12,fontWeight:900,color:T.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:F.b}}>{cleanText(U.name||R.name)}</div>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)}</div>
+            </div>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,color:T.ink4,transform:menuOpen?"rotate(-90deg)":"none",transition:"transform .18s"}}><path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        </div>;
+      })()}
     </div>
   </>;
 }
@@ -661,7 +698,7 @@ export default function VerisZone() {
 
   return <div style={{display:"flex",minHeight:"100vh",background:T.bg}}>
     {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
-    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} sessionMode={sessionMode} profiles={userProfiles}/>
+    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} setTheme={setTheme} onSignOut={signOut} sessionMode={sessionMode} profiles={userProfiles}/>
 
     {/* Main */}
     <div style={{marginLeft:isMobile?0:SIDEBAR_W,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>

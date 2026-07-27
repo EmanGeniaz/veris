@@ -20,6 +20,17 @@ const { chromium } = require('playwright');
   await page.click('text=Enter Demo Center Workspace');
   await page.waitForTimeout(2200);
 
+  // ── Profile module menu (bottom-left) ──
+  await test('Profile menu opens with options', async () => {
+    await page.locator('button.vz-profile-btn').first().click(); await page.waitForTimeout(400);
+    const t = await body();
+    if (!t.includes('Account Settings')) throw new Error('no Account Settings');
+    if (!t.includes('Admin Console')) throw new Error('no Admin');
+    if (!t.includes('Sign out')) throw new Error('no Sign out');
+    await page.locator('button[role="menuitem"]', { hasText: 'Account Settings' }).first().click(); await page.waitForTimeout(700);
+    await page.keyboard.press('Escape');
+  });
+
   // ── CAIO: create initiative ──
   await page.locator('button', { hasText: /^CAIO$/ }).first().click(); await page.waitForTimeout(900);
   await test('Create AI Initiative', async () => {
