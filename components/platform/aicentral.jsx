@@ -12,6 +12,7 @@ import { AC_OWNERSHIP_MODEL } from "./core";
 import { PageGovernanceAcademy } from "./academy";
 import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
+import { SmartSelect } from "./smartselect";
 
 export function PageModelRegistry({setTab,openInitiative}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -472,7 +473,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const [favIds,setFavIds]=useState([]);
   const [ovDetails,setOvDetails]=useState(false);
   const [createOpen,setCreateOpen]=useState(false);
-  const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
+  const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:"",phase:"",risk:"",dataClass:""});
   const [evQuery,setEvQuery]=useState("");
   const [evScope,setEvScope]=useState("All");
   const [decisions,setDecisions]=useState({});
@@ -750,7 +751,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       phaseIndex:0,phaseArtifactsDone:0,blockedBy:"Discover artifacts not started",
     };
     setItems([rec,...items]);setSelectedId(rec.id);setInitTab("implementation");setPhaseSel(0);setCreateOpen(false);
-    setDraft({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:""});
+    setDraft({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:"",phase:"",risk:"",dataClass:""});
     showToast&&showToast("Initiative created - Discover phase opened");
   };
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
@@ -803,18 +804,26 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const renderCreateForm=()=><Card style={{padding:18,marginBottom:14,border:`1px solid ${rc}45`,animation:"up .25s ease"}}>
     <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Create AI Initiative</h3>
     <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Every initiative starts in Discover. Mandatory artifacts gate each phase; the record becomes the single source of truth.</p>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
-      {[["Initiative name","name"],["Business unit","unit"],["Business owner","businessOwner"],["Executive sponsor","sponsor"],["Expected value","expected"]].map(([l,k])=><label key={k} style={{display:"grid",gap:5}}>
-        <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>
-        <input value={draft[k]} onChange={e=>setDraft({...draft,[k]:e.target.value})} style={fieldStyle}/>
-      </label>)}
-      <label style={{display:"grid",gap:5}}>
-        <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>Category</span>
-        <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
-          {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow","Internal Model"].map(c=><option key={c} value={c}>{c}</option>)}
-        </select>
-      </label>
-    </div>
+    {(()=>{
+      const fLabel=l=><span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>;
+      const setK=k=>v=>setDraft(d=>({...d,[k]:v}));
+      return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
+        {[["Initiative name","name","e.g. Resolution Copilot"],["Expected value (USD m)","expected","e.g. 3.4"]].map(([l,k,ph])=><label key={k} style={{display:"grid",gap:5}}>
+          {fLabel(l)}<input value={draft[k]} onChange={e=>setDraft({...draft,[k]:e.target.value})} placeholder={ph} style={fieldStyle}/>
+        </label>)}
+        <label style={{display:"grid",gap:5}}>{fLabel("Business unit")}<SmartSelect vocab="unit" value={draft.unit} onChange={setK("unit")} role={role} showToast={showToast}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Business owner")}<SmartSelect vocab="person" value={draft.businessOwner} onChange={setK("businessOwner")} role={role} showToast={showToast} placeholder="Choose or add an owner"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Executive sponsor")}<SmartSelect vocab="person" value={draft.sponsor} onChange={setK("sponsor")} role={role} showToast={showToast} placeholder="Choose or add a sponsor"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Lifecycle phase")}<SmartSelect vocab="phase" value={draft.phase} onChange={setK("phase")} role={role} showToast={showToast}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("EU AI Act risk class")}<SmartSelect vocab="risk" value={draft.risk} onChange={setK("risk")} role={role} showToast={showToast}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Data classification")}<SmartSelect vocab="data" value={draft.dataClass} onChange={setK("dataClass")} role={role} showToast={showToast}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Category")}
+          <select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>
+            {["GenAI Copilot","Decision Support","Process Automation","Recommendation","Agentic Workflow","Internal Model"].map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+      </div>;
+    })()}
     <button onClick={createInitiative} style={{background:rc,border:"none",borderRadius:8,padding:"10px 16px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create initiative</button>
   </Card>;
 
