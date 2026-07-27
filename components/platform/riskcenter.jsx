@@ -7,6 +7,12 @@ import { acInitiatives, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments
 import { T, AI_GOLD, ROLES, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 import { PageAISpine } from "./spine";
 import { SmartSelect } from "./smartselect";
+import { SECURITY_EVENTS } from "@/lib/role-centers";
+
+/* Each CXO owns a slice of the register — the Risk Center opens scoped to
+   the risks that executive is accountable for, with a toggle to see all. */
+const RISK_OWNER_OF = { ceo:"CEO", ciso:"CISO", cdpo:"CDPO", caio:"CAIO", cro:"CRO", cfo:"CFO", coo:"COO", cio:"CIO" };
+const evColor = c => c==="crit"?"#B42318":c==="warn"?"#C99A2E":c==="info"?"#0B4EA2":"#6B7280";
 
 export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
   const [selId,setSelId]=useState(fixed||acInitiatives[0].id);
@@ -64,7 +70,9 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   const [rcTab,setRcTab]=useState(RC_LEGACY[tab]||"register");
   const [dimBy,setDimBy]=useState("Enterprise");
   const [dimVal,setDimVal]=useState("All");
-  const [sel,setSel]=useState(riskRegister[0]);
+  const myOwner=RISK_OWNER_OF[role];
+  const [sel,setSel]=useState(()=>riskRegister.find(r=>r.execOwner===myOwner)||riskRegister[0]);
+  const [mineOnly,setMineOnly]=useState(()=>!!myOwner&&riskRegister.some(r=>r.execOwner===myOwner));
   const [cell,setCell]=useState(null);
   const [bumped,setBumped]=useState({});
   const [extra,setExtra]=useState([]);
@@ -74,6 +82,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   useEffect(()=>{try{const s=JSON.parse(localStorage.getItem("vz-risks")||"[]");if(Array.isArray(s)&&s.length)setExtra(s);}catch{/* ignore */}setRHydrated(true);},[]);
   useEffect(()=>{if(!rHydrated)return;try{localStorage.setItem("vz-risks",JSON.stringify(extra));}catch{/* ignore */}},[extra,rHydrated]);
   const ALL_RISKS=[...extra,...riskRegister];
+  /* Role-scoped working set: this CXO's own risks unless "all" is toggled. */
+  const scopedRisks=ALL_RISKS.filter(r=>!mineOnly||!myOwner||r.execOwner===myOwner);
   const setRK=k=>v=>setRdraft(d=>({...d,[k]:v}));
   const createRisk=()=>{
     if(!rdraft.title.trim()){showToast&&showToast("A risk title is required","error");return;}
@@ -108,7 +118,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     if(dimBy==="Framework")return r.frameworks.some(f=>f.startsWith(dimVal));
     return true;
   };
-  const rows=ALL_RISKS.filter(matchDim);
+  const rows=scopedRisks.filter(matchDim);
   const effT=r=>bumped[r.id]||r.treatment.status;
   const advance=r=>{
     const cur=effT(r);
@@ -120,11 +130,11 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
   };
   const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;
-  const openCritHigh=ALL_RISKS.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
-  const inProg=ALL_RISKS.filter(r=>effT(r)==="In Progress").length;
+  const openCritHigh=scopedRisks.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
+  const inProg=scopedRisks.filter(r=>effT(r)==="In Progress").length;
   const breaching=kriRegister.filter(kriBreach).length;
   const kpis=[
-    ["Risks on register",ALL_RISKS.length,T.blue,"register"],
+    ["Risks on register",scopedRisks.length,T.blue,"register"],
     ["Critical / high open",openCritHigh,T.red,"heatmap"],
     ["Treatments in progress",inProg,T.violet,"treatments"],
     ["KRIs breaching",breaching,T.amber,"kris"],
@@ -155,6 +165,32 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
         <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>AI recommendation</div>
         <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.aiRecommendation}</p>
       </div>
+      {(()=>{
+        const relKris=(sel.kris||[]).map(id=>kriRegister.find(k=>k.id===id)).filter(Boolean);
+        const relEvents=SECURITY_EVENTS.filter(e=>e.projectId&&e.projectId===sel.initiativeId);
+        const assessments=acAssessments[sel.initiativeId]||[];
+        return <>
+          {relKris.length>0&&<div style={{marginTop:10}}>
+            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>Key risk indicators</div>
+            {relKris.map(k=>{const breach=k.direction==="above"?k.value>k.threshold:k.value<k.threshold;return <div key={k.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{k.name}</span>
+              <span style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:10,fontWeight:800,color:breach?T.red:T.green,fontFamily:F.m}}>{k.value}{k.unit.startsWith("%")?"%":""}</span><Tag label={breach?"Breaching":"Within"} color={breach?T.red:T.green} bg={(breach?T.red:T.green)+"16"}/></span>
+            </div>;})}
+          </div>}
+          {relEvents.length>0&&<div style={{marginTop:12}}>
+            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>Related incidents & vulnerabilities</div>
+            {relEvents.map(e=><div key={e.ref} style={{display:"flex",gap:8,alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+              <span style={{fontSize:9,fontFamily:F.m,fontWeight:900,color:T.ink4,flexShrink:0}}>{e.ref}</span>
+              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.title}</span>
+              {e.severity&&<span style={{fontSize:8.5,fontWeight:800,fontFamily:F.m,color:evColor(e.severity[1]),border:`1px solid ${evColor(e.severity[1])}55`,borderRadius:20,padding:"1px 7px",flexShrink:0}}>{e.severity[0]}</span>}
+            </div>)}
+          </div>}
+          {assessments.length>0&&<div style={{marginTop:12,background:T.s3,borderRadius:8,padding:"9px 12px"}}>
+            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Assessment history</div>
+            <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{assessments.length} assessment{assessments.length>1?"s":""} on record · <button onClick={()=>setRcTab("assessments")} style={{background:"none",border:"none",padding:0,color:AI_GOLD,fontWeight:800,fontFamily:F.b,fontSize:10.5,cursor:"pointer"}}>open cascade →</button></span>
+          </div>}
+        </>;
+      })()}
       <div style={{display:"grid",gridTemplateColumns:initOf(sel)?"1fr 1fr":"1fr",gap:8,marginTop:12}}>
         <button onClick={()=>{setRcTab("treatments");}} style={{background:T.violet,border:"none",borderRadius:7,padding:"9px",color:"#fff",fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{effT(sel)==="Complete"?"Treatment complete":"Manage treatment"}</button>
         {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open initiative →</button>}
@@ -199,6 +235,11 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
         <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c}}><CountUp value={v}/></div>
       </Card>)}
     </div>
+    {myOwner&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,background:mineOnly?AI_GOLD+"12":T.s2,border:`1px solid ${mineOnly?AI_GOLD+"40":T.border}`,borderRadius:9,padding:"9px 13px",flexWrap:"wrap"}}>
+      <span style={{fontSize:11,fontWeight:800,color:mineOnly?AI_GOLD:T.ink3,fontFamily:F.b}}>{mineOnly?`Showing ${R.label}'s risks`:"Showing all enterprise risks"}</span>
+      <span style={{fontSize:10.5,color:T.ink3,fontFamily:F.b}}>{mineOnly?`${scopedRisks.length} risks you are accountable for as executive owner.`:"Every risk across the portfolio."}</span>
+      <button onClick={()=>setMineOnly(m=>!m)} style={{marginLeft:"auto",background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 12px",color:T.ink2,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{mineOnly?"View all risks →":`View only ${R.label}'s risks →`}</button>
+    </div>}
     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
       {TABS.map(([id,label])=><button key={id} onClick={()=>setRcTab(id)} style={{background:rcTab===id?T.red+"18":T.s2,border:`1px solid ${rcTab===id?T.red+"50":T.border}`,color:rcTab===id?T.red:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
     </div>
