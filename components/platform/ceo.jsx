@@ -234,14 +234,19 @@ const CONTINENTS=[
   /* Oceania */ "M812,300 L880,292 L906,322 L872,352 L820,342 L804,318 Z",
 ];
 const REGION_MARKERS=[
-  {region:"Americas", x:222, y:150, c:AI_GOLD},
-  {region:"EMEA",     x:524, y:120, c:T.green},
-  {region:"APAC",     x:806, y:150, c:T.blue},
+  {region:"Americas", x:222, y:150},
+  {region:"EMEA",     x:524, y:120},
+  {region:"APAC",     x:806, y:150},
 ];
+/* Marker colour = the region's HIGHEST open AI-risk exposure (data-driven
+   from the portfolio), so red/amber/blue/green carry real meaning; the
+   number in the marker is the count of live programs. */
+const SEV_RANK={Critical:4,High:3,Medium:2,Low:1};
+const sevColor=s=>s==="Critical"?T.red:s==="High"?T.amber:s==="Medium"?T.blue:T.green;
+const regionSeverity=region=>CEO_PORTFOLIO.filter(p=>p.region===region).reduce((m,p)=>SEV_RANK[p.risk]>SEV_RANK[m]?p.risk:m,"Low");
 function ExposureMap({big}){
   const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
   const ocean=isLight?"#EAF1F8":"#0c1030";
-  const oceanEdge=isLight?"#DCE6F2":"#141a45";
   const land=isLight?"#C6D3E4":"#252c5c";
   const landEdge=isLight?"#AFC0D6":"#39407a";
   const grat=isLight?"#D4DEEC":"#ffffff12";
@@ -259,10 +264,10 @@ function ExposureMap({big}){
       {[80,160,240,320,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
       {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="480" stroke={grat} strokeWidth="1"/>)}
       {CONTINENTS.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.5" strokeLinejoin="round"/>)}
-      {/* region markers, sized by live-program count */}
-      {REGION_MARKERS.map(m=>{const n=cnt(m.region);const r=big?15+n*2.4:12+n*1.8;return <g key={m.region}>
-        <circle cx={m.x} cy={m.y} r={r+9} fill={m.c} opacity="0.14"><animate attributeName="r" values={`${r+5};${r+14};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
-        <circle cx={m.x} cy={m.y} r={r} fill={m.c} filter="url(#ceoMk)"/>
+      {/* region markers: size = live programs, colour = highest risk exposure */}
+      {REGION_MARKERS.map(m=>{const n=cnt(m.region);const sev=regionSeverity(m.region);const c=sevColor(sev);const r=big?15+n*2.4:12+n*1.8;return <g key={m.region}>
+        <circle cx={m.x} cy={m.y} r={r+9} fill={c} opacity="0.16"><animate attributeName="r" values={`${r+5};${r+14};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
+        <circle cx={m.x} cy={m.y} r={r} fill={c} filter="url(#ceoMk)"/>
         <text x={m.x} y={m.y+4} textAnchor="middle" fontSize={big?15:13} fontWeight="800" fill="#0b0e24" fontFamily={F.m}>{n}</text>
         <text x={m.x} y={m.y-r-8} textAnchor="middle" fontSize="11" letterSpacing="1.5" fontWeight="800" fill={isLight?T.ink3:"#cbd5e1"} fontFamily={F.m}>{m.region.toUpperCase()}</text>
       </g>;})}
@@ -270,8 +275,14 @@ function ExposureMap({big}){
   </div>;
 }
 function RegionLegend(){
-  return <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:11}}>
-    {CEO_REGIONS.map(r=><span key={r.region} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:3,background:r.c}}/>{r.region} · {r.live} live · {r.cities}</span>)}
+  return <div style={{marginTop:11}}>
+    <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+      {CEO_REGIONS.map(r=>{const sev=regionSeverity(r.region);return <span key={r.region} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:sevColor(sev)}}/>{r.region} · {r.live} live · worst exposure {sev}</span>;})}
+    </div>
+    <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`,alignItems:"center"}}>
+      <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>Marker size = live programs · colour = highest risk exposure</span>
+      {[["Critical",T.red],["High",AI_GOLD],["Medium",T.blue],["Low",T.green]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:9.5,color:T.ink3,fontWeight:700,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:c}}/>{l}</span>)}
+    </div>
   </div>;
 }
 function BudgetValue({big}){
@@ -368,7 +379,7 @@ function AdoptionTab(){
 }
 function ExposureTab(){
   return <div style={{animation:"up .2s ease"}}>
-    <Card style={cardPad}><Eyebrow>Deployment Exposure Map</Eyebrow><H3 style={{marginBottom:14}}>Which AI projects are deployed in which locations</H3><ExposureMap big/></Card>
+    <Card style={cardPad}><Eyebrow>Deployment Exposure Map</Eyebrow><H3 style={{marginBottom:14}}>Which AI projects are deployed in which locations</H3><ExposureMap big/><RegionLegend/></Card>
     <Card style={{...cardPad,marginTop:16}}><Eyebrow>Region → program mapping</Eyebrow>
       <Table head={["Region","Live programs","Data locations","Compliance regime"]}>
         {CEO_REGIONS.map(r=><tr key={r.region}><Td style={{fontWeight:700,color:T.ink}}>{r.region}</Td><Td>{r.live} · {CEO_PORTFOLIO.filter(p=>p.region===r.region).slice(0,3).map(p=>p.name.split(" ").slice(0,2).join(" ")).join(", ")}</Td><Td>{r.cities}</Td><Td><Pill c={T.blue}>{r.regime}</Pill></Td></tr>)}
