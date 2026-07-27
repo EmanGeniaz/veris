@@ -31,6 +31,20 @@ const { chromium } = require('playwright');
     await page.keyboard.press('Escape');
   });
 
+  // ── Admin Portal: open + RBAC matrix capability change ──
+  await test('Admin Portal RBAC + audit', async () => {
+    await page.locator('button.vz-profile-btn').first().click(); await page.waitForTimeout(400);
+    await page.locator('button[role="menuitem"]', { hasText: 'Admin Console' }).first().click(); await page.waitForTimeout(800);
+    if (!(await body()).includes('Admin Portal')) throw new Error('admin portal did not open');
+    await page.locator('button', { hasText: 'Roles & Access' }).first().click(); await page.waitForTimeout(500);
+    if (!/RBAC matrix/i.test(await body())) throw new Error('no RBAC matrix');
+    if (!/segregation of duties/i.test(await body())) throw new Error('no SoD');
+    // change a capability cell, then confirm it is audited on Overview
+    await page.locator('table button', { hasText: /^(View|Contribute|Approve|Admin|—)$/ }).first().click(); await page.waitForTimeout(400);
+    await page.locator('button', { hasText: /^Overview$/ }).last().click(); await page.waitForTimeout(400);
+    if (!/Set capability/i.test(await body())) throw new Error('capability change not audited');
+  });
+
   // ── CAIO: create initiative ──
   await page.locator('button', { hasText: /^CAIO$/ }).first().click(); await page.waitForTimeout(900);
   await test('Create AI Initiative', async () => {
