@@ -2,10 +2,11 @@
 
 import { readBus, pushBus } from "@/lib/bus";
 import { Map } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { acInitiatives, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments } from "@/lib/platform-models";
-import { T, AI_GOLD, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
+import { T, AI_GOLD, ROLES, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 import { PageAISpine } from "./spine";
+import { SmartSelect } from "./smartselect";
 
 export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
   const [selId,setSelId]=useState(fixed||acInitiatives[0].id);
@@ -58,6 +59,7 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
    and reports render filtered views of this register. Every risk drills
    back to its initiative, executive, controls, frameworks and treatment. */
 export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
+  const R=ROLES[role]||ROLES.caio;
   const RC_LEGACY={riskcenter:"register",aira:"register",airt:"treatments",aia:"assessments",aiia:"assessments"};
   const [rcTab,setRcTab]=useState(RC_LEGACY[tab]||"register");
   const [dimBy,setDimBy]=useState("Enterprise");
@@ -65,15 +67,37 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   const [sel,setSel]=useState(riskRegister[0]);
   const [cell,setCell]=useState(null);
   const [bumped,setBumped]=useState({});
+  const [extra,setExtra]=useState([]);
+  const [rHydrated,setRHydrated]=useState(false);
+  const [createOpen,setCreateOpen]=useState(false);
+  const [rdraft,setRdraft]=useState({title:"",category:"",unit:"",execOwner:"",riskOwner:"",framework:"",likelihood:"3",impact:"3",level:"Medium",strategy:"Mitigate"});
+  useEffect(()=>{try{const s=JSON.parse(localStorage.getItem("vz-risks")||"[]");if(Array.isArray(s)&&s.length)setExtra(s);}catch{/* ignore */}setRHydrated(true);},[]);
+  useEffect(()=>{if(!rHydrated)return;try{localStorage.setItem("vz-risks",JSON.stringify(extra));}catch{/* ignore */}},[extra,rHydrated]);
+  const ALL_RISKS=[...extra,...riskRegister];
+  const setRK=k=>v=>setRdraft(d=>({...d,[k]:v}));
+  const createRisk=()=>{
+    if(!rdraft.title.trim()){showToast&&showToast("A risk title is required","error");return;}
+    const n=extra.length+riskRegister.length+1;
+    const L=Number(rdraft.likelihood),I=Number(rdraft.impact);
+    const rec={id:`RSK-X${String(n).padStart(2,"0")}`,title:rdraft.title.trim(),system:rdraft.title.trim(),category:rdraft.category||"Operational",
+      initiativeId:null,unit:rdraft.unit||"Enterprise",execOwner:rdraft.execOwner||"Unassigned",riskOwner:rdraft.riskOwner||"Unassigned",
+      likelihood:L,impact:I,residual:L*I<=25?Math.max(1,Math.round(L*I*0.7)):L*I,level:rdraft.level,status:"Open",
+      frameworks:rdraft.framework?[rdraft.framework]:[],controls:[],kris:[],desc:"Newly registered risk awaiting assessment and treatment planning.",
+      treatment:{strategy:rdraft.strategy,action:"Treatment plan to be defined by the risk owner.",owner:rdraft.riskOwner||"Unassigned",deadline:"TBD",status:"Planned",priority:rdraft.level},
+      aiRecommendation:"Assign a risk owner and complete the AI risk assessment to set inherent and residual scores."};
+    setExtra([rec,...extra]);setSel(rec);setCreateOpen(false);setRcTab("register");
+    setRdraft({title:"",category:"",unit:"",execOwner:"",riskOwner:"",framework:"",likelihood:"3",impact:"3",level:"Medium",strategy:"Mitigate"});
+    showToast&&showToast(`${rec.id} added to the risk register`);
+  };
   const lvColor=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
   const initOf=r=>r.initiativeId?acInitiatives.find(i=>i.id===r.initiativeId):null;
   const openInitiative=()=>{setAiCentralView&&setAiCentralView("initiatives");setTab&&setTab("aicentral");};
   const FW_FAMILIES=["ISO 42001","ISO 27001","EU AI Act","GDPR","NIST AI RMF","SOX","OWASP"];
-  const dimValues=dimBy==="Business Unit"?[...new Set(riskRegister.map(r=>r.unit))]
-    :dimBy==="Project"?acInitiatives.filter(i=>riskRegister.some(r=>r.initiativeId===i.id)).map(i=>i.name)
-    :dimBy==="Executive"?[...new Set(riskRegister.map(r=>r.execOwner))]
-    :dimBy==="Model"?[...new Set(riskRegister.map(r=>r.system))]
-    :dimBy==="Framework"?FW_FAMILIES.filter(fw=>riskRegister.some(r=>r.frameworks.some(f=>f.startsWith(fw))))
+  const dimValues=dimBy==="Business Unit"?[...new Set(ALL_RISKS.map(r=>r.unit))]
+    :dimBy==="Project"?acInitiatives.filter(i=>ALL_RISKS.some(r=>r.initiativeId===i.id)).map(i=>i.name)
+    :dimBy==="Executive"?[...new Set(ALL_RISKS.map(r=>r.execOwner))]
+    :dimBy==="Model"?[...new Set(ALL_RISKS.map(r=>r.system))]
+    :dimBy==="Framework"?FW_FAMILIES.filter(fw=>ALL_RISKS.some(r=>r.frameworks.some(f=>f.startsWith(fw))))
     :[];
   const matchDim=r=>{
     if(dimBy==="Enterprise"||dimVal==="All")return true;
@@ -84,7 +108,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     if(dimBy==="Framework")return r.frameworks.some(f=>f.startsWith(dimVal));
     return true;
   };
-  const rows=riskRegister.filter(matchDim);
+  const rows=ALL_RISKS.filter(matchDim);
   const effT=r=>bumped[r.id]||r.treatment.status;
   const advance=r=>{
     const cur=effT(r);
@@ -96,11 +120,11 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
   };
   const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;
-  const openCritHigh=riskRegister.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
-  const inProg=riskRegister.filter(r=>effT(r)==="In Progress").length;
+  const openCritHigh=ALL_RISKS.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
+  const inProg=ALL_RISKS.filter(r=>effT(r)==="In Progress").length;
   const breaching=kriRegister.filter(kriBreach).length;
   const kpis=[
-    ["Risks on register",riskRegister.length,T.blue,"register"],
+    ["Risks on register",ALL_RISKS.length,T.blue,"register"],
     ["Critical / high open",openCritHigh,T.red,"heatmap"],
     ["Treatments in progress",inProg,T.violet,"treatments"],
     ["KRIs breaching",breaching,T.amber,"kris"],
@@ -137,8 +161,38 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
       </div>
     </div>
   </Card>;
+  const fLabel=l=><span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{l}</span>;
+  const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Risk Center" sub="The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3."/>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+      <SHead title="Risk Center" sub="The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3."/>
+      <button onClick={()=>setCreateOpen(o=>!o)} style={{flexShrink:0,background:createOpen?"transparent":T.red+"14",border:`1px solid ${T.red}${createOpen?"55":"45"}`,borderRadius:8,padding:"9px 15px",color:T.red,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{createOpen?"Close":"+ New risk"}</button>
+    </div>
+    {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${T.red}45`,animation:"up .25s ease"}}>
+      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Register a risk</h3>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Category, unit, owners and framework are governed vocabularies — pick, add or request a value inline. New risks land Open, awaiting assessment.</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
+        <label style={{display:"grid",gap:5}}>{fLabel("Risk title")}<input value={rdraft.title} onChange={e=>setRdraft({...rdraft,title:e.target.value})} placeholder="e.g. Model drift on credit engine" style={fieldStyle}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Category")}<SmartSelect vocab="riskCategory" value={rdraft.category} onChange={setRK("category")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Business unit")}<SmartSelect vocab="unit" value={rdraft.unit} onChange={setRK("unit")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Executive owner")}<SmartSelect vocab="person" value={rdraft.execOwner} onChange={setRK("execOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Risk owner")}<SmartSelect vocab="person" value={rdraft.riskOwner} onChange={setRK("riskOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Control framework")}<SmartSelect vocab="framework" value={rdraft.framework} onChange={setRK("framework")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Likelihood (1-5)")}
+          <select value={rdraft.likelihood} onChange={e=>setRdraft({...rdraft,likelihood:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["1","2","3","4","5"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        </label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Impact (1-5)")}
+          <select value={rdraft.impact} onChange={e=>setRdraft({...rdraft,impact:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["1","2","3","4","5"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        </label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Level")}
+          <select value={rdraft.level} onChange={e=>setRdraft({...rdraft,level:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Low","Medium","High","Critical"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        </label>
+        <label style={{display:"grid",gap:5}}>{fLabel("Treatment strategy")}
+          <select value={rdraft.strategy} onChange={e=>setRdraft({...rdraft,strategy:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Mitigate","Accept","Transfer","Avoid"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        </label>
+      </div>
+      <button onClick={createRisk} style={{background:T.red,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Register risk</button>
+    </Card>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
       {kpis.map(([l,v,c,t])=><Card key={l} onClick={()=>setRcTab(t)} style={{padding:14,cursor:"pointer"}}>
         <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>

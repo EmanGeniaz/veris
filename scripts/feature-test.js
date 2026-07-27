@@ -87,6 +87,40 @@ const { chromium } = require('playwright');
     if (!(await body()).match(/Learning path assigned/)) throw new Error('no assignment confirmation');
   });
 
+  // ── Command palette (⌘K): open + keyboard navigate ──
+  await test('Command palette opens and navigates', async () => {
+    await page.locator('button', { hasText: /^CAIO$/ }).first().click(); await page.waitForTimeout(800);
+    await page.keyboard.press('Control+k'); await page.waitForTimeout(500);
+    if (!(await body()).includes('CAIO view')) throw new Error('palette did not open');
+    await page.keyboard.type('Risk Center'); await page.waitForTimeout(400);
+    await page.keyboard.press('Enter'); await page.waitForTimeout(800);
+    if (!(await body()).includes('system of record for every AI risk')) throw new Error('palette navigation failed');
+  });
+
+  // ── Governed create form: register an AI model (SmartSelect fields) ──
+  await test('Register AI model via governed form', async () => {
+    await page.keyboard.press('Control+k'); await page.waitForTimeout(500);
+    await page.keyboard.type('AI Model Registry'); await page.waitForTimeout(400);
+    await page.keyboard.press('Enter'); await page.waitForTimeout(900);
+    await page.locator('button:has-text("Register model")').first().click(); await page.waitForTimeout(500);
+    await page.locator('label:has-text("Model name") input').first().fill('Feature Test Model');
+    await page.locator('label:has-text("AI system") input').first().fill('Feature Test System');
+    await page.locator('button:has-text("Register model")').last().click(); await page.waitForTimeout(800);
+    if (!(await body()).includes('Registered this session')) throw new Error('model not registered');
+  });
+
+  // ── Taxonomy request lands in the owner's Approvals inbox + approve ──
+  await test('Taxonomy request approved in inbox', async () => {
+    await page.keyboard.press('Control+k'); await page.waitForTimeout(500);
+    await page.keyboard.type('Approvals inbox'); await page.waitForTimeout(400);
+    await page.keyboard.press('Enter'); await page.waitForTimeout(900);
+    if (!(await body()).includes('Taxonomy requests')) throw new Error('no taxonomy inbox');
+    if (!(await body()).includes('Multi-Agent Orchestration')) throw new Error('seeded request missing');
+    const taxRow = page.locator('div').filter({ hasText: 'Multi-Agent Orchestration' }).filter({ has: page.locator('button', { hasText: 'Approve' }) }).last();
+    await taxRow.getByRole('button', { name: 'Approve' }).click(); await page.waitForTimeout(700);
+    if (!(await body()).match(/added to the taxonomy/)) throw new Error('approval did not record');
+  });
+
   // ── Employee: workbench send, mask, block + idea submit ──
   await page.locator('button', { hasText: /^Employee$/ }).first().click(); await page.waitForTimeout(1200);
   await page.locator('nav button', { hasText: 'AI Assistant' }).first().click(); await page.waitForTimeout(1000);

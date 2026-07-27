@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
 
-const STORES = new Set(["evidence", "decisions", "ideas"]);
+const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests"]);
 
 async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>, reqHost?: string | null) {
   let identity: { name: string; email: string } | null = null;
@@ -49,6 +49,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
     const rows =
       store === "evidence" ? await prisma.evidence.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "decisions" ? await prisma.decision.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
+      : store === "taxonomyAdds" ? await prisma.taxonomyAdd.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
+      : store === "taxonomyRequests" ? await prisma.taxonomyRequest.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : await prisma.idea.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 });
     return NextResponse.json({ enabled: true, rows });
   } catch {
@@ -72,7 +74,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
     }
     const b = await req.json();
     if (identity) {
-      b.owner = identity.name; b.decidedBy = identity.name; b.submitter = identity.name;
+      if (store === "taxonomyAdds") { b.addedBy = identity.name; }
+      else if (store === "taxonomyRequests") { b.requestedBy = identity.name; }
+      else { b.owner = identity.name; b.decidedBy = identity.name; b.submitter = identity.name; }
     }
     if (store === "evidence") {
       await prisma.evidence.create({ data: {
@@ -85,6 +89,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
       await prisma.decision.create({ data: {
         tenantId: tid, initiativeId: String(b.initiativeId ?? ""), decision: String(b.decision ?? ""),
         rationale: String(b.rationale ?? ""), decidedBy: String(b.decidedBy ?? ""),
+      }});
+    } else if (store === "taxonomyAdds") {
+      await prisma.taxonomyAdd.create({ data: {
+        tenantId: tid, vocab: String(b.vocab ?? ""), value: String(b.value ?? ""),
+        noun: String(b.noun ?? ""), addedBy: String(b.addedBy ?? identity?.name ?? ""), status: String(b.status ?? "Approved"),
+      }});
+    } else if (store === "taxonomyRequests") {
+      await prisma.taxonomyRequest.create({ data: {
+        tenantId: tid, vocab: String(b.vocab ?? ""), value: String(b.value ?? ""), noun: String(b.noun ?? ""),
+        owner: String(b.owner ?? ""), requestedBy: String(b.requestedBy ?? identity?.name ?? ""), status: String(b.status ?? "Pending"),
       }});
     } else {
       await prisma.idea.create({ data: {
