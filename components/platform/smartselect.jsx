@@ -13,7 +13,9 @@ import { useState, useRef, useEffect } from "react";
 import { T, F, AI_GOLD } from "./core";
 import { TAXONOMY, canEditTaxonomy, optionsFor, addSessionValue, addPendingValue } from "@/lib/taxonomy";
 
-const CMAP = { green: T.green, blue: T.blue, amber: T.amber, red: T.red, teal: T.teal, violet: T.violet };
+/* Read per-call so the coloured dots track the active theme (a frozen
+   literal would keep dark-theme accents in light mode). */
+const cmap = () => ({ green: T.green, blue: T.blue, amber: T.amber, red: T.red, teal: T.teal, violet: T.violet });
 const initials = n => n.split(" ").map(x => x[0]).join("").slice(0, 2).toUpperCase();
 
 export function SmartSelect({ vocab, value, onChange, role = "employee", showToast, placeholder, requestedBy }) {
@@ -41,6 +43,7 @@ export function SmartSelect({ vocab, value, onChange, role = "employee", showToa
   const typed = filter.trim();
   const matched = options.filter(o => o[0].toLowerCase().includes(q));
   const exact = options.some(o => o[0].toLowerCase() === q);
+  const CMAP = cmap();
   const colorOf = v => { const m = options.find(o => o[0] === v); return m && cfg.colored ? CMAP[m[1]] : null; };
 
   function openMenu() { setSent(null); setOpen(true); setFilter(""); setTimeout(() => inputRef.current && inputRef.current.focus(), 0); }

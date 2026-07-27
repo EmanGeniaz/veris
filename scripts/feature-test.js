@@ -121,6 +121,18 @@ const { chromium } = require('playwright');
     if (!(await body()).match(/added to the taxonomy/)) throw new Error('approval did not record');
   });
 
+  // ── CISO: incident register drill-in drawer (project + treatment plan) ──
+  await test('CISO incident drills into project + plan', async () => {
+    await page.locator('button', { hasText: /^CISO$/ }).first().click(); await page.waitForTimeout(1000);
+    await page.locator('nav button', { hasText: 'AI Incidents' }).first().click(); await page.waitForTimeout(900);
+    await page.locator('tr.vz-reg-row').first().click(); await page.waitForTimeout(600);
+    const t = await body();
+    if (!t.includes('Customer Resolution Copilot')) throw new Error('no project link in drawer');
+    if (!/treatment plan/i.test(t)) throw new Error('no action/treatment plan');
+    if (!t.includes('Open project workspace')) throw new Error('no drill-through action');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  });
+
   // ── Employee: workbench send, mask, block + idea submit ──
   await page.locator('button', { hasText: /^Employee$/ }).first().click(); await page.waitForTimeout(1200);
   await page.locator('nav button', { hasText: 'AI Assistant' }).first().click(); await page.waitForTimeout(1000);
