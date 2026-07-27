@@ -55,9 +55,9 @@ const CEO_REGIONS=[
 
 /* Immediate-attention items surfaced above everything. */
 const CEO_ATTENTION=[
-  {t:"Credit Decision Assurance — decision required", d:"Awaiting your scale-gate approval. EU AI Act Art.6 conformity assessment complete; $7.2M value at stake.", go:"Review & approve", c:T.red},
-  {t:"Customer Resolution Copilot — blocked", d:"CISO prompt-injection evidence overdue by 4 days. Delivery slip of ~2 weeks predicted if unresolved this sprint.", go:"Escalate to CISO", c:AI_GOLD},
-  {t:"Q3 budget re-forecast", d:"$1.9M of allocated budget is consumed ahead of realized value across 2 programs. Reallocation proposed.", go:"Open budget review", c:T.blue},
+  {t:"Credit Decision Assurance — decision required", d:"Awaiting your scale-gate approval. EU AI Act Art.6 conformity assessment complete; $7.2M value at stake.", go:"Review & approve", c:T.red, to:"ceoactions"},
+  {t:"Customer Resolution Copilot — blocked", d:"CISO prompt-injection evidence overdue by 4 days. Delivery slip of ~2 weeks predicted if unresolved this sprint.", go:"Escalate to CISO", c:AI_GOLD, to:"ceorisk"},
+  {t:"Q3 budget re-forecast", d:"$1.9M of allocated budget is consumed ahead of realized value across 2 programs. Reallocation proposed.", go:"Open budget review", c:T.blue, to:"ceobudget"},
 ];
 
 const CEO_ACTIONS=[
@@ -97,9 +97,12 @@ function BarRow({label,sub,pct,color,valLabel}){
   </div>;
 }
 const cardPad={padding:"16px 18px"};
-const kpiStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:"pointer"};
+/* Computed per-render (not a frozen module const) so the tile background
+   tracks the active theme — a literal here would capture dark-theme colors
+   at import time and stay navy in light mode. */
+const kpiStyleOf=()=>({background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:"pointer"});
 function Kpi({l,v,vc,s,spark,onClick}){
-  return <button onClick={onClick} style={{...kpiStyle,textAlign:"left"}}>
+  return <button onClick={onClick} style={{...kpiStyleOf(),textAlign:"left"}}>
     <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div>
     <div style={{fontSize:23,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:vc||T.ink}}>{v}</div>
     <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{s}</div>
@@ -121,7 +124,7 @@ function PageHead({title,sub}){
 }
 
 /* ══════════════════ OVERVIEW ══════════════════ */
-function Overview({role,goPortfolio,openFull,showToast}){
+function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast}){
   const [tab,setTab]=useState("overview");
   const name=(ROLES[role]||ROLES.ceo).name.split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
@@ -146,7 +149,7 @@ function Overview({role,goPortfolio,openFull,showToast}){
       {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{l}</button>)}
     </div>
 
-    {tab==="overview"&&<OverviewTab goPortfolio={goPortfolio}/>}
+    {tab==="overview"&&<OverviewTab goPortfolio={goPortfolio} openFull={openFull} openCompliance={openCompliance} setTab={navTab}/>}
     {tab==="risk"&&<RiskTab openFull={openFull}/>}
     {tab==="value"&&<ValueTab/>}
     {tab==="adoption"&&<AdoptionTab/>}
@@ -155,25 +158,26 @@ function Overview({role,goPortfolio,openFull,showToast}){
   </div>;
 }
 
-function OverviewTab({goPortfolio}){
+function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
+  const goto=t=>setTab&&setTab(t);
   return <div style={{animation:"up .2s ease"}}>
     {/* attention */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:16}}>
-      {CEO_ATTENTION.map(a=><Card key={a.t} style={{padding:"13px 15px",borderLeft:`3px solid ${a.c}`,cursor:"pointer"}}>
+      {CEO_ATTENTION.map(a=><Card key={a.t} onClick={()=>goto(a.to)} style={{padding:"13px 15px",borderLeft:`3px solid ${a.c}`,cursor:"pointer"}}>
         <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.t}</div>
         <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a.d}</div>
         <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
       </Card>)}
     </div>
 
-    {/* KPI strip */}
+    {/* KPI strip — each tile drills into its home surface */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-      <Kpi l="Portfolio value" v="$4.1M" s="realized of $17.5M expected" spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>}/>
-      <Kpi l="Enterprise health" v="78" vc={T.green} s="weighted across 4 programs" spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>}/>
-      <Kpi l="Overall AI risk" v={<>12<span style={{fontSize:13,color:T.ink4}}>/25</span></>} vc={T.red} s="1 critical · 2 high open" spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>}/>
-      <Kpi l="Compliance" v="84%" vc={T.blue} s="EU AI Act · ISO 42001 · GDPR"/>
-      <Kpi l="Adoption" v="61%" s="across 4 business units"/>
-      <Kpi l="Security incidents" v="2" vc={AI_GOLD} s="this quarter · 0 breaches"/>
+      <Kpi l="Portfolio value" v="$4.1M" s="realized of $17.5M expected" spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>} onClick={()=>goto("ceobudget")}/>
+      <Kpi l="Enterprise health" v="78" vc={T.green} s="weighted across 4 programs" spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>} onClick={goPortfolio}/>
+      <Kpi l="Overall AI risk" v={<>12<span style={{fontSize:13,color:T.ink4}}>/25</span></>} vc={T.red} s="1 critical · 2 high open" spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
+      <Kpi l="Compliance" v="84%" vc={T.blue} s="EU AI Act · ISO 42001 · GDPR" onClick={openCompliance}/>
+      <Kpi l="Adoption" v="61%" s="across 4 business units" onClick={goPortfolio}/>
+      <Kpi l="Security incidents" v="2" vc={AI_GOLD} s="this quarter · 0 breaches" onClick={openFull}/>
     </div>
 
     {/* lifecycle bands */}
@@ -216,14 +220,53 @@ function OverviewTab({goPortfolio}){
   </div>;
 }
 
+/* Simplified equirectangular world map (viewBox 1000×480) with continent
+   silhouettes and one marker per deployment region, sized by live count.
+   Theme-aware: light ocean/land in light mode, deep navy in dark mode. */
+const CONTINENTS=[
+  /* North America */ "M150,70 L250,58 L318,74 L326,120 L288,150 L266,196 L232,214 L206,180 L214,150 L176,150 L150,104 Z",
+  /* Greenland */ "M338,44 L392,40 L410,70 L384,92 L350,82 Z",
+  /* South America */ "M262,232 L300,224 L316,258 L306,312 L280,372 L258,404 L242,360 L250,300 L246,262 Z",
+  /* Europe */ "M486,92 L556,84 L582,104 L566,140 L520,152 L494,132 L482,110 Z",
+  /* Africa */ "M498,158 L580,150 L604,196 L588,258 L556,330 L520,346 L500,286 L488,222 L486,182 Z",
+  /* Asia */ "M566,80 L720,62 L840,74 L906,108 L878,150 L806,158 L742,150 L688,168 L628,150 L586,120 Z",
+  /* SE Asia / India nub */ "M640,158 L690,172 L676,214 L648,206 L636,180 Z",
+  /* Oceania */ "M812,300 L880,292 L906,322 L872,352 L820,342 L804,318 Z",
+];
+const REGION_MARKERS=[
+  {region:"Americas", x:222, y:150, c:AI_GOLD},
+  {region:"EMEA",     x:524, y:120, c:T.green},
+  {region:"APAC",     x:806, y:150, c:T.blue},
+];
 function ExposureMap({big}){
-  return <div style={{position:"relative",height:big?360:264,borderRadius:11,overflow:"hidden",background:"radial-gradient(120% 140% at 50% 0%, #1a2050, #0c1030)",border:`1px solid ${T.border}`}}>
-    {[["4%","20%","30%","56%","Americas","6%","14%"],["38%","14%","26%","50%","EMEA","40%","8%"],["68%","22%","27%","54%","APAC","70%","16%"]].map(z=><span key={z[4]}>
-      <span style={{position:"absolute",left:z[0],top:z[1],width:z[2],height:z[3],border:"1px dashed #ffffff18",borderRadius:12,background:"#ffffff06"}}/>
-      <span style={{position:"absolute",left:z[5],top:z[6],fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m}}>{z[4]}</span>
-    </span>)}
-    {[["19%","44%",30,AI_GOLD,"4"],["50%","38%",34,T.green,"5"],["80%","50%",24,T.blue,"3"],["45%","58%",18,AI_GOLD,"1"]].map((p,i)=>
-      <span key={i} style={{position:"absolute",left:p[0],top:p[1],transform:"translate(-50%,-50%)",width:p[2],height:p[2],borderRadius:"50%",display:"grid",placeItems:"center",fontSize:9.5,fontWeight:800,color:"#0b0e24",background:p[3],boxShadow:"0 0 0 4px #0b0e2455,0 4px 14px rgba(0,0,0,.4)",fontFamily:F.m}}>{p[4]}</span>)}
+  const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
+  const ocean=isLight?"#EAF1F8":"#0c1030";
+  const oceanEdge=isLight?"#DCE6F2":"#141a45";
+  const land=isLight?"#C6D3E4":"#252c5c";
+  const landEdge=isLight?"#AFC0D6":"#39407a";
+  const grat=isLight?"#D4DEEC":"#ffffff12";
+  const cnt=r=>(CEO_REGIONS.find(x=>x.region===r)||{}).live||0;
+  return <div style={{position:"relative",height:big?360:264,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`}}>
+    <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
+      <defs>
+        <radialGradient id="ceoOcean" cx="50%" cy="0%" r="120%">
+          <stop offset="0" stopColor={isLight?"#F2F7FC":"#1a2050"}/><stop offset="1" stopColor={ocean}/>
+        </radialGradient>
+        <filter id="ceoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#5b6b8033":"#00000066"}/></filter>
+      </defs>
+      <rect x="0" y="0" width="1000" height="480" fill="url(#ceoOcean)"/>
+      {/* graticule */}
+      {[80,160,240,320,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
+      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="480" stroke={grat} strokeWidth="1"/>)}
+      {CONTINENTS.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.5" strokeLinejoin="round"/>)}
+      {/* region markers, sized by live-program count */}
+      {REGION_MARKERS.map(m=>{const n=cnt(m.region);const r=big?15+n*2.4:12+n*1.8;return <g key={m.region}>
+        <circle cx={m.x} cy={m.y} r={r+9} fill={m.c} opacity="0.14"><animate attributeName="r" values={`${r+5};${r+14};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
+        <circle cx={m.x} cy={m.y} r={r} fill={m.c} filter="url(#ceoMk)"/>
+        <text x={m.x} y={m.y+4} textAnchor="middle" fontSize={big?15:13} fontWeight="800" fill="#0b0e24" fontFamily={F.m}>{n}</text>
+        <text x={m.x} y={m.y-r-8} textAnchor="middle" fontSize="11" letterSpacing="1.5" fontWeight="800" fill={isLight?T.ink3:"#cbd5e1"} fontFamily={F.m}>{m.region.toUpperCase()}</text>
+      </g>;})}
+    </svg>
   </div>;
 }
 function RegionLegend(){
@@ -333,17 +376,47 @@ function ExposureTab(){
     </Card>
   </div>;
 }
+const CEO_FRAMEWORKS=[
+  {fw:"EU AI Act",      pct:88, c:T.green, sub:"Art.6 conformity · 1 high-risk in review", scope:"AI-specific"},
+  {fw:"ISO 42001",      pct:81, c:T.blue,  sub:"AI management-system controls", scope:"AI-specific"},
+  {fw:"ISO 27001",      pct:90, c:T.green, sub:"Annex A controls · ISMS certified", scope:"Security"},
+  {fw:"GDPR / Privacy", pct:92, c:T.green, sub:"DPIAs complete on live systems", scope:"Privacy"},
+  {fw:"NIST AI RMF",    pct:74, c:AI_GOLD, sub:"Govern·Map·Measure·Manage", scope:"AI-specific"},
+  {fw:"SOC 2 Type II",  pct:86, c:T.green, sub:"Trust-services criteria · annual", scope:"Security"},
+];
+/* ISO 27001 Annex A control-family posture — the security backbone under
+   every AI system. */
+const ISO27001_FAMILIES=[
+  {ref:"A.5", name:"Organizational controls", done:35, total:37, c:T.green},
+  {ref:"A.6", name:"People controls", done:7, total:8, c:T.green},
+  {ref:"A.7", name:"Physical controls", done:12, total:14, c:AI_GOLD},
+  {ref:"A.8", name:"Technological controls", done:30, total:34, c:AI_GOLD},
+];
 function ComplianceTab({openFull}){
   return <div style={{animation:"up .2s ease"}}>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:16,marginBottom:16}}>
-      {[["EU AI Act",88,T.green,"Art.6 conformity · 1 high-risk system in review"],["ISO 42001",81,T.blue,"AIMS controls implemented"],["GDPR / Privacy",92,T.green,"DPIAs complete on live systems"]].map(([l,v,c,s])=>
-        <Card key={l} style={cardPad}><Eyebrow>{l}</Eyebrow><div style={{fontSize:26,fontWeight:800,color:c,fontFamily:F.m}}>{v}%</div><div style={{fontSize:10,color:T.ink3,marginTop:4,fontFamily:F.b}}>{s}</div><div style={{height:8,borderRadius:6,background:T.border,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:`${v}%`,background:`linear-gradient(90deg,${AI_GOLD},#8a6a25)`}}/></div></Card>)}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:14,marginBottom:16}}>
+      {CEO_FRAMEWORKS.map(f=>
+        <Card key={f.fw} onClick={openFull} style={{...cardPad,cursor:"pointer"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Eyebrow style={{margin:0}}>{f.fw}</Eyebrow><Pill c={f.c}>{f.scope}</Pill></div><div style={{fontSize:26,fontWeight:800,color:f.c,fontFamily:F.m,marginTop:8}}>{f.pct}%</div><div style={{fontSize:10,color:T.ink3,marginTop:4,fontFamily:F.b}}>{f.sub}</div><div style={{height:8,borderRadius:6,background:T.border,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:`${f.pct}%`,background:`linear-gradient(90deg,${AI_GOLD},#8a6a25)`}}/></div></Card>)}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginBottom:16}}>
+      <Card style={cardPad}>
+        <Eyebrow>ISO 27001 · Annex A posture</Eyebrow><H3 style={{marginBottom:12}}>Control families under the ISMS</H3>
+        {ISO27001_FAMILIES.map(a=><BarRow key={a.ref} label={`${a.ref} ${a.name}`} pct={Math.round(a.done/a.total*100)} color={a.c} valLabel={`${a.done}/${a.total}`}/>)}
+        <div style={{marginTop:12,padding:"10px 12px",borderRadius:10,background:T.green+"14",border:`1px solid ${T.green}33`,fontSize:10.5,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}><b style={{color:T.green}}>ISMS certified</b> — surveillance audit passed Mar 2026. 84 of 93 Annex A controls fully implemented; 9 in remediation.</div>
+      </Card>
+      <Card style={cardPad}>
+        <Eyebrow>Regulatory horizon</Eyebrow><H3 style={{marginBottom:12}}>Obligations &amp; upcoming deadlines</H3>
+        <Table head={["Regime","Obligation","Due"]}>
+          {[["EU AI Act","High-risk conformity re-assessment","Aug 2026"],["ISO 27001","Annex A surveillance audit","Mar 2027"],["ISO 42001","AIMS internal audit cycle","Sep 2026"],["GDPR","DPIA refresh — 2 live systems","Jul 2026"],["SOC 2","Type II observation window close","Nov 2026"]].map(r=>
+            <tr key={r[1]}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={T.blue}>{r[2]}</Pill></Td></tr>)}
+        </Table>
+      </Card>
     </div>
     <Card style={cardPad}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Compliance posture by program</Eyebrow><H3>Standards coverage &amp; reporting status</H3></div>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open Compliance →</button></div>
       <Table head={["Program","Risk class","Frameworks","Evidence","Status"]}>
-        {[["Credit Decision Assurance","High-risk",T.red,"EU AI Act · ISO 42001","18/20","Gate review",AI_GOLD],["Fraud Detection Model","Limited",AI_GOLD,"EU AI Act · NIST","22/22","Compliant",T.green],["Customer Resolution Copilot","Limited",AI_GOLD,"ISO 42001 · SOC 2","15/19","In progress",T.blue],["Finance Close Automation","Minimal",T.ink3,"ISO 42001","12/12","Compliant",T.green]].map(r=>
+        {[["Credit Decision Assurance","High-risk",T.red,"EU AI Act · ISO 42001 · ISO 27001","18/20","Gate review",AI_GOLD],["Fraud Detection Model","Limited",AI_GOLD,"EU AI Act · NIST AI RMF · ISO 27001","22/22","Compliant",T.green],["Customer Resolution Copilot","Limited",AI_GOLD,"ISO 42001 · SOC 2 · GDPR","15/19","In progress",T.blue],["Finance Close Automation","Minimal",T.ink3,"ISO 42001 · ISO 27001","12/12","Compliant",T.green]].map(r=>
           <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td><Pill c={r[2]}>{r[1]}</Pill></Td><Td>{r[3]}</Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></tr>)}
       </Table>
     </Card>
@@ -499,6 +572,6 @@ export function CEOCommandCenter({tab="home",role="ceo",setTab,setAiCentralView,
     case "ceorisk":      return <RiskCenter openFull={openFullRisk}/>;
     case "ceoactions":   return <Actions role={role} showToast={showToast}/>;
     case "ceoreporting": return <Reporting showToast={showToast}/>;
-    default:             return <Overview role={role} goPortfolio={goPortfolio} openFull={openFullRisk} showToast={showToast}/>;
+    default:             return <Overview role={role} goPortfolio={goPortfolio} openFull={openFullRisk} openCompliance={openCompliance} navTab={setTab} showToast={showToast}/>;
   }
 }

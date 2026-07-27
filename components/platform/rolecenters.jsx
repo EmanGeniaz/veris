@@ -12,8 +12,10 @@ import { T, F, AI_GOLD, ROLES, Card } from "./core";
    (kpis · attn · bars · table · scores · report · actions · text).
    Same design language and tokens as the CEO/CAIO command centers. */
 
-const CMAP = { good:T.green, warn:T.amber, crit:T.red, info:T.blue, violet:T.violet, teal:T.teal, gold:AI_GOLD, ink3:T.ink3, ink:T.ink };
-const col = k => CMAP[k] || T.ink;
+/* Built per-call (not a frozen module const) so status colors track the
+   active theme — a literal map would capture dark-theme accents at import
+   time and render with dark colors in light mode. */
+const col = k => ({ good:T.green, warn:T.amber, crit:T.red, info:T.blue, violet:T.violet, teal:T.teal, gold:AI_GOLD, ink3:T.ink3, ink:T.ink }[k] || T.ink);
 
 const cardPad = { padding:"16px 18px" };
 const Eyebrow = ({children}) => <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,marginBottom:6}}>{children}</div>;
