@@ -27,9 +27,13 @@ const { chromium } = require('playwright');
     await page.getByRole('button', { name: 'AI Lifecycle', exact: true }).first().click(); await page.waitForTimeout(800);
     await page.getByRole('button', { name: 'Initiative Workspaces', exact: true }).first().click(); await page.waitForTimeout(700);
     await page.locator('button:has-text("New AI Initiative")').first().click(); await page.waitForTimeout(600);
-    const labels=[['Initiative name','Feature Test Initiative'],['Business unit','QA Lab'],['Business owner','Test Owner'],['Executive sponsor','Test Sponsor'],['Expected value','$1.0M']];
-    for(const [l,v] of labels){ await page.locator(`label:has-text("${l}") input`).first().fill(v); }
-    await page.locator('button:has-text("Create")').last().click(); await page.waitForTimeout(1100);
+    await page.locator('label:has-text("Initiative name") input').first().fill('Feature Test Initiative');
+    await page.locator('label:has-text("Expected value") input').first().fill('1.0');
+    // Business unit is a governed SmartSelect — open it, type an existing value, Enter to select the exact match
+    await page.getByText('Choose or add a business unit', { exact: true }).first().click(); await page.waitForTimeout(400);
+    await page.keyboard.type('Retail Banking'); await page.waitForTimeout(250);
+    await page.keyboard.press('Enter'); await page.waitForTimeout(400);
+    await page.locator('button:has-text("Create initiative")').last().click(); await page.waitForTimeout(1100);
     if (!(await body()).includes('Feature Test Initiative')) throw new Error('created initiative not visible');
   });
 
