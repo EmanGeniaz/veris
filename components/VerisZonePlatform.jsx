@@ -190,6 +190,18 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {items.map(renderNavButton)}
           </div>;
         })}
+        {!acOnly&&["caio","cio","cgo","ciso"].includes(role)&&(()=>{
+          const on=tab==="admin";
+          return <div style={{marginBottom:4}}>
+            {renderSectionHeader("Administration")}
+            <button className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab("admin");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:on?rc:T.ink2,fontSize:11,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer"}}>
+              {on&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`}}/>}
+              {on&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
+              <span style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.72,flexShrink:0,position:"relative",zIndex:1,color:on?rc:T.ink3}}><Shield size={14}/></span>
+              <span style={{position:"relative",zIndex:1}}>Admin Portal</span>
+            </button>
+          </div>;
+        })()}
         {acOnly&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
           <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
