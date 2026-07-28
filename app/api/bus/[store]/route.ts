@@ -7,7 +7,9 @@ import { db } from "@/lib/db";
 import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
 
-const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests"]);
+const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit"]);
+/* Roles permitted to write admin audit entries (administration rights). */
+const ADMIN_ROLES = new Set(["caio", "cio", "cgo", "ciso"]);
 
 async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>, reqHost?: string | null) {
   let identity: { name: string; email: string } | null = null;
@@ -47,7 +49,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
   try {
     const { tenantId: tid } = await sessionCtx(prisma, _req.headers.get("x-forwarded-host") || _req.headers.get("host"));
     const rows =
-      store === "evidence" ? await prisma.evidence.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
+      store === "adminAudit" ? (await prisma.auditLog.findMany({ where: { tenantId: tid, entity: "admin" }, orderBy: { createdAt: "desc" }, take: 40 })).map(r => ({ at: new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), actor: r.actor, action: r.action, target: r.detail }))
+      : store === "evidence" ? await prisma.evidence.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "decisions" ? await prisma.decision.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "taxonomyAdds" ? await prisma.taxonomyAdd.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "taxonomyRequests" ? await prisma.taxonomyRequest.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
@@ -71,6 +74,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
       if (!role || ["employee", "manager"].includes(role)) {
         return NextResponse.json({ enabled: true, ok: false, error: "decision writes require an executive role" }, { status: 403 });
       }
+    }
+    if (store === "adminAudit") {
+      if (authConfigured()) {
+        const session = await auth();
+        const role = (session?.user as { role?: string } | undefined)?.role;
+        if (!role || !ADMIN_ROLES.has(role)) {
+          return NextResponse.json({ enabled: true, ok: false, error: "admin audit writes require administration rights" }, { status: 403 });
+        }
+      }
+      const rec = await req.json();
+      await auditAppend(prisma, tid, String(rec.action ?? "admin action"), "admin", String(rec.target ?? "").slice(0, 300), identity?.email ?? String(rec.actor ?? "demo-anonymous")).catch(() => {});
+      return NextResponse.json({ enabled: true, ok: true });
     }
     const b = await req.json();
     if (identity) {

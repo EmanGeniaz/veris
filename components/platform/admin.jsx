@@ -7,8 +7,8 @@
    least-privilege flags, access recertification, and an admin audit trail.
    Everything an admin does mints an audit record. */
 
-import { useState } from "react";
-import { pushBus } from "@/lib/bus";
+import { useState, useEffect } from "react";
+import { pushBus, readBus, writeBus } from "@/lib/bus";
 import { T, F, AI_GOLD, RC, ROLES, USER_PROFILES, Card, SHead, Tag, CountUp } from "./core";
 
 /* ── RBAC model ── */
@@ -71,31 +71,43 @@ const SEED_SOD = [
   { id: "sod-1", title: "Author & approver on AI risks", who: "Aisha Patel (CAIO)", detail: "Can both raise a risk and approve its treatment — a segregation-of-duties conflict under ISO 42001 C.8.3.", sev: "crit" },
   { id: "sod-2", title: "Platform admin + change approver", who: "Marcus Reid (CIO)", detail: "Holds Administration:Admin and Decisions:Contribute — self-approval path for access changes.", sev: "warn" },
 ];
+const SEED_AUDIT = [
+  { at: "09:42", actor: "System", action: "Access review cycle opened", target: "Q3 recertification" },
+  { at: "08:15", actor: "Aisha Patel", action: "Granted Approve", target: "CRO · Decisions" },
+  { at: "Yesterday", actor: "Marcus Reid", action: "Invited user", target: "sam.doe@veriszone.ai" },
+];
+const SEED_ORG = {
+  name: "VerisZone Enterprise", domains: "veriszone.ai, veriszone.com", sso: "Okta (SAML 2.0)", scim: true, mfa: true,
+  session: "30", region: "EU / US", evidence: "7 years", logRetention: "400", approvalDual: true, ipAllowlist: false, dpo: "Niamh Lynch",
+};
+/* Admin state persists to the bus (localStorage now; mirrors to the API when a
+   database is configured). The audit trail additionally hash-chains server-side. */
+const K = { users: "vz-admin-users", access: "vz-admin-access", requests: "vz-admin-requests", recert: "vz-admin-recert", sod: "vz-admin-sod", org: "vz-admin-org", audit: "vz-admin-audit" };
 
 export function PageAdmin({ role = "caio", showToast, setTab }) {
   const [view, setView] = useState("overview");
-  const [users, setUsers] = useState(seedUsers);
-  const [access, setAccess] = useState(DEFAULT_ACCESS);
-  const [requests, setRequests] = useState(SEED_REQUESTS);
-  const [recert, setRecert] = useState(SEED_RECERT);
-  const [sod, setSod] = useState(SEED_SOD);
-  const [audit, setAudit] = useState([
-    { at: "09:42", actor: "System", action: "Access review cycle opened", target: "Q3 recertification" },
-    { at: "08:15", actor: "Aisha Patel", action: "Granted Approve", target: "CRO · Decisions" },
-    { at: "Yesterday", actor: "Marcus Reid", action: "Invited user", target: "sam.doe@veriszone.ai" },
-  ]);
+  const [users, setUsers] = useState(() => readBus(K.users, seedUsers()));
+  const [access, setAccess] = useState(() => readBus(K.access, DEFAULT_ACCESS));
+  const [requests, setRequests] = useState(() => readBus(K.requests, SEED_REQUESTS));
+  const [recert, setRecert] = useState(() => readBus(K.recert, SEED_RECERT));
+  const [sod, setSod] = useState(() => readBus(K.sod, SEED_SOD));
+  const [audit, setAudit] = useState(() => readBus(K.audit, SEED_AUDIT));
+  /* mirror each slice to the bus on change so admin state survives reload */
+  useEffect(() => writeBus(K.users, users), [users]);
+  useEffect(() => writeBus(K.access, access), [access]);
+  useEffect(() => writeBus(K.requests, requests), [requests]);
+  useEffect(() => writeBus(K.recert, recert), [recert]);
+  useEffect(() => writeBus(K.sod, sod), [sod]);
   const [q, setQ] = useState("");
   const [statusF, setStatusF] = useState("All");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState({ name: "", email: "", roleId: "employee", unit: "" });
-  const [org, setOrg] = useState({
-    name: "VerisZone Enterprise", domains: "veriszone.ai, veriszone.com", sso: "Okta (SAML 2.0)", scim: true, mfa: true,
-    session: "30", region: "EU / US", evidence: "7 years", logRetention: "400", approvalDual: true, ipAllowlist: false, dpo: "Niamh Lynch",
-  });
+  const [org, setOrg] = useState(() => readBus(K.org, SEED_ORG));
+  useEffect(() => writeBus(K.org, org), [org]);
 
   const R = ROLES[role] || ROLES.caio;
   const myAdmin = (DEFAULT_ACCESS[role] || {}).admin || "none";
-  const log = (action, target) => setAudit(a => [{ at: "Just now", actor: R.name, action, target }, ...a].slice(0, 40));
+  const log = (action, target) => { const rec = { at: "Just now", actor: R.name, action, target }; setAudit(a => [rec, ...a].slice(0, 40)); pushBus(K.audit, rec); };
   const evidence = (item, detail) => pushBus("vz-gw-evidence", { item, initiative: "Administration", scope: "Organization", control: "RBAC / IAM", risk: "Access governance", owner: R.name, status: "Complete", approval: "Recorded", version: "v1", time: "Just now" });
   const act = (action, target, toast) => { log(action, target); evidence(`Admin: ${action} — ${target}`); showToast && showToast(toast || `${action} — recorded`); };
 
