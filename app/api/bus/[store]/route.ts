@@ -6,10 +6,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
+import { can, isCap, STORE_REQUIREMENT, type AccessMatrix } from "@/lib/rbac";
 
-const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit"]);
-/* Roles permitted to write admin audit entries (administration rights). */
-const ADMIN_ROLES = new Set(["caio", "cio", "cgo", "ciso"]);
+const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit", "rbacPolicy"]);
+
+/* Per-tenant RBAC overrides → nested matrix laid over lib/rbac defaults. */
+async function loadOverrides(prisma: NonNullable<ReturnType<typeof db>>, tenantId: string): Promise<AccessMatrix> {
+  try {
+    const rows = await prisma.rbacGrant.findMany({ where: { tenantId } });
+    const m: AccessMatrix = {};
+    for (const r of rows) { if (isCap(r.capability)) { (m[r.role] ??= {})[r.module] = r.capability; } }
+    return m;
+  } catch { return {}; }
+}
+
+async function sessionRole(): Promise<string | null> {
+  if (!authConfigured()) return null;
+  const session = await auth();
+  return (session?.user as { role?: string } | undefined)?.role ?? null;
+}
 
 async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>, reqHost?: string | null) {
   let identity: { name: string; email: string } | null = null;
@@ -49,7 +64,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
   try {
     const { tenantId: tid } = await sessionCtx(prisma, _req.headers.get("x-forwarded-host") || _req.headers.get("host"));
     const rows =
-      store === "adminAudit" ? (await prisma.auditLog.findMany({ where: { tenantId: tid, entity: "admin" }, orderBy: { createdAt: "desc" }, take: 40 })).map(r => ({ at: new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), actor: r.actor, action: r.action, target: r.detail }))
+      store === "rbacPolicy" ? (await prisma.rbacGrant.findMany({ where: { tenantId: tid } })).map(r => ({ role: r.role, module: r.module, capability: r.capability }))
+      : store === "adminAudit" ? (await prisma.auditLog.findMany({ where: { tenantId: tid, entity: "admin" }, orderBy: { createdAt: "desc" }, take: 40 })).map(r => ({ at: new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), actor: r.actor, action: r.action, target: r.detail }))
       : store === "evidence" ? await prisma.evidence.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "decisions" ? await prisma.decision.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "taxonomyAdds" ? await prisma.taxonomyAdd.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
@@ -68,23 +84,31 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
   if (!prisma) return NextResponse.json({ enabled: false });
   try {
     const { tenantId: tid, identity } = await sessionCtx(prisma, req.headers.get("x-forwarded-host") || req.headers.get("host"));
-    if (store === "decisions" && authConfigured()) {
-      const session = await auth();
-      const role = (session?.user as { role?: string } | undefined)?.role;
-      if (!role || ["employee", "manager"].includes(role)) {
-        return NextResponse.json({ enabled: true, ok: false, error: "decision writes require an executive role" }, { status: 403 });
-      }
+    /* Central RBAC gate: governed write stores require a minimum capability
+       on their module, evaluated against the tenant's effective matrix. Only
+       enforced when auth is configured; the demo tenant is open. */
+    const role = await sessionRole();
+    const overrides = authConfigured() ? await loadOverrides(prisma, tid) : {};
+    const need = STORE_REQUIREMENT[store];
+    if (need && authConfigured() && !can(role, need.module, need.minCap, overrides)) {
+      return NextResponse.json({ enabled: true, ok: false, error: `writing ${store} requires '${need.minCap}' on ${need.module}` }, { status: 403 });
     }
     if (store === "adminAudit") {
-      if (authConfigured()) {
-        const session = await auth();
-        const role = (session?.user as { role?: string } | undefined)?.role;
-        if (!role || !ADMIN_ROLES.has(role)) {
-          return NextResponse.json({ enabled: true, ok: false, error: "admin audit writes require administration rights" }, { status: 403 });
-        }
-      }
       const rec = await req.json();
       await auditAppend(prisma, tid, String(rec.action ?? "admin action"), "admin", String(rec.target ?? "").slice(0, 300), identity?.email ?? String(rec.actor ?? "demo-anonymous")).catch(() => {});
+      return NextResponse.json({ enabled: true, ok: true });
+    }
+    if (store === "rbacPolicy") {
+      const g = await req.json();
+      if (!g.role || !g.module || !isCap(g.capability)) {
+        return NextResponse.json({ enabled: true, ok: false, error: "invalid grant" }, { status: 400 });
+      }
+      await prisma.rbacGrant.upsert({
+        where: { tenantId_role_module: { tenantId: tid, role: String(g.role), module: String(g.module) } },
+        update: { capability: String(g.capability), updatedBy: identity?.email ?? "demo-anonymous" },
+        create: { tenantId: tid, role: String(g.role), module: String(g.module), capability: String(g.capability), updatedBy: identity?.email ?? "demo-anonymous" },
+      });
+      await auditAppend(prisma, tid, "rbac-grant", "admin", `${g.role} · ${g.module} → ${g.capability}`, identity?.email ?? "demo-anonymous").catch(() => {});
       return NextResponse.json({ enabled: true, ok: true });
     }
     const b = await req.json();
