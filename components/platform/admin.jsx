@@ -9,36 +9,17 @@
 
 import { useState, useEffect } from "react";
 import { pushBus, readBus, writeBus } from "@/lib/bus";
+import { MODULES, CAPS, RBAC_ROLES, DEFAULT_ACCESS } from "@/lib/rbac";
 import { T, F, AI_GOLD, RC, ROLES, USER_PROFILES, Card, SHead, Tag, CountUp } from "./core";
 
-/* ── RBAC model ── */
-const MODULES = [
-  ["ac", "AI Central"], ["risk", "Risk Center"], ["comp", "Compliance & Policies"],
-  ["rep", "Reports & Value"], ["acad", "Academy"], ["dec", "Decisions & Approvals"], ["admin", "Administration"],
-];
-const CAPS = ["none", "view", "contribute", "approve", "admin"];
+/* RBAC model (roles, modules, capability grants) is the shared source of
+   truth in lib/rbac.ts — imported so the UI and server enforcement agree. */
 const capMeta = {
   none:       { label: "—",          c: () => T.ink4 },
   view:       { label: "View",       c: () => T.blue },
   contribute: { label: "Contribute", c: () => T.teal },
   approve:    { label: "Approve",    c: () => AI_GOLD },
   admin:      { label: "Admin",      c: () => T.violet },
-};
-const RBAC_ROLES = ["caio", "cgo", "ciso", "cdpo", "cro", "cio", "ceo", "coo", "cfo", "chro", "legal", "manager", "employee"];
-const DEFAULT_ACCESS = {
-  caio:    { ac: "admin",      risk: "approve", comp: "approve", rep: "view",    acad: "view",       dec: "approve",    admin: "admin" },
-  cgo:     { ac: "view",       risk: "approve", comp: "admin",   rep: "view",    acad: "view",       dec: "approve",    admin: "contribute" },
-  ciso:    { ac: "view",       risk: "admin",   comp: "approve", rep: "view",    acad: "view",       dec: "contribute", admin: "contribute" },
-  cdpo:    { ac: "view",       risk: "approve", comp: "approve", rep: "view",    acad: "view",       dec: "contribute", admin: "none" },
-  cro:     { ac: "view",       risk: "approve", comp: "approve", rep: "view",    acad: "view",       dec: "approve",    admin: "none" },
-  cio:     { ac: "admin",      risk: "view",    comp: "view",    rep: "view",    acad: "view",       dec: "contribute", admin: "admin" },
-  ceo:     { ac: "view",       risk: "view",    comp: "view",    rep: "approve", acad: "view",       dec: "approve",    admin: "view" },
-  coo:     { ac: "contribute", risk: "view",    comp: "view",    rep: "view",    acad: "view",       dec: "contribute", admin: "none" },
-  cfo:     { ac: "view",       risk: "view",    comp: "view",    rep: "approve", acad: "view",       dec: "contribute", admin: "none" },
-  chro:    { ac: "view",       risk: "view",    comp: "view",    rep: "view",    acad: "admin",      dec: "contribute", admin: "none" },
-  legal:   { ac: "view",       risk: "view",    comp: "approve", rep: "view",    acad: "view",       dec: "contribute", admin: "none" },
-  manager: { ac: "view",       risk: "none",    comp: "view",    rep: "view",    acad: "contribute", dec: "contribute", admin: "none" },
-  employee:{ ac: "none",       risk: "none",    comp: "view",    rep: "none",    acad: "contribute", dec: "none",       admin: "none" },
 };
 
 /* ── Seed directory (derived from the identity profiles) ── */
@@ -95,6 +76,13 @@ export function PageAdmin({ role = "caio", showToast, setTab }) {
   /* mirror each slice to the bus on change so admin state survives reload */
   useEffect(() => writeBus(K.users, users), [users]);
   useEffect(() => writeBus(K.access, access), [access]);
+  /* fold any server-persisted per-tenant RBAC grants over the local matrix */
+  useEffect(() => {
+    const grants = readBus("vz-admin-rbac", []);
+    if (Array.isArray(grants) && grants.length) {
+      setAccess(a => { const n = { ...a }; grants.forEach(g => { if (g && g.role && g.module) n[g.role] = { ...(n[g.role] || {}), [g.module]: g.capability }; }); return n; });
+    }
+  }, []);
   useEffect(() => writeBus(K.requests, requests), [requests]);
   useEffect(() => writeBus(K.recert, recert), [recert]);
   useEffect(() => writeBus(K.sod, sod), [sod]);
@@ -239,7 +227,7 @@ export function PageAdmin({ role = "caio", showToast, setTab }) {
           <tbody>{RBAC_ROLES.map(r => <tr key={r}>
             <td style={{ padding: "6px 10px", fontWeight: 800, color: T.ink, whiteSpace: "nowrap" }}>{roleLabel(r)}</td>
             {MODULES.map(([k]) => { const cap = (access[r] || {})[k] || "none"; const col = capMeta[cap].c(); return <td key={k} style={{ padding: "4px 6px", textAlign: "center" }}>
-              <button onClick={() => { const nx = CAPS[(CAPS.indexOf(cap) + 1) % CAPS.length]; setAccess(a => ({ ...a, [r]: { ...a[r], [k]: nx } })); act("Set capability", `${roleLabel(r)} · ${k} → ${capMeta[nx].label}`); }}
+              <button onClick={() => { const nx = CAPS[(CAPS.indexOf(cap) + 1) % CAPS.length]; setAccess(a => ({ ...a, [r]: { ...a[r], [k]: nx } })); pushBus("vz-admin-rbac", { role: r, module: k, capability: nx }); act("Set capability", `${roleLabel(r)} · ${k} → ${capMeta[nx].label}`); }}
                 title="Click to change" style={{ width: "100%", background: cap === "none" ? "transparent" : col + "18", border: `1px solid ${cap === "none" ? T.border : col + "50"}`, borderRadius: 7, padding: "5px 6px", color: cap === "none" ? T.ink4 : col, fontSize: 10, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>{capMeta[cap].label}</button>
             </td>; })}
           </tr>)}</tbody>

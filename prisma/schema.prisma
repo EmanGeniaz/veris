@@ -26,6 +26,7 @@ model Tenant {
   assets      KnowledgeAsset[]
   taxonomyAdds     TaxonomyAdd[]
   taxonomyRequests TaxonomyRequest[]
+  rbacGrants       RbacGrant[]
 }
 
 model User {
@@ -216,6 +217,21 @@ model AuditLog {
   prevHash  String
   hash      String
   createdAt DateTime @default(now())
+}
+
+/* Per-tenant RBAC override: an entry here supersedes the default capability
+   for (role, module). Absence means the default in lib/rbac.ts applies. */
+model RbacGrant {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  role       String
+  module     String
+  capability String
+  updatedBy  String
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@unique([tenantId, role, module])
 }
 
 /* ── Policy lifecycle & runtime enforcement (guarded like every store) ── */
