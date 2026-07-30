@@ -83,24 +83,24 @@ export const FONTS = `
 /* Section */
 export const T = {
   /* Surfaces */
-  bg:      "#0F1330",   /* deep indigo base - marketing palette */
-  s1:      "#151A3C",   /* primary surface */
-  s2:      "#1A2048",   /* card surface */
-  s3:      "#202657",   /* elevated card */
-  s4:      "#252C63",   /* input/table row */
-  s5:      "#2B336F",   /* hover state */
-  card:    "#151A3C",
+  bg:      "#150611",   /* deep wine-plum base - oxblood/aubergine */
+  s1:      "#1E0A18",   /* primary surface */
+  s2:      "#260D1E",   /* card surface */
+  s3:      "#2F1126",   /* elevated card */
+  s4:      "#38152D",   /* input/table row */
+  s5:      "#431A35",   /* hover state */
+  card:    "#1E0A18",
   /* Borders */
-  border:  "#2A3163",   /* primary border  */
-  borderB: "#363E7A",   /* medium border */
-  borderC: "#454E96",   /* strong border */
-  shadow:  "0 1px 3px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2)",
+  border:  "#3A1A2E",   /* primary border  */
+  borderB: "#4C2039",   /* medium border */
+  borderC: "#5E2A48",   /* strong border */
+  shadow:  "0 1px 3px rgba(0,0,0,.4), 0 4px 12px rgba(20,4,14,.28)",
   /* Typography */
-  ink:     "#F1F3F9",   /* primary text  */
-  ink2:    "#A8B0CC",   /* secondary text */
-  ink3:    "#636B8A",   /* muted text */
-  ink4:    "#3A4260",   /* very muted */
-  ink5:    "#2A3163",   /* near-invisible */
+  ink:     "#F4E9EE",   /* primary text  */
+  ink2:    "#C9B0BC",   /* secondary text */
+  ink3:    "#8B6E7B",   /* muted text */
+  ink4:    "#574350",   /* very muted */
+  ink5:    "#3A1A2E",   /* near-invisible */
 /* Section */
   ceo:   "#D6A84F", ceoL:  "#211806",
   coo:   "#0EA5E9", cooL:  "#071926",
@@ -119,22 +119,22 @@ export const T = {
 
 export const DARK_T = {...T};
 export const LIGHT_T = {
-  bg:      "#F7F8FA",
+  bg:      "#F1EAE1",   /* warm cream ground */
   s1:      "#FFFFFF",
-  s2:      "#FFFFFF",
-  s3:      "#EEF2F7",
-  s4:      "#E7ECF3",
-  s5:      "#DCE4EE",
+  s2:      "#FBF6EF",
+  s3:      "#F4ECE1",
+  s4:      "#EDE3D6",
+  s5:      "#E4D8C8",
   card:    "#FFFFFF",
-  border:  "#E5E7EB",
-  borderB: "#D1D8E3",
-  borderC: "#BFC9D7",
-  shadow:  "0 1px 2px rgba(17,24,39,.04), 0 14px 34px rgba(11,78,162,.07)",
-  ink:     "#111827",
-  ink2:    "#374151",
-  ink3:    "#6B7280",
-  ink4:    "#9CA3AF",
-  ink5:    "#E5E7EB",
+  border:  "#E7DDD0",
+  borderB: "#D8CBB8",
+  borderC: "#C6B6A2",
+  shadow:  "0 1px 2px rgba(74,20,40,.04), 0 14px 34px rgba(120,30,60,.08)",
+  ink:     "#241820",
+  ink2:    "#5A4B54",
+  ink3:    "#8A7A82",
+  ink4:    "#B4A6AE",
+  ink5:    "#E7DDD0",
   ceo:   "#C99A2E", ceoL:  "#FAF4E6",
   coo:   "#0B4EA2", cooL:  "#EAF2FF",
   cfo:   "#2F6F63", cfoL:  "#E7F3F0",
