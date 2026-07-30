@@ -617,9 +617,9 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     const cell=v=>Array.isArray(v)?<span style={{display:"inline-flex",alignItems:"center",fontSize:9.5,fontWeight:800,fontFamily:F.m,padding:"2px 9px",borderRadius:20,background:lensCol(v[1])+"22",color:lensCol(v[1])}}>{v[0]}</span>:v;
     return <div style={{marginBottom:16}}>
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16,flexWrap:"wrap",marginBottom:14}}>
-        <div style={{display:"flex",gap:14,alignItems:"center",background:"linear-gradient(135deg,#2a4a86,#3a6fd0 60%,#2f5bb0)",border:"1px solid #6f9bf0",borderRadius:14,padding:"11px 18px",boxShadow:"0 12px 30px #5b8df040"}}>
-          <div style={{fontSize:30,fontWeight:800,color:"#eaf1ff",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{lens.hero[0]}</div>
-          <div><div style={{fontSize:9.5,letterSpacing:"0.09em",textTransform:"uppercase",color:"#cfe0ff",fontWeight:900,fontFamily:F.m}}>{lens.hero[1]}</div><div style={{fontSize:10,color:"#a9c4f5",marginTop:3,fontWeight:600,fontFamily:F.b}}>{lens.hero[2]}</div></div>
+        <div style={{display:"flex",gap:14,alignItems:"center",background:"linear-gradient(135deg,#7a1a3c,#a5254c 60%,#7c1f42)",border:"1px solid #c25878",borderRadius:14,padding:"11px 18px",boxShadow:"0 12px 30px rgba(138,26,60,.28)"}}>
+          <div style={{fontSize:30,fontWeight:800,color:"#ffe9ef",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{lens.hero[0]}</div>
+          <div><div style={{fontSize:9.5,letterSpacing:"0.09em",textTransform:"uppercase",color:"#f3c9d4",fontWeight:900,fontFamily:F.m}}>{lens.hero[1]}</div><div style={{fontSize:10,color:"#e0a9ba",marginTop:3,fontWeight:600,fontFamily:F.b}}>{lens.hero[2]}</div></div>
         </div>
         <div style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:700,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px",alignSelf:"center"}}>🔒 RBAC · {access.modules.length} of {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").length} modules enabled</div>
       </div>
