@@ -198,12 +198,12 @@ select option{background:${T.s3};color:${T.ink};}
 .ai-login-mark svg *{transform-box:fill-box}
 .vz-nav-btn{position:relative;transition:background .18s ease,color .18s ease,transform .18s ease;}
 .vz-nav-btn:hover{transform:translateX(2px);}
-.vz-nav-btn.vz-dark:hover{background:rgba(148,163,184,.08);}
-.vz-nav-btn.vz-light:hover{background:rgba(11,78,162,.06);}
+.vz-nav-btn.vz-dark:hover{background:rgba(255,220,230,.07);}
+.vz-nav-btn.vz-light:hover{background:rgba(255,220,230,.07);}
 .vz-nav-btn:hover .vz-nav-ico{opacity:1;}
 .vz-profile-btn{transition:background .18s ease;}
-.vz-profile-btn.vz-dark:hover{background:rgba(148,163,184,.08);}
-.vz-profile-btn.vz-light:hover{background:rgba(11,78,162,.05);}
+.vz-profile-btn.vz-dark:hover{background:rgba(255,220,230,.06);}
+.vz-profile-btn.vz-light:hover{background:rgba(255,220,230,.06);}
 .vz-side-nav{scrollbar-gutter:stable;}
 .vz-side-nav::-webkit-scrollbar{width:4px;}
 .vz-side-nav::-webkit-scrollbar-thumb{background:rgba(99,107,138,.35);border-radius:8px;}

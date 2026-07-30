@@ -138,15 +138,24 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const roleNavSections=ROLE_NAV_SECTIONS[role]?ROLE_NAV_SECTIONS[role]:role==="ceo"?CEO_NAV_SECTIONS:role==="caio"?CAIO_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
+  /* The left rail is a wine-plum surface in BOTH themes (a constant, theme-
+     independent palette) so it reads the same whether the app is light or
+     dark. Rail chrome uses these instead of the flipping T.* tokens. */
+  const RAIL={
+    bg:`radial-gradient(120% 42% at 82% 2%,rgba(188,51,94,.20),transparent 60%),linear-gradient(178deg,#3A0F27 0%,#2A0B20 42%,#1A0715 72%,#12040E 100%)`,
+    ink:"#F4E6EA", ink2:"#D8B9C4", ink3:"#B98E9C", ink4:"#8E6675",
+    border:"rgba(255,180,205,.12)", line:"rgba(255,180,205,.16)",
+    chip:"rgba(255,255,255,.07)", hover:"rgba(255,255,255,.06)", onDot:"#20091A",
+  };
   let navIdx=0;
   const renderNavButton=(item)=>{
     const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
     const badge=(item.id==="home"&&hitlCount>0)?hitlCount:item.badge||null;
     const delay=Math.min(navIdx++*0.018,0.28);
-    const btn=<button key="btn" className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?rc:T.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
-      {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`,boxShadow:theme==="light"?"none":`inset 0 0 20px ${rc}0D`}}/>}
+    const btn=<button key="btn" className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?"#fff":RAIL.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
+      {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${rc}2e,${rc}12 62%,transparent)`,border:`1px solid ${rc}55`,boxShadow:`inset 0 0 20px ${rc}12`}}/>}
       {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
-      <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?rc:T.ink3} size={14}/></span>
+      <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?"#fff":RAIL.ink3} size={14}/></span>
       <span style={{position:"relative",zIndex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
       {badge&&<span style={{position:"absolute",right:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{badge}</span>}
     </button>;
@@ -154,11 +163,11 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     /* AI Central modules nest under their owning surface - one sidebar, contextual depth. */
     return <div key={item.id}>
       {btn}
-      <div style={{margin:"2px 0 6px 14px",paddingLeft:12,borderLeft:`1px solid ${T.border}`}}>
+      <div style={{margin:"2px 0 6px 14px",paddingLeft:12,borderLeft:`1px solid ${RAIL.border}`}}>
         {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").map(m=>{
           const on=aiCentralView===m.id;
           const locked=!acAccessFor(role).modules.includes(m.id);
-          return <button key={m.id} disabled={locked} onClick={()=>{if(locked)return;if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} title={locked?"Not available for your role":undefined} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"14":"transparent",border:`1px solid ${on?AI_GOLD+"3d":"transparent"}`,color:on?AI_GOLD:T.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1}}>
+          return <button key={m.id} disabled={locked} onClick={()=>{if(locked)return;if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} title={locked?"Not available for your role":undefined} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"1f":"transparent",border:`1px solid ${on?AI_GOLD+"55":"transparent"}`,color:on?AI_GOLD:RAIL.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1}}>
             <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.id==="dashboard"?"Overview":m.label}</span>
             {locked&&<span style={{marginLeft:"auto",fontSize:9,opacity:.8}}>🔒</span>}
           </button>;
@@ -168,17 +177,17 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   };
   const renderSectionHeader=(title)=>(
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"14px 10px 7px"}}>
-      <span style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,whiteSpace:"nowrap"}}>{title}</span>
-      <span aria-hidden style={{flex:1,height:1,background:`linear-gradient(90deg,${T.border},transparent)`}}/>
+      <span style={{fontSize:9,fontWeight:900,color:RAIL.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,whiteSpace:"nowrap"}}>{title}</span>
+      <span aria-hidden style={{flex:1,height:1,background:`linear-gradient(90deg,${RAIL.line},transparent)`}}/>
     </div>
   );
   return <>
     {/* Overlay on mobile */}
     {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
-    <div style={{width:SIDEBAR_W,background:theme==="light"?"#FFFFFF":`radial-gradient(120% 42% at 82% 2%,rgba(188,51,94,.20),transparent 60%),linear-gradient(178deg,#3A0F27 0%,#2A0B20 42%,#1A0715 72%,#12040E 100%)`,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:theme==="light"?"12px 0 34px rgba(17,24,39,.06)":"14px 0 40px rgba(0,0,0,.35)"}}>
-      <div style={{padding:"14px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:9,minHeight:64}}>
-        <BrandLogo theme={theme} width={168} style={{objectPosition:"left center"}}/>
-        {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:T.ink3,padding:6,cursor:"pointer",display:"flex"}}>
+    <div style={{width:SIDEBAR_W,background:RAIL.bg,borderRight:`1px solid ${RAIL.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:"14px 0 40px rgba(10,3,8,.4)"}}>
+      <div style={{padding:"14px 14px",borderBottom:`1px solid ${RAIL.border}`,display:"flex",alignItems:"center",gap:9,minHeight:64}}>
+        <BrandLogo theme="dark" width={168} style={{objectPosition:"left center"}}/>
+        {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:RAIL.ink3,padding:6,cursor:"pointer",display:"flex"}}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
         </button>}
       </div>
@@ -194,27 +203,27 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           const on=tab==="admin";
           return <div style={{marginBottom:4}}>
             {renderSectionHeader("Administration")}
-            <button className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab("admin");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:on?rc:T.ink2,fontSize:11,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer"}}>
-              {on&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:theme==="light"?T.blueL:`linear-gradient(90deg,${rc}20,${rc}09 62%,transparent)`,border:`1px solid ${theme==="light"?T.blue+"30":rc+"38"}`}}/>}
+            <button className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab("admin");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:on?"#fff":RAIL.ink2,fontSize:11,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer"}}>
+              {on&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${rc}2e,${rc}12 62%,transparent)`,border:`1px solid ${rc}55`}}/>}
               {on&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
-              <span style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.72,flexShrink:0,position:"relative",zIndex:1,color:on?rc:T.ink3}}><Shield size={14}/></span>
+              <span style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.72,flexShrink:0,position:"relative",zIndex:1,color:on?"#fff":RAIL.ink3}}><Shield size={14}/></span>
               <span style={{position:"relative",zIndex:1}}>Admin Portal</span>
             </button>
           </div>;
         })()}
-        {acOnly&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${T.border}`,marginBottom:10}}>
+        {acOnly&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${RAIL.border}`,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
-          <div style={{fontSize:10,color:T.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
+          <div style={{fontSize:10,color:RAIL.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
         </div>}
         {acOnly&&AI_CENTRAL_NAV.map((item,idx)=>{
           const isA=aiCentralView===item.id;
           const locked=!acAccessFor(role).modules.includes(item.id);
-          return <button key={item.id} disabled={locked} className={`vz-nav-btn ${themeClass}`} title={locked?"Not available for your role":undefined} onClick={()=>{if(locked)return;if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:T.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1,animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+          return <button key={item.id} disabled={locked} className={`vz-nav-btn ${themeClass}`} title={locked?"Not available for your role":undefined} onClick={()=>{if(locked)return;if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:RAIL.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1,animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {locked&&<span style={{position:"absolute",right:9,top:10,fontSize:9,zIndex:2,opacity:.8}}>🔒</span>}
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
-            <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":T.s2,color:isA?AI_GOLD:T.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
-            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:T.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
+            <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":RAIL.chip,color:isA?AI_GOLD:RAIL.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
+            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:RAIL.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
           </button>;
         })}
       </nav>
@@ -228,7 +237,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {sub&&<span style={{display:"block",fontSize:9.5,color:T.ink4,fontFamily:F.b,marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</span>}
           </span>
         </button>;
-        return <div ref={menuRef} style={{position:"relative",borderTop:`1px solid ${T.border}`}}>
+        return <div ref={menuRef} style={{position:"relative",borderTop:`1px solid ${RAIL.border}`}}>
           <style>{`.vz-menu-item:hover{background:${theme==="light"?T.s2:T.s3||T.s2}}`}</style>
           {menuOpen&&<div role="menu" style={{position:"absolute",bottom:"calc(100% + 6px)",left:10,right:10,zIndex:60,background:theme==="light"?"#FFFFFF":T.s1,border:`1px solid ${T.border}`,borderRadius:13,boxShadow:"0 22px 60px -14px rgba(4,7,20,.6)",padding:6,animation:"vzMenuIn .16s ease"}}>
             <style>{`@keyframes vzMenuIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
@@ -244,18 +253,18 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             <div style={{height:1,background:T.border,margin:"5px 6px"}}/>
             <Item icon={<LogOut size={15}/>} label="Sign out" sub="End this session" danger onClick={()=>{setMenuOpen(false);onSignOut&&onSignOut();}}/>
           </div>}
-          <button aria-haspopup="menu" aria-expanded={menuOpen} className={`vz-profile-btn ${themeClass}`} onClick={()=>setMenuOpen(o=>!o)} style={{cursor:"pointer",width:"100%",padding:"13px 14px",border:0,display:"flex",alignItems:"center",gap:10,background:menuOpen?(theme==="light"?T.s2:T.s3||T.s2):"transparent",textAlign:"left"}}>
+          <button aria-haspopup="menu" aria-expanded={menuOpen} className={`vz-profile-btn ${themeClass}`} onClick={()=>setMenuOpen(o=>!o)} style={{cursor:"pointer",width:"100%",padding:"13px 14px",border:0,display:"flex",alignItems:"center",gap:10,background:menuOpen?RAIL.hover:"transparent",textAlign:"left"}}>
             <div style={{position:"relative",flexShrink:0}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${theme==="light"?T.blue:AI_GOLD})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 12px 28px ${rc}30`}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${rc},${AI_GOLD})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 12px 28px ${rc}30`}}>
                 <span style={{color:"#fff",fontSize:11,fontWeight:900,fontFamily:F.b,letterSpacing:0}}>{initials}</span>
               </div>
-              <span style={{position:"absolute",right:-1,bottom:-1,width:9,height:9,borderRadius:"50%",background:T.green,border:`2px solid ${theme==="light"?"#FFFFFF":T.bg}`}}/>
+              <span style={{position:"absolute",right:-1,bottom:-1,width:9,height:9,borderRadius:"50%",background:T.green,border:`2px solid ${RAIL.onDot}`}}/>
             </div>
             <div style={{overflow:"hidden",flex:1}}>
-              <div style={{fontSize:12,fontWeight:900,color:T.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:F.b}}>{cleanText(U.name||R.name)}</div>
-              <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)}</div>
+              <div style={{fontSize:12,fontWeight:900,color:RAIL.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:F.b}}>{cleanText(U.name||R.name)}</div>
+              <div style={{fontSize:10,color:RAIL.ink3,fontFamily:F.b,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cleanText(U.email||`${R.label} Workspace`)}</div>
             </div>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,color:T.ink4,transform:menuOpen?"rotate(-90deg)":"none",transition:"transform .18s"}}><path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,color:RAIL.ink4,transform:menuOpen?"rotate(-90deg)":"none",transition:"transform .18s"}}><path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
         </div>;
       })()}
