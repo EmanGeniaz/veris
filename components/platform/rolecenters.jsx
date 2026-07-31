@@ -5,7 +5,9 @@ import { pushBus } from "@/lib/bus";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
 import { initiativesForRole, ROLE_FACET } from "@/lib/initiative-facets";
+import { assetById } from "@/lib/ai-assets";
 import { BriefDrawer } from "./initiative-brief";
+import { LineageDrawer } from "./lineage";
 
 /* ── Role Command Center engine ─────────────────────────────────────
    Renders any role's command center from its config in lib/role-centers.
@@ -25,13 +27,15 @@ const H3 = ({children,style}) => <div style={{fontSize:14,fontWeight:800,color:T
 const Pill = ({children,c=T.ink3}) => <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:9.5,fontWeight:800,fontFamily:F.m,padding:"2px 9px",borderRadius:20,whiteSpace:"nowrap",background:c+"1f",color:c}}>{children}</span>;
 
 /* ── block renderers ── */
-function Kpis({items}){
+function Kpis({items,ctx}){
+  const clickable=ctx&&ctx.onLineage;
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((k,i)=><div key={i} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px"}}>
+    {items.map((k,i)=><div key={i} onClick={()=>clickable&&ctx.onLineage(k[0],k[1])} className={clickable?"vz-lin":""} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:clickable?"pointer":"default",transition:"border-color .15s"}}>
       <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{k[0]}</div>
       <div style={{fontSize:22,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:col(k[2])}}>{k[1]}</div>
       <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{k[3]}</div>
     </div>)}
+    {clickable&&<style>{`.vz-lin:hover{border-color:${AI_GOLD}66}`}</style>}
   </div>;
 }
 function Attn({items,ctx}){
@@ -55,12 +59,15 @@ function Bars({eye,h3,rows,legend,raw}){
   </Card>;
 }
 const cell = c => Array.isArray(c) ? <Pill c={col(c[1])}>{c[0]}</Pill> : c;
-function Tbl({eye,h3,head,rows}){
+function Tbl({eye,h3,head,rows,ctx}){
+  const clickable=ctx&&ctx.onLineage;
+  const val=r=>{const c=r.find((x,j)=>j>0&&(typeof x==="string"||typeof x==="number"));return Array.isArray(c)?c[0]:c;};
   return <Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
       <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
-      <tbody>{rows.map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{padding:"11px 10px",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",color:j===0?T.ink:T.ink2,fontWeight:j===0?700:400}}>{cell(c)}</td>)}</tr>)}</tbody>
+      <tbody>{rows.map((r,i)=><tr key={i} onClick={()=>clickable&&ctx.onLineage(r[0],val(r))} className={clickable?"vz-lrow":""} style={{cursor:clickable?"pointer":"default"}}>{r.map((c,j)=><td key={j} style={{padding:"11px 10px",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",color:j===0?T.ink:T.ink2,fontWeight:j===0?700:400}}>{cell(c)}</td>)}</tr>)}</tbody>
     </table></div>
+    {clickable&&<style>{`.vz-lrow:hover td{background:${T.s2}}`}</style>}
   </Card>;
 }
 /* ── Register + drill-in drawer ─────────────────────────────────────
@@ -253,11 +260,11 @@ function NewProject({eye,h3,body,role,showToast}){
 
 function renderBlock(b, i, ctx){
   switch(b.t){
-    case "kpis":    return <Kpis key={i} items={b.items}/>;
+    case "kpis":    return <Kpis key={i} items={b.items} ctx={ctx}/>;
     case "newproject": return <NewProject key={i} {...b} role={ctx.role} showToast={ctx.showToast}/>;
     case "attn":    return <Attn key={i} items={b.items}/>;
     case "bars":    return <Bars key={i} {...b}/>;
-    case "table":   return <Tbl key={i} {...b}/>;
+    case "table":   return <Tbl key={i} {...b} ctx={ctx}/>;
     case "scores":  return <Scores key={i} {...b}/>;
     case "text":    return <TextBlock key={i} {...b}/>;
     case "library": return <Library key={i} items={b.items}/>;
@@ -295,6 +302,7 @@ function Overview({role,cfg,ctx,userName}){
   const lenses=cfg.surfaces.filter(s=>!/reports$|playbook$|assistant$/.test(s.id)).slice(0,4);
   const [tab,setTab]=useState(0);
   const [brief,setBrief]=useState(null);
+  const [lineage,setLineage]=useState(null);
   const TABS=[{label:"Overview"},...lenses.map(s=>({label:s.label,blocks:s.blocks,id:s.id}))];
   /* Cross-functional binding: every CXO sees the initiatives that need
      THEIR facet of the shared initiative — one object, many owners. */
@@ -313,8 +321,10 @@ function Overview({role,cfg,ctx,userName}){
       </button>)}
     </div>:<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:6}}>Nothing needs your {facetDomain} review right now — every initiative's {facetDomain} facet is cleared.</div>}
   </Card>;
+  const lctx={...ctx,onLineage:(l,v)=>setLineage({label:l,value:v})};
   return <div style={{animation:"up .3s ease"}}>
     {brief&&<BriefDrawer a={brief} role={role} onClose={()=>setBrief(null)}/>}
+    {lineage&&<LineageDrawer node={lineage} onAsset={id=>{setBrief(assetById(id));setLineage(null);}} onClose={()=>setLineage(null)}/>}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
         <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD}}>{name}.</span></h1>
@@ -332,20 +342,24 @@ function Overview({role,cfg,ctx,userName}){
       {TABS.map((t,i)=><button key={i} onClick={()=>{ if(i===0){setTab(0);} else if(ctx.setTab){ctx.setTab(TABS[i].id);} }} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
     </div>
     {tab===0
-      ? <div style={{animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={{...ctx,deep:false}}/></div>
-      : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={{...ctx,deep:false,goSurface:()=>ctx.setTab&&ctx.setTab(TABS[tab].id)}}/></div>}
+      ? <div style={{animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>
+      : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={{...lctx,deep:false,goSurface:()=>ctx.setTab&&ctx.setTab(TABS[tab].id)}}/></div>}
   </div>;
 }
 
 export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast,userName}){
+  const [lineage,setLineage]=useState(null);
+  const [brief,setBrief]=useState(null);
   const cfg=ROLE_CENTERS[role]; if(!cfg) return null;
-  const ctx={role,setTab,setAiCentralView,navigate,showToast};
+  const ctx={role,setTab,setAiCentralView,navigate,showToast,onLineage:(l,v)=>setLineage({label:l,value:v})};
   if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
   const s=cfg.surfaces.find(x=>x.id===tab);
   if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
   /* Sidebar surface = the deep workspace: registers render in full with
-     drill-in drawers. */
+     drill-in drawers, and every metric drills to its lineage. */
   return <div style={{animation:"up .3s ease"}}>
+    {lineage&&<LineageDrawer node={lineage} onAsset={id=>{setBrief(assetById(id));setLineage(null);}} onClose={()=>setLineage(null)}/>}
+    {brief&&<BriefDrawer a={brief} role={role} onClose={()=>setBrief(null)}/>}
     <PageHead title={s.label} sub={s.sub}/>
     <Blocks blocks={s.blocks} ctx={{...ctx,deep:true}}/>
   </div>;
