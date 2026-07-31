@@ -343,7 +343,7 @@ export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
 export const EMPLOYEE_NAV_GROUPS = [
   { title: "My Workspace", items: ["home", "emp_assistant", "emp_hub", "emp_sessions"] },
   { title: "My Work", items: ["emp_projects", "emp_tasks", "emp_requests"] },
-  { title: "Insights", items: ["emp_usage", "emp_productivity", "emp_risk", "emp_compliance"] },
+  { title: "Insights", items: ["emp_usage", "emp_risk"] },
   { title: "Learn & Help", items: ["emp_learning", "emp_help"] },
   { title: "Enterprise", items: ["aicentral"] },
 ];

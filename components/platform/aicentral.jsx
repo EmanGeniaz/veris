@@ -2237,16 +2237,22 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
      what AI actually exists, who owns it, and how it's built. ── */
   const AI_REPOSITORY=[
     {name:"Customer Resolution Copilot",type:"GenAI Agent",owner:"Aisha Patel",unit:"Customer Operations",status:["Pilot","info"],
+      desc:"Drafts and suggests responses for support agents, grounded in CRM context and the knowledge base, to cut resolution time.",
       arch:{Model:"Claude Sonnet · via AI Gateway",Data:"CRM tickets · KB articles",Integrations:"ServiceNow · Zendesk",Guardrails:"PII redaction · prompt-shield"}},
     {name:"Fraud Detection Model",type:"ML Model",owner:"D. Osei",unit:"Retail Banking",status:["Production","good"],
+      desc:"Scores transactions in real time for fraud risk and flags anomalies to the case-management queue for review.",
       arch:{Model:"Gradient-boosted ensemble v3",Data:"Transaction stream · device signals",Integrations:"Core banking · case mgmt",Guardrails:"Drift monitor · human review"}},
     {name:"Finance Close Automation",type:"GenAI Agent",owner:"R. Chen",unit:"Finance",status:["Scaling","good"],
+      desc:"Automates reconciliations and drafts close-cycle journal narratives, keeping a human approval gate before posting.",
       arch:{Model:"GPT-4o · via AI Gateway",Data:"Ledger · reconciliations",Integrations:"ERP · close workflow",Guardrails:"Approval gate · evidence log"}},
     {name:"Credit Decision Assurance",type:"Decision Model",owner:"CDPO office",unit:"SME Lending",status:["Remediate","warn"],
+      desc:"Recommends credit decisions with a written rationale; every adverse outcome routes to mandatory human review.",
       arch:{Model:"Scorecard + LLM rationale",Data:"Applications · bureau data",Integrations:"Loan origination",Guardrails:"Art.22 human review · DPIA"}},
     {name:"Workforce Skills Navigator",type:"GenAI Agent",owner:"CHRO office",unit:"People",status:["Assessment","info"],
+      desc:"Maps employees to reskilling paths from a skills graph and role profiles, with consent and bias checks before use.",
       arch:{Model:"Gemini · via AI Gateway",Data:"Skills graph · role profiles",Integrations:"HRIS · LMS",Guardrails:"Consent · bias eval"}},
     {name:"Supplier Risk Screener",type:"GenAI Agent",owner:"Procurement",unit:"Operations",status:["Pilot","info"],
+      desc:"Summarises supplier filings and news into a risk brief for procurement, citing every source it draws from.",
       arch:{Model:"Claude Haiku · via AI Gateway",Data:"Vendor filings · news",Integrations:"Procurement suite",Guardrails:"Source citation · rate-limit"}},
   ];
   const RepositoryPanel=()=><Card style={{padding:"16px 18px",marginTop:14}}>
@@ -2266,6 +2272,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           </div>
           <Tag label={a.status[0]} color={lensCol(a.status[1])} bg={lensCol(a.status[1])+"18"}/>
         </div>
+        <p style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,lineHeight:1.55,margin:"0 0 10px"}}>{a.desc}</p>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.border}`}}>
           <span style={{fontSize:8.5,fontFamily:F.m,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em"}}>Owner</span>
           <span style={{fontSize:10.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b}}>{a.owner}</span>
