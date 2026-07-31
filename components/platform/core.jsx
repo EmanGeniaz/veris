@@ -343,12 +343,21 @@ export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
 export const EMPLOYEE_NAV_GROUPS = [
   { title: "My Workspace", items: ["home", "emp_assistant", "emp_hub"] },
   { title: "My Work", items: ["emp_projects", "emp_tasks", "emp_requests"] },
-  { title: "Insights", items: ["emp_usage", "emp_risk"] },
+  { title: "Insights", items: ["emp_usage", "emp_risk", "emp_reports"] },
   { title: "Learn", items: ["emp_learning"] },
+  { title: "Enterprise", items: ["aicentral"] },
+];
+/* Manager: the manager's OWN work is split from the TEAM's work. My
+   Workspace = personal (assistant + the approvals that are the manager's
+   to make); My Team = the aggregated team surfaces. */
+export const MANAGER_NAV_GROUPS = [
+  { title: "My Workspace", items: ["home", "mgr_assistant", "mgr_approvals"] },
+  { title: "My Team", items: ["mgr_hub", "mgr_projects", "mgr_tasks", "mgr_usage", "mgr_risk", "mgr_learning", "mgr_reports"] },
   { title: "Enterprise", items: ["aicentral"] },
 ];
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
   if (role === "employee") return [role, EMPLOYEE_NAV_GROUPS];
+  if (role === "manager") return [role, MANAGER_NAV_GROUPS];
   const primary = { title: cfg.navHd, items: ["home", ...cfg.surfaces.map(s => s.id)] };
   const isScoped = role === "employee" || role === "manager";
   /* AI Central is reachable by everyone - RBAC decides which modules open,
