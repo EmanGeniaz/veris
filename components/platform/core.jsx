@@ -396,6 +396,7 @@ export const AI_CENTRAL_NAV = [
   {id:"risk", label:"Risk Center", sub:"AI risk framework and treatment", owner:"CRO", oversight:"CAIO"},
   {id:"trust", label:"Trust Center", sub:"Live posture and attestations", owner:"CDPO", oversight:"CISO"},
   {id:"evidence", label:"Evidence Fabric", sub:"Searchable, versioned proof", owner:"AI Governance Office", oversight:"CAIO"},
+  {id:"templates", label:"Templates & Register", sub:"Pre-filled governance templates", owner:"AI Governance Office", oversight:"CAIO"},
   {id:"controls", label:"Controls & Compliance", sub:"Control matrix and frameworks", owner:"Legal & Compliance", oversight:"CRO"},
   {id:"policies", label:"Policies & Standards", sub:"Policy library and standards", owner:"Legal & Compliance", oversight:"CAIO"},
   {id:"value", label:"Value Realization", sub:"Expected vs realized ROI", owner:"CFO", oversight:"Business CXOs"},

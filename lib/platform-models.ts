@@ -85,17 +85,17 @@ export const AC_PHASES: ACPhaseTemplate[] = [
    drill-in views (initiatives, pmo, admin, approvals) are reached from their
    owning module and are not gated here. */
 export const AC_RBAC: Record<string, ACRoleAccess> = {
-  ceo:  { lens: "Executive",  modules: ["dashboard", "strategy", "portfolio", "lifecycle", "value", "controls", "academy"], focus: "Portfolio, ROI, risk, growth and board metrics" },
+  ceo:  { lens: "Executive",  modules: ["dashboard", "strategy", "portfolio", "lifecycle", "value", "controls", "academy", "templates"], focus: "Portfolio, ROI, risk, growth and board metrics" },
   coo:  { lens: "Operations", modules: ["dashboard", "portfolio", "lifecycle", "inventory", "value", "academy"], focus: "Rollout health, adoption and operating exceptions" },
-  cfo:  { lens: "Value",      modules: ["dashboard", "portfolio", "value", "repository", "controls", "academy"], focus: "Budget utilization, ROI confidence and benefit realization" },
+  cfo:  { lens: "Value",      modules: ["dashboard", "portfolio", "value", "repository", "controls", "academy", "templates"], focus: "Budget utilization, ROI confidence and benefit realization" },
   chro: { lens: "Workforce",  modules: ["dashboard", "value", "academy"], focus: "Readiness, adoption resistance and learning completion" },
   ciso: { lens: "Security",   modules: ["dashboard", "repository", "inventory", "gateway", "controls", "trust", "evidence", "risk"], focus: "Model security, gateway enforcement and control evidence" },
-  caio: { lens: "Governance", modules: ["dashboard", "strategy", "portfolio", "repository", "inventory", "lifecycle", "gateway", "risk", "trust", "evidence", "controls", "policies", "value", "academy", "audit"], focus: "Implementation, controls, evidence and lifecycle gates" },
-  cio:  { lens: "Delivery",   modules: ["dashboard", "strategy", "portfolio", "repository", "inventory", "lifecycle", "gateway", "controls", "evidence", "academy"], focus: "Delivery, architecture, platform controls and adoption" },
-  cdpo: { lens: "Privacy",    modules: ["dashboard", "inventory", "controls", "policies", "trust", "evidence"], focus: "DPIAs, data classification and privacy evidence" },
-  cgo:  { lens: "Compliance", modules: ["dashboard", "controls", "policies", "evidence", "audit", "academy"], focus: "Policy compliance, exceptions and audit readiness" },
-  cro:  { lens: "Risk",       modules: ["dashboard", "lifecycle", "risk", "controls", "policies", "audit", "evidence"], focus: "AI risk framework, controls, operational risk and audit" },
-  legal:{ lens: "Legal",      modules: ["dashboard", "policies", "controls", "audit", "evidence", "trust"], focus: "Regulatory adherence, contracts, IP and legal defensibility" },
+  caio: { lens: "Governance", modules: ["dashboard", "strategy", "portfolio", "repository", "inventory", "lifecycle", "gateway", "risk", "trust", "evidence", "controls", "policies", "value", "academy", "audit", "templates"], focus: "Implementation, controls, evidence and lifecycle gates" },
+  cio:  { lens: "Delivery",   modules: ["dashboard", "strategy", "portfolio", "repository", "inventory", "lifecycle", "gateway", "controls", "evidence", "academy", "templates"], focus: "Delivery, architecture, platform controls and adoption" },
+  cdpo: { lens: "Privacy",    modules: ["dashboard", "inventory", "controls", "policies", "trust", "evidence", "templates"], focus: "DPIAs, data classification and privacy evidence" },
+  cgo:  { lens: "Compliance", modules: ["dashboard", "controls", "policies", "evidence", "audit", "academy", "templates"], focus: "Policy compliance, exceptions and audit readiness" },
+  cro:  { lens: "Risk",       modules: ["dashboard", "lifecycle", "risk", "controls", "policies", "audit", "evidence", "templates"], focus: "AI risk framework, controls, operational risk and audit" },
+  legal:{ lens: "Legal",      modules: ["dashboard", "policies", "controls", "audit", "evidence", "trust", "templates"], focus: "Regulatory adherence, contracts, IP and legal defensibility" },
   employee: { lens: "Operations", modules: ["dashboard", "lifecycle"], focus: "Your governed AI activity" },
   manager:  { lens: "Operations", modules: ["dashboard", "lifecycle", "value"], focus: "Team adoption and governed usage" },
 };

@@ -9,6 +9,7 @@ import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisio
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
+import { PageTemplates } from "./templates";
 import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 import { SmartSelect } from "./smartselect";
@@ -2509,6 +2510,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {activeModule==="risk"&&<><ModuleLensBand module="risk"/><PageRiskCenter role={role} tab="riskcenter" setTab={setTab} setAiCentralView={setView} showToast={showToast}/></>}
     {activeModule==="trust"&&<><ModuleLensBand module="trust"/><TrustCenter/></>}
     {activeModule==="evidence"&&<><ModuleLensBand module="evidence"/><EvidenceModule/></>}
+    {activeModule==="templates"&&<PageTemplates role={role} showToast={showToast}/>}
     {activeModule==="controls"&&<><ModuleLensBand module="controls"/><Governance/></>}
     {activeModule==="policies"&&<><ModuleLensBand module="policies"/><PoliciesStandards/></>}
     {activeModule==="value"&&<><ModuleLensBand module="value"/><ValueRealization/></>}
