@@ -156,9 +156,9 @@ function ProjectPicker({projects,current,onSelect,onNew}){
 }
 
 /* ══════════════════ OVERVIEW ══════════════════ */
-function Overview({role,go,showToast}){
+function Overview({role,go,showToast,userName}){
   const [tab,setTab]=useState("overview");
-  const name=(ROLES[role]||ROLES.caio).name.split(" ")[0];
+  const name=(userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const TABS=[["overview","Overview"],["governance","Governance Score"],["compliance","Compliance"],["risks","Risks"],["incidents","Incidents"]];
@@ -399,7 +399,7 @@ function Library({go}){
 }
 
 /* ══════════════════ ROOT ══════════════════ */
-export function CAIOCommandCenter({tab="home",role="caio",setTab,setAiCentralView,showToast}){
+export function CAIOCommandCenter({tab="home",role="caio",setTab,setAiCentralView,showToast,userName}){
   const go=dest=>setTab&&setTab(dest);
   const openFullRisk=()=>setTab&&setTab("riskcenter");
   const openCompliance=()=>setTab&&setTab("compliance");
@@ -411,6 +411,6 @@ export function CAIOCommandCenter({tab="home",role="caio",setTab,setAiCentralVie
     case "caioaia":       return <AIA/>;
     case "caiorisk":      return <RiskCenter role={role} openFull={openFullRisk} showToast={showToast}/>;
     case "caiolibrary":   return <Library go={openCompliance}/>;
-    default:              return <Overview role={role} go={go} showToast={showToast}/>;
+    default:              return <Overview role={role} go={go} showToast={showToast} userName={userName}/>;
   }
 }

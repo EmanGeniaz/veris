@@ -207,6 +207,22 @@ model KnowledgeAsset {
   createdAt DateTime @default(now())
 }
 
+/* Ingested documents for retrieval-augmented generation. Keyed by a plain
+   tenant slug (not the Tenant relation) so ingestion never needs tenant
+   resolution. The full text is stored; retrieval chunks + scores it at
+   query time and the gateway grounds Veris on it, with citations. */
+model KnowledgeDoc {
+  id        String   @id @default(cuid())
+  tenant    String
+  title     String
+  source    String   @default("upload")
+  content   String   @db.Text
+  addedBy   String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([tenant])
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   tenantId  String
