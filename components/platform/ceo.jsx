@@ -4,6 +4,8 @@ import { useState } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
+import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
+import { BriefDrawer } from "./initiative-brief";
 
 /* ── CEO Command Center ─────────────────────────────────────────────
    The board-level lens on the enterprise AI portfolio. Renders one of
@@ -126,12 +128,29 @@ function PageHead({title,sub}){
 /* ══════════════════ OVERVIEW ══════════════════ */
 function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,userName}){
   const [tab,setTab]=useState("overview");
+  const [brief,setBrief]=useState(null);
   const name=(userName||(ROLES[role]||ROLES.ceo).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const TABS=[["overview","Overview"],["risk","Risk"],["value","Value & ROI"],["adoption","Adoption"],["exposure","Exposure Map"],["compliance","Compliance"]];
+  /* The CEO composite: every initiative, and where each CXO stands on it —
+     the same shared object, rolled up. Click opens the full brief. */
+  const rag=(n,c)=>n>0?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,fontWeight:800,fontFamily:F.m,color:c}}><span style={{width:7,height:7,borderRadius:"50%",background:c}}/>{n}</span>:null;
+  const CeoBand=()=><Card style={{padding:"14px 16px",marginBottom:16}}>
+    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:3}}>Cross-functional oversight</div>
+    <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:11}}>Every initiative — where each CXO stands</div>
+    <div style={{display:"grid",gap:7}}>
+      {AI_ASSETS.map(a=>{const r=facetRollup(a);const w=r.worst;return <button key={a.id} onClick={()=>setBrief(a)} style={{display:"grid",gridTemplateColumns:"1.5fr auto 1.5fr auto",gap:12,alignItems:"center",textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
+        <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle}</div></div>
+        <div style={{display:"flex",gap:11}}>{rag(r.cleared,T.green)}{rag(r.review,T.blue)}{rag(r.blocked,T.red)}</div>
+        <div style={{fontSize:10,fontWeight:700,fontFamily:F.b,color:w?(w.key==="blocked"?T.red:T.amber):T.green}}>{w?`${w.key==="blocked"?"Blocked":"Needs review"} · ${w.domain} (${w.owner})`:"All facets cleared"}</div>
+        <span style={{color:AI_GOLD,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
+      </button>;})}
+    </div>
+  </Card>;
 
   return <div style={{animation:"up .3s ease"}}>
+    {brief&&<BriefDrawer a={brief} role="ceo" onClose={()=>setBrief(null)}/>}
     {/* greeting + gold total tile */}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
@@ -149,7 +168,7 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
       {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{l}</button>)}
     </div>
 
-    {tab==="overview"&&<OverviewTab goPortfolio={goPortfolio} openFull={openFull} openCompliance={openCompliance} setTab={navTab}/>}
+    {tab==="overview"&&<><CeoBand/><OverviewTab goPortfolio={goPortfolio} openFull={openFull} openCompliance={openCompliance} setTab={navTab}/></>}
     {tab==="risk"&&<RiskTab openFull={openFull}/>}
     {tab==="value"&&<ValueTab/>}
     {tab==="adoption"&&<AdoptionTab/>}

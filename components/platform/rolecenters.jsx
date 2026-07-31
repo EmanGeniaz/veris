@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { pushBus } from "@/lib/bus";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
+import { initiativesForRole, ROLE_FACET } from "@/lib/initiative-facets";
+import { BriefDrawer } from "./initiative-brief";
 
 /* ── Role Command Center engine ─────────────────────────────────────
    Renders any role's command center from its config in lib/role-centers.
@@ -292,8 +294,27 @@ function Overview({role,cfg,ctx,userName}){
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const lenses=cfg.surfaces.filter(s=>!/reports$|playbook$|assistant$/.test(s.id)).slice(0,4);
   const [tab,setTab]=useState(0);
+  const [brief,setBrief]=useState(null);
   const TABS=[{label:"Overview"},...lenses.map(s=>({label:s.label,blocks:s.blocks,id:s.id}))];
+  /* Cross-functional binding: every CXO sees the initiatives that need
+     THEIR facet of the shared initiative — one object, many owners. */
+  const facetDomain=ROLE_FACET[role];
+  const queue=facetDomain?initiativesForRole(role):[];
+  const FacetBand=()=>!facetDomain?null:<Card style={{padding:"14px 16px",marginBottom:16,border:`1px solid ${AI_GOLD}35`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,marginBottom:queue.length?10:0}}>
+      <div><Eyebrow>Cross-functional · your gate</Eyebrow><H3 style={{margin:0}}>Initiatives needing your {facetDomain} review</H3></div>
+      <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:queue.length?AI_GOLD:T.green}}>{queue.length||"0"}</span>
+    </div>
+    {queue.length?<div style={{display:"grid",gap:7}}>
+      {queue.map(({a,facet})=><button key={a.id} onClick={()=>setBrief(a)} className="vz-reg-row" style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
+        <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle} · {facet.note}</div></div>
+        <Pill c={col(facet.color)}>{facet.label}</Pill>
+        <span style={{color:AI_GOLD,fontWeight:900,fontFamily:F.b,fontSize:12}}>Open brief →</span>
+      </button>)}
+    </div>:<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:6}}>Nothing needs your {facetDomain} review right now — every initiative's {facetDomain} facet is cleared.</div>}
+  </Card>;
   return <div style={{animation:"up .3s ease"}}>
+    {brief&&<BriefDrawer a={brief} role={role} onClose={()=>setBrief(null)}/>}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
         <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD}}>{name}.</span></h1>
@@ -311,7 +332,7 @@ function Overview({role,cfg,ctx,userName}){
       {TABS.map((t,i)=><button key={i} onClick={()=>{ if(i===0){setTab(0);} else if(ctx.setTab){ctx.setTab(TABS[i].id);} }} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
     </div>
     {tab===0
-      ? <div style={{animation:"up .2s ease"}}><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={{...ctx,deep:false}}/></div>
+      ? <div style={{animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={{...ctx,deep:false}}/></div>
       : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={{...ctx,deep:false,goSurface:()=>ctx.setTab&&ctx.setTab(TABS[tab].id)}}/></div>}
   </div>;
 }
