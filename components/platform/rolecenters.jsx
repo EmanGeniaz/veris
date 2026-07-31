@@ -286,8 +286,8 @@ function PageHead({title,sub}){
 /* Overview dashboard lenses — derived from the role's surfaces (excluding
    playbook, reports and assistant, which are pages rather than lenses).
    Mirrors the CEO/CAIO in-surface tabs so every role is consistent. */
-function Overview({role,cfg,ctx}){
-  const name=(ROLES[role]||ROLES.caio).name.split(" ")[0];
+function Overview({role,cfg,ctx,userName}){
+  const name=(userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const lenses=cfg.surfaces.filter(s=>!/reports$|playbook$|assistant$/.test(s.id)).slice(0,4);
@@ -316,12 +316,12 @@ function Overview({role,cfg,ctx}){
   </div>;
 }
 
-export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast}){
+export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast,userName}){
   const cfg=ROLE_CENTERS[role]; if(!cfg) return null;
   const ctx={role,setTab,setAiCentralView,navigate,showToast};
-  if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx}/>;
+  if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
   const s=cfg.surfaces.find(x=>x.id===tab);
-  if(!s) return <Overview role={role} cfg={cfg} ctx={ctx}/>;
+  if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
   /* Sidebar surface = the deep workspace: registers render in full with
      drill-in drawers. */
   return <div style={{animation:"up .3s ease"}}>

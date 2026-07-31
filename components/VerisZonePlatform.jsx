@@ -784,9 +784,9 @@ export default function VerisZone() {
       {/* Page content */}
       <div style={{flex:1,padding:"20px 16px 60px",maxWidth:1140,width:"100%",margin:"0 auto"}}>
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
-        {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&ROLE_CENTERS[role]&&(tab==="home"||ROLE_CENTERS[role].surfaces.some(s=>s.id===tab))&&!ROLE_PAGE_OVERRIDE[tab]&&<RoleCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} navigate={navigate} showToast={showToast}/>}
+        {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&ROLE_CENTERS[role]&&(tab==="home"||ROLE_CENTERS[role].surfaces.some(s=>s.id===tab))&&!ROLE_PAGE_OVERRIDE[tab]&&<RoleCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} navigate={navigate} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="workbench"&&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="myideas"&&<PageMyIdeas role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="aiusage"&&<PageAIUsage role={role} sessionMode={sessionMode} showToast={showToast}/>}

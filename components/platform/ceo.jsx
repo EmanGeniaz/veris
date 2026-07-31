@@ -124,9 +124,9 @@ function PageHead({title,sub}){
 }
 
 /* ══════════════════ OVERVIEW ══════════════════ */
-function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast}){
+function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,userName}){
   const [tab,setTab]=useState("overview");
-  const name=(ROLES[role]||ROLES.ceo).name.split(" ")[0];
+  const name=(userName||(ROLES[role]||ROLES.ceo).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const TABS=[["overview","Overview"],["risk","Risk"],["value","Value & ROI"],["adoption","Adoption"],["exposure","Exposure Map"],["compliance","Compliance"]];
@@ -572,7 +572,7 @@ function Reporting({showToast}){
 }
 
 /* ══════════════════ ROOT ══════════════════ */
-export function CEOCommandCenter({tab="home",role="ceo",setTab,setAiCentralView,showToast}){
+export function CEOCommandCenter({tab="home",role="ceo",setTab,setAiCentralView,showToast,userName}){
   const goPortfolio=()=>setTab&&setTab("ceoportfolio");
   const openFullRisk=()=>setTab&&setTab("riskcenter");
   const openCompliance=()=>setTab&&setTab("compliance");
@@ -583,6 +583,6 @@ export function CEOCommandCenter({tab="home",role="ceo",setTab,setAiCentralView,
     case "ceorisk":      return <RiskCenter openFull={openFullRisk}/>;
     case "ceoactions":   return <Actions role={role} showToast={showToast}/>;
     case "ceoreporting": return <Reporting showToast={showToast}/>;
-    default:             return <Overview role={role} goPortfolio={goPortfolio} openFull={openFullRisk} openCompliance={openCompliance} navTab={setTab} showToast={showToast}/>;
+    default:             return <Overview role={role} goPortfolio={goPortfolio} openFull={openFullRisk} openCompliance={openCompliance} navTab={setTab} showToast={showToast} userName={userName}/>;
   }
 }
