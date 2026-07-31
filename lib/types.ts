@@ -12,6 +12,7 @@ export type ACModuleId =
   | "trust"
   | "evidence"
   | "controls"
+  | "templates"
   | "policies"
   | "value"
   | "academy"

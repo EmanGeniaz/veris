@@ -208,9 +208,51 @@ function Actions({eye,h3,items,role,showToast}){
   </div>;
 }
 
+/* Employee "propose a new project" — a governed create gated by manager
+   approval. Submitting does not start a project; it files an approval
+   request to the manager's queue (evidence-minted on the bus) and shows
+   the pending state, so the governance gate is explicit in-product. */
+function NewProject({eye,h3,body,role,showToast}){
+  const [open,setOpen]=useState(false);
+  const [sent,setSent]=useState(false);
+  const [f,setF]=useState({name:"",purpose:"",value:""});
+  const set=k=>e=>setF(s=>({...s,[k]:e.target.value}));
+  const field={background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px",color:T.ink,fontSize:11.5,fontFamily:F.b,width:"100%",outline:"none"};
+  const submit=()=>{
+    const name=f.name.trim()||"Untitled AI project";
+    pushBus("vz-gw-evidence",{item:`New project request — ${name}`,initiative:name,scope:"Workspace",control:"New project approval",risk:f.purpose||"Employee-proposed initiative",owner:(ROLES[role]||ROLES.employee).name,status:"Pending",approval:"Awaiting manager approval",version:"v1",time:"Just now"});
+    setSent(true);setOpen(false);
+    showToast&&showToast(`"${name}" sent to your manager for approval`);
+  };
+  return <Card style={{...cardPad,border:`1px solid ${AI_GOLD}40`,background:`linear-gradient(135deg,${T.s2},${T.s1})`}}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+      <div style={{flex:1,minWidth:220}}>
+        {eye&&<Eyebrow>{eye}</Eyebrow>}
+        <H3 style={{marginBottom:8}}>{h3}</H3>
+        <div style={{fontSize:11.5,color:T.ink3,lineHeight:1.65,fontFamily:F.b,maxWidth:640}}>{body}</div>
+      </div>
+      {!sent&&!open&&<button onClick={()=>setOpen(true)} style={{background:AI_GOLD,border:"none",borderRadius:10,padding:"10px 16px",color:"#0b0e24",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>+ Start a new project</button>}
+    </div>
+    {sent&&<div style={{marginTop:13,display:"flex",gap:9,alignItems:"center",background:T.green+"14",border:`1px solid ${T.green}40`,borderRadius:10,padding:"11px 13px"}}>
+      <span style={{fontSize:13,fontWeight:900,color:T.green,fontFamily:F.m}}>✓</span>
+      <span style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>Request submitted — it's now in your manager's approval queue. You'll be able to start once it's approved. Track it under <b style={{color:T.ink}}>My Requests</b>.</span>
+    </div>}
+    {open&&<div style={{marginTop:14,display:"grid",gap:10,animation:"up .2s ease"}}>
+      <label style={{display:"grid",gap:5}}><span style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em"}}>Project name</span><input value={f.name} onChange={set("name")} placeholder="e.g. Support Insights Copilot" style={field}/></label>
+      <label style={{display:"grid",gap:5}}><span style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em"}}>What will it do?</span><input value={f.purpose} onChange={set("purpose")} placeholder="The problem it solves and how AI helps" style={field}/></label>
+      <label style={{display:"grid",gap:5}}><span style={{fontSize:9,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em"}}>Expected value</span><input value={f.value} onChange={set("value")} placeholder="e.g. saves the team ~5h/week" style={field}/></label>
+      <div style={{display:"flex",gap:9,marginTop:2,flexWrap:"wrap"}}>
+        <button onClick={submit} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"9px 15px",color:"#0b0e24",fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Send for manager approval</button>
+        <button onClick={()=>setOpen(false)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Cancel</button>
+      </div>
+    </div>}
+  </Card>;
+}
+
 function renderBlock(b, i, ctx){
   switch(b.t){
     case "kpis":    return <Kpis key={i} items={b.items}/>;
+    case "newproject": return <NewProject key={i} {...b} role={ctx.role} showToast={ctx.showToast}/>;
     case "attn":    return <Attn key={i} items={b.items}/>;
     case "bars":    return <Bars key={i} {...b}/>;
     case "table":   return <Tbl key={i} {...b}/>;
@@ -225,7 +267,7 @@ function renderBlock(b, i, ctx){
 }
 /* Card-type blocks flow into a responsive 2-col grid; full-width blocks
    (kpis, attn, actions, report, library) render on their own row. */
-const FULL = new Set(["kpis","attn","actions","report","library","register"]);
+const FULL = new Set(["kpis","attn","actions","report","library","register","newproject"]);
 function Blocks({blocks, ctx}){
   const out=[]; let bucket=[];
   const flush=()=>{ if(bucket.length){ out.push(<div key={"g"+out.length} style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:16,marginBottom:16}}>{bucket}</div>); bucket=[]; } };
