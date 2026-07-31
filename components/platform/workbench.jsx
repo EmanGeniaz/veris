@@ -69,6 +69,21 @@ export function PageWorkbench({role,sessionMode,showToast}){
   const projChatCount=p=>convos.filter(c=>c.project===p.name).length;
   const createProject=()=>{const n=newProjName.trim();if(!n)return;const id=`pr-${Math.random().toString(36).slice(2,7)}`;setProjects(ps=>[{id,name:n,instructions:"",files:[]},...ps]);setActiveProject(id);setSelId(null);setCreatingProject(false);setNewProjName("");showToast&&showToast(`Project "${n}" created`);};
   const startNewChat=()=>{setSelId(null);setInput("");};
+  /* Ingest a document into the tenant's knowledge repository (the backend
+     does the storing + indexing). The assistant then grounds answers on it
+     via the gateway — nothing about retrieval lives here. */
+  const fileRef=useRef(null);
+  const ingestFile=async(e)=>{
+    const f=e.target.files&&e.target.files[0]; if(!f)return;
+    try{
+      const content=await f.text();
+      const res=await fetch("/api/knowledge",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tenant:sessionMode||"demo",title:f.name,source:proj?proj.name:"Knowledge Vault",content,addedBy:U.name})});
+      const d=await res.json();
+      if(d&&d.ok)showToast&&showToast(`"${f.name}" ingested (${d.doc.chars.toLocaleString()} chars) — the assistant will ground answers on it`);
+      else showToast&&showToast("Could not ingest that document","error");
+    }catch{showToast&&showToast("Could not read that file","error");}
+    e.target.value="";
+  };
   const [phase,setPhase]=useState(null); /* {convId, stageIdx} while the gateway "works" */
   const [typed,setTyped]=useState(null); /* {convId, text} during the streaming reveal */
   const timers=useRef([]);
@@ -140,7 +155,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
       let live=null;
       if(!blocked){
         try{
-          const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:guard?guard.masked:text})});
+          const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:guard?guard.masked:text,tenant:sessionMode||"demo"})});
           const d=await res.json();
           if(d&&d.enabled&&!d.blocked&&d.text)live=`${d.text}\n\n— Source: ${d.source} · routed via the enterprise gateway${d.masked?" · sensitive data masked at the boundary":""}`;
         }catch{/* gateway unreachable - simulated path continues */}
@@ -161,6 +176,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
   const clsColor=c=>c==="Restricted"?T.red:c==="Confidential"?T.amber:T.blue;
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="AI Assistant" sub="Your personal AI workspace - VerisZone silently secures every conversation through the AI Gateway."/>
+    <input ref={fileRef} type="file" accept=".txt,.md,.markdown,.csv,.json,.log,.text" style={{display:"none"}} onChange={ingestFile}/>
     <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
       {/* Conversations - searchable, pinned and grouped like a personal assistant */}
       <Card style={{padding:0,overflow:"hidden"}}>
@@ -231,7 +247,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
           </div>
           {(proj.files.length>0)&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10,alignItems:"center"}}>
             {proj.files.map(f=><span key={f} style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,background:T.s3||T.s1,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 8px"}}>📄 {f}</span>)}
-            <button onClick={()=>showToast&&showToast("Project knowledge is govern-checked before the assistant reads it")} style={{fontSize:9.5,color:AI_GOLD,background:"transparent",border:`1px dashed ${AI_GOLD}55`,borderRadius:6,padding:"3px 8px",fontFamily:F.b,fontWeight:700,cursor:"pointer"}}>＋ Add knowledge</button>
+            <button onClick={()=>fileRef.current&&fileRef.current.click()} style={{fontSize:9.5,color:AI_GOLD,background:"transparent",border:`1px dashed ${AI_GOLD}55`,borderRadius:6,padding:"3px 8px",fontFamily:F.b,fontWeight:700,cursor:"pointer"}}>＋ Add knowledge</button>
           </div>}
           {proj.instructions&&<div style={{marginTop:9,fontSize:10,color:T.ink3,fontFamily:F.b,fontStyle:"italic",lineHeight:1.5,borderLeft:`2px solid ${AI_GOLD}55`,paddingLeft:9}}>{proj.instructions}</div>}
         </div>}
