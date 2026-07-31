@@ -305,8 +305,10 @@ function Overview({role,cfg,ctx}){
         <div style={{textAlign:"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{cfg.hero[1]}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{cfg.hero[2]}</div></div>
       </div>
     </div>
+    {/* The Overview chip stays in-page; the rest are shortcuts that navigate
+       to the surface they name (matching the sidebar), not just a preview. */}
     <div style={{display:"flex",gap:6,margin:"18px 0",flexWrap:"wrap"}}>
-      {TABS.map((t,i)=><button key={i} onClick={()=>setTab(i)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
+      {TABS.map((t,i)=><button key={i} onClick={()=>{ if(i===0){setTab(0);} else if(ctx.setTab){ctx.setTab(TABS[i].id);} }} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
     </div>
     {tab===0
       ? <div style={{animation:"up .2s ease"}}><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis}/><Blocks blocks={cfg.panels} ctx={{...ctx,deep:false}}/></div>
