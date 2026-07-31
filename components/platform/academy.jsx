@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { CheckCircle2, PlayCircle } from "lucide-react";
 import { acInitiatives, acCxoAlignment } from "@/lib/platform-models";
 import { T, RC, ROLES, AI_GOLD, GOVERNANCE_ACADEMY, ROLE_LEARNING_PATHS, academyEvidenceFor, F, Tag, Bar, Card, SHead } from "./core";
@@ -29,48 +28,8 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
     {action}
   </div>;
   const startBtn=n=><button onClick={()=>start(n)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Start</button>;
-  /* Prompt Library + Knowledge Vault now live inside the Academy as tabs,
-     so the employee has one learn/reuse/reference hub instead of three
-     separate sidebar entries. */
-  const [subtab,setSubtab]=useState("learn");
-  const SUBTABS=[["learn","Learning path"],["prompts","Prompt Library"],["vault","Knowledge Vault"]];
-  const promptItems=[
-    ["Release-notes drafter","Turns a changelog into customer-ready notes.","Approved · v3",T.green],
-    ["Incident summariser","Summarises an incident thread into a postmortem stub.","Approved · v2",T.green],
-    ["Customer email draft","Drafts a support reply from ticket context.","Pending approval",T.amber],
-    ["Code explainer","Explains a diff for review.","Approved · v1",T.green],
-    ["Meeting-notes cleaner","Structures raw notes into actions.","Approved · v4",T.green],
-    ["Job description writer","Drafts a JD from a role brief.","Draft",T.ink4],
-  ];
-  const vaultItems=[
-    ["Responsible AI Policy v6","How to use AI safely here.","You may view",T.green],
-    ["Data Handling Standard v4","Classification & redaction rules.","You may view",T.green],
-    ["Product architecture","System design docs.","You may view",T.green],
-    ["Engineering SOPs","Runbooks & procedures.","You may view",T.green],
-    ["Customer contracts","Restricted — legal only.","No access",T.red],
-    ["Board minutes","Restricted.","No access",T.red],
-  ];
-  const libGrid=(intro,items,cta)=><div style={{animation:"up .2s ease"}}>
-    <Card style={{padding:"13px 15px",marginBottom:12}}><div style={{fontSize:11.5,color:T.ink3,lineHeight:1.65,fontFamily:F.b}}>{intro}</div></Card>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12}}>
-      {items.map(([n,d,st,c])=><Card key={n} style={{padding:"14px 15px"}}>
-        <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{n}</div>
-        <div style={{fontSize:10.5,color:T.ink3,marginTop:5,lineHeight:1.5,fontFamily:F.b}}>{d}</div>
-        <div style={{marginTop:9,display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-          <Tag label={st} color={c} bg={c+"18"}/>
-          {cta&&st!=="No access"&&<button onClick={()=>start(n)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"4px 10px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{cta}</button>}
-        </div>
-      </Card>)}
-    </div>
-  </div>;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Governance Academy" sub="Your learning hub, prompt library and knowledge vault - learn, reuse and reference in one place. Completions become governance evidence automatically."/>
-    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-      {SUBTABS.map(([id,label])=><button key={id} onClick={()=>setSubtab(id)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${subtab===id?AI_GOLD:T.border}`,background:subtab===id?AI_GOLD:T.s2,color:subtab===id?"#0b0e24":T.ink3}}>{label}</button>)}
-    </div>
-    {subtab==="prompts"&&libGrid("Reusable prompts with governance metadata - your prompt assets. Approved prompts are safe to reuse; pending ones await your manager's sign-off.",promptItems,"Use")}
-    {subtab==="vault"&&libGrid("Governed access to organisation knowledge - VerisZone checks your permissions before anything is retrieved, so you only see what you're cleared to see.",vaultItems,"Open")}
-    {subtab==="learn"&&<div style={{animation:"up .2s ease"}}>
+    <SHead title="Governance Academy" sub="Your learning hub - courses, certifications, simulations and challenges. Completions become governance evidence automatically."/>
     <Card style={{padding:16,marginBottom:14,border:`1px solid ${AI_GOLD}30`}}>
       <div style={{display:"flex",justifyContent:"space-between",gap:14,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{flex:1,minWidth:220}}>
@@ -115,7 +74,6 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
         {path.slice(0,5).map(v=>row(v.title,v.duration||v.level||"Module",startBtn(v.title)))}
       </Card>
     </div>
-    </div>}
   </div>;
 }
 

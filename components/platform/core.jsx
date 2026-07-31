@@ -341,10 +341,10 @@ export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
    in lib/role-centers (Prompt Library + Knowledge Vault now live inside
    Governance Academy; My Requests replaced the mis-framed Approvals). */
 export const EMPLOYEE_NAV_GROUPS = [
-  { title: "My Workspace", items: ["home", "emp_assistant", "emp_hub", "emp_sessions"] },
+  { title: "My Workspace", items: ["home", "emp_assistant", "emp_hub"] },
   { title: "My Work", items: ["emp_projects", "emp_tasks", "emp_requests"] },
   { title: "Insights", items: ["emp_usage", "emp_risk"] },
-  { title: "Learn & Help", items: ["emp_learning", "emp_help"] },
+  { title: "Learn", items: ["emp_learning"] },
   { title: "Enterprise", items: ["aicentral"] },
 ];
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {

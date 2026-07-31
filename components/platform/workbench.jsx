@@ -45,6 +45,30 @@ export function PageWorkbench({role,sessionMode,showToast}){
   useEffect(()=>{try{localStorage.setItem("vz-wb-pinned",JSON.stringify(pinned));localStorage.setItem("vz-wb-archived",JSON.stringify(archived));}catch{}},[pinned,archived]);
   const togglePin=id=>setPinned(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
   const toggleArchive=id=>setArchived(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
+  /* First-class Projects (like Claude/ChatGPT): a project groups chats,
+     reference files (knowledge) and custom instructions. Absorbs the old
+     Prompt Library (saved prompts) and Knowledge Vault (project files). */
+  const SEED_PROJECTS=[
+    {id:"pr-notes",name:"Q3 Release Notes",instructions:"Write for existing customers. Warm, precise, benefit-first. Never include customer names or account numbers.",files:["changelog-4.8.md","brand-voice.pdf","prior-notes-4.7.md"]},
+    {id:"pr-support",name:"Support Playbook",instructions:"Match our support tone of voice. Always cite the macro you used.",files:["macros.md","tone-guide.pdf"]},
+    {id:"pr-onboard",name:"Onboarding Revamp",instructions:"",files:[]},
+  ];
+  const SAVED_PROMPTS=[
+    ["Release-notes drafter","Turn this changelog into customer-ready release notes — friendly but precise:\n\n"],
+    ["Incident summariser","Summarise this incident thread into a concise postmortem stub:\n\n"],
+    ["Meeting-notes cleaner","Structure these raw meeting notes into decisions and action items:\n\n"],
+    ["Code explainer","Explain this diff for a reviewer, calling out any risks:\n\n"],
+  ];
+  const [projects,setProjects]=useState(()=>{try{const s=JSON.parse(localStorage.getItem("vz-wb-projects")||"null");return Array.isArray(s)&&s.length?s:SEED_PROJECTS;}catch{return SEED_PROJECTS;}});
+  useEffect(()=>{try{localStorage.setItem("vz-wb-projects",JSON.stringify(projects));}catch{/* ignore */}},[projects]);
+  const [activeProject,setActiveProject]=useState(null);
+  const [creatingProject,setCreatingProject]=useState(false);
+  const [newProjName,setNewProjName]=useState("");
+  const [promptsOpen,setPromptsOpen]=useState(false);
+  const proj=projects.find(p=>p.id===activeProject)||null;
+  const projChatCount=p=>convos.filter(c=>c.project===p.name).length;
+  const createProject=()=>{const n=newProjName.trim();if(!n)return;const id=`pr-${Math.random().toString(36).slice(2,7)}`;setProjects(ps=>[{id,name:n,instructions:"",files:[]},...ps]);setActiveProject(id);setSelId(null);setCreatingProject(false);setNewProjName("");showToast&&showToast(`Project "${n}" created`);};
+  const startNewChat=()=>{setSelId(null);setInput("");};
   const [phase,setPhase]=useState(null); /* {convId, stageIdx} while the gateway "works" */
   const [typed,setTyped]=useState(null); /* {convId, text} during the streaming reveal */
   const timers=useRef([]);
@@ -72,7 +96,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
     const base=sel||{
       id:`cv-${Math.random().toString(36).slice(2,8)}`,
       title:text.length>44?text.slice(0,44)+"...":text,
-      unit,project:"Unassigned",initiativeId:null,providerId:provider.id,model:provider.models[0]||"Default",
+      unit,project:proj?proj.name:"Unassigned",initiativeId:null,providerId:provider.id,model:provider.models[0]||"Default",
       classification:"Internal",created:"Today",lastActivity:"Just now",riskScore:8,policyDecision:"No activity yet",
       evidenceLinks:0,retention:"90 days",messages:[],
     };
@@ -140,16 +164,31 @@ export function PageWorkbench({role,sessionMode,showToast}){
     <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
       {/* Conversations - searchable, pinned and grouped like a personal assistant */}
       <Card style={{padding:0,overflow:"hidden"}}>
-        <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:8,alignItems:"center"}}>
-          <input value={convoQ} onChange={e=>setConvoQ(e.target.value)} placeholder="Search conversations..." style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
-          <button onClick={()=>{setSelId(null);setInput("");}} title="Start a new chat" style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>New</button>
+        <div style={{padding:"12px 14px",borderBottom:`1px solid ${T.border}`,display:"grid",gap:7}}>
+          <button onClick={startNewChat} title="Start a new chat" style={{display:"flex",alignItems:"center",gap:8,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"9px 12px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}><span style={{fontSize:15,lineHeight:1}}>＋</span> New chat</button>
+          <button onClick={()=>{setCreatingProject(v=>!v);setNewProjName("");}} title="Create a project" style={{display:"flex",alignItems:"center",gap:8,background:"transparent",border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 12px",color:T.ink2,fontSize:11.5,fontWeight:700,fontFamily:F.b,cursor:"pointer"}}><span style={{fontSize:14,lineHeight:1}}>＋</span> New project</button>
+          {creatingProject&&<div style={{display:"flex",gap:6}}>
+            <input autoFocus value={newProjName} onChange={e=>setNewProjName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createProject()} placeholder="Project name…" style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 10px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+            <button onClick={createProject} style={{background:AI_GOLD,border:"none",borderRadius:8,padding:"6px 11px",color:"#241703",fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create</button>
+          </div>}
+          <input value={convoQ} onChange={e=>setConvoQ(e.target.value)} placeholder="Search chats…" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 11px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
+        </div>
+        {/* Projects */}
+        <div style={{padding:"6px 8px",borderBottom:`1px solid ${T.border}`}}>
+          <div style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",padding:"6px 6px 4px",display:"flex",justifyContent:"space-between"}}><span>Projects</span><span>{projects.length}</span></div>
+          {activeProject&&<button onClick={()=>{setActiveProject(null);}} style={{width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"5px 8px",color:T.ink4,fontSize:10.5,fontFamily:F.b,cursor:"pointer"}}>← All chats</button>}
+          {projects.map(p=><button key={p.id} onClick={()=>{setActiveProject(p.id);setSelId(null);}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"7px 8px",borderRadius:8,background:activeProject===p.id?AI_GOLD+"14":"transparent",border:`1px solid ${activeProject===p.id?AI_GOLD+"40":"transparent"}`,cursor:"pointer",marginBottom:1}}>
+            <span style={{width:20,height:20,borderRadius:6,flexShrink:0,display:"grid",placeItems:"center",fontSize:10,background:AI_GOLD+"22",color:AI_GOLD}}>▦</span>
+            <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,flexShrink:0}}>{projChatCount(p)}</span>
+          </button>)}
         </div>
         {convos.length===0&&<div style={{padding:"18px 14px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>No conversations yet. Type your first message on the right - your assistant is ready.</div>}
-        <div style={{maxHeight:520,overflowY:"auto"}}>
+        <div style={{maxHeight:440,overflowY:"auto"}}>
           <style>{`.vz-cv-row:hover .vz-cv-act{opacity:1}`}</style>
           {(()=>{
             const q=convoQ.trim().toLowerCase();
-            const vis=convos.filter(c=>!q||`${c.title} ${c.project||""}`.toLowerCase().includes(q));
+            const vis=convos.filter(c=>(!proj||c.project===proj.name)&&(!q||`${c.title} ${c.project||""}`.toLowerCase().includes(q)));
             const groupOf=c=>archived.includes(c.id)?"Archived":pinned.includes(c.id)?"Pinned":/^(Today|Just now)/.test(c.lastActivity)?"Today":/^Yesterday/.test(c.lastActivity)?"Yesterday":c.initiativeId?"Project conversations":"Last week";
             const ORDER=["Pinned","Today","Yesterday","Last week","Project conversations","Archived"];
             const groups=ORDER.map(g=>[g,vis.filter(c=>groupOf(c)===g)]).filter(([,l])=>l.length);
@@ -182,6 +221,20 @@ export function PageWorkbench({role,sessionMode,showToast}){
           <Tag label="Secured by AI Gateway" color={T.green} bg={T.greenL}/>
 
         </div>
+        {proj&&<div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,background:T.s2}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <span style={{width:26,height:26,borderRadius:8,display:"grid",placeItems:"center",background:AI_GOLD+"22",color:AI_GOLD,fontSize:13}}>▦</span>
+              <div><div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.h}}>{proj.name}</div><div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b}}>Project · {projChatCount(proj)} chats · {proj.files.length} files</div></div>
+            </div>
+            <button onClick={startNewChat} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"6px 11px",color:AI_GOLD,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>＋ New chat in project</button>
+          </div>
+          {(proj.files.length>0)&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10,alignItems:"center"}}>
+            {proj.files.map(f=><span key={f} style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,background:T.s3||T.s1,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 8px"}}>📄 {f}</span>)}
+            <button onClick={()=>showToast&&showToast("Project knowledge is govern-checked before the assistant reads it")} style={{fontSize:9.5,color:AI_GOLD,background:"transparent",border:`1px dashed ${AI_GOLD}55`,borderRadius:6,padding:"3px 8px",fontFamily:F.b,fontWeight:700,cursor:"pointer"}}>＋ Add knowledge</button>
+          </div>}
+          {proj.instructions&&<div style={{marginTop:9,fontSize:10,color:T.ink3,fontFamily:F.b,fontStyle:"italic",lineHeight:1.5,borderLeft:`2px solid ${AI_GOLD}55`,paddingLeft:9}}>{proj.instructions}</div>}
+        </div>}
         <div style={{flex:1,overflowY:"auto",padding:"16px",display:"grid",gap:12,alignContent:"start"}}>
           {(!sel||sel.messages.length===0)&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.7,maxWidth:560}}>
             Ask anything. Before your prompt reaches {provider.name}, the Gateway checks policy, searches enterprise knowledge and attaches your project context. Sensitive data is masked or blocked at the boundary - try including an email address to see it work.
@@ -211,9 +264,16 @@ export function PageWorkbench({role,sessionMode,showToast}){
             </div>
           </div>}
         </div>
-        <div style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`,display:"flex",gap:9}}>
-          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={`Message ${provider.name} through the Gateway...`} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
-          <button onClick={send} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Send</button>
+        <div style={{padding:"12px 16px",borderTop:`1px solid ${T.border}`,position:"relative"}}>
+          {promptsOpen&&<div style={{position:"absolute",bottom:"100%",left:16,marginBottom:6,width:280,background:T.card||T.s1,border:`1px solid ${T.border}`,borderRadius:10,boxShadow:"0 12px 30px rgba(0,0,0,.35)",overflow:"hidden",zIndex:5}}>
+            <div style={{padding:"8px 11px",fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",borderBottom:`1px solid ${T.border}`}}>Saved prompts</div>
+            {SAVED_PROMPTS.map(([n,tpl])=><button key={n} onClick={()=>{setInput(tpl);setPromptsOpen(false);}} style={{width:"100%",textAlign:"left",background:"transparent",border:"none",borderBottom:`1px solid ${T.border}`,padding:"9px 11px",color:T.ink2,fontSize:11,fontWeight:600,fontFamily:F.b,cursor:"pointer"}}>{n}</button>)}
+          </div>}
+          <div style={{display:"flex",gap:9,alignItems:"center"}}>
+            <button onClick={()=>setPromptsOpen(v=>!v)} title="Insert a saved prompt" style={{background:T.s2,border:`1px solid ${promptsOpen?AI_GOLD+"55":T.border}`,borderRadius:9,padding:"11px 12px",color:promptsOpen?AI_GOLD:T.ink3,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>✎ Prompts</button>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={`Message ${provider.name} through the Gateway...`} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
+            <button onClick={send} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:`1px solid ${AI_GOLD_B}`,borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Send</button>
+          </div>
         </div>
       </Card>
     </div>
@@ -314,7 +374,91 @@ export function PageMyIdeas({role,sessionMode,showToast}){
 }
 
 /* ── My AI Dashboard (employee) + Manager adoption view ───────── */
-export function PageAIUsage({role,sessionMode}){
+/* ── "How I'm doing": the employee's insight surface ───────────────
+   Comparison, not a score in a vacuum. Every metric is benchmarked
+   against a cohort median + interquartile band — peers who do your job,
+   your business unit, or the whole org — never a named leaderboard.
+   The surface finds your weakest metric and turns it into a next step. */
+const BENCH_METRICS=[
+  {key:"hours",name:"Hours saved / week",what:"time AI gave back",unit:"h",min:0,max:8,you:6.2,dp:1,
+    c:{peers:{med:4.1,lo:2.5,hi:5.6},unit:{med:3.4,lo:2.2,hi:4.9},org:{med:2.8,lo:1.8,hi:4.2}}},
+  {key:"active",name:"Active AI use",what:"share of workdays you used AI",unit:"%",min:0,max:100,you:80,dp:0,
+    c:{peers:{med:65,lo:50,hi:82},unit:{med:58,lo:42,hi:74},org:{med:61,lo:45,hi:78}}},
+  {key:"reuse",name:"Knowledge & prompt reuse",what:"answers grounded in shared prompts/knowledge",unit:"%",min:0,max:100,you:41,dp:0,
+    c:{peers:{med:56,lo:44,hi:70},unit:{med:52,lo:40,hi:66},org:{med:48,lo:36,hi:62}}},
+  {key:"safe",name:"Safe-use rate",what:"prompts that passed guardrails first time",unit:"%",min:80,max:100,you:96,dp:0,
+    c:{peers:{med:94,lo:88,hi:98},unit:{med:93,lo:86,hi:98},org:{med:92,lo:85,hi:97}}},
+];
+const BENCH_COHORTS=[
+  ["peers","My peers","Support agents · 340","340 support agents","Top 30%","a strong AI adopter"],
+  ["unit","My business unit","Customer Operations · 1,240","1,240 in Customer Operations","Top 20%","ahead of your unit on most measures"],
+  ["org","The whole org","All staff · 2,790","2,790 across the org","Top 25%","a confident, safe AI user"],
+];
+const BENCH_GAP={reuse:{title:"Your one gap: knowledge & prompt reuse",
+  body:"You save more time than most, but you lean on your own prompts more than the shared, governed ones — so you're re-solving problems your team already solved.",
+  cta:"See 2 approved prompts your peers rely on"}};
+function EmployeeBenchmark({showToast}){
+  const [cohort,setCohort]=useState("peers");
+  const meta=BENCH_COHORTS.find(c=>c[0]===cohort);
+  const pos=(m,v)=>Math.max(2,Math.min(98,(v-m.min)/(m.max-m.min)*100));
+  const fmt=(m,v)=>v.toFixed(m.dp)+m.unit;
+  let worst=null;
+  BENCH_METRICS.forEach(m=>{const d=m.you-m.c[cohort].med;if(d<0&&(worst===null||d<worst.d))worst={key:m.key,d};});
+  const gap=worst&&BENCH_GAP[worst.key]?BENCH_GAP[worst.key]:null;
+  return <div style={{animation:"up .3s ease"}}>
+    <SHead title="How I'm doing" sub="Where you stand on the things that matter — measured against a cohort, not in a vacuum."/>
+    {/* cohort selector */}
+    <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
+      {BENCH_COHORTS.map(([id,t,n])=><button key={id} onClick={()=>setCohort(id)} style={{display:"flex",flexDirection:"column",gap:2,padding:"9px 15px",borderRadius:12,border:`1px solid ${cohort===id?AI_GOLD:T.border}`,background:cohort===id?AI_GOLD:T.s2,cursor:"pointer",textAlign:"left"}}>
+        <span style={{fontSize:12.5,fontWeight:800,color:cohort===id?"#241703":T.ink2,fontFamily:F.b}}>{t}</span>
+        <span style={{fontSize:9.5,color:cohort===id?"#4b3608":T.ink4,fontFamily:F.m}}>{n}</span>
+      </button>)}
+    </div>
+    {/* standing hero */}
+    <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14,padding:"15px 18px",borderRadius:14,background:"linear-gradient(135deg,#7a1a3c,#a5254c 62%,#7c1f42)",border:"1px solid #c25878",boxShadow:"0 12px 30px rgba(138,26,60,.28)"}}>
+      <div style={{fontFamily:F.h,fontSize:32,fontWeight:800,color:"#ffe9ef",lineHeight:.9,letterSpacing:"-.02em"}}>{meta[4]}</div>
+      <div><div style={{fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",color:"#f3c9d4",fontWeight:900,fontFamily:F.m}}>Your standing</div><div style={{fontSize:11.5,color:"#e7b3c1",marginTop:3,fontFamily:F.b}}>vs {meta[3]} · you're {meta[5]}</div></div>
+    </div>
+    {/* benchmark bars */}
+    <div style={{display:"grid",gap:12,marginBottom:14}}>
+      {BENCH_METRICS.map(m=>{
+        const cd=m.c[cohort], delta=m.you-cd.med, ahead=delta>=0;
+        const dc=ahead?T.green:T.amber;
+        return <Card key={m.key} style={{padding:"14px 16px 12px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10}}>
+            <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:10,color:T.ink4,fontFamily:F.m,marginTop:1}}>{m.what}</div></div>
+            <span style={{fontSize:11,fontWeight:800,fontFamily:F.m,padding:"3px 9px",borderRadius:20,background:dc+"22",color:dc,whiteSpace:"nowrap"}}>{ahead?"+":"−"}{fmt(m,Math.abs(delta))} vs median</span>
+          </div>
+          <div style={{position:"relative",height:46,marginTop:16}}>
+            <div style={{position:"absolute",left:0,right:0,top:26,height:8,borderRadius:6,background:T.s3||T.border}}/>
+            <div style={{position:"absolute",top:24,height:12,borderRadius:6,left:pos(m,cd.lo)+"%",width:(pos(m,cd.hi)-pos(m,cd.lo))+"%",background:T.blue+"33",border:`1px solid ${T.blue}55`}}/>
+            <div style={{position:"absolute",top:19,width:2,height:22,background:T.ink3,left:pos(m,cd.med)+"%",transform:"translateX(-50%)"}}><span style={{position:"absolute",top:24,left:"50%",transform:"translateX(-50%)",fontSize:8.5,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>median {fmt(m,cd.med)}</span></div>
+            <div style={{position:"absolute",top:14,left:pos(m,m.you)+"%",transform:"translateX(-50%)",transition:"left .45s cubic-bezier(.2,.7,.2,1)"}}>
+              <div style={{position:"absolute",bottom:26,left:"50%",transform:"translateX(-50%)",background:AI_GOLD,color:"#241703",fontSize:10.5,fontWeight:900,fontFamily:F.m,padding:"2px 8px",borderRadius:7,whiteSpace:"nowrap"}}>{fmt(m,m.you)} · you</div>
+              <div style={{width:3,height:26,borderRadius:3,margin:"0 auto",background:`linear-gradient(180deg,${AI_GOLD},#c25878)`,boxShadow:`0 0 10px ${AI_GOLD}88`}}/>
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}><span>{m.min}{m.unit}</span><span>{m.max}{m.unit}</span></div>
+        </Card>;
+      })}
+    </div>
+    {/* gap → next step */}
+    {gap?<Card style={{padding:"13px 15px",display:"flex",gap:12,alignItems:"flex-start",border:`1px solid ${T.amber}55`,background:T.amber+"14"}}>
+      <span style={{fontSize:15,color:T.amber}}>↗</span>
+      <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{gap.title}</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>{gap.body}</div>
+        <button onClick={()=>showToast&&showToast("Opening your Assistant's prompt library")} style={{marginTop:9,background:T.s1||T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 11px",color:AI_GOLD,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{gap.cta} →</button></div>
+    </Card>:<Card style={{padding:"13px 15px",display:"flex",gap:12,alignItems:"flex-start",border:`1px solid ${T.green}55`,background:T.green+"14"}}>
+      <span style={{fontSize:15,color:T.green}}>✓</span>
+      <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>You're ahead of this cohort on every measure</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>Nice — consider sharing your best prompts so your team can catch up.</div></div>
+    </Card>}
+    <div style={{display:"flex",gap:8,alignItems:"flex-start",marginTop:12,fontSize:10.5,color:T.ink4,fontFamily:F.b,lineHeight:1.6}}>
+      <span>🔒</span><span><b style={{color:T.ink3}}>Fair by design:</b> comparison is always against a cohort median and quartiles — never a named leaderboard. Peers = people who do your job. Numbers are aggregates; no one sees your individual sessions.</span>
+    </div>
+  </div>;
+}
+
+export function PageAIUsage({role,sessionMode,showToast}){
+  if(role==="employee")return <EmployeeBenchmark showToast={showToast}/>;
   const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
   const u=seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0};
   const isManager=role==="manager";

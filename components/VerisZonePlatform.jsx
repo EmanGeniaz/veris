@@ -789,7 +789,7 @@ export default function VerisZone() {
         {showSeededData&&ROLE_CENTERS[role]&&(tab==="home"||ROLE_CENTERS[role].surfaces.some(s=>s.id===tab))&&!ROLE_PAGE_OVERRIDE[tab]&&<RoleCommandCenter tab={tab} role={role} setTab={setTab} setAiCentralView={setAiCentralView} navigate={navigate} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="workbench"&&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="myideas"&&<PageMyIdeas role={role} sessionMode={sessionMode} showToast={showToast}/>}
-        {ROLE_PAGE_OVERRIDE[tab]==="aiusage"&&<PageAIUsage role={role} sessionMode={sessionMode}/>}
+        {ROLE_PAGE_OVERRIDE[tab]==="aiusage"&&<PageAIUsage role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="academy"&&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="reports"&&<PageReports role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
