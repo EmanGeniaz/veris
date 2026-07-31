@@ -8,7 +8,6 @@ import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, ac
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
-import { AC_OWNERSHIP_MODEL } from "./core";
 import { PageGovernanceAcademy } from "./academy";
 import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
@@ -602,8 +601,12 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       <h2 style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h,letterSpacing:"-0.03em",margin:0,lineHeight:1.1}}>{modMeta?.label||"Dashboard"}</h2>
       <p style={{fontSize:12,color:T.ink3,margin:"6px 0 0",fontFamily:F.b,fontStyle:"italic"}}>{lens.question}</p>
     </div>
-    {modMeta?.owner&&<div title="Accountable owner for this module" style={{textAlign:"right",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 13px",minWidth:150}}>
-      <div style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em"}}>Module owner</div>
+    {/* The accountable-owner chip is governance-facing attribution (who is
+        accountable for this module), not the current viewer. It confused
+        scoped users ("why does it say CAIO?"), so it's shown only to the
+        executive/governance roles who reason about module ownership. */}
+    {modMeta?.owner&&role!=="employee"&&role!=="manager"&&<div title="The executive accountable for this module — not the current viewer" style={{textAlign:"right",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"8px 13px",minWidth:150}}>
+      <div style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em"}}>Accountable owner</div>
       <div style={{fontSize:13,fontWeight:800,color:AI_GOLD,fontFamily:F.b,marginTop:3}}>{modMeta.owner}</div>
       <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>Oversight · {modMeta.oversight}</div>
     </div>}
@@ -2227,22 +2230,53 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     <PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>
   </div>;
 
-  /* ── Operating-model map: the governance ownership hierarchy +
-     owner-per-module, rendered inside the Executive Dashboard. ── */
-  const OwnershipMap=()=><Card style={{padding:"16px 18px",marginTop:14}}>
-    <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:3}}>Operating model</div>
-    <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:13}}>Who owns AI Central — Board to control plane</div>
-    <div style={{display:"grid",gap:7,marginBottom:16}}>
-      {AC_OWNERSHIP_MODEL.map((t,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"128px 1fr",gap:12,alignItems:"center",background:i===4?AI_GOLD+"12":T.s2,border:`1px solid ${i===4?AI_GOLD+"3d":T.border}`,borderRadius:9,padding:"9px 13px"}}>
-        <span style={{fontSize:8.5,fontFamily:F.m,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em"}}>{t.tier}</span>
-        <div><div style={{fontSize:12,fontWeight:800,color:i===4?AI_GOLD:T.ink,fontFamily:F.b}}>{t.node}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:1}}>{t.role}</div></div>
-      </div>)}
+  /* ── AI Repository: the enterprise inventory of live AI agents and
+     projects — each with its accountable owner and a system-architecture
+     summary (model, data, integrations, guardrails). Replaces the abstract
+     operating-model map on the Executive Dashboard with something concrete:
+     what AI actually exists, who owns it, and how it's built. ── */
+  const AI_REPOSITORY=[
+    {name:"Customer Resolution Copilot",type:"GenAI Agent",owner:"Aisha Patel",unit:"Customer Operations",status:["Pilot","info"],
+      arch:{Model:"Claude Sonnet · via AI Gateway",Data:"CRM tickets · KB articles",Integrations:"ServiceNow · Zendesk",Guardrails:"PII redaction · prompt-shield"}},
+    {name:"Fraud Detection Model",type:"ML Model",owner:"D. Osei",unit:"Retail Banking",status:["Production","good"],
+      arch:{Model:"Gradient-boosted ensemble v3",Data:"Transaction stream · device signals",Integrations:"Core banking · case mgmt",Guardrails:"Drift monitor · human review"}},
+    {name:"Finance Close Automation",type:"GenAI Agent",owner:"R. Chen",unit:"Finance",status:["Scaling","good"],
+      arch:{Model:"GPT-4o · via AI Gateway",Data:"Ledger · reconciliations",Integrations:"ERP · close workflow",Guardrails:"Approval gate · evidence log"}},
+    {name:"Credit Decision Assurance",type:"Decision Model",owner:"CDPO office",unit:"SME Lending",status:["Remediate","warn"],
+      arch:{Model:"Scorecard + LLM rationale",Data:"Applications · bureau data",Integrations:"Loan origination",Guardrails:"Art.22 human review · DPIA"}},
+    {name:"Workforce Skills Navigator",type:"GenAI Agent",owner:"CHRO office",unit:"People",status:["Assessment","info"],
+      arch:{Model:"Gemini · via AI Gateway",Data:"Skills graph · role profiles",Integrations:"HRIS · LMS",Guardrails:"Consent · bias eval"}},
+    {name:"Supplier Risk Screener",type:"GenAI Agent",owner:"Procurement",unit:"Operations",status:["Pilot","info"],
+      arch:{Model:"Claude Haiku · via AI Gateway",Data:"Vendor filings · news",Integrations:"Procurement suite",Guardrails:"Source citation · rate-limit"}},
+  ];
+  const RepositoryPanel=()=><Card style={{padding:"16px 18px",marginTop:14}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,flexWrap:"wrap",marginBottom:13}}>
+      <div>
+        <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:3}}>AI Repository</div>
+        <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b}}>Live AI agents &amp; projects — owner and system architecture</div>
+      </div>
+      {access.modules.includes("repository")&&<button onClick={()=>openModule("repository")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 13px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>Open AI Repository →</button>}
     </div>
-    <div style={{fontSize:9.5,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:8}}>Owner per module</div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(215px,1fr))",gap:8}}>
-      {AI_CENTRAL_NAV.map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 11px"}}>
-        <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,fontWeight:700}}>{m.label}</span>
-        <span style={{fontSize:9.5,color:AI_GOLD,fontFamily:F.m,fontWeight:800,whiteSpace:"nowrap"}}>{m.owner}</span>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:10}}>
+      {AI_REPOSITORY.map(a=><div key={a.name} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"12px 14px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,marginBottom:9}}>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div>
+            <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.type} · {a.unit}</div>
+          </div>
+          <Tag label={a.status[0]} color={lensCol(a.status[1])} bg={lensCol(a.status[1])+"18"}/>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,paddingBottom:10,borderBottom:`1px solid ${T.border}`}}>
+          <span style={{fontSize:8.5,fontFamily:F.m,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em"}}>Owner</span>
+          <span style={{fontSize:10.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b}}>{a.owner}</span>
+        </div>
+        <div style={{fontSize:8.5,fontFamily:F.m,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>System architecture</div>
+        <div style={{display:"grid",gap:5}}>
+          {Object.entries(a.arch).map(([k,v])=><div key={k} style={{display:"grid",gridTemplateColumns:"84px 1fr",gap:8,alignItems:"baseline"}}>
+            <span style={{fontSize:9.5,color:T.ink3,fontFamily:F.m,fontWeight:700}}>{k}</span>
+            <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.4}}>{v}</span>
+          </div>)}
+        </div>
       </div>)}
     </div>
   </Card>;
@@ -2458,7 +2492,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
 
   return <div style={{animation:"up .3s ease"}}>
     <Header/>
-    {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/><OwnershipMap/></>}
+    {activeModule==="dashboard"&&<><RoleLensBand/><Dashboard/><RepositoryPanel/></>}
     {activeModule==="strategy"&&<><ModuleLensBand module="strategy"/><AIStrategy/></>}
     {activeModule==="portfolio"&&<><ModuleLensBand module="portfolio"/><Portfolio/></>}
     {activeModule==="repository"&&<><ModuleLensBand module="repository"/><PageModelRegistry setTab={setTab} openInitiative={openInitiative} role={role} showToast={showToast}/></>}

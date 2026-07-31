@@ -335,7 +335,20 @@ export const CAIO_NAV_SECTIONS = [
    the sidebar section is built per role. Overview is the shared `home`. */
 export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
   cfg.surfaces.map(s => ({ id: s.id, icon: "D", label: s.label, badge: s.badge })));
+/* The employee cockpit is organised into scannable groups instead of one
+   long flat list: day-to-day work, the things they own, their performance
+   signals, and learning/reference. Every id maps to an `employee` surface
+   in lib/role-centers (Prompt Library + Knowledge Vault now live inside
+   Governance Academy; My Requests replaced the mis-framed Approvals). */
+export const EMPLOYEE_NAV_GROUPS = [
+  { title: "My Workspace", items: ["home", "emp_assistant", "emp_hub", "emp_sessions"] },
+  { title: "My Work", items: ["emp_projects", "emp_tasks", "emp_requests"] },
+  { title: "Insights", items: ["emp_usage", "emp_productivity", "emp_risk", "emp_compliance"] },
+  { title: "Learn & Help", items: ["emp_learning", "emp_help"] },
+  { title: "Enterprise", items: ["aicentral"] },
+];
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
+  if (role === "employee") return [role, EMPLOYEE_NAV_GROUPS];
   const primary = { title: cfg.navHd, items: ["home", ...cfg.surfaces.map(s => s.id)] };
   const isScoped = role === "employee" || role === "manager";
   /* AI Central is reachable by everyone - RBAC decides which modules open,
