@@ -13,6 +13,7 @@ import { PageTemplates } from "./templates";
 import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 import { SmartSelect } from "./smartselect";
+import { LineageDrawer } from "./lineage";
 
 export function PageModelRegistry({setTab,openInitiative,role="caio",showToast}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -530,6 +531,9 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const [recentIds,setRecentIds]=useState([]);
   const [favIds,setFavIds]=useState([]);
   const [ovDetails,setOvDetails]=useState(false);
+  /* Data-lineage drawer for the org-rollup KPI strips — every number
+     traces to the initiatives behind it, then drills to the workspace. */
+  const [lineage,setLineage]=useState(null);
   const [createOpen,setCreateOpen]=useState(false);
   const [draft,setDraft]=useState({name:"",unit:"",category:"GenAI Copilot",businessOwner:"",sponsor:"",expected:"",phase:"",risk:"",dataClass:""});
   const [evQuery,setEvQuery]=useState("");
@@ -628,11 +632,11 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         <div style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:700,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px",alignSelf:"center"}}>🔒 RBAC · {access.modules.length} of {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").length} modules enabled</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:14}}>
-        {lens.kpis.map((k,i)=><div key={i} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 14px"}}>
+        {lens.kpis.map((k,i)=><button key={i} onClick={()=>setLineage({label:k[0],value:k[1]})} className="vz-pn-row" style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
           <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{k[0]}</div>
           <div style={{fontSize:21,fontWeight:800,marginTop:6,fontFamily:F.m,color:lensCol(k[2])}}>{k[1]}</div>
           <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{k[3]}</div>
-        </div>)}
+        </button>)}
       </div>
       <Card style={{padding:"16px 18px"}}>
         <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m,marginBottom:4}}>Initiative portfolio · {access.lens} columns</div>
@@ -2519,6 +2523,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {activeModule==="initiatives"&&<Initiatives/>}
     {activeModule==="pmo"&&renderEnterprisePmo()}
     {activeModule==="admin"&&<Administration/>}
+    {lineage&&<LineageDrawer node={lineage} onAsset={id=>{openInitiative(id,"overview");setLineage(null);}} onClose={()=>setLineage(null)}/>}
   </div>;
 }
 

@@ -1,11 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
 import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
+import { assetById } from "@/lib/ai-assets";
 import { BriefDrawer } from "./initiative-brief";
+import { LineageDrawer } from "./lineage";
+
+/* Lineage plumbing — any tile or row calls openLin() to trace a number to
+   its source. The provider (at the command-center root) owns the drawer so
+   every CEO surface, not just Overview, can drill to the last part. */
+const LinCtx = createContext(() => {});
+const useLin = () => useContext(LinCtx);
+
+/* A showcase program (CEO_PORTFOLIO) is the leaf record for the board view,
+   so its lineage explains its own numbers rather than deriving from assets. */
+const programLineage = p => ({
+  label: p.name, value: `$${p.realized.toFixed(1)}M realized`,
+  formula: "realized value vs allocated budget · ROI = (realized − spent) ÷ spent",
+  rows: [
+    { name: "Allocated budget", v: `$${p.budget.toFixed(1)}M`, unit: "FY26 allocation" },
+    { name: "Consumed to date", v: `$${p.spent.toFixed(1)}M`, unit: "spend booked" },
+    { name: "Value realized", v: `$${p.realized.toFixed(1)}M`, unit: "value booked" },
+    { name: "ROI", v: p.roi > 0 ? `+${p.roi}%` : `${p.roi}%`, unit: "return on invested" },
+    { name: "Time-to-value", v: p.ttv ? `${p.ttv} mo` : "—", unit: "kickoff → first value" },
+    { name: "Residual risk", v: p.risk, unit: "current grade" },
+    { name: "Adoption region", v: p.region, unit: p.stage },
+  ],
+  note: `${p.name} · ${p.unit} · ${p.region} · ${p.stage}. These are this program's own figures — its contribution to every portfolio rollup above.`,
+});
 
 /* ── CEO Command Center ─────────────────────────────────────────────
    The board-level lens on the enterprise AI portfolio. Renders one of
@@ -103,13 +128,27 @@ const cardPad={padding:"16px 18px"};
    tracks the active theme — a literal here would capture dark-theme colors
    at import time and stay navy in light mode. */
 const kpiStyleOf=()=>({background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:"pointer"});
-function Kpi({l,v,vc,s,spark,onClick}){
-  return <button onClick={onClick} style={{...kpiStyleOf(),textAlign:"left"}}>
+/* Kpi: navigates when given onClick; otherwise traces its number via
+   data lineage (lin=[label,value]) so no tile is a dead end. */
+function Kpi({l,v,vc,s,spark,onClick,lin}){
+  const openLin=useLin();
+  const handle=onClick||(lin?()=>openLin(lin[0],lin[1]):undefined);
+  return <button onClick={handle} style={{...kpiStyleOf(),textAlign:"left",cursor:handle?"pointer":"default"}}>
     <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div>
     <div style={{fontSize:23,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:vc||T.ink}}>{v}</div>
     <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{s}</div>
     {spark}
   </button>;
+}
+/* A table row that drills to a lineage node on click. */
+function LinRow({node,children}){
+  const openLin=useLin();
+  return <tr onClick={()=>openLin(node)} className="vz-lrow" style={{cursor:"pointer"}}>{children}</tr>;
+}
+/* Risk-grade summary card that traces its count on click. */
+function GradeCard({g}){
+  const openLin=useLin();
+  return <Card onClick={()=>openLin(`${g[0]} risks`,String(g[2]))} style={{...cardPad,cursor:"pointer"}}><Eyebrow style={{color:g[1]}}>{g[0]}</Eyebrow><div style={{fontSize:30,fontWeight:800,color:g[1],fontFamily:F.m}}>{g[2]}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{g[3]}</div></Card>;
 }
 const Table=({head,children})=><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
   <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
@@ -344,17 +383,18 @@ function RiskTab({openFull}){
     ["Data-residency (APAC)","Predictive Maintenance","Medium · 5",T.blue,"Legal","On track",T.green],
     ["Workforce displacement concern","Workforce Skills Navigator","Low · 3",T.ink3,"People team","On track",T.green],
   ];
+  const linOf=(riskLabel,sev,program)=>{const p=CEO_PORTFOLIO.find(x=>x.name===program);return p?programLineage(p):{label:riskLabel,value:sev};};
   return <div style={{animation:"up .2s ease"}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
-      <Kpi l="Open risks" v={<>12<span style={{fontSize:12,color:T.ink4}}>/25</span></>} vc={T.red} s="portfolio residual score"/>
-      <Kpi l="Critical / High" v={<><span style={{color:T.red}}>1</span> · <span style={{color:AI_GOLD}}>2</span></>} s="need executive attention"/>
-      <Kpi l="Mitigations on track" v="68%" vc={T.green} s="11 of 16 treatments"/>
+      <Kpi l="Open risks" v={<>12<span style={{fontSize:12,color:T.ink4}}>/25</span></>} vc={T.red} s="portfolio residual score" lin={["Open risks","12/25"]}/>
+      <Kpi l="Critical / High" v={<><span style={{color:T.red}}>1</span> · <span style={{color:AI_GOLD}}>2</span></>} s="need executive attention" lin={["Critical / High risks","1 critical · 2 high"]}/>
+      <Kpi l="Mitigations on track" v="68%" vc={T.green} s="11 of 16 treatments" lin={["Mitigations on track","68%"]}/>
     </div>
     <Card style={cardPad}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Risk Register — highest exposure first</Eyebrow><H3>Severity · owner · mitigation status</H3></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Risk Register — highest exposure first</Eyebrow><H3>Severity · owner · mitigation status · click a row to trace it</H3></div>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open full Risk Center →</button></div>
       <Table head={["Risk","Program","Severity","Owner","Mitigation"]}>
-        {rows.map(r=><tr key={r[0]}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={r[3]}>{r[2]}</Pill></Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></tr>)}
+        {rows.map(r=><LinRow key={r[0]} node={linOf(r[0],r[2],r[1])}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={r[3]}>{r[2]}</Pill></Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></LinRow>)}
       </Table>
     </Card>
   </div>;
@@ -373,9 +413,9 @@ function ValueTab(){
         </svg>
       </Card>
     </div>
-    <Card style={{...cardPad,marginTop:16}}><Eyebrow>ROI by program</Eyebrow><H3 style={{marginBottom:14}}>Budget · realized value · ROI · time-to-value</H3>
+    <Card style={{...cardPad,marginTop:16}}><Eyebrow>ROI by program</Eyebrow><H3 style={{marginBottom:14}}>Budget · realized value · ROI · time-to-value — click a program to trace it</H3>
       <Table head={["Program","Budget","Realized","ROI","Time-to-value"]}>
-        {rows.map(p=><tr key={p.name}><Td style={{fontWeight:700,color:T.ink}}>{p.name}</Td><Td>${p.budget.toFixed(1)}M</Td><Td>${p.realized.toFixed(1)}M</Td><Td><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"% (early)":"Pending gate"}</Pill></Td><Td>{p.ttv?p.ttv+" mo":"—"}</Td></tr>)}
+        {rows.map(p=><LinRow key={p.name} node={programLineage(p)}><Td style={{fontWeight:700,color:T.ink}}>{p.name}</Td><Td>${p.budget.toFixed(1)}M</Td><Td>${p.realized.toFixed(1)}M</Td><Td><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"% (early)":"Pending gate"}</Pill></Td><Td>{p.ttv?p.ttv+" mo":"—"}</Td></LinRow>)}
       </Table>
     </Card>
   </div>;
@@ -446,8 +486,8 @@ function ComplianceTab({openFull}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Compliance posture by program</Eyebrow><H3>Standards coverage &amp; reporting status</H3></div>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open Compliance →</button></div>
       <Table head={["Program","Risk class","Frameworks","Evidence","Status"]}>
-        {[["Credit Decision Assurance","High-risk",T.red,"EU AI Act · ISO 42001 · ISO 27001","18/20","Gate review",AI_GOLD],["Fraud Detection Model","Limited",AI_GOLD,"EU AI Act · NIST AI RMF · ISO 27001","22/22","Compliant",T.green],["Customer Resolution Copilot","Limited",AI_GOLD,"ISO 42001 · SOC 2 · GDPR","15/19","In progress",T.blue],["Finance Close Automation","Minimal",T.ink3,"ISO 42001 · ISO 27001","12/12","Compliant",T.green]].map(r=>
-          <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td><Pill c={r[2]}>{r[1]}</Pill></Td><Td>{r[3]}</Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></tr>)}
+        {[["Credit Decision Assurance","High-risk",T.red,"EU AI Act · ISO 42001 · ISO 27001","18/20","Gate review",AI_GOLD],["Fraud Detection Model","Limited",AI_GOLD,"EU AI Act · NIST AI RMF · ISO 27001","22/22","Compliant",T.green],["Customer Resolution Copilot","Limited",AI_GOLD,"ISO 42001 · SOC 2 · GDPR","15/19","In progress",T.blue],["Finance Close Automation","Minimal",T.ink3,"ISO 42001 · ISO 27001","12/12","Compliant",T.green]].map(r=>{const p=CEO_PORTFOLIO.find(x=>x.name===r[0]);return
+          <LinRow key={r[0]} node={p?programLineage(p):{label:r[0],value:r[4]}}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td><Pill c={r[2]}>{r[1]}</Pill></Td><Td>{r[3]}</Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></LinRow>;})}
       </Table>
     </Card>
   </div>;
@@ -484,11 +524,11 @@ function Portfolio(){
     <Card style={cardPad}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><Eyebrow style={{margin:0}}>All AI Projects · {CEO_PORTFOLIO.length}</Eyebrow><Pill c={AI_GOLD}>★ CEO-approved</Pill></div>
       <Table head={["Program","Business unit","Stage","Health","Region","Approval"]}>
-        {CEO_PORTFOLIO.map(p=>{const appr=p.approval==="CEO-approved";return <tr key={p.name} style={{background:appr?AI_GOLD+"12":undefined}}>
-          <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink}}>{appr&&<span style={{color:AI_GOLD,fontWeight:900}}>★ </span>}{p.name}</Td>
-          <Td>{p.unit}</Td><Td><Pill c={stageColor(p.stage)}>{p.stage}</Pill></Td>
-          <Td>{p.stage==="Completed"?"✓":p.stage==="Retired"?"↓":p.health}</Td><Td>{p.region}</Td><Td><Pill c={appColor(p.approval)}>{p.approval}</Pill></Td>
-        </tr>;})}
+        {CEO_PORTFOLIO.map(p=>{const appr=p.approval==="CEO-approved";return <LinRow key={p.name} node={programLineage(p)}>
+          <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink,background:appr?AI_GOLD+"12":undefined}}>{appr&&<span style={{color:AI_GOLD,fontWeight:900}}>★ </span>}{p.name}</Td>
+          <Td style={{background:appr?AI_GOLD+"12":undefined}}>{p.unit}</Td><Td style={{background:appr?AI_GOLD+"12":undefined}}><Pill c={stageColor(p.stage)}>{p.stage}</Pill></Td>
+          <Td style={{background:appr?AI_GOLD+"12":undefined}}>{p.stage==="Completed"?"✓":p.stage==="Retired"?"↓":p.health}</Td><Td style={{background:appr?AI_GOLD+"12":undefined}}>{p.region}</Td><Td style={{background:appr?AI_GOLD+"12":undefined}}><Pill c={appColor(p.approval)}>{p.approval}</Pill></Td>
+        </LinRow>;})}
       </Table>
     </Card>
   </div>;
@@ -501,12 +541,12 @@ function Budget(){
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title="Budget" sub="Per-project budget, ROI and time-to-value across the portfolio."/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
-      <Kpi l="Allocated" v="$8.0M" s="FY26 AI budget"/><Kpi l="Value realized" v="$4.6M" vc={T.green} s="57% turned to value"/>
-      <Kpi l="Value leaked" v="$2.1M" vc={AI_GOLD} s="consumed, no value yet"/><Kpi l="Avg time-to-value" v="7.4 mo" s="fastest 4.2 · slowest 9.8"/>
+      <Kpi l="Allocated" v="$8.0M" s="FY26 AI budget" lin={["Budget allocated","$8.0M"]}/><Kpi l="Value realized" v="$4.6M" vc={T.green} s="57% turned to value" lin={["Value realized","$4.6M"]}/>
+      <Kpi l="Value leaked" v="$2.1M" vc={AI_GOLD} s="consumed, no value yet" lin={["Value leaked","$2.1M"]}/><Kpi l="Avg time-to-value" v="7.4 mo" s="fastest 4.2 · slowest 9.8" lin={["Avg time-to-value","7.4 mo"]}/>
     </div>
-    <Card style={cardPad}><Eyebrow>Budget per project</Eyebrow><H3 style={{marginBottom:14}}>Allocated · consumed · ROI · time-to-value</H3>
+    <Card style={cardPad}><Eyebrow>Budget per project</Eyebrow><H3 style={{marginBottom:14}}>Allocated · consumed · ROI · time-to-value — click a program to trace it</H3>
       <Table head={["Program","Allocated","Consumed","Realized","ROI","Time-to-value"]}>
-        {rows.map(p=><tr key={p.name}><Td style={{fontWeight:700,color:T.ink}}>{p.name}</Td><Td>${p.budget.toFixed(1)}M</Td><Td>${p.spent.toFixed(1)}M</Td><Td>${p.realized.toFixed(1)}M</Td><Td><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"% (early)":"Pending gate"}</Pill></Td><Td>{p.ttv?p.ttv+" mo":"—"}</Td></tr>)}
+        {rows.map(p=><LinRow key={p.name} node={programLineage(p)}><Td style={{fontWeight:700,color:T.ink}}>{p.name}</Td><Td>${p.budget.toFixed(1)}M</Td><Td>${p.spent.toFixed(1)}M</Td><Td>${p.realized.toFixed(1)}M</Td><Td><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"% (early)":"Pending gate"}</Pill></Td><Td>{p.ttv?p.ttv+" mo":"—"}</Td></LinRow>)}
         <tr><Td style={{fontWeight:700,color:T.ink}}>Others ({other} programs)</Td><Td>$1.2M</Td><Td>$0.6M</Td><Td>$0.0M</Td><Td><Pill c={T.ink3}>Ramping</Pill></Td><Td>—</Td></tr>
       </Table>
     </Card>
@@ -519,14 +559,14 @@ function RiskCenter({openFull}){
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title="Risk Center" sub="Every risk graded High / Medium / Low with a named owner and live mitigation status."/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:16,marginBottom:16}}>
-      {grades.map(g=><Card key={g[0]} style={cardPad}><Eyebrow style={{color:g[1]}}>{g[0]}</Eyebrow><div style={{fontSize:30,fontWeight:800,color:g[1],fontFamily:F.m}}>{g[2]}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{g[3]}</div></Card>)}
+      {grades.map(g=><GradeCard key={g[0]} g={g}/>)}
     </div>
     <Card style={cardPad}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Risk register</Eyebrow><H3>Severity · owner · mitigation</H3></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Risk register</Eyebrow><H3>Severity · owner · mitigation — click a row to trace it</H3></div>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open full Risk Center →</button></div>
       <Table head={["Risk","Program","Grade","Owner","Mitigation"]}>
-        {[["Adverse-decision harm","Credit Decision Assurance","High · 12",T.red,"O. Khan","Human-oversight record in review",T.blue],["Prompt-injection exposure","Customer Resolution Copilot","High · 9",T.red,"CISO office","Evidence overdue 4d",AI_GOLD],["Model drift on fraud signals","Fraud Detection Model","High · 8",T.red,"D. Osei","Auto-retrain live",T.green],["Vendor concentration","Portfolio-wide","Medium · 6",AI_GOLD,"Procurement","Second-source in flight",T.green],["Data-residency (APAC)","Predictive Maintenance","Medium · 5",AI_GOLD,"Legal","Regionalised",T.green],["Workforce displacement concern","Workforce Skills Navigator","Low · 3",T.ink3,"People team","Reskilling plan",T.green]].map(r=>
-          <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={r[3]}>{r[2]}</Pill></Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></tr>)}
+        {[["Adverse-decision harm","Credit Decision Assurance","High · 12",T.red,"O. Khan","Human-oversight record in review",T.blue],["Prompt-injection exposure","Customer Resolution Copilot","High · 9",T.red,"CISO office","Evidence overdue 4d",AI_GOLD],["Model drift on fraud signals","Fraud Detection Model","High · 8",T.red,"D. Osei","Auto-retrain live",T.green],["Vendor concentration","Portfolio-wide","Medium · 6",AI_GOLD,"Procurement","Second-source in flight",T.green],["Data-residency (APAC)","Predictive Maintenance","Medium · 5",AI_GOLD,"Legal","Regionalised",T.green],["Workforce displacement concern","Workforce Skills Navigator","Low · 3",T.ink3,"People team","Reskilling plan",T.green]].map(r=>{const p=CEO_PORTFOLIO.find(x=>x.name===r[1]);return
+          <LinRow key={r[0]} node={p?programLineage(p):{label:r[0],value:r[2]}}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={r[3]}>{r[2]}</Pill></Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></LinRow>;})}
       </Table>
     </Card>
   </div>;
@@ -595,13 +635,24 @@ export function CEOCommandCenter({tab="home",role="ceo",setTab,setAiCentralView,
   const goPortfolio=()=>setTab&&setTab("ceoportfolio");
   const openFullRisk=()=>setTab&&setTab("riskcenter");
   const openCompliance=()=>setTab&&setTab("compliance");
+  const [lin,setLin]=useState(null);
+  const [brief,setBrief]=useState(null);
+  /* openLin accepts either a full lineage node or (label,value). */
+  const openLin=(a,b)=>setLin(a&&typeof a==="object"?a:{label:a,value:b});
+  let content;
   switch(tab){
-    case "ceoplaybook":  return <Playbook showToast={showToast}/>;
-    case "ceoportfolio": return <Portfolio/>;
-    case "ceobudget":    return <Budget/>;
-    case "ceorisk":      return <RiskCenter openFull={openFullRisk}/>;
-    case "ceoactions":   return <Actions role={role} showToast={showToast}/>;
-    case "ceoreporting": return <Reporting showToast={showToast}/>;
-    default:             return <Overview role={role} goPortfolio={goPortfolio} openFull={openFullRisk} openCompliance={openCompliance} navTab={setTab} showToast={showToast} userName={userName}/>;
+    case "ceoplaybook":  content=<Playbook showToast={showToast}/>; break;
+    case "ceoportfolio": content=<Portfolio/>; break;
+    case "ceobudget":    content=<Budget/>; break;
+    case "ceorisk":      content=<RiskCenter openFull={openFullRisk}/>; break;
+    case "ceoactions":   content=<Actions role={role} showToast={showToast}/>; break;
+    case "ceoreporting": content=<Reporting showToast={showToast}/>; break;
+    default:             content=<Overview role={role} goPortfolio={goPortfolio} openFull={openFullRisk} openCompliance={openCompliance} navTab={setTab} showToast={showToast} userName={userName}/>;
   }
+  return <LinCtx.Provider value={openLin}>
+    <style>{`.vz-lrow:hover td{background:${T.s2}!important}`}</style>
+    {content}
+    {lin&&<LineageDrawer node={lin} onAsset={id=>{setBrief(assetById(id));setLin(null);}} onClose={()=>setLin(null)}/>}
+    {brief&&<BriefDrawer a={brief} role="ceo" onClose={()=>setBrief(null)}/>}
+  </LinCtx.Provider>;
 }
