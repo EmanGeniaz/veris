@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
 import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 import { SmartSelect } from "./smartselect";
+import { LineageDrawer } from "./lineage";
 
 export function wbInspectPrompt(text){
   if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
@@ -415,14 +416,31 @@ const BENCH_GAP={reuse:{title:"Your one gap: knowledge & prompt reuse",
   cta:"See 2 approved prompts your peers rely on"}};
 function EmployeeBenchmark({showToast}){
   const [cohort,setCohort]=useState("peers");
+  const [lin,setLin]=useState(null);
   const meta=BENCH_COHORTS.find(c=>c[0]===cohort);
   const pos=(m,v)=>Math.max(2,Math.min(98,(v-m.min)/(m.max-m.min)*100));
   const fmt=(m,v)=>v.toFixed(m.dp)+m.unit;
+  /* Each metric traces to its own figures — your value, the cohort median
+     and band, your delta and how it's measured. The employee's "drill to
+     the last part" without ever exposing a named leaderboard. */
+  const metricLineage=m=>{const cd=m.c[cohort],delta=m.you-cd.med,ahead=delta>=0;return {
+    label:m.name, value:`${fmt(m,m.you)} · you`,
+    formula:`${m.what} · benchmarked against ${meta[3]} (median + interquartile band)`,
+    rows:[
+      {name:"Your value",v:fmt(m,m.you),unit:"measured this period"},
+      {name:"Cohort median",v:fmt(m,cd.med),unit:meta[1]},
+      {name:"Cohort band (IQR)",v:`${fmt(m,cd.lo)}–${fmt(m,cd.hi)}`,unit:"25th–75th percentile"},
+      {name:"Your delta vs median",v:`${ahead?"+":"−"}${fmt(m,Math.abs(delta))}`,unit:ahead?"ahead of median":"behind median"},
+      {name:"Cohort",v:meta[2],unit:meta[3]},
+    ],
+    note:"Aggregated from your governed AI sessions this period, compared to a cohort median and interquartile band — never a named leaderboard. No one sees your individual sessions.",
+  };};
   let worst=null;
   BENCH_METRICS.forEach(m=>{const d=m.you-m.c[cohort].med;if(d<0&&(worst===null||d<worst.d))worst={key:m.key,d};});
   const gap=worst&&BENCH_GAP[worst.key]?BENCH_GAP[worst.key]:null;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="How I'm doing" sub="Where you stand on the things that matter — measured against a cohort, not in a vacuum."/>
+    {lin&&<LineageDrawer node={lin} onClose={()=>setLin(null)}/>}
+    <SHead title="How I'm doing" sub="Where you stand on the things that matter — measured against a cohort, not in a vacuum. Click any metric to see how it's measured."/>
     {/* cohort selector */}
     <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
       {BENCH_COHORTS.map(([id,t,n])=><button key={id} onClick={()=>setCohort(id)} style={{display:"flex",flexDirection:"column",gap:2,padding:"9px 15px",borderRadius:12,border:`1px solid ${cohort===id?AI_GOLD:T.border}`,background:cohort===id?AI_GOLD:T.s2,cursor:"pointer",textAlign:"left"}}>
@@ -440,7 +458,7 @@ function EmployeeBenchmark({showToast}){
       {BENCH_METRICS.map(m=>{
         const cd=m.c[cohort], delta=m.you-cd.med, ahead=delta>=0;
         const dc=ahead?T.green:T.amber;
-        return <Card key={m.key} style={{padding:"14px 16px 12px"}}>
+        return <Card key={m.key} onClick={()=>setLin(metricLineage(m))} style={{padding:"14px 16px 12px",cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10}}>
             <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:10,color:T.ink4,fontFamily:F.m,marginTop:1}}>{m.what}</div></div>
             <span style={{fontSize:11,fontWeight:800,fontFamily:F.m,padding:"3px 9px",borderRadius:20,background:dc+"22",color:dc,whiteSpace:"nowrap"}}>{ahead?"+":"−"}{fmt(m,Math.abs(delta))} vs median</span>
@@ -478,6 +496,25 @@ export function PageAIUsage({role,sessionMode,showToast}){
   const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
   const u=seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0};
   const isManager=role==="manager";
+  const [lin,setLin]=useState(null);
+  /* Every dashboard tile traces to the governed-activity figures behind
+     it — prompt content is never shown, only aggregates. */
+  const activityRows=[
+    {name:"Time saved",v:`${u.timeSavedHrs}h`,unit:"this month"},
+    {name:"Successful prompts",v:String(u.prompts),unit:"through the Gateway"},
+    {name:"Prompt success rate",v:u.successRate+"%",unit:"first-answer usefulness"},
+    {name:"Knowledge reuse",v:u.knowledgeReuse+"%",unit:"answers enriched internally"},
+    {name:"Policy warnings",v:String(u.warnings),unit:"received"},
+    {name:"Blocked",v:String(u.blocked),unit:"nothing left the boundary"},
+  ];
+  const tileLineage=(l,v,sub)=>({label:l,value:String(v),formula:`${sub} · from your governed AI activity through the Gateway`,rows:activityRows,note:isManager?"Aggregated across your team's governed AI activity this period. Individual prompt content is never shown — aggregates only, by policy.":"Aggregated from your governed AI activity through the Gateway this period. The content of your prompts is never shown."});
+  const teamLineage=(l,v)=>({label:l,value:String(v),formula:`${l} · rolled up across the team`,rows:[
+    {name:"Team adoption",v:seeded?"64%":"—",unit:"active AI users"},
+    {name:"Business value",v:seeded?"$1.2M":"—",unit:"realized this period"},
+    {name:"Compliance score",v:seeded?"92%":"—",unit:"policy adherence"},
+    {name:"High-risk activity",v:seeded?"1":"—",unit:"flagged this period"},
+    {name:"Blocked events",v:seeded?"3":"—",unit:"stopped at the boundary"},
+  ],note:"Team aggregates only — no individual is named and no prompt content is shown, by policy."});
   const tiles=[
     ["Time saved",`${u.timeSavedHrs}h`,"This month",T.green],
     ["Successful prompts",u.prompts,"Through the Gateway",AI_GOLD],
@@ -487,9 +524,10 @@ export function PageAIUsage({role,sessionMode,showToast}){
     ["Blocked",u.blocked,"Nothing left the boundary",T.red],
   ];
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title={isManager?"Team AI Adoption":"My AI Dashboard"} sub={isManager?"Team adoption, value and compliance - private prompts are never shown. Content review requires explicit permission granted by policy.":"Your governed AI activity - productivity, safety and learning in one place."}/>
+    {lin&&<LineageDrawer node={lin} onClose={()=>setLin(null)}/>}
+    <SHead title={isManager?"Team AI Adoption":"My AI Dashboard"} sub={isManager?"Team adoption, value and compliance - private prompts are never shown. Content review requires explicit permission granted by policy. Click any tile to see how it's measured.":"Your governed AI activity - productivity, safety and learning in one place. Click any tile to trace it."}/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
-      {tiles.map(([l,v,sub,c])=><Card key={l} style={{padding:14}}>
+      {tiles.map(([l,v,sub,c])=><Card key={l} onClick={()=>setLin(tileLineage(l,v,sub))} style={{padding:14,cursor:"pointer"}}>
         <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
         <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,marginBottom:3}}>{v}</div>
         <div style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>{sub}</div>
@@ -522,10 +560,10 @@ export function PageAIUsage({role,sessionMode,showToast}){
         <Tag label="Prompt content review: disabled by policy" color={T.ink3} bg={T.s3}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:13}}>
-        {[["Team adoption",seeded?"64%":"--",T.teal],["Business value",seeded?"$1.2M":"--",AI_GOLD],["Compliance score",seeded?"92%":"--",T.green],["High-risk activity",seeded?"1":"--",T.amber],["Blocked events",seeded?"3":"--",T.red],["Training gap",seeded?"People unit":"--",T.blue]].map(([l,v,c])=><div key={l} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+        {[["Team adoption",seeded?"64%":"--",T.teal],["Business value",seeded?"$1.2M":"--",AI_GOLD],["Compliance score",seeded?"92%":"--",T.green],["High-risk activity",seeded?"1":"--",T.amber],["Blocked events",seeded?"3":"--",T.red],["Training gap",seeded?"People unit":"--",T.blue]].map(([l,v,c])=><button key={l} onClick={()=>setLin(teamLineage(l,v))} style={{textAlign:"left",background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
           <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:7}}>{l}</div>
           <div style={{fontSize:17,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
-        </div>)}
+        </button>)}
       </div>
       <h4 style={{fontSize:12,color:T.ink,margin:"0 0 8px"}}>Model utilization</h4>
       {gatewayProviders.slice(0,5).map(p=><div key={p.id} style={{display:"grid",gridTemplateColumns:"140px 1fr 44px",gap:10,alignItems:"center",marginBottom:7}}>
