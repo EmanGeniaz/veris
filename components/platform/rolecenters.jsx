@@ -81,10 +81,11 @@ function Tbl({eye,h3,head,rows,ctx,linkKind}){
   const val=r=>{const c=r.find((x,j)=>j>0&&(typeof x==="string"||typeof x==="number"));return Array.isArray(c)?c[0]:c;};
   /* A glance row → its own detail node (each column becomes a fact), so a
      click answers "what is this row" instead of a generic portfolio rollup. */
+  const detailNote={ session:"Every session runs through the Gateway with policy, redaction and evidence — this is the governed record behind it.", member:"Team aggregates for this person — adoption and compliance only, never prompt content, by policy." };
   const detailNode=(kind,r)=>({ label:r[0], value:String(cellText(r[r.length-1])),
-    formula: kind==="session"?`Governed AI session · ${cellText(r[1])} · routed through the Gateway`:`${eye||h3} · ${r[0]}`,
+    formula: kind==="session"?`Governed AI session · ${cellText(r[1])} · routed through the Gateway`:kind==="member"?`Team member · ${r[0]} · governed AI standing`:`${eye||h3} · ${r[0]}`,
     rows: head.slice(1).map((h,k)=>({ name:h, v:String(cellText(r[k+1])), unit:"" })),
-    note: kind==="session"?"Every session runs through the Gateway with policy, redaction and evidence — this is the governed record behind it.":"The detail behind this row, traced to its governed record." });
+    note: detailNote[kind]||"The detail behind this row, traced to its governed record." });
   const nodeFor=r=>linkKind==="tool"?toolNode(head,r):detailNode(linkKind,r);
   const onRow=r=>{ if(!clickable)return; const node=linkKind?nodeFor(r):r[0]; ctx.onLineage(node, linkKind?undefined:val(r)); };
   return <Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
