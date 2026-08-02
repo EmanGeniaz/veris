@@ -30,7 +30,7 @@ const Pill = ({children,c=T.ink3}) => <span style={{display:"inline-flex",alignI
 function Kpis({items,ctx}){
   const clickable=ctx&&ctx.onLineage;
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((k,i)=><div key={i} onClick={()=>clickable&&ctx.onLineage(k[0],k[1])} className={clickable?"vz-lin":""} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:clickable?"pointer":"default",transition:"border-color .15s"}}>
+    {items.map((k,i)=><div key={i} onClick={()=>clickable&&ctx.onLineage(k[4]?{label:k[0],value:k[1],...k[4]}:k[0],k[4]?undefined:k[1])} className={clickable?"vz-lin":""} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:clickable?"pointer":"default",transition:"border-color .15s"}}>
       <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{k[0]}</div>
       <div style={{fontSize:22,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:col(k[2])}}>{k[1]}</div>
       <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{k[3]}</div>
@@ -79,7 +79,14 @@ function toolNode(head,r){
 function Tbl({eye,h3,head,rows,ctx,linkKind}){
   const clickable=ctx&&ctx.onLineage;
   const val=r=>{const c=r.find((x,j)=>j>0&&(typeof x==="string"||typeof x==="number"));return Array.isArray(c)?c[0]:c;};
-  const onRow=r=>{ if(!clickable)return; ctx.onLineage(linkKind==="tool"?toolNode(head,r):r[0], linkKind==="tool"?undefined:val(r)); };
+  /* A glance row → its own detail node (each column becomes a fact), so a
+     click answers "what is this row" instead of a generic portfolio rollup. */
+  const detailNode=(kind,r)=>({ label:r[0], value:String(cellText(r[r.length-1])),
+    formula: kind==="session"?`Governed AI session · ${cellText(r[1])} · routed through the Gateway`:`${eye||h3} · ${r[0]}`,
+    rows: head.slice(1).map((h,k)=>({ name:h, v:String(cellText(r[k+1])), unit:"" })),
+    note: kind==="session"?"Every session runs through the Gateway with policy, redaction and evidence — this is the governed record behind it.":"The detail behind this row, traced to its governed record." });
+  const nodeFor=r=>linkKind==="tool"?toolNode(head,r):detailNode(linkKind,r);
+  const onRow=r=>{ if(!clickable)return; const node=linkKind?nodeFor(r):r[0]; ctx.onLineage(node, linkKind?undefined:val(r)); };
   return <Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
       <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
