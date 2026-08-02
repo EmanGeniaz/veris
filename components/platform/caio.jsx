@@ -4,6 +4,7 @@ import { useState } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
+import { frameworkScore } from "@/lib/portfolio";
 
 /* ── CAIO Command Center ────────────────────────────────────────────
    The AI Governance Office lens: governance score, compliance posture,
@@ -43,9 +44,12 @@ const GOV_INPUTS=[
   {k:"Data governance & privacy", v:70, w:"16%", src:"DPIA, lineage, retention"},
 ];
 const GOV_SCORE=72;
+/* Framework scores read the canonical posture (lib/portfolio.js) so CAIO,
+   CEO and AI Central never disagree. */
+const _cc=v=>v>=85?T.green:v>=75?T.blue:AI_GOLD;
 const COMPLIANCE=[
-  {k:"ISO 42001 (AIMS)", v:81, c:AI_GOLD},{k:"ISO 27001 (ISMS)", v:90, c:T.green},
-  {k:"EU AI Act", v:84, c:T.green},{k:"NIST AI RMF", v:77, c:T.green},{k:"GDPR / privacy", v:92, c:T.green},
+  {k:"ISO 42001 (AIMS)", v:frameworkScore("iso42001"), c:_cc(frameworkScore("iso42001"))},{k:"ISO 27001 (ISMS)", v:frameworkScore("iso27001"), c:_cc(frameworkScore("iso27001"))},
+  {k:"EU AI Act", v:frameworkScore("euai"), c:_cc(frameworkScore("euai"))},{k:"NIST AI RMF", v:frameworkScore("nist"), c:_cc(frameworkScore("nist"))},{k:"GDPR / privacy", v:frameworkScore("gdpr"), c:_cc(frameworkScore("gdpr"))},
 ];
 const CAIO_ATTENTION=[
   {t:"Human-oversight sign-off — Credit Decision Assurance", d:"EU AI Act Art.14 record ready. Your approval gates the scale review. High-risk system.", go:"Review & approve", c:T.red},
@@ -200,7 +204,7 @@ function OverviewTab({go}){
     <Eyebrow style={{margin:"0 2px 9px"}}>CAIO domain metrics</Eyebrow>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
       <Kpi l="Governance score" v={<>72<span style={{fontSize:13,color:T.ink4}}>/100</span></>} vc={T.green} s="+4 vs last quarter" onClick={()=>go("caiogov")}/>
-      <Kpi l="Active AI projects" v="9" s="2 high-risk · 4 limited" onClick={()=>go("caioplaybook")}/>
+      <Kpi l="Active AI projects" v="9" s="4 high-risk · 3 limited" onClick={()=>go("caioplaybook")}/>
       <Kpi l="Policies enforced" v="24" vc={T.blue} s="avg adherence 88%" onClick={()=>go("caiogov")}/>
       <Kpi l="ISO 42001 readiness" v="81%" vc={AI_GOLD} s="Stage-2 audit Q4" onClick={()=>go("caiogov")}/>
       <Kpi l="Open risks" v="12" vc={T.red} s="1 critical · 3 high" onClick={()=>go("caiorisk")}/>

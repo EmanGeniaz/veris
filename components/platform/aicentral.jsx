@@ -14,6 +14,7 @@ import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
+import { PF, OPEN_INCIDENTS } from "@/lib/portfolio";
 
 export function PageModelRegistry({setTab,openInitiative,role="caio",showToast}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -693,12 +694,12 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     active:{label:"Active AI projects",value:active,sub:"In lifecycle",color:T.blue,go:()=>openInitiative(selectedId,"journey")},
     risk:{label:"High-risk use cases",value:high,sub:"High or critical",color:T.red,go:()=>openModule("risk")},
     approvals:{label:"Pending approvals",value:pending,sub:"HITL and CXO",color:T.amber,go:()=>{setTab("decisions");}},
-    findings:{label:"Open audit findings",value:"6",sub:"2 overdue",color:T.red,go:()=>openModule("audit")},
+    findings:{label:"Open audit findings",value:"5",sub:"2 high",color:T.red,go:()=>openModule("audit")},
     guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("controls")},
     adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
     value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openModule("value")},
-    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>{setPfTab("units");openModule("portfolio");}},
-    roi:{label:"Portfolio ROI",value:"19%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("value")},
+    budget:{label:"Budget utilization",value:`${Math.round(PF.spent/PF.budget*100)}%`,sub:`$${PF.spent.toFixed(1)}M of $${PF.budget.toFixed(1)}M FY26`,color:T.blue,score:Math.round(PF.spent/PF.budget*100),go:()=>{setPfTab("units");openModule("portfolio");}},
+    roi:{label:"Portfolio ROI",value:"+22%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("value")},
   };
   const LENS_WIDGETS={
     Executive:["portfolio","value","roi","risk","budget","approvals"],
@@ -719,7 +720,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
 
   const Dashboard=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
-      {(LENS_WIDGETS[access.lens]||LENS_WIDGETS.Governance).map(k=>{const w=W[k];return <Metric key={k} label={w.label} value={w.value} sub={w.sub} color={w.color} score={w.score} onClick={w.go}/>;})}
+      {/* Budget is gated: in the common AI Central view everyone sees adoption,
+         initiatives, risk and value — but financials show only to budget-owner
+         roles (CEO/CFO). Others see budget only inside their own initiative. */}
+      {(LENS_WIDGETS[access.lens]||LENS_WIDGETS.Governance).filter(k=>k!=="budget"||["ceo","cfo"].includes(role)).map(k=>{const w=W[k];return <Metric key={k} label={w.label} value={w.value} sub={w.sub} color={w.color} score={w.score} onClick={w.go}/>;})}
     </div>
     {attention.length>0&&<Card style={{padding:"14px 18px",marginBottom:14,border:`1px solid ${T.amber}40`}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:0}}>Initiatives needing attention</h3><Tag label={`${attention.length}`} color={T.amber} bg={T.amberL}/></div>
@@ -2247,15 +2251,15 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {name:"Fraud Detection Model",type:"ML Model",owner:"D. Osei",unit:"Retail Banking",status:["Production","good"],
       desc:"Scores transactions in real time for fraud risk and flags anomalies to the case-management queue for review.",
       arch:{Model:"Gradient-boosted ensemble v3",Data:"Transaction stream · device signals",Integrations:"Core banking · case mgmt",Guardrails:"Drift monitor · human review"}},
-    {name:"Finance Close Automation",type:"GenAI Agent",owner:"R. Chen",unit:"Finance",status:["Scaling","good"],
+    {name:"Finance Close Automation",type:"GenAI Agent",owner:"Elena Rossi · Finance",unit:"Finance",status:["Scaling","good"],
       desc:"Automates reconciliations and drafts close-cycle journal narratives, keeping a human approval gate before posting.",
       arch:{Model:"GPT-4o · via AI Gateway",Data:"Ledger · reconciliations",Integrations:"ERP · close workflow",Guardrails:"Approval gate · evidence log"}},
-    {name:"Credit Decision Assurance",type:"Decision Model",owner:"CDPO office",unit:"SME Lending",status:["Remediate","warn"],
+    {name:"Credit Decision Assurance",type:"Decision Model",owner:"Omar Khan · Retail Banking",unit:"Retail Banking",status:["Remediate","warn"],
       desc:"Recommends credit decisions with a written rationale; every adverse outcome routes to mandatory human review.",
       arch:{Model:"Scorecard + LLM rationale",Data:"Applications · bureau data",Integrations:"Loan origination",Guardrails:"Art.22 human review · DPIA"}},
     {name:"Workforce Skills Navigator",type:"GenAI Agent",owner:"CHRO office",unit:"People",status:["Assessment","info"],
       desc:"Maps employees to reskilling paths from a skills graph and role profiles, with consent and bias checks before use.",
-      arch:{Model:"Gemini · via AI Gateway",Data:"Skills graph · role profiles",Integrations:"HRIS · LMS",Guardrails:"Consent · bias eval"}},
+      arch:{Model:"Gradient-boosted ranker",Data:"Skills graph · role profiles",Integrations:"HRIS · LMS",Guardrails:"Consent · bias eval"}},
     {name:"Supplier Risk Screener",type:"GenAI Agent",owner:"Procurement",unit:"Operations",status:["Pilot","info"],
       desc:"Summarises supplier filings and news into a risk brief for procurement, citing every source it draws from.",
       arch:{Model:"Claude Haiku · via AI Gateway",Data:"Vendor filings · news",Integrations:"Procurement suite",Guardrails:"Source citation · rate-limit"}},
@@ -2298,7 +2302,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const AIStrategy=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Strategic pillars" value="4" sub="board-agreed" color={rc}/>
-      <Metric label="FY26 investment" value="$13.4M" sub="allocated across pillars" color={AI_GOLD}/>
+      <Metric label="FY26 investment" value={`$${PF.budget.toFixed(1)}M`} sub="allocated across pillars" color={AI_GOLD}/>
       <Metric label="On roadmap" value="12" sub="initiatives sequenced" color={T.blue}/>
       <Metric label="Maturity target" value="3.8" sub="of 5 by FY27" color={T.teal} score={76}/>
     </div>
@@ -2400,7 +2404,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Trust posture" value="82" sub="live composite" color={T.green} score={82}/>
       <Metric label="Attacks blocked" value="2,410" sub="last 30 days" color={T.blue}/>
-      <Metric label="Live incidents" value="1" sub="P1 prompt-injection" color={T.red}/>
+      <Metric label="Open incidents" value={String(OPEN_INCIDENTS)} sub="1 P1 · prompt-injection" color={T.red}/>
       <Metric label="Attestations" value="6" sub="current" color={AI_GOLD}/>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.1fr .9fr",gap:14}}>
