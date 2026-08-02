@@ -6,6 +6,7 @@ import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card, vzDownload } from "./core";
 import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
+import { PORTFOLIO as CEO_PORTFOLIO, PF, FRAMEWORKS as CANON_FRAMEWORKS, COMPLIANCE_PCT, OPEN_INCIDENTS } from "@/lib/portfolio";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
 
@@ -45,23 +46,9 @@ const programLineage = p => ({
    tracks: Scaling, In Production, In Progress, Completed, Retired. */
 const stageColor=s=>({Scaling:T.green,"In Production":AI_GOLD,"In Progress":T.blue,Completed:T.ink3,Retired:T.red}[s]||T.ink3);
 
-/* Enterprise portfolio — the four platform initiatives plus the wider
-   estate a CEO oversees. Reuses canonical program names so the board
-   view reconciles with AI Central. Values are the seeded showcase set. */
-export const CEO_PORTFOLIO=[
-  {name:"Finance Close Automation", unit:"Finance", stage:"Scaling", health:88, region:"EMEA", approval:"CEO-approved", budget:0.9, spent:0.9, realized:1.6, roi:78, ttv:5.1, risk:"Low"},
-  {name:"Doc Summarisation AI", unit:"Customer Ops", stage:"Scaling", health:85, region:"APAC", approval:"Sponsor", budget:0.5, spent:0.5, realized:0.7, roi:40, ttv:4.2, risk:"Low"},
-  {name:"Fraud Detection Model", unit:"Retail Banking", stage:"In Production", health:81, region:"EMEA", approval:"CEO-approved", budget:1.4, spent:1.4, realized:2.0, roi:43, ttv:6.4, risk:"High"},
-  {name:"Payments Anomaly Guard", unit:"Retail Banking", stage:"In Production", health:77, region:"Americas", approval:"Sponsor", budget:0.6, spent:0.5, realized:0.6, roi:20, ttv:7.0, risk:"Medium"},
-  {name:"Customer Resolution Copilot", unit:"Customer Ops", stage:"In Production", health:74, region:"Americas", approval:"Under review", budget:1.8, spent:1.5, realized:0.3, roi:-12, ttv:9.8, risk:"High"},
-  {name:"Predictive Maintenance", unit:"Retail Banking", stage:"In Production", health:72, region:"APAC", approval:"Sponsor", budget:0.5, spent:0.4, realized:0.5, roi:25, ttv:6.8, risk:"Medium"},
-  {name:"Credit Decision Assurance", unit:"Retail Banking", stage:"In Progress", health:62, region:"EMEA", approval:"Gate pending", budget:2.2, spent:1.9, realized:0.0, roi:0, ttv:null, risk:"Critical"},
-  {name:"Workforce Skills Navigator", unit:"People", stage:"In Progress", health:52, region:"APAC", approval:"Sponsor", budget:0.4, spent:0.2, realized:0.0, roi:0, ttv:null, risk:"High"},
-  {name:"Supplier Risk Screener", unit:"Customer Ops", stage:"In Progress", health:48, region:"Americas", approval:"Sponsor", budget:0.3, spent:0.2, realized:0.0, roi:0, ttv:null, risk:"Medium"},
-  {name:"Contract Review Assist", unit:"Customer Ops", stage:"Completed", health:100, region:"Americas", approval:"CEO-approved", budget:0.5, spent:0.5, realized:0.9, roi:80, ttv:5.6, risk:"Low"},
-  {name:"HR Query Bot", unit:"People", stage:"Completed", health:100, region:"EMEA", approval:"Sponsor", budget:0.3, spent:0.3, realized:0.5, roi:67, ttv:4.9, risk:"Low"},
-  {name:"RecoEngine v2", unit:"Retail Banking", stage:"Retired", health:0, region:"—", approval:"Superseded", budget:0.4, spent:0.4, realized:0.2, roi:0, ttv:null, risk:"Low"},
-];
+/* Enterprise portfolio now lives in lib/portfolio.js (the canonical spine)
+   and is imported as CEO_PORTFOLIO above; PF holds the derived rollups so
+   every headline number reconciles with CAIO and AI Central. */
 
 const STAGES=["Scaling","In Production","In Progress","Completed","Retired"];
 const stageCount=s=>CEO_PORTFOLIO.filter(p=>p.stage===s).length;
@@ -230,12 +217,12 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
 
     {/* KPI strip — each tile drills into its home surface */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-      <Kpi l="Portfolio value" v="$4.1M" s="realized of $17.5M expected" spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>} onClick={()=>goto("ceobudget")}/>
-      <Kpi l="Enterprise health" v="78" vc={T.green} s="weighted across 4 programs" spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>} onClick={goPortfolio}/>
-      <Kpi l="Overall AI risk" v={<>12<span style={{fontSize:13,color:T.ink4}}>/25</span></>} vc={T.red} s="1 critical · 2 high open" spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
-      <Kpi l="Compliance" v="84%" vc={T.blue} s="EU AI Act · ISO 42001 · GDPR" onClick={openCompliance}/>
-      <Kpi l="Adoption" v="61%" s="across 4 business units" onClick={goPortfolio}/>
-      <Kpi l="Security incidents" v="2" vc={AI_GOLD} s="this quarter · 0 breaches" onClick={openFull}/>
+      <Kpi l="Portfolio value" v={`$${PF.realized.toFixed(1)}M`} s={`realized of $${PF.budget.toFixed(1)}M allocated`} spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>} onClick={()=>goto("ceobudget")}/>
+      <Kpi l="Enterprise health" v={PF.avgHealth} vc={T.green} s={`weighted across ${PF.count} programs`} spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>} onClick={goPortfolio}/>
+      <Kpi l="Overall AI risk" v={<>{PF.criticalCount+PF.highCount+PF.mediumCount}<span style={{fontSize:13,color:T.ink4}}>/{PF.count}</span></>} vc={T.red} s={`${PF.criticalCount} critical · ${PF.highCount} high open`} spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
+      <Kpi l="Compliance" v={`${COMPLIANCE_PCT}%`} vc={T.blue} s="EU AI Act · ISO 42001 · GDPR" onClick={openCompliance}/>
+      <Kpi l="Adoption" v={`${PF.adoption}%`} s="across 4 business units" onClick={goPortfolio}/>
+      <Kpi l="Security incidents" v={OPEN_INCIDENTS} vc={AI_GOLD} s="open this quarter · 0 breaches" onClick={openFull}/>
     </div>
 
     {/* lifecycle bands */}
@@ -346,14 +333,14 @@ function RegionLegend(){
 function BudgetValue({big}){
   return <div>
     <div style={{display:"flex",alignItems:"center",gap:18,flexWrap:"wrap"}}>
-      <Donut pct={57} size={big?140:122}/>
+      <Donut pct={PF.valueToBudgetPct} size={big?140:122}/>
       <div style={{display:"flex",flexDirection:"column",gap:9}}>
-        {[["Value realized","$4.6M",T.green],["Consumed, no value yet","$2.1M",AI_GOLD],["Unspent allocation","$1.3M",T.border]].map(([l,v,c])=>
+        {[["Value realized",`$${PF.realized.toFixed(1)}M`,T.green],["Consumed, no value yet",`$${PF.consumedNoValue.toFixed(1)}M`,AI_GOLD],["Unspent allocation",`$${PF.unspent.toFixed(1)}M`,T.border]].map(([l,v,c])=>
           <div key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:T.ink2,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:3,background:c}}/>{l}<b style={{marginLeft:"auto",color:T.ink,fontFamily:F.m}}>{v}</b></div>)}
       </div>
     </div>
     <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>
-      {[["Portfolio ROI","+22%",T.green],["Avg time-to-value","7.4 mo",T.ink]].map(([l,v,c])=>
+      {[["Realized / invested",`${PF.realizedRatio}%`,T.green],["Avg time-to-value",`${PF.avgTtv} mo`,T.ink]].map(([l,v,c])=>
         <div key={l} style={{flex:1,minWidth:120,background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
     </div>
   </div>;
@@ -403,8 +390,8 @@ function ValueTab(){
   const rows=CEO_PORTFOLIO.filter(p=>p.spent>0).slice(0,5);
   return <div style={{animation:"up .2s ease"}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16}}>
-      <Card style={cardPad}><Eyebrow>Budget → Value</Eyebrow><H3 style={{marginBottom:14}}>$8.0M allocated · where it went</H3><BudgetValue big/></Card>
-      <Card style={cardPad}><Eyebrow>Value realized — trailing 7 quarters</Eyebrow><H3 style={{marginBottom:14}}>$1.2M → $4.6M realized</H3>
+      <Card style={cardPad}><Eyebrow>Budget → Value</Eyebrow><H3 style={{marginBottom:14}}>${PF.budget.toFixed(1)}M allocated · where it went</H3><BudgetValue big/></Card>
+      <Card style={cardPad}><Eyebrow>Value realized — trailing 7 quarters</Eyebrow><H3 style={{marginBottom:14}}>$1.2M → ${PF.realized.toFixed(1)}M realized</H3>
         <svg width="100%" height="150" viewBox="0 0 300 150" preserveAspectRatio="none">
           <defs><linearGradient id="vg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={AI_GOLD} stopOpacity=".35"/><stop offset="1" stopColor={AI_GOLD} stopOpacity="0"/></linearGradient></defs>
           <polygon points="0,120 50,112 100,96 150,84 200,60 250,40 300,22 300,150 0,150" fill="url(#vg)"/>
@@ -516,14 +503,11 @@ function ExposureTab(){
     </Card>
   </div>;
 }
-const CEO_FRAMEWORKS=[
-  {fw:"EU AI Act",      pct:88, c:T.green, sub:"Art.6 conformity · 1 high-risk in review", scope:"AI-specific"},
-  {fw:"ISO 42001",      pct:81, c:T.blue,  sub:"AI management-system controls", scope:"AI-specific"},
-  {fw:"ISO 27001",      pct:90, c:T.green, sub:"Annex A controls · ISMS certified", scope:"Security"},
-  {fw:"GDPR / Privacy", pct:92, c:T.green, sub:"DPIAs complete on live systems", scope:"Privacy"},
-  {fw:"NIST AI RMF",    pct:74, c:AI_GOLD, sub:"Govern·Map·Measure·Manage", scope:"AI-specific"},
-  {fw:"SOC 2 Type II",  pct:86, c:T.green, sub:"Trust-services criteria · annual", scope:"Security"},
-];
+/* Compliance posture reads the canonical framework set (lib/portfolio.js)
+   so the CEO, CAIO and AI Central numbers can never disagree again. */
+const fwColor=p=>p>=85?T.green:p>=75?T.blue:AI_GOLD;
+const _fwSub={euai:"Art.6 conformity · 1 high-risk in review",iso42001:"AI management-system controls",iso27001:"Annex A controls · ISMS certified",gdpr:"DPIAs complete on live systems",nist:"Govern·Map·Measure·Manage",soc2:"Trust-services criteria · annual"};
+const CEO_FRAMEWORKS=CANON_FRAMEWORKS.map(f=>({fw:f.name,pct:f.score,c:fwColor(f.score),sub:_fwSub[f.id]||f.sub,scope:f.scope}));
 /* ISO 27001 Annex A control-family posture — the security backbone under
    every AI system. */
 const ISO27001_FAMILIES=[
@@ -700,17 +684,19 @@ function Portfolio(){
 /* ══════════════════ BUDGET ══════════════════ */
 function Budget(){
   const rows=CEO_PORTFOLIO.filter(p=>p.spent>0).sort((a,b)=>b.budget-a.budget).slice(0,5);
-  const other=CEO_PORTFOLIO.length-rows.length;
+  const rest=CEO_PORTFOLIO.filter(p=>!rows.includes(p));
+  const oB=rest.reduce((s,p)=>s+p.budget,0), oS=rest.reduce((s,p)=>s+p.spent,0), oR=rest.reduce((s,p)=>s+p.realized,0);
+  const ttvVals=CEO_PORTFOLIO.filter(p=>p.ttv).map(p=>p.ttv);
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title="Budget" sub="Per-project budget, ROI and time-to-value across the portfolio."/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
-      <Kpi l="Allocated" v="$8.0M" s="FY26 AI budget" lin={["Budget allocated","$8.0M"]}/><Kpi l="Value realized" v="$4.6M" vc={T.green} s="57% turned to value" lin={["Value realized","$4.6M"]}/>
-      <Kpi l="Value leaked" v="$2.1M" vc={AI_GOLD} s="consumed, no value yet" lin={["Value leaked","$2.1M"]}/><Kpi l="Avg time-to-value" v="7.4 mo" s="fastest 4.2 · slowest 9.8" lin={["Avg time-to-value","7.4 mo"]}/>
+      <Kpi l="Allocated" v={`$${PF.budget.toFixed(1)}M`} s="FY26 AI budget" lin={["Budget allocated",`$${PF.budget.toFixed(1)}M`]}/><Kpi l="Value realized" v={`$${PF.realized.toFixed(1)}M`} vc={T.green} s={`${PF.valueToBudgetPct}% turned to value`} lin={["Value realized",`$${PF.realized.toFixed(1)}M`]}/>
+      <Kpi l="Consumed, no value" v={`$${PF.consumedNoValue.toFixed(1)}M`} vc={AI_GOLD} s="pre-payload programs" lin={["Value leaked",`$${PF.consumedNoValue.toFixed(1)}M`]}/><Kpi l="Avg time-to-value" v={`${PF.avgTtv} mo`} s={`fastest ${Math.min(...ttvVals)} · slowest ${Math.max(...ttvVals)}`} lin={["Avg time-to-value",`${PF.avgTtv} mo`]}/>
     </div>
     <Card style={cardPad}><Eyebrow>Budget per project</Eyebrow><H3 style={{marginBottom:14}}>Allocated · consumed · ROI · time-to-value — click a program to trace it</H3>
       <Table head={["Program","Allocated","Consumed","Realized","ROI","Time-to-value"]}>
         {rows.map(p=><LinRow key={p.name} node={programLineage(p)}><Td style={{fontWeight:700,color:T.ink}}>{p.name}</Td><Td>${p.budget.toFixed(1)}M</Td><Td>${p.spent.toFixed(1)}M</Td><Td>${p.realized.toFixed(1)}M</Td><Td><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"% (early)":"Pending gate"}</Pill></Td><Td>{p.ttv?p.ttv+" mo":"—"}</Td></LinRow>)}
-        <tr><Td style={{fontWeight:700,color:T.ink}}>Others ({other} programs)</Td><Td>$1.2M</Td><Td>$0.6M</Td><Td>$0.0M</Td><Td><Pill c={T.ink3}>Ramping</Pill></Td><Td>—</Td></tr>
+        <tr><Td style={{fontWeight:700,color:T.ink}}>Others ({rest.length} programs)</Td><Td>${oB.toFixed(1)}M</Td><Td>${oS.toFixed(1)}M</Td><Td>${oR.toFixed(1)}M</Td><Td><Pill c={T.ink3}>Ramping</Pill></Td><Td>—</Td></tr>
       </Table>
     </Card>
   </div>;
@@ -779,10 +765,10 @@ function Reporting({showToast}){
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
       <Eyebrow style={{color:AI_GOLD}}>Board pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>Executive AI Report — Q3 FY26</H3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
-        {[["Portfolio value","$4.1M",T.ink],["Overall risk","12/25",T.red],["Adoption","61%",T.ink]].map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
+        {[["Portfolio value",`$${PF.realized.toFixed(1)}M`,T.ink],["Overall risk",`${PF.criticalCount+PF.highCount+PF.mediumCount}/${PF.count}`,T.red],["Adoption",`${PF.adoption}%`,T.ink]].map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
       </div>
       <Table head={[]}>
-        {[["By region","EMEA 5 live · Americas 4 · APAC 3 — adoption 72 / 58 / 44%"],["By risk","3 high · 5 medium · 8 low — 1 critical awaiting your gate decision"],["By time","Value realized $1.2M → $4.6M across 7 quarters"],["Resource tracking","1,240 in Customer Ops · 910 Retail Banking · 380 Finance · 260 People"]].filter(r=>sel.has(r[0])||["By time","Resource tracking"].includes(r[0])).map(r=>
+        {[["By region","EMEA 5 live · Americas 4 · APAC 3 — adoption 72 / 58 / 44%"],["By risk",`${PF.criticalCount} critical · ${PF.highCount} high · ${PF.mediumCount} medium — ${PF.count-PF.criticalCount-PF.highCount-PF.mediumCount} low; critical awaiting your gate decision`],["By time",`Value realized $1.2M → $${PF.realized.toFixed(1)}M across 7 quarters`],["Resource tracking","1,240 in Customer Ops · 910 Retail Banking · 380 Finance · 260 People"]].filter(r=>sel.has(r[0])||["By time","Resource tracking"].includes(r[0])).map(r=>
           <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink,width:150}}>{r[0]}</Td><Td>{r[1]}</Td></tr>)}
       </Table>
       <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}>
