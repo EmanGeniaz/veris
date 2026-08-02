@@ -59,13 +59,29 @@ function Bars({eye,h3,rows,legend,raw}){
   </Card>;
 }
 const cell = c => Array.isArray(c) ? <Pill c={col(c[1])}>{c[0]}</Pill> : c;
-function Tbl({eye,h3,head,rows,ctx}){
+/* A governed-tool catalogue row → a tool-detail node (its own status, data
+   class, risk, owner + what to do to get access), NOT the initiative
+   lineage — a tool isn't an initiative. */
+const cellText=c=>Array.isArray(c)?c[0]:c;
+function toolNode(head,r){
+  const status=String(cellText(r[1])||"");
+  const blocked=/blocked/i.test(status), restricted=/restricted/i.test(status);
+  const note=blocked?"Blocked by policy — not permitted for any data class. Use an approved alternative from your AI Hub; requesting access won't override the block."
+    :restricted?"Restricted — needs the owner's approval before use. Raise a request under My Requests and it routes to the owner for sign-off."
+    :"Approved for you — governed through the AI Gateway with policy enforcement, PII redaction and automatic evidence.";
+  return { label:r[0], value:status,
+    formula:`Governed AI tool · owner ${cellText(r[r.length-1])} · access by policy`,
+    rows: head.slice(1).map((h,k)=>({ name:h, v:String(cellText(r[k+1])), unit:"" })),
+    note };
+}
+function Tbl({eye,h3,head,rows,ctx,linkKind}){
   const clickable=ctx&&ctx.onLineage;
   const val=r=>{const c=r.find((x,j)=>j>0&&(typeof x==="string"||typeof x==="number"));return Array.isArray(c)?c[0]:c;};
+  const onRow=r=>{ if(!clickable)return; ctx.onLineage(linkKind==="tool"?toolNode(head,r):r[0], linkKind==="tool"?undefined:val(r)); };
   return <Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
       <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
-      <tbody>{rows.map((r,i)=><tr key={i} onClick={()=>clickable&&ctx.onLineage(r[0],val(r))} className={clickable?"vz-lrow":""} style={{cursor:clickable?"pointer":"default"}}>{r.map((c,j)=><td key={j} style={{padding:"11px 10px",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",color:j===0?T.ink:T.ink2,fontWeight:j===0?700:400}}>{cell(c)}</td>)}</tr>)}</tbody>
+      <tbody>{rows.map((r,i)=><tr key={i} onClick={()=>onRow(r)} className={clickable?"vz-lrow":""} style={{cursor:clickable?"pointer":"default"}}>{r.map((c,j)=><td key={j} style={{padding:"11px 10px",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",color:j===0?T.ink:T.ink2,fontWeight:j===0?700:400}}>{cell(c)}</td>)}</tr>)}</tbody>
     </table></div>
     {clickable&&<style>{`.vz-lrow:hover td{background:${T.s2}}`}</style>}
   </Card>;
@@ -321,11 +337,8 @@ function Overview({role,cfg,ctx,userName}){
   const name=(userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
-  const lenses=cfg.surfaces.filter(s=>!/reports$|playbook$|assistant$/.test(s.id)).slice(0,4);
-  const [tab,setTab]=useState(0);
   const [brief,setBrief]=useState(null);
   const [lineage,setLineage]=useState(null);
-  const TABS=[{label:"Overview"},...lenses.map(s=>({label:s.label,blocks:s.blocks,id:s.id}))];
   /* Cross-functional binding: every CXO sees the initiatives that need
      THEIR facet of the shared initiative — one object, many owners. */
   const facetDomain=ROLE_FACET[role];
@@ -343,7 +356,7 @@ function Overview({role,cfg,ctx,userName}){
       </button>)}
     </div>:<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:6}}>Nothing needs your {facetDomain} review right now — every initiative's {facetDomain} facet is cleared.</div>}
   </Card>;
-  const lctx={...ctx,onLineage:(l,v)=>setLineage({label:l,value:v})};
+  const lctx={...ctx,onLineage:(l,v)=>setLineage(l&&typeof l==="object"?l:{label:l,value:v})};
   return <div style={{animation:"up .3s ease"}}>
     {brief&&<BriefDrawer a={brief} role={role} onClose={()=>setBrief(null)}/>}
     {lineage&&<LineageDrawer node={lineage} onAsset={id=>{setBrief(assetById(id));setLineage(null);}} onClose={()=>setLineage(null)}/>}
@@ -358,14 +371,9 @@ function Overview({role,cfg,ctx,userName}){
         <div style={{textAlign:"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{cfg.hero[1]}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{cfg.hero[2]}</div></div>
       </div>
     </div>
-    {/* The Overview chip stays in-page; the rest are shortcuts that navigate
-       to the surface they name (matching the sidebar), not just a preview. */}
-    <div style={{display:"flex",gap:6,margin:"18px 0",flexWrap:"wrap"}}>
-      {TABS.map((t,i)=><button key={i} onClick={()=>{ if(i===0){setTab(0);} else if(ctx.setTab){ctx.setTab(TABS[i].id);} }} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===i?AI_GOLD:T.border}`,background:tab===i?AI_GOLD:T.s2,color:tab===i?"#0b0e24":T.ink3}}>{t.label}</button>)}
-    </div>
-    {tab===0
-      ? <div style={{animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>
-      : <div style={{animation:"up .2s ease"}}><Blocks blocks={TABS[tab].blocks} ctx={{...lctx,deep:false,goSurface:()=>ctx.setTab&&ctx.setTab(TABS[tab].id)}}/></div>}
+    {/* One home summary — navigation lives in the sidebar, so the old
+       lens chips (which just duplicated the sidebar) are gone. */}
+    <div style={{marginTop:18,animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>
   </div>;
 }
 
@@ -373,7 +381,7 @@ export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView
   const [lineage,setLineage]=useState(null);
   const [brief,setBrief]=useState(null);
   const cfg=ROLE_CENTERS[role]; if(!cfg) return null;
-  const ctx={role,setTab,setAiCentralView,navigate,showToast,onLineage:(l,v)=>setLineage({label:l,value:v})};
+  const ctx={role,setTab,setAiCentralView,navigate,showToast,onLineage:(l,v)=>setLineage(l&&typeof l==="object"?l:{label:l,value:v})};
   if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
   const s=cfg.surfaces.find(x=>x.id===tab);
   if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;

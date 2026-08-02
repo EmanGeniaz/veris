@@ -128,7 +128,10 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     document.addEventListener("mousedown",h);document.addEventListener("keydown",k);
     return()=>{document.removeEventListener("mousedown",h);document.removeEventListener("keydown",k);};
   },[menuOpen]);
-  const profileKey=sessionMode==="demo"?"demo":sessionMode==="aicentral"?"aicentral":role;
+  /* The rail footer shows the persona you're viewing so it matches the
+     greeting (demo browses role personas — "Jamie" greeting, "Jamie Park"
+     footer, not "Demo Center"). AI Central mode keeps its own identity. */
+  const profileKey=sessionMode==="aicentral"?"aicentral":role;
   const U=profiles?.[profileKey]||USER_PROFILES[profileKey]||R;
   const initials=(U.name||R.name).split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
   const isMobile=typeof window!=="undefined"&&window.innerWidth<768;
