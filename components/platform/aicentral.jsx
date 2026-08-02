@@ -14,6 +14,7 @@ import { acLensFor } from "@/lib/ai-central-lens";
 import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
+import { PF, OPEN_INCIDENTS } from "@/lib/portfolio";
 
 export function PageModelRegistry({setTab,openInitiative,role="caio",showToast}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -697,7 +698,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     guardrail:{label:"Guardrail compliance",value:avgGuard+"%",sub:"Mandatory controls",color:T.green,score:avgGuard,go:()=>openModule("controls")},
     adoption:{label:"AI adoption score",value:avgAdopt+"%",sub:"Workforce readiness",color:T.teal,score:avgAdopt,go:()=>openModule("academy")},
     value:{label:"Business value score",value:avgValue+"%",sub:"ROI and outcomes",color:AI_GOLD,score:avgValue,go:()=>openModule("value")},
-    budget:{label:"Budget utilization",value:"64%",sub:"$8.6M of $13.4M FY26",color:T.blue,score:64,go:()=>{setPfTab("units");openModule("portfolio");}},
+    budget:{label:"Budget utilization",value:`${Math.round(PF.spent/PF.budget*100)}%`,sub:`$${PF.spent.toFixed(1)}M of $${PF.budget.toFixed(1)}M FY26`,color:T.blue,score:Math.round(PF.spent/PF.budget*100),go:()=>{setPfTab("units");openModule("portfolio");}},
     roi:{label:"Portfolio ROI",value:"+22%",sub:"Weighted actual vs expected",color:T.green,go:()=>openModule("value")},
   };
   const LENS_WIDGETS={
@@ -719,7 +720,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
 
   const Dashboard=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
-      {(LENS_WIDGETS[access.lens]||LENS_WIDGETS.Governance).map(k=>{const w=W[k];return <Metric key={k} label={w.label} value={w.value} sub={w.sub} color={w.color} score={w.score} onClick={w.go}/>;})}
+      {/* Budget is gated: in the common AI Central view everyone sees adoption,
+         initiatives, risk and value — but financials show only to budget-owner
+         roles (CEO/CFO). Others see budget only inside their own initiative. */}
+      {(LENS_WIDGETS[access.lens]||LENS_WIDGETS.Governance).filter(k=>k!=="budget"||["ceo","cfo"].includes(role)).map(k=>{const w=W[k];return <Metric key={k} label={w.label} value={w.value} sub={w.sub} color={w.color} score={w.score} onClick={w.go}/>;})}
     </div>
     {attention.length>0&&<Card style={{padding:"14px 18px",marginBottom:14,border:`1px solid ${T.amber}40`}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{width:7,height:7,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/><h3 style={{fontSize:13,color:T.ink,fontWeight:800,margin:0}}>Initiatives needing attention</h3><Tag label={`${attention.length}`} color={T.amber} bg={T.amberL}/></div>
@@ -2298,7 +2302,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const AIStrategy=()=><div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Strategic pillars" value="4" sub="board-agreed" color={rc}/>
-      <Metric label="FY26 investment" value="$13.4M" sub="allocated across pillars" color={AI_GOLD}/>
+      <Metric label="FY26 investment" value={`$${PF.budget.toFixed(1)}M`} sub="allocated across pillars" color={AI_GOLD}/>
       <Metric label="On roadmap" value="12" sub="initiatives sequenced" color={T.blue}/>
       <Metric label="Maturity target" value="3.8" sub="of 5 by FY27" color={T.teal} score={76}/>
     </div>
@@ -2400,7 +2404,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Trust posture" value="82" sub="live composite" color={T.green} score={82}/>
       <Metric label="Attacks blocked" value="2,410" sub="last 30 days" color={T.blue}/>
-      <Metric label="Live incidents" value="1" sub="P1 prompt-injection" color={T.red}/>
+      <Metric label="Open incidents" value={String(OPEN_INCIDENTS)} sub="1 P1 · prompt-injection" color={T.red}/>
       <Metric label="Attestations" value="6" sub="current" color={AI_GOLD}/>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.1fr .9fr",gap:14}}>

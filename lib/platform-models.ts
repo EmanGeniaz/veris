@@ -796,7 +796,7 @@ export const riskRegister: RiskRecord[] = [
     aiRecommendation: "Bias alert rate is above threshold - recommend blocking Scale until two consecutive weeks under 2.5 alerts/1k." },
   { id: "RSK-004", title: "Adverse decision harm", system: "Credit Decision Assurance", category: "Consumer Harm",
     initiativeId: "ai-002", unit: "Retail Banking", execOwner: "CEO", riskOwner: "Omar Khan",
-    likelihood: 3, impact: 5, residual: 10, level: "High", status: "Open",
+    likelihood: 4, impact: 5, residual: 12, level: "Critical", status: "Open",
     frameworks: ["EU AI Act Art.14", "GDPR Art.22"], controls: ["CTRL-AI-001", "CTRL-GRC-044"], kris: ["KRI-02"],
     desc: "An incorrect automated credit decision has direct legal effect on a customer. Human oversight design is still awaiting approval.",
     treatment: { strategy: "Mitigate", action: "HITL review for all adverse decisions; oversight design record to be approved; quarterly outcome audit.", owner: "Risk Engineering", deadline: "Jun 5", status: "Planned", priority: "Critical" },
