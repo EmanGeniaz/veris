@@ -183,14 +183,22 @@ function Library({items}){
     {items.map((l,i)=><Card key={i} style={{padding:"14px 15px",cursor:"pointer"}}><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{l[0]}</div><div style={{fontSize:10.5,color:T.ink3,marginTop:5,lineHeight:1.5,fontFamily:F.b}}>{l[1]}</div><div style={{marginTop:9}}><Pill c={col(l[3])}>{l[2]}</Pill></div></Card>)}
   </div>;
 }
-function Report({eye,h3,dims,showToast}){
+function Report({eye,h3,dims,completed,showToast}){
   const [sel,setSel]=useState(new Set(dims.slice(0,3)));
   const [gen,setGen]=useState(false);
   const toggle=d=>setSel(s=>{const n=new Set(s);n.has(d)?n.delete(d):n.add(d);return n;});
   return <><Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
+    <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,margin:"2px 0 11px"}}>Pick the dimensions to include, then export as <b style={{color:T.ink2}}>PDF</b> (board-ready) or <b style={{color:T.ink2}}>Excel</b> (evidence workbook).</div>
     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{dims.map(d=><button key={d} onClick={()=>toggle(d)} style={{padding:"7px 14px",borderRadius:20,fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px solid ${sel.has(d)?AI_GOLD:T.border}`,background:sel.has(d)?AI_GOLD:T.s2,color:sel.has(d)?"#0b0e24":T.ink3}}>{d}</button>)}</div>
     <div style={{display:"flex",gap:9,marginTop:14}}><button onClick={()=>{setGen(true);showToast&&showToast("Report generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule</button></div>
   </Card>
+  {completed&&completed.length>0&&<Card style={{...cardPad,marginTop:14}}><Eyebrow>Training completed — on your record</Eyebrow><H3 style={{marginBottom:10}}>Auto-included as governance evidence</H3>
+    <div style={{display:"grid",gap:7}}>{completed.map(([name,when])=><div key={name} style={{display:"flex",alignItems:"center",gap:10,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 12px"}}>
+      <span style={{color:T.green,fontWeight:900,fontFamily:F.m,fontSize:12}}>✓</span>
+      <span style={{fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,flex:1}}>{name}</span>
+      <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{when}</span>
+    </div>)}</div>
+  </Card>}
   {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}><Eyebrow>Generated draft · {[...sel].length} dimensions</Eyebrow><H3 style={{marginBottom:10}}>Report — Q3 FY26</H3>
     <div style={{fontSize:11,color:T.ink2,lineHeight:1.7,fontFamily:F.b}}>{[...sel].map(d=><div key={d}>• <b style={{color:T.ink}}>{d}</b> — consolidated for the period.</div>)}</div>
     <div style={{display:"flex",gap:9,marginTop:14}}><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export XLSX</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export PDF</button></div>
@@ -203,17 +211,31 @@ function Actions({eye,h3,items,role,showToast}){
     pushBus("vz-gw-evidence",{item:`${label} — ${title}`,initiative:title,scope:"Workspace",control:"Approval record",risk:"Decision",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:label,version:"v1",time:"Just now"});
     showToast&&showToast(`${label} recorded — evidence minted`);
   };
+  /* Governance context strip — every task/request answers what it's for,
+     who raised it, why it matters, what's next and where it's stuck. In a
+     governance product an item with no provenance is worse than useless. */
+  const MetaRow=({label,value,c})=><div style={{display:"grid",gridTemplateColumns:"92px 1fr",gap:8,alignItems:"baseline"}}>
+    <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</span>
+    <span style={{fontSize:10.5,color:c||T.ink2,fontFamily:F.b,lineHeight:1.5}}>{value}</span>
+  </div>;
   return <div>{eye&&<Eyebrow>{eye}</Eyebrow>}{h3&&<H3>{h3}</H3>}
-    {items.map(a=><Card key={a[0]} style={{...cardPad,marginBottom:11,display:"flex",gap:13,alignItems:"flex-start"}}>
+    {items.map(a=>{const m=a[6];return <Card key={a[0]} style={{...cardPad,marginBottom:11,display:"flex",gap:13,alignItems:"flex-start"}}>
       <div style={{width:30,height:30,borderRadius:9,display:"grid",placeItems:"center",fontWeight:800,fontSize:12,flexShrink:0,color:"#0b0e24",background:col(a[1]),fontFamily:F.m}}>{a[0]}</div>
-      <div style={{flex:1}}><H3 style={{marginBottom:0}}>{a[2]}</H3><div style={{fontSize:11,color:T.ink3,marginTop:4,lineHeight:1.55,fontFamily:F.b}}>{a[3]}</div>
+      <div style={{flex:1,minWidth:0}}><H3 style={{marginBottom:0}}>{a[2]}</H3><div style={{fontSize:11,color:T.ink3,marginTop:4,lineHeight:1.55,fontFamily:F.b}}>{a[3]}</div>
+        {m&&<div style={{display:"grid",gap:5,marginTop:10,padding:"10px 12px",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9}}>
+          {m.by&&<MetaRow label="Raised by" value={m.by}/>}
+          {m.why&&<MetaRow label="Why it matters" value={m.why}/>}
+          {m.next&&<MetaRow label="Next step" value={m.next}/>}
+          {m.wait&&<MetaRow label="Waiting on" value={m.wait} c={T.amber}/>}
+          {m.ref&&<MetaRow label="Linked" value={m.ref} c={T.blue}/>}
+        </div>}
         {done[a[0]]?<div style={{fontSize:11,fontWeight:800,color:T.green,fontFamily:F.b,marginTop:11}}>✓ {done[a[0]]} recorded — evidence minted</div>
         :<div style={{display:"flex",gap:9,marginTop:11,flexWrap:"wrap"}}>
           <button onClick={()=>act(a[0],a[4],a[2])} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"8px 15px",color:"#0b0e24",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{a[4]}</button>
           <button onClick={()=>act(a[0],a[5],a[2])} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{a[5]}</button>
         </div>}
       </div>
-    </Card>)}
+    </Card>;})}
   </div>;
 }
 
