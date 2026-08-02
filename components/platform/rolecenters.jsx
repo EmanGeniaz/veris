@@ -39,12 +39,14 @@ function Kpis({items,ctx}){
   </div>;
 }
 function Attn({items,ctx}){
+  const go=a=>a[4]&&ctx&&ctx.setTab&&ctx.setTab(a[4]);
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((a,i)=><Card key={i} onClick={()=>a[4]&&ctx&&ctx.setTab&&ctx.setTab(a[4])} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:"pointer"}}>
+    {items.map((a,i)=>{const live=!!(a[4]&&ctx&&ctx.setTab);return <Card key={i} onClick={()=>go(a)} className={live?"vz-attn":""} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:live?"pointer":"default"}}>
       <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a[0]}</div>
       <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a[1]}</div>
       <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a[2]} →</div>
-    </Card>)}
+    </Card>;})}
+    <style>{`.vz-attn{transition:background .15s}.vz-attn:hover{background:${T.s2}}`}</style>
   </div>;
 }
 function Bars({eye,h3,rows,legend,raw}){
