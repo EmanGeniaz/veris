@@ -61,8 +61,8 @@ export function CommandPalette({ open, onClose, actions, role = "caio", theme = 
         go: () => a.setTab("riskcenter") },
       { group: "Command", type: "Action", label: "New policy", sub: "Draft a governance policy", kw: "new create policy draft",
         go: () => a.setTab("policies") },
-      { group: "Command", type: "Action", label: `Switch to ${theme === "dark" ? "light" : "dark"} theme`, sub: "Toggle appearance", kw: "theme dark light appearance toggle",
-        go: () => a.setTheme && a.setTheme(theme === "dark" ? "light" : "dark") },
+      { group: "Command", type: "Action", label: "Change workspace palette", sub: "Appearance in Workspace Settings", kw: "theme palette appearance colour color workspace settings",
+        go: () => a.setTab("settings") },
       { group: "Command", type: "Action", label: "Open Approvals inbox", sub: "Decisions & taxonomy requests", kw: "approvals inbox decisions requests taxonomy",
         go: () => a.setTab("decisions") },
     ];

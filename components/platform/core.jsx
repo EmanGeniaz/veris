@@ -154,6 +154,60 @@ export const LIGHT_T = {
   teal:   "#0B4EA2", tealL:  "#EAF2FF",
 };
 
+/* ── Workspace palettes ─────────────────────────────────────────────
+   VerisZone runs in light mode only. The palette picker (Workspace
+   Settings) swaps the *ground + surface warmth + left-rail hue* — the
+   dominant visual identity — while keeping ink and semantic colours from
+   LIGHT_T so contrast stays accessible across every role surface. Each
+   palette is a partial override applied on top of LIGHT_T; its `rail`
+   object dresses the sidebar (which is a dark surface in every palette). */
+const RAIL_INK = { ink:"#F2F4F7", ink2:"#C9D2DE", ink3:"#9DA8B8", ink4:"#74808F", border:"rgba(255,255,255,.12)", line:"rgba(255,255,255,.15)", chip:"rgba(255,255,255,.07)", hover:"rgba(255,255,255,.07)", onDot:"#0E1118" };
+export const PALETTES = [
+  { id:"burgundy", label:"Burgundy & Beige", swatch:["#F1EAE1","#2A0B20","#C99A2E"],
+    tokens:{}, /* the canonical LIGHT_T ground */
+    rail:{ bg:"radial-gradient(120% 42% at 82% 2%,rgba(188,51,94,.20),transparent 60%),linear-gradient(178deg,#3A0F27 0%,#2A0B20 42%,#1A0715 72%,#12040E 100%)",
+      ink:"#F4E6EA", ink2:"#D8B9C4", ink3:"#B98E9C", ink4:"#8E6675", border:"rgba(255,180,205,.12)", line:"rgba(255,180,205,.16)", chip:"rgba(255,255,255,.07)", hover:"rgba(255,255,255,.06)", onDot:"#20091A" } },
+  { id:"slate", label:"Slate & Ivory", swatch:["#EDF1F6","#1E293B","#0B4EA2"],
+    tokens:{ bg:"#EDF1F6", s2:"#F6F9FC", s3:"#EAF0F7", s4:"#E1E9F2", s5:"#D5E0ED", border:"#DCE4EE", borderB:"#C7D3E1", borderC:"#B2C1D4", shadow:"0 1px 2px rgba(20,40,74,.05), 0 14px 34px rgba(30,60,120,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(59,130,246,.20),transparent 60%),linear-gradient(178deg,#243247 0%,#1B2637 44%,#131B29 74%,#0C121C 100%)", onDot:"#0C121C" } },
+  { id:"forest", label:"Forest & Sand", swatch:["#EEF2E9","#1C3A2A","#2F6F63"],
+    tokens:{ bg:"#EEF2E9", s2:"#F7FAF2", s3:"#EBF1E3", s4:"#E2EBD7", s5:"#D6E2C8", border:"#DCE6D0", borderB:"#C7D6B6", borderC:"#B2C79C", shadow:"0 1px 2px rgba(28,58,42,.05), 0 14px 34px rgba(40,90,60,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(47,111,99,.24),transparent 60%),linear-gradient(178deg,#234936 0%,#1A3728 44%,#122619 74%,#0B180F 100%)", onDot:"#0B180F" } },
+  { id:"ink", label:"Ink & Cloud", swatch:["#EEF0F3","#1F2430","#334155"],
+    tokens:{ bg:"#EEF0F3", s2:"#F8F9FB", s3:"#EDEFF3", s4:"#E4E7EC", s5:"#D8DCE4", border:"#E0E3E9", borderB:"#CBD0DA", borderC:"#B4BAC7", shadow:"0 1px 2px rgba(20,24,32,.05), 0 14px 34px rgba(30,36,48,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(148,163,184,.18),transparent 60%),linear-gradient(178deg,#242a38 0%,#1a1f2b 44%,#12151e 74%,#0b0d13 100%)", onDot:"#0b0d13" } },
+  { id:"plum", label:"Plum & Linen", swatch:["#F1ECF5","#3A1D5E","#6D4CB0"],
+    tokens:{ bg:"#F1ECF5", s2:"#FAF6FD", s3:"#EEE7F4", s4:"#E6DCEF", s5:"#DACCE7", border:"#E5DCEE", borderB:"#D2C2E1", borderC:"#BEA9D2", shadow:"0 1px 2px rgba(58,29,94,.05), 0 14px 34px rgba(90,50,140,.09)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(139,92,246,.22),transparent 60%),linear-gradient(178deg,#3d2266 0%,#2c1849 44%,#1d0f31 74%,#12081f 100%)", onDot:"#12081f" } },
+  { id:"ocean", label:"Ocean & Mist", swatch:["#E9F1F2","#0E3A44","#0E7C90"],
+    tokens:{ bg:"#E9F1F2", s2:"#F4F9FA", s3:"#E4EFF1", s4:"#DAE9EB", s5:"#CCDFE2", border:"#D6E5E7", borderB:"#BFD5D8", borderC:"#A6C4C8", shadow:"0 1px 2px rgba(14,58,68,.05), 0 14px 34px rgba(20,90,100,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(14,124,144,.24),transparent 60%),linear-gradient(178deg,#12454f 0%,#0d343c 44%,#09242b 74%,#06171c 100%)", onDot:"#06171c" } },
+  { id:"copper", label:"Copper & Cream", swatch:["#F4EEE6","#3F2416","#B5722F"],
+    tokens:{ bg:"#F4EEE6", s2:"#FBF7F1", s3:"#F2EADF", s4:"#EAE0D2", s5:"#DFD2BF", border:"#E8DDCE", borderB:"#D8C9B4", borderC:"#C6B39A", shadow:"0 1px 2px rgba(74,40,20,.05), 0 14px 34px rgba(120,70,30,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(205,127,80,.24),transparent 60%),linear-gradient(178deg,#5a3620 0%,#3f2416 44%,#2a170d 74%,#1a0d07 100%)", onDot:"#1a0d07" } },
+  { id:"emerald", label:"Emerald & Pearl", swatch:["#E9F2EC","#0B3728","#0F9D66"],
+    tokens:{ bg:"#E9F2EC", s2:"#F4FAF6", s3:"#E4EFE8", s4:"#DAE9DF", s5:"#CADFD2", border:"#D6E7DD", borderB:"#BFD6C8", borderC:"#A6C4B2", shadow:"0 1px 2px rgba(11,55,40,.05), 0 14px 34px rgba(16,120,80,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(16,185,129,.22),transparent 60%),linear-gradient(178deg,#0f4a34 0%,#0b3728 44%,#08281d 74%,#051a12 100%)", onDot:"#051a12" } },
+  { id:"indigo", label:"Indigo & Fog", swatch:["#ECEDF6","#1F1F4D","#4F46E5"],
+    tokens:{ bg:"#ECEDF6", s2:"#F6F7FC", s3:"#E9EBF6", s4:"#E0E2F1", s5:"#D3D6EC", border:"#DCDEEE", borderB:"#C7CAE3", borderC:"#B2B6D6", shadow:"0 1px 2px rgba(31,31,77,.05), 0 14px 34px rgba(60,60,150,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(99,102,241,.22),transparent 60%),linear-gradient(178deg,#2a2a66 0%,#1f1f4d 44%,#16163a 74%,#0d0d22 100%)", onDot:"#0d0d22" } },
+  { id:"rose", label:"Rose & Bone", swatch:["#F5ECEE","#45202C","#C24C6A"],
+    tokens:{ bg:"#F5ECEE", s2:"#FCF6F7", s3:"#F3E7EA", s4:"#EDDCE0", s5:"#E3CCD3", border:"#EDDCE0", borderB:"#E0C4CC", borderC:"#D0AAB4", shadow:"0 1px 2px rgba(69,32,44,.05), 0 14px 34px rgba(150,50,80,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(225,90,120,.22),transparent 60%),linear-gradient(178deg,#5e2a3a 0%,#45202c 44%,#301620 74%,#1f0e15 100%)", onDot:"#1f0e15" } },
+  { id:"graphite", label:"Graphite & Sand", swatch:["#F1EFEA","#232219","#5A574E"],
+    tokens:{ bg:"#F1EFEA", s2:"#FAF8F4", s3:"#EFECE5", s4:"#E6E2D9", s5:"#DAD5C9", border:"#E4E0D6", borderB:"#CFC9BB", borderC:"#B8B1A0", shadow:"0 1px 2px rgba(35,34,25,.05), 0 14px 34px rgba(60,58,45,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(160,150,130,.18),transparent 60%),linear-gradient(178deg,#2f2e2a 0%,#232219 44%,#181712 74%,#0e0d0a 100%)", onDot:"#0e0d0a" } },
+  { id:"sapphire", label:"Sapphire & Frost", swatch:["#E9EEF6","#0D2C5C","#2563EB"],
+    tokens:{ bg:"#E9EEF6", s2:"#F4F8FD", s3:"#E4ECF6", s4:"#DAE5F2", s5:"#CCDBED", border:"#D6E2EF", borderB:"#BFD1E6", borderC:"#A6BEDA", shadow:"0 1px 2px rgba(13,44,92,.05), 0 14px 34px rgba(20,80,180,.08)" },
+    rail:{ ...RAIL_INK, bg:"radial-gradient(120% 42% at 82% 2%,rgba(37,99,235,.24),transparent 60%),linear-gradient(178deg,#123a7a 0%,#0d2c5c 44%,#091f42 74%,#06152b 100%)", onDot:"#06152b" } },
+];
+export const DEFAULT_PALETTE = "burgundy";
+export const paletteById = id => PALETTES.find(p => p.id === id) || PALETTES[0];
+/* Mutate the shared T object in place — components read T at render, and
+   VerisZonePlatform bumps a nonce so a palette change repaints the tree. */
+export function applyPalette(id){ Object.assign(T, LIGHT_T, paletteById(id).tokens); return T; }
+export const railFor = id => paletteById(id).rail;
+
 export const RC  = r => T[r]      || T.blue;
 export const RCL = r => T[r+"L"]  || T.blueL;
 
@@ -303,7 +357,7 @@ export const CAIO_NAV = [
 /* CEO Command Center surfaces - each is a tab that renders a view of the
    CEOCommandCenter. Overview is the `home` tab; the rest are dedicated. */
 export const CEO_NAV = [
-  {id:"ceoplaybook", icon:"P", label:"CEO Playbook"},
+  {id:"ceoplaybook", icon:"P", label:"AI Playbook"},
   {id:"ceoportfolio",icon:"T", label:"Portfolio"},
   {id:"ceobudget",   icon:"B", label:"Budget"},
   {id:"ceorisk",     icon:"R", label:"Risk Center"},

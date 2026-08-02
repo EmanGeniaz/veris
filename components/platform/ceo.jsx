@@ -3,7 +3,7 @@
 import { useState, createContext, useContext } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
-import { T, F, AI_GOLD, ROLES, Card } from "./core";
+import { T, F, AI_GOLD, ROLES, Card, vzDownload } from "./core";
 import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { BriefDrawer } from "./initiative-brief";
@@ -171,7 +171,7 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
   const name=(userName||(ROLES[role]||ROLES.ceo).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
-  const TABS=[["overview","Overview"],["risk","Risk"],["value","Value & ROI"],["adoption","Adoption"],["exposure","Exposure Map"],["compliance","Compliance"]];
+  const TABS=[["overview","Overview"],["risk","Risk"],["value","Value & ROI"],["adoption","Adoption"],["exposure","Deployment Map"],["compliance","Compliance"]];
   /* The CEO composite: every initiative, and where each CXO stands on it —
      the same shared object, rolled up. Click opens the full brief. */
   const rag=(n,c)=>n>0?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,fontWeight:800,fontFamily:F.m,color:c}}><span style={{width:7,height:7,borderRadius:"50%",background:c}}/>{n}</span>:null;
@@ -436,12 +436,82 @@ function AdoptionTab(){
     </Card>
   </div>;
 }
+/* ── Filterable geography / deployment map ──────────────────────────
+   Where AI lives, by region — filter by lifecycle band (Proposed /
+   Implemented / Scaling / Retired) and switch the marker metric between
+   initiative count and adoption rate. Markers, legend and the table below
+   all move together; every initiative row drills to its lineage. */
+const GEO_FILTERS=[
+  ["all","All",()=>true],
+  ["proposed","Proposed",p=>p.stage==="In Progress"],
+  ["implemented","Implemented",p=>p.stage==="In Production"||p.stage==="Completed"],
+  ["scaling","Scaling",p=>p.stage==="Scaling"],
+  ["retired","Retired",p=>p.stage==="Retired"],
+];
+const adoptBand=a=>a>=65?T.green:a>=50?AI_GOLD:T.red;
+function FilterMap({regionData,metric,big}){
+  const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
+  const ocean=isLight?"#EAF1F8":"#0c1030", land=isLight?"#C6D3E4":"#252c5c", landEdge=isLight?"#AFC0D6":"#39407a", grat=isLight?"#D4DEEC":"#ffffff12";
+  return <div style={{position:"relative",height:big?360:280,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`}}>
+    <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
+      <defs>
+        <radialGradient id="geoOcean" cx="50%" cy="0%" r="120%"><stop offset="0" stopColor={isLight?"#F2F7FC":"#1a2050"}/><stop offset="1" stopColor={ocean}/></radialGradient>
+        <filter id="geoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#5b6b8033":"#00000066"}/></filter>
+      </defs>
+      <rect x="0" y="0" width="1000" height="480" fill="url(#geoOcean)"/>
+      {[80,160,240,320,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
+      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="480" stroke={grat} strokeWidth="1"/>)}
+      {CONTINENTS.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.5" strokeLinejoin="round"/>)}
+      {regionData.map(m=>{const v=metric==="count"?m.count:m.adoption;const r=metric==="count"?(big?16+v*3:13+v*2.2):(big?14+v*0.2:12+v*0.16);const empty=metric==="count"&&v===0;return <g key={m.region} opacity={empty?0.35:1}>
+        <circle cx={m.x} cy={m.y} r={r+9} fill={m.color} opacity="0.16"><animate attributeName="r" values={`${r+5};${r+13};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
+        <circle cx={m.x} cy={m.y} r={r} fill={m.color} filter="url(#geoMk)"/>
+        <text x={m.x} y={m.y+4} textAnchor="middle" fontSize={big?15:13} fontWeight="800" fill="#0b0e24" fontFamily={F.m}>{m.label}</text>
+        <text x={m.x} y={m.y-r-8} textAnchor="middle" fontSize="11" letterSpacing="1.5" fontWeight="800" fill={isLight?T.ink3:"#cbd5e1"} fontFamily={F.m}>{m.region.toUpperCase()}</text>
+      </g>;})}
+    </svg>
+  </div>;
+}
 function ExposureTab(){
+  const [f,setF]=useState("all");
+  const [metric,setMetric]=useState("count");
+  const flt=GEO_FILTERS.find(x=>x[0]===f)[2];
+  const regionData=REGION_MARKERS.map(m=>{
+    const inis=CEO_PORTFOLIO.filter(p=>p.region===m.region&&flt(p));
+    const adoption=(CEO_REGIONS.find(r=>r.region===m.region)||{}).adoption||0;
+    const color=metric==="adoption"?adoptBand(adoption):AI_GOLD;
+    return {...m,inis,adoption,count:inis.length,color,label:metric==="count"?String(inis.length):adoption+"%"};
+  });
+  const rows=CEO_PORTFOLIO.filter(flt);
+  const chip=active=>({padding:"6px 13px",borderRadius:20,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${active?AI_GOLD:T.border}`,background:active?AI_GOLD:T.s2,color:active?"#241703":T.ink3});
   return <div style={{animation:"up .2s ease"}}>
-    <Card style={cardPad}><Eyebrow>Deployment Exposure Map</Eyebrow><H3 style={{marginBottom:14}}>Which AI projects are deployed in which locations</H3><ExposureMap big/><RegionLegend/></Card>
-    <Card style={{...cardPad,marginTop:16}}><Eyebrow>Region → program mapping</Eyebrow>
-      <Table head={["Region","Live programs","Data locations","Compliance regime"]}>
-        {CEO_REGIONS.map(r=><tr key={r.region}><Td style={{fontWeight:700,color:T.ink}}>{r.region}</Td><Td>{r.live} · {CEO_PORTFOLIO.filter(p=>p.region===r.region).slice(0,3).map(p=>p.name.split(" ").slice(0,2).join(" ")).join(", ")}</Td><Td>{r.cities}</Td><Td><Pill c={T.blue}>{r.regime}</Pill></Td></tr>)}
+    <Card style={cardPad}>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:12}}>
+        <div><Eyebrow style={{margin:0}}>Deployment Map</Eyebrow><H3>Where AI lives by geography — filter by lifecycle, switch between count and adoption</H3></div>
+      </div>
+      {/* filter + metric controls */}
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",marginBottom:13}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{GEO_FILTERS.map(([id,label])=><button key={id} onClick={()=>setF(id)} style={chip(f===id)}>{label}</button>)}</div>
+        <div style={{display:"flex",gap:4,marginLeft:"auto",background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:3}}>
+          {[["count","By count"],["adoption","By adoption"]].map(([id,label])=><button key={id} onClick={()=>setMetric(id)} style={{padding:"5px 12px",borderRadius:18,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:"none",background:metric===id?T.blue:"transparent",color:metric===id?"#fff":T.ink3}}>{label}</button>)}
+        </div>
+      </div>
+      <FilterMap regionData={regionData} metric={metric} big/>
+      {/* per-region summary */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginTop:12}}>
+        {regionData.map(m=><div key={m.region} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"10px 12px"}}>
+          <div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{m.region}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:5}}><span style={{fontSize:18,fontWeight:800,color:T.ink,fontFamily:F.m}}>{m.count}</span><span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>initiatives</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}><span style={{width:8,height:8,borderRadius:"50%",background:adoptBand(m.adoption)}}/><span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{m.adoption}% adoption</span></div>
+        </div>)}
+      </div>
+      <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:11,paddingTop:11,borderTop:`1px solid ${T.border}`,alignItems:"center"}}>
+        <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{metric==="count"?"Marker = initiatives in this lifecycle band":"Marker = regional adoption rate"}</span>
+        {metric==="adoption"&&[["On target ≥65%",T.green],["Enablement 50–64%",AI_GOLD],["Below 50%",T.red]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:9.5,color:T.ink3,fontWeight:700,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:c}}/>{l}</span>)}
+      </div>
+    </Card>
+    <Card style={{...cardPad,marginTop:16}}><Eyebrow>Initiatives in view · {rows.length}</Eyebrow><H3 style={{marginBottom:12}}>{GEO_FILTERS.find(x=>x[0]===f)[1]} initiatives by region — click any to trace it</H3>
+      <Table head={["Region","Initiative","Stage","ROI","Residual risk"]}>
+        {rows.length?rows.map(p=><LinRow key={p.name} node={programLineage(p)}><Td style={{fontWeight:700,color:T.ink}}>{p.region}</Td><Td>{p.name}</Td><Td><Pill c={stageColor(p.stage)}>{p.stage}</Pill></Td><Td><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"%":"—"}</Pill></Td><Td><Pill c={p.risk==="Critical"?T.red:p.risk==="High"?AI_GOLD:p.risk==="Medium"?T.blue:T.green}>{p.risk}</Pill></Td></LinRow>):<tr><Td style={{color:T.ink3}}>No initiatives in this lifecycle band.</Td></tr>}
       </Table>
     </Card>
   </div>;
@@ -493,27 +563,120 @@ function ComplianceTab({openFull}){
   </div>;
 }
 
-/* ══════════════════ CEO PLAYBOOK ══════════════════ */
-function Playbook({showToast}){
-  const [done,setDone]=useState(false);
+/* ══════════════════ THE AI PLAYBOOK ══════════════════
+   Not a strategy/policy/roadmap wizard — the living portfolio "bible":
+   the complete estate of enterprise AI, every program's value, risk,
+   lifecycle and the decision it is asking of the board. One source of
+   truth, drillable to the last record, audit-ready end to end. */
+
+/* The governed recommendation for a board program, computed from its own
+   stage + ROI + residual risk (mirrors the canonical assetRecommendation
+   contract for the wider showcase estate). */
+function programVerdict(p){
+  if(p.stage==="Retired")   return {label:"Retired",c:T.ink3,why:"Superseded and decommissioned under governance."};
+  if(p.stage==="Completed")return {label:"Delivered",c:T.green,why:"Objective met and value booked."};
+  if(p.risk==="Critical")  return {label:"Remediate",c:T.red,why:"Critical residual risk — resolve before any scale decision."};
+  if((p.stage==="Scaling"||p.stage==="In Production")&&p.roi>=40) return {label:"Scale",c:T.green,why:`ROI +${p.roi}% at ${p.stage} — ready for a governed scale decision.`};
+  if(p.roi<=0&&p.stage!=="In Progress") return {label:"Review value",c:AI_GOLD,why:"Consuming budget ahead of realized value — reforecast or intervene."};
+  if(p.stage==="In Progress") return {label:"In build",c:T.blue,why:"On the delivery path — governance gates ahead."};
+  return {label:"Continue",c:T.blue,why:"Healthy but below the scale bar — keep operating and monitoring."};
+}
+
+function Playbook({showToast,role="ceo"}){
+  const [brief,setBrief]=useState(null);
+  const realized=CEO_PORTFOLIO.reduce((s,p)=>s+p.realized,0);
+  const spent=CEO_PORTFOLIO.reduce((s,p)=>s+p.spent,0);
+  /* Realized value per $ invested across the whole estate — a single
+     honest ratio (in-progress programs still pre-payback pull it under
+     100%), rather than a signed ROI that reads oddly when negative. */
+  const realizedRatio=Math.round(realized/spent*100);
+  const scaleReady=CEO_PORTFOLIO.filter(p=>programVerdict(p).label==="Scale");
+  const critical=CEO_PORTFOLIO.filter(p=>p.risk==="Critical");
+  const decisions=CEO_PORTFOLIO.filter(p=>["Scale","Remediate","Review value"].includes(programVerdict(p).label));
+  const rag=(n,c)=>n>0?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,fontWeight:800,fontFamily:F.m,color:c}}><span style={{width:7,height:7,borderRadius:"50%",background:c}}/>{n}</span>:null;
   return <div style={{animation:"up .3s ease"}}>
-    <PageHead title="CEO Playbook" sub="Strategy, policies and roadmap — complete all three and VerisZone auto-generates your enterprise AI Runbook."/>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14}}>
-      {[["① Strategy · complete",T.green,"AI Ambition & pillars","3 strategic pillars set: Customer trust, Operational leverage, Responsible-by-design.",100],["② Policies · complete",T.green,"Governance policies","6 of 6 board policies ratified — acceptable-use, human-oversight, model-risk, data, procurement, incident response.",100],["③ Roadmap · 80%",AI_GOLD,"12-month roadmap","4 of 5 quarters planned. Q2 '27 scaling wave awaiting budget sign-off.",80]].map(c=>
-        <Card key={c[2]} style={cardPad}><Eyebrow style={{color:c[1]}}>{c[0]}</Eyebrow><H3>{c[2]}</H3><div style={{fontSize:11,color:T.ink3,marginTop:8,lineHeight:1.6,fontFamily:F.b}}>{c[3]}</div><div style={{height:8,borderRadius:6,background:T.border,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:`${c[4]}%`,background:c[1]}}/></div></Card>)}
+    {brief&&<BriefDrawer a={brief} role={role} onClose={()=>setBrief(null)}/>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap",marginBottom:6}}>
+      <PageHead title="The AI Playbook" sub="The complete, living portfolio of enterprise AI — every initiative, its value, risk, lifecycle and the decision it is asking of you. One source of truth, audit-ready end to end."/>
+      <button onClick={()=>{vzDownloadPlaybook(realized,realizedRatio);showToast&&showToast("Board portfolio pack exported");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 16px",color:"#241703",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>✦ Export board pack</button>
     </div>
-    <Card style={{...cardPad,marginTop:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-      <div style={{flex:1,minWidth:220}}><H3>Enterprise AI Runbook</H3><div style={{fontSize:11,color:T.ink3,marginTop:4,fontFamily:F.b}}>Playbook is <b style={{color:AI_GOLD}}>93% complete</b>. Generate the executable runbook from your strategy, policies &amp; roadmap.</div></div>
-      <button onClick={()=>{setDone(true);showToast&&showToast("Enterprise AI Runbook generated");}} style={{background:done?T.green:AI_GOLD,border:"none",borderRadius:11,padding:"11px 18px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{done?"✓ Runbook generated":"✦ Generate Runbook"}</button>
+
+    {/* Portfolio-at-a-glance — every figure traces to its records */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,margin:"12px 0 18px"}}>
+      <Kpi l="AI programs" v={CEO_PORTFOLIO.length} s="the full governed estate" lin={["Portfolio initiatives",String(CEO_PORTFOLIO.length)]}/>
+      <Kpi l="Value realized" v={`$${realized.toFixed(1)}M`} vc={T.green} s={`of $${CEO_PORTFOLIO.reduce((s,p)=>s+p.budget,0).toFixed(1)}M allocated`} lin={["Value realized",`$${realized.toFixed(1)}M`]}/>
+      <Kpi l="Realized / invested" v={`${realizedRatio}%`} vc={realizedRatio>=100?T.green:AI_GOLD} s="value booked per $ spent" lin={["Realized value",`$${realized.toFixed(1)}M`]}/>
+      <Kpi l="Scale-ready" v={scaleReady.length} vc={AI_GOLD} s="at the scale gate" lin={["Scale-ready initiatives",String(scaleReady.length)]}/>
+      <Kpi l="Critical risk" v={critical.length} vc={critical.length?T.red:T.green} s="need board attention" lin={["Critical risks",String(critical.length)]}/>
+    </div>
+
+    {/* Decisions the portfolio is asking for */}
+    <Card style={{...cardPad,marginBottom:16}}>
+      <Eyebrow>Decisions the portfolio is asking of you</Eyebrow>
+      <H3 style={{marginBottom:12}}>{decisions.length} program{decisions.length===1?"":"s"} at a governance gate — click any to trace it</H3>
+      <div style={{display:"grid",gap:7}}>
+        {decisions.map(p=>{const v=programVerdict(p);return <LinRow key={p.name} node={programLineage(p)}>
+          <Td style={{fontWeight:700,color:T.ink}}>{p.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:600,fontFamily:F.b,marginTop:1}}>{p.unit} · {p.stage}</div></Td>
+          <Td><Pill c={v.c}>{v.label}</Pill></Td>
+          <Td style={{fontSize:10.5,color:T.ink3,maxWidth:360}}>{v.why}</Td>
+        </LinRow>;})}
+      </div>
     </Card>
-    {done&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
-      <Eyebrow style={{color:AI_GOLD}}>Runbook generated · draft v1</Eyebrow><H3 style={{marginBottom:10}}>VerisZone Enterprise AI Runbook</H3>
+
+    {/* The complete portfolio, by lifecycle band */}
+    <Card style={{...cardPad,marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div><Eyebrow style={{margin:0}}>The complete portfolio</Eyebrow><H3>Every AI program, by lifecycle — health · ROI · residual risk · governed verdict</H3></div>
+        <Pill c={AI_GOLD}>{CEO_PORTFOLIO.length} programs · {STAGES.length} stages</Pill>
+      </div>
+      {STAGES.map(s=>{const rows=CEO_PORTFOLIO.filter(p=>p.stage===s);if(!rows.length)return null;return <div key={s} style={{marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,margin:"4px 0 6px"}}>
+          <span style={{fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:900,color:stageColor(s),fontFamily:F.m}}>{s}</span>
+          <span style={{fontSize:10,color:T.ink4,fontWeight:700,fontFamily:F.m}}>{rows.length}</span>
+          <span style={{flex:1,height:1,background:T.border}}/>
+        </div>
+        <div style={{display:"grid",gap:5}}>
+          {rows.map(p=>{const v=programVerdict(p);return <LinRow key={p.name} node={programLineage(p)}>
+            <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink}}>{p.name}</Td>
+            <Td style={{width:90}}>{p.stage==="Completed"?"✓ Done":p.stage==="Retired"?"↓ Retired":<span>Health {p.health}</span>}</Td>
+            <Td style={{width:90}}><Pill c={p.roi>0?T.green:p.roi<0?AI_GOLD:T.ink3}>{p.roi>0?"+"+p.roi+"%":p.roi<0?p.roi+"%":"—"}</Pill></Td>
+            <Td style={{width:90}}><Pill c={p.risk==="Critical"?T.red:p.risk==="High"?AI_GOLD:p.risk==="Medium"?T.blue:T.green}>{p.risk}</Pill></Td>
+            <Td style={{width:110}}><Pill c={v.c}>{v.label}</Pill></Td>
+          </LinRow>;})}
+        </div>
+      </div>;})}
+    </Card>
+
+    {/* Cross-functional readiness on the flagship initiatives */}
+    <Card style={{...cardPad,marginBottom:16}}>
+      <Eyebrow>Cross-functional readiness</Eyebrow>
+      <H3 style={{marginBottom:12}}>Flagship initiatives — where each CXO stands. Open the full brief.</H3>
+      <div style={{display:"grid",gap:7}}>
+        {AI_ASSETS.map(a=>{const r=facetRollup(a);const w=r.worst;return <button key={a.id} onClick={()=>setBrief(a)} style={{display:"grid",gridTemplateColumns:"1.5fr auto 1.5fr auto",gap:12,alignItems:"center",textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
+          <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle}</div></div>
+          <div style={{display:"flex",gap:11}}>{rag(r.cleared,T.green)}{rag(r.review,T.blue)}{rag(r.blocked,T.red)}</div>
+          <div style={{fontSize:10,fontWeight:700,fontFamily:F.b,color:w?(w.key==="blocked"?T.red:T.amber):T.green}}>{w?`${w.key==="blocked"?"Blocked":"Needs review"} · ${w.domain} (${w.owner})`:"All facets cleared"}</div>
+          <span style={{color:AI_GOLD,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
+        </button>;})}
+      </div>
+    </Card>
+
+    {/* The governance spine — reference, always on (not a wizard) */}
+    <Card style={cardPad}>
+      <Eyebrow>The governance spine</Eyebrow>
+      <H3 style={{marginBottom:12}}>How this portfolio is run — the operating contract behind every program</H3>
       <Table head={[]}>
-        {[["1 · Operating cadence","Monthly AI governance council · quarterly board review · weekly delivery stand-up"],["2 · Gate model","13-phase lifecycle · scale-gate requires human-oversight record + conformity assessment"],["3 · Escalation","Critical risk → CISO within 24h · value-leak >15% → CFO reforecast"],["4 · Ownership","Every program has an accountable sponsor + risk owner + delivery lead"]].map(r=>
-          <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink,width:200}}>{r[0]}</Td><Td>{r[1]}</Td></tr>)}
+        {[["Operating cadence","Monthly AI governance council · quarterly board review · weekly delivery stand-up."],["Gate model","13-phase lifecycle. The scale gate requires a human-oversight record plus a conformity assessment on high-risk systems."],["Escalation","Critical residual risk → CISO within 24h · value-leak >15% vs plan → CFO reforecast · conformity gap → Legal."],["Ownership","Every program carries an accountable sponsor, a named risk owner and a delivery lead — no orphan AI."],["Evidence & audit","Audit begins at initiation and runs to scale or retirement. Every number here traces to its source record and evidence."]].map(r=>
+          <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink,width:190,verticalAlign:"top"}}>{r[0]}</Td><Td style={{color:T.ink2}}>{r[1]}</Td></tr>)}
       </Table>
-    </Card>}
+    </Card>
   </div>;
+}
+
+/* Board portfolio pack — a plain-text board export of the live estate. */
+function vzDownloadPlaybook(realized,roiPct){
+  const lines=CEO_PORTFOLIO.map(p=>`- ${p.name} (${p.unit}) · ${p.stage} · ROI ${p.roi>0?"+"+p.roi:p.roi}% · risk ${p.risk} · verdict ${programVerdict(p).label}`);
+  vzDownload("veriszone-ai-playbook.md",`# VerisZone Enterprise AI Playbook\n\nThe complete portfolio of enterprise AI — the board's single source of truth.\n\nPrograms: ${CEO_PORTFOLIO.length} · Value realized: $${realized.toFixed(1)}M · Portfolio ROI: +${roiPct}%\n\n## Portfolio\n${lines.join("\n")}\n\n## Governance spine\n- Cadence: monthly council · quarterly board · weekly delivery\n- Gate: 13-phase lifecycle; scale gate needs human-oversight record + conformity assessment\n- Escalation: critical risk -> CISO 24h; value-leak >15% -> CFO reforecast\n- Ownership: every program has sponsor + risk owner + delivery lead\n`);
 }
 
 /* ══════════════════ PORTFOLIO ══════════════════ */
@@ -641,7 +804,7 @@ export function CEOCommandCenter({tab="home",role="ceo",setTab,setAiCentralView,
   const openLin=(a,b)=>setLin(a&&typeof a==="object"?a:{label:a,value:b});
   let content;
   switch(tab){
-    case "ceoplaybook":  content=<Playbook showToast={showToast}/>; break;
+    case "ceoplaybook":  content=<Playbook showToast={showToast} role={role}/>; break;
     case "ceoportfolio": content=<Portfolio/>; break;
     case "ceobudget":    content=<Budget/>; break;
     case "ceorisk":      content=<RiskCenter openFull={openFullRisk}/>; break;

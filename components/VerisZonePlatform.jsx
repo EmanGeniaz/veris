@@ -1,9 +1,9 @@
 "use client";
 
-import { Scale, Settings, UserCog, Shield, SlidersHorizontal, Sun, Moon, LogOut, LifeBuoy } from "lucide-react";
+import { Scale, Settings, UserCog, Shield, SlidersHorizontal, LogOut, LifeBuoy } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { T, DARK_T, LIGHT_T, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
+import { T, LIGHT_T, PALETTES, DEFAULT_PALETTE, paletteById, applyPalette, railFor, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
@@ -117,7 +117,7 @@ function LoginAICentralBrand({theme,width=104,style={}}) {
   </div>;
 }
 
-function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,onAcNav,theme,setTheme,onSignOut,profiles,sessionMode}) {
+function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,onAcNav,theme,paletteId,onSignOut,profiles,sessionMode}) {
   const rc=RC(role), R=ROLES[role];
   const [menuOpen,setMenuOpen]=useState(false);
   const menuRef=useRef(null);
@@ -138,15 +138,10 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   const roleNavSections=ROLE_NAV_SECTIONS[role]?ROLE_NAV_SECTIONS[role]:role==="ceo"?CEO_NAV_SECTIONS:role==="caio"?CAIO_NAV_SECTIONS:PLATFORM_NAV_SECTIONS;
   const themeClass=theme==="light"?"vz-light":"vz-dark";
   const spring={type:"spring",stiffness:420,damping:38};
-  /* The left rail is a wine-plum surface in BOTH themes (a constant, theme-
-     independent palette) so it reads the same whether the app is light or
-     dark. Rail chrome uses these instead of the flipping T.* tokens. */
-  const RAIL={
-    bg:`radial-gradient(120% 42% at 82% 2%,rgba(188,51,94,.20),transparent 60%),linear-gradient(178deg,#3A0F27 0%,#2A0B20 42%,#1A0715 72%,#12040E 100%)`,
-    ink:"#F4E6EA", ink2:"#D8B9C4", ink3:"#B98E9C", ink4:"#8E6675",
-    border:"rgba(255,180,205,.12)", line:"rgba(255,180,205,.16)",
-    chip:"rgba(255,255,255,.07)", hover:"rgba(255,255,255,.06)", onDot:"#20091A",
-  };
+  /* The left rail is a dark surface in every palette (so it reads the same
+     across the app); its hue is dressed by the chosen workspace palette.
+     Rail chrome uses these instead of the T.* body tokens. */
+  const RAIL=railFor(paletteId);
   let navIdx=0;
   const renderNavButton=(item)=>{
     const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
@@ -247,8 +242,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             </div>
             <Item icon={<UserCog size={15}/>} label="Account Settings" sub="Profile, role & identity" onClick={()=>go("profile")}/>
             {canAdmin&&<Item icon={<Shield size={15}/>} label="Admin Console" sub="Users, roles, RBAC & org settings" onClick={()=>go("admin")}/>}
-            <Item icon={<SlidersHorizontal size={15}/>} label="Workspace Settings" sub="Preferences & defaults" onClick={()=>go("settings")}/>
-            <Item icon={theme==="dark"?<Sun size={15}/>:<Moon size={15}/>} label={`${theme==="dark"?"Light":"Dark"} appearance`} sub="Switch theme" onClick={()=>{setMenuOpen(false);setTheme&&setTheme(theme==="dark"?"light":"dark");}}/>
+            <Item icon={<SlidersHorizontal size={15}/>} label="Workspace Settings" sub="Appearance, palette & defaults" onClick={()=>go("settings")}/>
             <Item icon={<LifeBuoy size={15}/>} label="Help & Documentation" sub="Guides & governance academy" onClick={()=>go("academy")}/>
             <div style={{height:1,background:T.border,margin:"5px 6px"}}/>
             <Item icon={<LogOut size={15}/>} label="Sign out" sub="End this session" danger onClick={()=>{setMenuOpen(false);onSignOut&&onSignOut();}}/>
@@ -277,7 +271,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [obOpen,setObOpen]=useState(false);
   const [ob,setOb]=useState({name:"",slug:"",mode:"clean",token:""});
   const [obMsg,setObMsg]=useState("");
-  Object.assign(T, theme==="light"?LIGHT_T:DARK_T);
+  Object.assign(T, LIGHT_T);
   const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
   const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
   const executiveProfiles=LOGIN_PROFILES.filter(p=>EXECUTIVE_ROLE_IDS.includes(p.role));
@@ -377,7 +371,6 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
           <div style={{animation:"loginBrandRise .8s cubic-bezier(.2,.8,.2,1) both, loginBrandFloat 6.4s ease-in-out 1.1s infinite, loginBrandBreathe 4.6s ease-in-out 1s infinite"}}>
             <BrandLogo theme={theme} width={200} style={{width:"min(200px,62vw)",margin:"0 auto",animation:"loginMarkGlow 5.2s ease-in-out 1.2s infinite"}}/>
           </div>
-          <button type="button" onClick={onTheme} style={{position:"absolute",top:0,right:0,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"7px 11px",color:T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{theme==="dark"?"Light":"Dark"}</button>
         </div>
         <div style={{fontSize:24,fontWeight:400,fontFamily:F.e,marginBottom:6}}>Secure control-plane sign in</div>
         <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:13}}>Three ways in: <strong style={{color:T.ink2}}>Demo Center</strong> is the seeded sales showcase. <strong style={{color:T.ink2}}>Employee Login</strong> is how real users sign in — RBAC routes each person to their own command center. <strong style={{color:T.ink2}}>AI Central</strong> opens the standalone control plane.</div>
@@ -452,7 +445,34 @@ function ProfileInput({label,value,type="text",onChange}) {
    same canonical gateway objects the AI Central module monitors and the
    admin tabs configure. Demo Center is seeded; real tenants start clean. */
 
-function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut}) {
+/* Workspace-appearance picker — light-mode palettes only. Swaps the
+   ground + surface warmth + rail hue; persisted so it survives reloads. */
+function AppearanceCard({paletteId,setPaletteId,showToast}){
+  return <Card style={{padding:18,marginBottom:14}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:4,flexWrap:"wrap"}}>
+      <div>
+        <h3 style={{fontFamily:F.h,fontSize:18,fontWeight:900,color:T.ink}}>Appearance</h3>
+        <p style={{fontFamily:F.b,fontSize:11.5,color:T.ink3,marginTop:2}}>VerisZone runs in light mode. Choose the workspace palette — it recolours the ground and the left rail across every screen.</p>
+      </div>
+      <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"5px 11px"}}>Light mode</span>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10,marginTop:12}}>
+      {PALETTES.map(p=>{const active=p.id===paletteId;return <button key={p.id} type="button" onClick={()=>{setPaletteId(p.id);showToast&&showToast(`${p.label} palette applied`);}} style={{textAlign:"left",background:T.s2,border:`1.5px solid ${active?AI_GOLD:T.border}`,borderRadius:12,padding:"12px 13px",cursor:"pointer",boxShadow:active?`0 0 0 3px ${AI_GOLD}22`:"none",transition:"border-color .15s, box-shadow .15s"}}>
+        <div style={{display:"flex",gap:6,marginBottom:9}}>
+          {p.swatch.map((c,i)=><span key={i} style={{width:i===0?26:18,height:26,borderRadius:6,background:c,border:`1px solid ${T.border}`,boxShadow:"inset 0 0 0 1px rgba(255,255,255,.25)"}}/>)}
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+          <span style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{p.label}</span>
+          {active&&<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em"}}>✓ Active</span>}
+        </div>
+      </button>;})}
+    </div>
+  </Card>;
+}
+
+function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut,paletteId,setPaletteId,initialTab="identity"}) {
+  const [view,setView]=useState(initialTab);
+  useEffect(()=>setView(initialTab),[initialTab]);
   const [selected,setSelected]=useState(sessionMode==="demo"?"demo":role);
   useEffect(()=>setSelected(sessionMode==="demo"?"demo":role),[role,sessionMode]);
   const profile=profiles[selected]||USER_PROFILES[selected];
@@ -468,7 +488,12 @@ function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut}
   ];
   const initials=(profile.name||selectedRole.name).split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="User Profiles" sub="Manage demo identities, credentials, organisation metadata and workspace access for every VerisZone user."/>
+    <SHead title={view==="appearance"?"Workspace Settings":"User Profiles"} sub={view==="appearance"?"Personalise the look of your workspace and manage preferences.":"Manage demo identities, credentials, organisation metadata and workspace access for every VerisZone user."}/>
+    <div style={{display:"inline-flex",gap:4,background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:4,marginBottom:14}}>
+      {[["identity","Identity"],["appearance","Appearance"]].map(([id,label])=><button key={id} type="button" onClick={()=>setView(id)} style={{padding:"7px 15px",borderRadius:9,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:"none",background:view===id?AI_GOLD:"transparent",color:view===id?"#241820":T.ink3}}>{label}</button>)}
+    </div>
+    {view==="appearance"&&setPaletteId&&<AppearanceCard paletteId={paletteId} setPaletteId={setPaletteId} showToast={showToast}/>}
+    {view==="identity"&&<>
     <Card style={{padding:16,marginBottom:14,background:T.s2}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
         {profileOptions.map(r=>{const active=selected===r.id;return <button key={r.id} type="button" onClick={()=>setSelected(r.id)} style={{background:active?RC(r.id)+"18":T.s3,border:`1px solid ${active?RC(r.id)+"55":T.border}`,borderRadius:10,padding:"10px 12px",color:active?RC(r.id):T.ink2,fontFamily:F.b,fontWeight:900,textAlign:"left",cursor:"pointer"}}>{r.label}<div style={{fontSize:10,fontWeight:600,color:T.ink3,marginTop:3}}>{profiles[r.id]?.name||r.name}</div></button>})}
@@ -497,6 +522,7 @@ function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut}
         </div>
       </Card>
     </div>
+    </>}
   </div>;
 }
 
@@ -555,7 +581,12 @@ export default function VerisZone() {
   const [hitlCount,setHitlCount]=useState(()=>HITL["caio"].length);
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [isMobile,setIsMobile]=useState(()=>typeof window!=="undefined"&&window.innerWidth<768);
-  const [theme,setTheme]=useState("dark");
+  /* VerisZone is light-mode only; identity now comes from the chosen
+     workspace palette rather than a dark/light toggle. */
+  const theme="light";
+  const [paletteId,setPaletteIdState]=useState(DEFAULT_PALETTE);
+  const setPaletteId=id=>{ setPaletteIdState(id); if(typeof window!=="undefined") window.localStorage.setItem("veriszone.palette",id); };
+  useEffect(()=>{ if(typeof window==="undefined")return; const saved=window.localStorage.getItem("veriszone.palette"); if(saved&&paletteById(saved).id===saved) setPaletteIdState(saved); },[]);
   /* Universal search + cross-module deep-open: any enterprise object is
      reachable from anywhere; selecting an initiative opens its workspace. */
   const [searchQ,setSearchQ]=useState("");
@@ -586,7 +617,7 @@ export default function VerisZone() {
       return USER_PROFILES;
     }
   });
-  Object.assign(T, theme==="light"?LIGHT_T:DARK_T);
+  applyPalette(paletteId);
 
   useEffect(()=>{
     if(document.getElementById("gp-css"))return;
@@ -596,9 +627,9 @@ export default function VerisZone() {
   useEffect(()=>{
     document.body.style.background=T.bg;
     document.body.style.color=T.ink;
-    document.documentElement.classList.toggle("dark",theme==="dark");
-    document.documentElement.dataset.theme=theme;
-  },[theme]);
+    document.documentElement.classList.remove("dark");
+    document.documentElement.dataset.theme="light";
+  },[paletteId]);
 
   useEffect(()=>{
     if(!hasEntered||typeof window==="undefined")return;
@@ -716,11 +747,11 @@ export default function VerisZone() {
   const seededSession=sessionMode==="demo"||sessionMode==="aicentral";
   const showSeededData=seededSession||!SEEDED_DEMO_TABS.has(tab);
 
-  if(!hasEntered)return <BrandEntryShell theme={theme} onTheme={()=>setTheme(theme==="dark"?"light":"dark")} onEnter={enterApp}/>;
+  if(!hasEntered)return <BrandEntryShell theme={theme} onEnter={enterApp}/>;
 
   return <div style={{display:"flex",minHeight:"100vh",background:T.bg}}>
     {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
-    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} setTheme={setTheme} onSignOut={signOut} sessionMode={sessionMode} profiles={userProfiles}/>
+    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} paletteId={paletteId} onSignOut={signOut} sessionMode={sessionMode} profiles={userProfiles}/>
 
     {/* Main */}
     <div style={{marginLeft:isMobile?0:SIDEBAR_W,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
@@ -773,7 +804,6 @@ export default function VerisZone() {
               </div>;
             })()}
           </div>}
-          <button onClick={()=>setTheme(theme==="dark"?"light":"dark")} title="Toggle dark and light mode" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:isMobile?"4px 10px":"6px 13px",color:T.ink2,fontSize:isMobile?10:11,fontWeight:800,fontFamily:F.b,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.05)":"none"}}>{theme==="dark"?"Light":"Dark"}</button>
           {hitlCount>0&&<button onClick={()=>setTab("decisions")} style={{display:"flex",alignItems:"center",gap:6,background:T.amberL,border:`1px solid ${T.amber}40`,borderRadius:20,padding:"4px 10px"}}>
             <div style={{width:5,height:5,borderRadius:"50%",background:T.amber,animation:"pulse 2s infinite"}}/>
             <span style={{fontSize:10,fontWeight:700,color:T.amber,fontFamily:F.b}}>{hitlCount}</span>
@@ -808,7 +838,7 @@ export default function VerisZone() {
         {showSeededData&&tab==="usecases"   &&<PageUseCases/>}
         {showSeededData&&tab==="roadmap"    &&<PageRoadmap    role={role} setTab={setTab} setAiCentralView={setAiCentralView}/>}
         {showSeededData&&tab==="servicenow"  &&<PageIntegrations role={role} showToast={showToast}/>}
-        {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut}/>}
+        {(tab==="profile"||tab==="settings") &&<PageProfile role={role} sessionMode={sessionMode} profiles={userProfiles} setProfiles={setUserProfiles} showToast={showToast} onSignOut={signOut} paletteId={paletteId} setPaletteId={setPaletteId} initialTab={tab==="settings"?"appearance":"identity"}/>}
         {showSeededData&&tab==="reports"    &&<PageReports   role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {tab==="myworkspace"&&<PageMyWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>navigate("initiative",{id})}/>}
         {tab==="teamspace" &&<PageTeamWorkspace role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab} openInitiative={id=>navigate("initiative",{id})}/>}
@@ -819,7 +849,7 @@ export default function VerisZone() {
       </div>
     </div>
     {<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
-    <CommandPalette open={paletteOpen} onClose={()=>setPaletteOpen(false)} role={role} theme={theme} actions={{navigate,setTab,setAiCentralView,setInitToOpen,setTheme}}/>
+    <CommandPalette open={paletteOpen} onClose={()=>setPaletteOpen(false)} role={role} theme={theme} actions={{navigate,setTab,setAiCentralView,setInitToOpen}}/>
   </div>;
 }
 
