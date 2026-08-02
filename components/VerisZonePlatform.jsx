@@ -180,9 +180,9 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     {/* Overlay on mobile */}
     {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
     <div style={{width:SIDEBAR_W,background:RAIL.bg,borderRight:`1px solid ${RAIL.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:"14px 0 40px rgba(10,3,8,.4)"}}>
-      <div style={{padding:"14px 14px",borderBottom:`1px solid ${RAIL.border}`,display:"flex",alignItems:"center",gap:9,minHeight:64}}>
-        <BrandLogo theme="dark" width={168} style={{objectPosition:"left center"}}/>
-        {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",color:RAIL.ink3,padding:6,cursor:"pointer",display:"flex"}}>
+      <div style={{padding:"14px 14px",borderBottom:`1px solid ${RAIL.border}`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",minHeight:64}}>
+        <BrandLogo theme="dark" width={168} style={{objectPosition:"center"}}/>
+        {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:RAIL.ink3,padding:6,cursor:"pointer",display:"flex"}}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
         </button>}
       </div>
