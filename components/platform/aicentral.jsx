@@ -630,7 +630,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           <div style={{fontSize:30,fontWeight:800,color:"#ffe9ef",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{lens.hero[0]}</div>
           <div><div style={{fontSize:9.5,letterSpacing:"0.09em",textTransform:"uppercase",color:"#f3c9d4",fontWeight:900,fontFamily:F.m}}>{lens.hero[1]}</div><div style={{fontSize:10,color:"#e0a9ba",marginTop:3,fontWeight:600,fontFamily:F.b}}>{lens.hero[2]}</div></div>
         </div>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:700,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px",alignSelf:"center"}}>🔒 RBAC · {access.modules.length} of {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").length} modules enabled</div>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:700,fontFamily:F.b,background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 12px",alignSelf:"center"}}>🔒 RBAC · {AI_CENTRAL_NAV.filter(m=>m.id!=="academy"&&access.modules.includes(m.id)).length} of {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").length} modules enabled</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:14}}>
         {lens.kpis.map((k,i)=><button key={i} onClick={()=>setLineage({label:k[0],value:k[1]})} className="vz-pn-row" style={{textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
