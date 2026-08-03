@@ -7,16 +7,12 @@ import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demo
 import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
+import { inspectPrompt } from "@/lib/policy-rules";
 
-export function wbInspectPrompt(text){
-  if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
-    return {action:"Blocked",detector:"Credentials & API Keys",masked:text};
-  const cardRe=/\b(?:\d[ -]?){13,16}\b/g, emailRe=/[\w.+-]+@[\w-]+\.[\w.]+/g;
-  if(cardRe.test(text)||emailRe.test(text))
-    return {action:"Masked",detector:/(?:\d[ -]?){13,16}/.test(text)?"PCI / Card Data":"PII Detection",
-      masked:text.replace(/\b(?:\d[ -]?){13,16}\b/g,"[MASKED-CARD]").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[MASKED-EMAIL]")};
-  return null;
-}
+/* Prompt inspection now runs the shared canonical policy engine (lib/
+   policy-rules) — the same rules the server gateway enforces and the policy
+   register publishes — instead of a duplicated local regex. */
+export function wbInspectPrompt(text){ return inspectPrompt(text); }
 
 /* Internal Knowledge Engine: pick enrichment assets for a prompt. */
 export function wbEnrichFor(text){
@@ -122,9 +118,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
     const shown=blocked?"[Prompt blocked before leaving the enterprise boundary]":(guard?guard.masked:text);
     const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null};
     if(guard){
-      /* Every enforcement event becomes a queryable violation record. */
-      const RULE_POLICY={"PII":"POL-DH-002 Data Handling Standard","PCI / Card Data":"POL-DH-002 Data Handling Standard","Credentials":"POL-DH-002 Data Handling Standard","Prompt Filtering":"POL-RAI-001 Responsible GenAI Use"};
-      pushBus("vz-violations",{rule:guard.detector,policy:RULE_POLICY[guard.detector]||"POL-DH-002 Data Handling Standard",action:blocked?"Blocked":"Masked",model:provider.models[0]||provider.name,classification:base.classification,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
+      /* Every enforcement event becomes a queryable violation record, tagged
+         with the exact policy + clause the shared engine matched, so it
+         reconciles with the register and (when the DB is live) the Violation
+         table via the persistence bus. */
+      pushBus("vz-violations",{rule:guard.detector,ruleId:guard.ruleId,policyKey:guard.policyKey,clauseRef:guard.clauseRef,
+        policy:guard.policyKey,severity:guard.severity,action:blocked?"Blocked":"Masked",
+        model:provider.models[0]||provider.name,classification:base.classification,
+        time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
     }
     const withUser={...base,lastActivity:"Just now",messages:[...base.messages,userMsg],
       riskScore:blocked?Math.min(95,base.riskScore+20):base.riskScore,
