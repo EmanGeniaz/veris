@@ -8,6 +8,7 @@ import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, ac
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { providerSpend, costSummary, costHeadline, costOf, fmtUSD, fmtTokens } from "@/lib/cost-engine";
 import { surfacesFor, initiativeById } from "@/lib/initiative-registry";
+import { PageAgentRegistry } from "./agents";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
@@ -2559,6 +2560,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {activeModule==="inventory"&&<><ModuleLensBand module="inventory"/><AIInventory/></>}
     {activeModule==="lifecycle"&&<><ModuleLensBand module="lifecycle"/><AILifecycle/></>}
     {activeModule==="gateway"&&<Gateway/>}
+    {activeModule==="agents"&&<><ModuleLensBand module="agents"/><PageAgentRegistry role={role} showToast={showToast}/></>}
     {activeModule==="risk"&&<><ModuleLensBand module="risk"/><PageRiskCenter role={role} tab="riskcenter" setTab={setTab} setAiCentralView={setView} showToast={showToast}/></>}
     {activeModule==="trust"&&<><ModuleLensBand module="trust"/><TrustCenter/></>}
     {activeModule==="evidence"&&<><ModuleLensBand module="evidence"/><EvidenceModule/></>}

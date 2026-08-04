@@ -7,6 +7,7 @@ import { knowledgeAssets, acInitiatives, riskRegister } from "@/lib/platform-mod
 import { retrieve } from "@/lib/knowledge";
 import { evaluateRules, classify, validateResponse } from "@/lib/policy-rules";
 import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
+import { capabilityCheck } from "@/lib/agent-registry";
 
 function internalContext(q: string): string[] {
   const ql = q.toLowerCase();
@@ -21,8 +22,16 @@ export async function POST(req: NextRequest) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ enabled: false });
   try {
-    const { prompt, tenant } = await req.json();
+    const { prompt, tenant, agent, tool } = await req.json();
     const text = String(prompt || "").slice(0, 8000);
+    /* Agent least-privilege enforcement at call time: if this request is an
+       agent invoking a tool, the capability is checked before anything
+       else — an out-of-scope tool call is denied by default. */
+    if (agent && tool) {
+      const cap = capabilityCheck(String(agent), String(tool));
+      if (!cap.allowed) return NextResponse.json({ enabled: true, blocked: true, detector: "Agent least-privilege",
+        capability: { agent, tool, decision: cap.decision, reason: cap.reason, control: cap.control } });
+    }
     const classification = classify(text);
     const guard = evaluateRules(text);
     if (guard.blocked) return NextResponse.json({ enabled: true, blocked: true, detector: guard.primary?.name ?? "Policy",
