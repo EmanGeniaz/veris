@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { providerSpend, costSummary, costHeadline, costOf, fmtUSD, fmtTokens } from "@/lib/cost-engine";
+import { surfacesFor, initiativeById } from "@/lib/initiative-registry";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
@@ -920,6 +921,19 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     </div>}
   </div>;
   const Overview=()=><div style={{display:"grid",gap:20}}>
+    {/* ── Unified record: this initiative is ONE object; the chips are the
+        other surfaces that are a lens on the same record. ── */}
+    {(()=>{const lenses=surfacesFor(selected.id);const uni=initiativeById(selected.id);return <div style={{background:`linear-gradient(135deg,${AI_GOLD}14,${T.s2})`,border:`1px solid ${AI_GOLD}33`,borderRadius:11,padding:"11px 14px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.1em"}}>⛓ Unified record · {selected.id}</span>
+        <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>one object · {uni&&uni.depth==="governed"?"governed across every lens below":"portfolio record"}</span>
+      </div>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:9}}>
+        {lenses.map(s=><button key={s.key} onClick={()=>nav(s.target,s.ctx)} title={`Open this initiative on ${s.label}`} style={{display:"flex",alignItems:"center",gap:6,background:T.card,border:`1px solid ${T.border}`,borderRadius:999,padding:"4px 11px",fontSize:10,fontWeight:800,fontFamily:F.b,color:T.ink2,cursor:"pointer"}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:s.key==="initiative"?AI_GOLD:T.blue}}/>{s.label}{s.key==="initiative"?" · here":" →"}
+        </button>)}
+      </div>
+    </div>;})()}
     {renderCharter()}
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"14px 24px",marginBottom:4}}>
