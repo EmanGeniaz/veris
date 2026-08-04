@@ -8,6 +8,7 @@ import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, B
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
 import { inspectPrompt, classify, validateResponse } from "@/lib/policy-rules";
+import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
 
 /* Prompt inspection now runs the shared canonical policy engine (lib/
    policy-rules) — the same rules the server gateway enforces and the policy
@@ -145,10 +146,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
          transcript — redact anything sensitive that slipped through. */
       const rv=blocked?null:validateResponse(finalText);
       const outText=rv?rv.redacted:finalText;
+      /* FinOps: meter the exchange through the same price book the CFO's
+         dashboard rolls up — cost is attributed to the routed provider. */
+      const meterTokens=blocked?0:estimateTokens(text)+estimateTokens(outText);
+      const meter=meterTokens?{tokens:meterTokens,cost:costOf(meterTokens,base.providerId||provider.id),label:fmtUSD(costOf(meterTokens,base.providerId||provider.id))}:null;
       setConvos(cs=>cs.map(c=>c.id!==base.id?c:{...c,lastActivity:"Just now",
         evidenceLinks:c.evidenceLinks+(artifact?1:0),
         policyDecision:blocked?"Blocked by policy":guard?"Allowed with masking":"Allowed with enrichment",
-        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:outText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null,responseValidation:rv?{ok:rv.ok,findings:rv.findings}:null}]}));
+        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:outText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null,responseValidation:rv?{ok:rv.ok,findings:rv.findings}:null,meter}]}));
       setTyped(null);setPhase(null);
       if(blocked)showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
       else if(artifact){recordEvidence(base);showToast&&showToast("Evidence recorded in Trust & Evidence");}
@@ -274,9 +279,12 @@ export function PageWorkbench({role,sessionMode,showToast}){
                 <span style={{fontSize:8,fontWeight:900,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",color:clsColor(m.classification),background:clsColor(m.classification)+"1c",border:`1px solid ${clsColor(m.classification)}55`,borderRadius:999,padding:"2px 8px"}}>{m.classification}</span>
                 {(m.categories||[]).map(c=><span key={c} style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:T.ink3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 7px"}}>{c}</span>)}
               </div>}
-              {m.from==="assistant"&&m.responseValidation&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
-                <span style={{width:6,height:6,borderRadius:"50%",background:m.responseValidation.ok?T.green:T.amber}}/>
-                <span style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:m.responseValidation.ok?T.green:T.amber}}>{m.responseValidation.ok?"Response validated · clean egress":`Egress redacted · ${m.responseValidation.findings.join(", ")}`}</span>
+              {m.from==="assistant"&&(m.responseValidation||m.meter)&&<div style={{display:"flex",gap:10,alignItems:"center",marginTop:9,flexWrap:"wrap"}}>
+                {m.responseValidation&&<span style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <span style={{width:6,height:6,borderRadius:"50%",background:m.responseValidation.ok?T.green:T.amber}}/>
+                  <span style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:m.responseValidation.ok?T.green:T.amber}}>{m.responseValidation.ok?"Response validated · clean egress":`Egress redacted · ${m.responseValidation.findings.join(", ")}`}</span>
+                </span>}
+                {m.meter&&<span title="Metered through the gateway's FinOps price book" style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:T.ink3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px"}}>⛽ {m.meter.label} · {m.meter.tokens.toLocaleString()} tok</span>}
               </div>}
               {m.enrichedWith&&m.enrichedWith.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`}}>
                 <span style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",alignSelf:"center"}}>Enriched with</span>

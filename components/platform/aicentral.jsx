@@ -6,6 +6,7 @@ import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
+import { providerSpend, costSummary, costHeadline, costOf, fmtUSD, fmtTokens } from "@/lib/cost-engine";
 import { PageAISpine } from "./spine";
 import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
@@ -2139,13 +2140,17 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {pfTab==="maturity"&&<PageMaturityRadar/>}
     {pfTab==="usecases"&&<PageUseCases/>}
   </div>;
-  const Gateway=()=><div>
+  const Gateway=()=>{
+    /* FinOps rollup — every cost figure is computed from the price book
+       (tokens × blended rate) and measured against the budget, not stored. */
+    const cost=costSummary(), head=costHeadline(), spend=providerSpend();
+    return <div>
     {<div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Requests MTD" value={gatewayStats.requestsMtd} sub="All AI interactions governed" color={rc}/>
-      <Metric label="Tokens MTD" value={gatewayStats.tokensMtd} sub="Across all providers" color={T.blue}/>
-      <Metric label="Cost MTD" value={gatewayStats.costMtd} sub="FinOps monitored" color={T.green}/>
-      <Metric label="Blocked" value={gatewayStats.blockedMtd} sub="Policy enforcement actions" color={T.red}/>
+      <Metric label="Tokens MTD" value={head.tokensMtd} sub="Metered across all providers" color={T.blue}/>
+      <Metric label="Cost MTD" value={head.costMtd} sub={`${head.utilization}% of ${head.budgetMtd} budget`} color={cost.utilization>100?T.red:cost.utilization>90?T.amber:T.green} score={Math.min(100,cost.utilization)}/>
+      <Metric label="Over budget" value={cost.overBudget.length} sub={cost.overBudget.length?`${cost.overBudget.map(p=>p.name).join(", ")}`:"All providers within cap"} color={cost.overBudget.length?T.red:T.green}/>
       <Metric label="Avg prompt risk" value={gatewayStats.avgRiskScore} sub="0-100 risk scoring" color={T.teal} score={gatewayStats.avgRiskScore}/>
     </div>
     {(()=>{
@@ -2182,15 +2187,15 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.1fr .9fr",gap:14,marginBottom:14}}>
       <Card style={{padding:0,overflow:"hidden"}}>
-        <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Model providers &amp; routing</h3></div>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Model providers &amp; spend</h3><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>cost = tokens × price book</span></div>
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead><tr>{["Provider","Status","Approved models","Routed","Cost MTD"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
-          <tbody>{gatewayProviders.map(p=><tr key={p.id} style={{borderBottom:"1px solid "+T.border}}>
-            <td style={{padding:"11px 12px",color:T.ink,fontWeight:700}}>{p.name}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{p.kind}</div></td>
+          <thead><tr>{["Provider","Status","Routed","Cost MTD","Budget used"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+          <tbody>{spend.map(p=><tr key={p.id} style={{borderBottom:"1px solid "+T.border}}>
+            <td style={{padding:"11px 12px",color:T.ink,fontWeight:700}}>{p.name}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{p.kind} · {fmtTokens(p.tokens)} tokens</div></td>
             <td style={{padding:"11px 12px"}}><Tag label={p.status} color={p.status==="Approved"?T.green:p.status==="Restricted"?T.amber:T.red} bg={(p.status==="Approved"?T.green:p.status==="Restricted"?T.amber:T.red)+"16"}/></td>
-            <td style={{padding:"11px 12px",color:T.ink2,fontSize:11}}>{p.models.join(", ")}</td>
-            <td style={{padding:"11px 12px",minWidth:90}}><Bar value={p.routedShare} color={rc}/><div style={{fontSize:9,color:T.ink3,marginTop:4}}>{p.routedShare}%</div></td>
-            <td style={{padding:"11px 12px",color:T.ink2,fontFamily:F.m}}>{p.costMtd}</td>
+            <td style={{padding:"11px 12px",minWidth:78}}><Bar value={p.routedShare} color={rc}/><div style={{fontSize:9,color:T.ink3,marginTop:4}}>{p.routedShare}%</div></td>
+            <td style={{padding:"11px 12px",color:T.ink,fontFamily:F.m,fontWeight:800}}>{fmtUSD(p.cost)}</td>
+            <td style={{padding:"11px 12px",minWidth:96}}><Bar value={Math.min(100,p.utilization)} color={p.overBudget?T.red:p.utilization>90?T.amber:T.green}/><div style={{fontSize:9,color:p.overBudget?T.red:T.ink3,marginTop:4,fontFamily:F.m,fontWeight:p.overBudget?800:400}}>{p.utilization}% of {fmtUSD(p.budget)}{p.overBudget?" · over":""}</div></td>
           </tr>)}</tbody>
         </table></div>
       </Card>
@@ -2204,24 +2209,49 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         </div>
       </Card>
     </div>
+    {/* ── FinOps: enterprise AI spend vs budget, computed from the price
+        book, with the runtime Cost & Token Guard that enforces it. ── */}
+    <Card style={{padding:0,overflow:"hidden",marginBottom:14}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <h3 style={{margin:0,fontSize:14,color:T.ink}}>AI FinOps — spend vs budget</h3>
+        <button onClick={()=>setTab&&setTab("policies")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>POL-FIN-005 · Cost &amp; Token Guard →</button>
+      </div>
+      <div style={{padding:"16px 18px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:16,alignItems:"start"}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Enterprise spend MTD</div>
+          <div style={{fontSize:24,fontWeight:900,fontFamily:F.m,color:cost.utilization>100?T.red:cost.utilization>90?T.amber:T.green}}>{fmtUSD(cost.costMtd)} <span style={{fontSize:11,color:T.ink3,fontWeight:700}}>of {fmtUSD(cost.budgetMtd)}</span></div>
+          <div style={{marginTop:7}}><Bar value={Math.min(100,cost.utilization)} color={cost.utilization>100?T.red:cost.utilization>90?T.amber:AI_GOLD}/></div>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:6}}>{cost.utilization}% of monthly budget · blended {`$${cost.blendedPer1M.toFixed(2)}`}/1M tokens</div>
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Budget breaches</div>
+          {cost.overBudget.length?cost.overBudget.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:11,fontFamily:F.b,color:T.ink2,padding:"3px 0"}}><span style={{color:T.red,fontWeight:800}}>{p.name}</span><span style={{fontFamily:F.m,fontWeight:800,color:T.red}}>{p.utilization}%</span></div>):<div style={{fontSize:11,color:T.green,fontFamily:F.b}}>Every provider within its cap.</div>}
+          {cost.overBudget.length>0&&<div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,marginTop:6,lineHeight:1.5}}>Escalated to the CFO's FinOps review queue — spend above cap is routed, not blocked.</div>}
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Runtime guard</div>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>Every prompt is metered at the gateway. A single request over <strong style={{color:T.ink}}>6,000 tokens</strong> trips the Cost &amp; Token Guard and is routed to review — the FinOps policy enforced in-line, not after the invoice.</div>
+        </div>
+      </div>
+    </Card>
     <Card style={{padding:0,overflow:"hidden"}}>
       <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>Live prompt log</h3><Tag label="Streaming" color={T.green} bg={T.greenL}/></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-        <thead><tr>{["Time","User","Business unit","Provider / model","Risk","Action","Policy","Tokens"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
-        <tbody>{gatewayLog.map(l=><tr key={l.id} style={{borderBottom:"1px solid "+T.border}}>
+        <thead><tr>{["Time","User","Business unit","Provider / model","Risk","Action","Tokens","Cost"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{h}</th>)}</tr></thead>
+        <tbody>{gatewayLog.map(l=>{const pid=(gatewayProviders.find(x=>x.name===l.provider)||{}).id;const c=l.tokens?costOf(l.tokens,pid):0;return <tr key={l.id} style={{borderBottom:"1px solid "+T.border}}>
           <td style={{padding:"10px 12px",color:T.ink3,fontFamily:F.m}}>{l.time}</td>
           <td style={{padding:"10px 12px",color:T.ink2}}>{l.user}</td>
           <td style={{padding:"10px 12px",color:T.ink2}}>{l.unit}</td>
           <td style={{padding:"10px 12px",color:T.ink2}}>{l.provider}<div style={{fontSize:9,color:T.ink4}}>{l.model}</div></td>
           <td style={{padding:"10px 12px"}}><span style={{color:l.riskScore>=60?T.red:l.riskScore>=30?T.amber:T.green,fontFamily:F.m,fontWeight:800}}>{l.riskScore}</span></td>
           <td style={{padding:"10px 12px"}}><Tag label={l.action} color={gwActionColor(l.action)} bg={gwActionColor(l.action)+"16"}/></td>
-          <td style={{padding:"10px 12px",color:T.ink3,fontSize:10}}>{l.policy}</td>
           <td style={{padding:"10px 12px",color:T.ink3,fontFamily:F.m}}>{l.tokens.toLocaleString()}</td>
-        </tr>)}</tbody>
+          <td style={{padding:"10px 12px",color:T.ink2,fontFamily:F.m}}>{l.tokens?fmtUSD(c):"—"}</td>
+        </tr>;})}</tbody>
       </table></div>
     </Card>
     </div>}
-  </div>;
+  </div>;};
 
   /* ── Governance Academy ────────────────────────────────────── */
   const Academy=()=><div>

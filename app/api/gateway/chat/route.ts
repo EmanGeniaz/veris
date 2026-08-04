@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { knowledgeAssets, acInitiatives, riskRegister } from "@/lib/platform-models";
 import { retrieve } from "@/lib/knowledge";
 import { evaluateRules, classify, validateResponse } from "@/lib/policy-rules";
+import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
 
 function internalContext(q: string): string[] {
   const ql = q.toLowerCase();
@@ -48,8 +49,15 @@ export async function POST(req: NextRequest) {
     const rv = validateResponse(answer);
     const sources = [...new Set(passages.map(p => p.title))];
     const grounded = sources.length ? `${rv.redacted}\n\n— Grounded in your documents: ${sources.join(", ")}` : rv.redacted;
+    /* FinOps: meter this interaction. Cost is priced through the same
+       engine that rolls up enterprise spend — the number on the message
+       and the number on the CFO's dashboard come from one price book. */
+    const providerId = "gw-claude";
+    const tokensIn = estimateTokens(guard.masked), tokensOut = estimateTokens(answer);
+    const cost = costOf(tokensIn + tokensOut, providerId);
     return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask,
       classification, responseValidation: { ok: rv.ok, findings: rv.findings },
+      cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
       source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
     return NextResponse.json({ enabled: false });

@@ -8,9 +8,10 @@
    Pure module (regex only, no server/browser deps) so the exact same engine
    runs in the Node gateway route and in the client workbench inspection. */
 import { POLICY_REGISTER } from "./platform-models";
+import { estimateTokens, REQUEST_TOKEN_CEILING } from "./cost-engine";
 
 export type DetectorKey =
-  | "credential" | "card" | "email" | "pii" | "injection" | "sensitive" | "code" | "model";
+  | "credential" | "card" | "email" | "pii" | "injection" | "sensitive" | "code" | "model" | "cost";
 
 export type RuntimeRule = {
   ruleId: string; name: string; clauseRef: string; action: string;
@@ -42,6 +43,9 @@ const DETECT: Record<DetectorKey, (t: string) => boolean> = {
   injection: (t) => P.injection.test(t),
   sensitive: (t) => P.sensitive.test(t),
   code: (t) => P.code.test(t),
+  // FinOps spend guard: an oversized single request is expensive — the
+  // Cost & Token Guard routes it to review (POL-FIN-005 §3.2 Spend limits).
+  cost: (t) => estimateTokens(t) > REQUEST_TOKEN_CEILING,
   model: () => false, // allowlist / routing enforcement lives in model routing (roadmap)
 };
 
@@ -61,6 +65,8 @@ export function detectorFor(id: string, name: string, clause: string): DetectorK
   // "credential" must be specific — a bare "token"/"key" also matches LLM
   // token/spend guards, so require an explicit secret/credential phrase.
   if (/credential|secret|api[\s_-]?key|\bkeys?\b/.test(s)) return "credential";
+  // FinOps spend/token guard — a real runtime detector for the cost policy.
+  if (/\bcost\b|token|spend|finops|budget/.test(s)) return "cost";
   if (/card|pci|payment/.test(s)) return "card";
   if (/phi|health|confidential|sensitive|restricted|document/.test(s)) return "sensitive";
   if (/pii|personal|customer|redact/.test(s)) return "pii";
