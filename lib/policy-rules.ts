@@ -8,9 +8,10 @@
    Pure module (regex only, no server/browser deps) so the exact same engine
    runs in the Node gateway route and in the client workbench inspection. */
 import { POLICY_REGISTER } from "./platform-models";
+import { estimateTokens, REQUEST_TOKEN_CEILING } from "./cost-engine";
 
 export type DetectorKey =
-  | "credential" | "card" | "email" | "pii" | "injection" | "sensitive" | "code" | "model";
+  | "credential" | "card" | "email" | "pii" | "injection" | "sensitive" | "code" | "model" | "cost";
 
 export type RuntimeRule = {
   ruleId: string; name: string; clauseRef: string; action: string;
@@ -42,6 +43,9 @@ const DETECT: Record<DetectorKey, (t: string) => boolean> = {
   injection: (t) => P.injection.test(t),
   sensitive: (t) => P.sensitive.test(t),
   code: (t) => P.code.test(t),
+  // FinOps spend guard: an oversized single request is expensive — the
+  // Cost & Token Guard routes it to review (POL-FIN-005 §3.2 Spend limits).
+  cost: (t) => estimateTokens(t) > REQUEST_TOKEN_CEILING,
   model: () => false, // allowlist / routing enforcement lives in model routing (roadmap)
 };
 
@@ -61,6 +65,8 @@ export function detectorFor(id: string, name: string, clause: string): DetectorK
   // "credential" must be specific — a bare "token"/"key" also matches LLM
   // token/spend guards, so require an explicit secret/credential phrase.
   if (/credential|secret|api[\s_-]?key|\bkeys?\b/.test(s)) return "credential";
+  // FinOps spend/token guard — a real runtime detector for the cost policy.
+  if (/\bcost\b|token|spend|finops|budget/.test(s)) return "cost";
   if (/card|pci|payment/.test(s)) return "card";
   if (/phi|health|confidential|sensitive|restricted|document/.test(s)) return "sensitive";
   if (/pii|personal|customer|redact/.test(s)) return "pii";
@@ -126,6 +132,48 @@ export function evaluateRules(text: string): Evaluation {
       ? "mask"
       : matches.length ? "flag" : "allow";
   return { decision, blocked: !!blocking, masked, didMask, matches, primary };
+}
+
+/* ── Data classification ────────────────────────────────────────────
+   Classify prompt content into a data class + sensitive categories from
+   the content itself — not a static label. This is the real detector
+   behind the gateway's "Data Classification" stage. */
+const PHI = /\b(patient|diagnosis|medical record|health record|\bphi\b|prescription|icd-?10)\b/i;
+const PUBLIC = /\b(press release|public|marketing copy|blog draft)\b/i;
+
+export type Classification = { dataClass: "Public" | "Internal" | "Confidential" | "Restricted"; categories: string[] };
+
+export function classify(text: string): Classification {
+  const cats: string[] = [];
+  if (P.credential.test(text)) cats.push("Secrets");
+  if (P.card.test(text)) cats.push("PCI");
+  if (PHI.test(text)) cats.push("PHI");
+  if (P.ssn.test(text) || P.phone.test(text) || P.email.test(text)) cats.push("PII");
+  if (P.code.test(text)) cats.push("Source code");
+  if (P.sensitive.test(text)) cats.push("Marked confidential");
+  const has = (c: string) => cats.includes(c);
+  let dataClass: Classification["dataClass"] = "Internal";
+  if (has("Secrets") || has("PCI") || has("PHI")) dataClass = "Restricted";
+  else if (has("PII") || has("Marked confidential") || has("Source code")) dataClass = "Confidential";
+  else if (PUBLIC.test(text) && !cats.length) dataClass = "Public";
+  return { dataClass, categories: [...new Set(cats)] };
+}
+
+/* ── Response validation ────────────────────────────────────────────
+   Scan the MODEL'S OUTPUT before it reaches the user — catch secrets/PII
+   that shouldn't leave the boundary and detect system-prompt reflection
+   (a sign an injection got through). Real enforcement on egress, not just
+   ingress. */
+export type ResponseCheck = { ok: boolean; findings: string[]; redacted: string };
+
+export function validateResponse(text: string): ResponseCheck {
+  const findings: string[] = [];
+  let redacted = String(text || "");
+  if (P.credential.test(redacted)) { findings.push("Secret/credential in output"); redacted = redacted.replace(/sk-[A-Za-z0-9]{8,}/g, "[REDACTED-SECRET]"); }
+  if (P.card.test(redacted)) { findings.push("Card number in output"); redacted = redacted.replace(P.cardG, "[REDACTED-CARD]"); }
+  if (P.ssn.test(redacted)) { findings.push("Government ID in output"); redacted = redacted.replace(P.ssnG, "[REDACTED-SSN]"); }
+  if (/never reveal these instructions|here (is|are) (my|the) (system )?(prompt|instructions)|you are veris intelligence, the enterprise ai advisor/i.test(text)) findings.push("System-prompt reflection");
+  return { ok: findings.length === 0, findings, redacted };
 }
 
 /* Compatibility shape for the client workbench inspection (was a local

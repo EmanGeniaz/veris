@@ -6,6 +6,7 @@ import { Activity, Cloud, Library, Map, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_FRAMEWORK_POSTURE, knowledgeAssets , POLICY_REGISTER, acInitiatives} from "@/lib/platform-models";
 import { SmartSelect } from "./smartselect";
+import { walkBack, conformitySummary } from "@/lib/compliance-engine";
 import { T, RC, RCL, ROLES, AI_GOLD, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -752,45 +753,97 @@ export function PageCommonControls({role}) {
   const [sel,setSel]=useState(COMMON_CONTROLS[0]);
   const stCol=s=>s==="Implemented"?T.green:s==="Partial"?T.amber:T.red;
   const allFrameworks=["ISO 27001","ISO 27002","SOC 2","NIST CSF","CIS Controls","GDPR","ISO 42001","PCI DSS","HIPAA","DORA","EU AI Act","NIST AI RMF","MAS TRM","RBI"];
+  /* Walk-back trace + computed conformity for the selected control, and the
+     portfolio headline — all derived from evidence validity vs today. */
+  const today=new Date();
+  const wb=walkBack(sel?.id,today);
+  const summary=conformitySummary(today);
+  const wbById=id=>summary.rows.find(r=>r.control.id===id)||wb;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Common Control Library" sub="One control mapped across 16 frameworks"/>
+    <SHead title="Common Control Library" sub="One control mapped across 16 frameworks — conformity walked back to live evidence"/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:12}}>
+      {[["Computed conformity",summary.score+"%",summary.score>=80?T.green:summary.score>=60?T.amber:T.red,"averaged from every control's walk-back"],
+        ["Conformant",`${summary.conformant}/${summary.total}`,T.green,"valid evidence, no open gaps"],
+        ["Evidence lapsed",summary.lapsed,summary.lapsed?T.red:T.ink3,"asserted met, but proof expired"],
+        ["Unsubstantiated gaps",summary.gaps,summary.gaps?T.red:T.ink3,"not proven by current evidence"]].map(([l,v,c,sub])=>
+        <div key={l} style={{background:T.s1,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
+          <div style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em"}}>{l}</div>
+          <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c,margin:"3px 0 2px"}}>{v}</div>
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,lineHeight:1.4}}>{sub}</div>
+        </div>)}
+    </div>
     <div style={{background:T.s3,borderRadius:9,padding:"11px 14px",marginBottom:14,display:"flex",gap:8,flexWrap:"wrap"}}>
       {allFrameworks.map(fw=><Tag key={fw} label={fw} color={rc} bg={RCL(role)+"80"}/>)}
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:14}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:14}}>
       <div>
         <div style={{display:"grid",gridTemplateColumns:"2fr 80px 80px",padding:"7px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["Control Area","Status","Strength"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+          {["Control Area","Asserted","Conformity"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
         </div>
         <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
           {COMMON_CONTROLS.map((c,i)=><div key={c.id} onClick={()=>setSel(c)} style={{display:"grid",gridTemplateColumns:"2fr 80px 80px",padding:"12px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<COMMON_CONTROLS.length-1?`1px solid ${T.border}`:"none",background:sel?.id===c.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel?.id===c.id?"3px solid "+rc:"3px solid transparent",transition:"all .15s"}}>
             <div>
-              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3}}>{c.control}</div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:3,display:"flex",alignItems:"center",gap:7}}>
+                <span title={wbById(c.id).verdict} style={{width:8,height:8,borderRadius:"50%",background:wbById(c.id).tone,flexShrink:0}}/>
+                {c.control}
+              </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 {Object.keys(c.mappings).slice(0,4).map(fw=><Tag key={fw} label={fw} color={T.ink4} bg={T.s3}/>)}
                 {Object.keys(c.mappings).length>4&&<Tag label={"+"+(Object.keys(c.mappings).length-4)+" more"} color={rc} bg={RCL(role)+"80"}/>}
               </div>
             </div>
             <Tag label={c.status} color={stCol(c.status)} bg={stCol(c.status)+"18"}/>
-            <Tag label={c.strength} color={stCol(c.strength)} bg={stCol(c.strength)+"18"}/>
+            <Tag label={wbById(c.id).score+"%"} color={wbById(c.id).tone} bg={wbById(c.id).tone+"18"}/>
           </div>)}
         </div>
       </div>
       {sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",animation:"fade .25s ease"}}>
-        <div style={{background:`linear-gradient(135deg,${rc}18,${T.s3})`,borderBottom:`1px solid ${rc}30`,padding:"14px 16px"}}>
-          <Tag label={sel.status} color={stCol(sel.status)} bg={stCol(sel.status)+"18"}/>
-          <h3 style={{fontFamily:F.h,fontSize:13,fontWeight:700,color:T.ink,marginTop:8,lineHeight:1.3}}>{sel.control}</h3>
+        <div style={{background:`linear-gradient(135deg,${wb.tone}22,${T.s3})`,borderBottom:`1px solid ${wb.tone}40`,padding:"14px 16px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <Tag label={`Asserted: ${sel.status}`} color={stCol(sel.status)} bg={stCol(sel.status)+"18"}/>
+            <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,letterSpacing:"0.05em",textTransform:"uppercase",color:wb.tone,background:wb.tone+"1e",border:`1px solid ${wb.tone}66`,borderRadius:999,padding:"3px 10px"}}>{wb.verdict} · {wb.score}%</span>
+          </div>
+          <h3 style={{fontFamily:F.h,fontSize:13,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.control}</h3>
+          <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:4,lineHeight:1.5}}>Conformity walked back to live evidence, governing policy and open actions — not the asserted status.</div>
         </div>
         <div style={{padding:15}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:10}}>Framework Mappings</div>
-          {Object.entries(sel.mappings).map(([fw,ref])=><div key={fw} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+          {/* ── Why the verdict — the honest gap between claim and proof ── */}
+          {wb.reasons.length>0&&<div style={{background:wb.tone+"12",border:`1px solid ${wb.tone}33`,borderRadius:8,padding:"9px 11px",marginBottom:13}}>
+            <div style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:wb.tone,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>Why this verdict</div>
+            {wb.reasons.map((r,i)=><div key={i} style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6,display:"flex",gap:6}}><span style={{color:wb.tone}}>•</span><span>{r}</span></div>)}
+          </div>}
+          {wb.reasons.length===0&&<div style={{background:T.green+"12",border:`1px solid ${T.green}33`,borderRadius:8,padding:"9px 11px",marginBottom:13,fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>Substantiated: valid evidence, governing policy current, no open corrective actions.</div>}
+
+          {/* ── Traced evidence with health computed vs today ── */}
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Evidence traced ({wb.evidence.length})</div>
+          {wb.evidence.length?wb.evidence.map(e=><div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+            <div style={{minWidth:0}}><div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b}}>{e.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:1}}>{e.control} · {e.owner} · exp {e.expires}</div></div>
+            <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:e.health.tone,background:e.health.tone+"1c",border:`1px solid ${e.health.tone}55`,borderRadius:999,padding:"3px 9px",whiteSpace:"nowrap"}}>{e.health.state}</span>
+          </div>):<div style={{fontSize:10.5,color:T.red,fontFamily:F.b,marginBottom:6}}>No evidence records trace to this control — the requirement is unsubstantiated.</div>}
+          <div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b,lineHeight:1.5,margin:"3px 0 13px"}}>Required: {sel.evidence}</div>
+
+          {/* ── Governing policies ── */}
+          {wb.policies.length>0&&<><div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Governing policies ({wb.policies.length})</div>
+          {wb.policies.map(p=>{const pc=p.status==="Approved"?T.green:p.status==="In Review"?T.amber:T.red;return <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${T.border}`}}>
+            <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{p.name} <span style={{color:T.ink4}}>v{p.version}</span></span>
+            <Tag label={p.status} color={pc} bg={pc+"18"}/>
+          </div>;})}</>}
+
+          {/* ── Open corrective actions ── */}
+          {wb.openActions.length>0&&<div style={{marginTop:13}}>
+            <div style={{fontSize:9,fontWeight:700,color:T.red,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Open corrective actions ({wb.openActions.length})</div>
+            {wb.openActions.map(a=>{const ac=a.status==="Overdue"?T.red:T.amber;return <div key={a.id} style={{background:ac+"10",border:`1px solid ${ac}30`,borderRadius:7,padding:"7px 10px",marginBottom:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center"}}><span style={{fontSize:10,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.owner} · due {a.due}</span><Tag label={a.status} color={ac} bg={ac+"1c"}/></div>
+              <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:3}}>{a.finding}</div>
+            </div>;})}
+          </div>}
+
+          {/* ── Framework mappings ── */}
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,margin:"13px 0 7px"}}>Satisfies ({wb.frameworks.length} frameworks)</div>
+          {Object.entries(sel.mappings).map(([fw,ref])=><div key={fw} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{fw}</span>
             <Tag label={ref} color={rc} bg={RCL(role)+"80"}/>
           </div>)}
-          <div style={{marginTop:12,background:T.s3,borderRadius:7,padding:"10px 12px"}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Required Evidence</div>
-            <p style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.6,margin:0}}>{sel.evidence}</p>
-          </div>
         </div>
       </Card>}
     </div>

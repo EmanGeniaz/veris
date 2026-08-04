@@ -5,7 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { knowledgeAssets, acInitiatives, riskRegister } from "@/lib/platform-models";
 import { retrieve } from "@/lib/knowledge";
-import { evaluateRules } from "@/lib/policy-rules";
+import { evaluateRules, classify, validateResponse } from "@/lib/policy-rules";
+import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
 
 function internalContext(q: string): string[] {
   const ql = q.toLowerCase();
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     const { prompt, tenant } = await req.json();
     const text = String(prompt || "").slice(0, 8000);
+    const classification = classify(text);
     const guard = evaluateRules(text);
     if (guard.blocked) return NextResponse.json({ enabled: true, blocked: true, detector: guard.primary?.name ?? "Policy",
       clauseRef: guard.primary?.clauseRef, policyKey: guard.primary?.policyKey,
@@ -41,9 +43,22 @@ export async function POST(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ enabled: false });
     const data = await res.json();
     const answer = Array.isArray(data.content) ? data.content.map((c: { text?: string }) => c.text || "").join("") : "";
+    /* Egress control: validate the model's output before it reaches the
+       user — redact any secret/PII that slipped through and flag a
+       system-prompt reflection (a sign an injection got past ingress). */
+    const rv = validateResponse(answer);
     const sources = [...new Set(passages.map(p => p.title))];
-    const grounded = sources.length ? `${answer}\n\n— Grounded in your documents: ${sources.join(", ")}` : answer;
-    return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask, source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
+    const grounded = sources.length ? `${rv.redacted}\n\n— Grounded in your documents: ${sources.join(", ")}` : rv.redacted;
+    /* FinOps: meter this interaction. Cost is priced through the same
+       engine that rolls up enterprise spend — the number on the message
+       and the number on the CFO's dashboard come from one price book. */
+    const providerId = "gw-claude";
+    const tokensIn = estimateTokens(guard.masked), tokensOut = estimateTokens(answer);
+    const cost = costOf(tokensIn + tokensOut, providerId);
+    return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask,
+      classification, responseValidation: { ok: rv.ok, findings: rv.findings },
+      cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
+      source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
     return NextResponse.json({ enabled: false });
   }
