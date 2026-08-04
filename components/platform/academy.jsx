@@ -1,8 +1,9 @@
 "use client";
 
 import { CheckCircle2, PlayCircle } from "lucide-react";
-import { acInitiatives, acCxoAlignment } from "@/lib/platform-models";
+import { acInitiatives } from "@/lib/platform-models";
 import { T, RC, ROLES, AI_GOLD, GOVERNANCE_ACADEMY, ROLE_LEARNING_PATHS, academyEvidenceFor, F, Tag, Bar, Card, SHead } from "./core";
+import { pathProgress, quizAvg, stateOf, isComplete, enterpriseReadiness, evidenceFromLearning } from "@/lib/academy-engine";
 
 /* Employee learner hub - the Academy as a personal learning experience.
    Curriculum and certifications derive from role, initiative and phase;
@@ -11,7 +12,7 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
   const R=ROLES[role]||ROLES.employee;
   const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
   const path=pathIds.map(id=>GOVERNANCE_ACADEMY.find(v=>v.id===id)).filter(Boolean);
-  const progress=seeded?68:0;
+  const progress=seeded?pathProgress(role).pct:0;
   const mandatory=["Prompt Injection Defense","ISO 42001 Clause 8","Human Oversight in Practice","Responsible GenAI Use v6"];
   const recommended=["Threat Modeling for GenAI","Effective Prompt Engineering","Evaluating AI Outputs"];
   const managerAssigned=[{name:"Customer conversation quality with AI",by:"Riley Chen",due:"Aug 08"}];
@@ -84,32 +85,38 @@ export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
   const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
   const path=pathIds.map(id=>GOVERNANCE_ACADEMY.find(v=>v.id===id)).filter(Boolean);
   const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
-  const completed=seeded?Math.max(1,Math.floor(path.length*.55)):0;
-  const progress=path.length?Math.round((completed/path.length)*100):0;
+  /* Computed by the Academy engine: per-module completion → path progress,
+     quiz average and an enterprise readiness index (no flat 55% / 86%). */
+  const pg=pathProgress(role);
+  const completed=seeded?pg.done:0;
+  const progress=seeded?pg.pct:0;
+  const qAvg=quizAvg(role);
+  const readiness=enterpriseReadiness();
   const featured=path[0]||GOVERNANCE_ACADEMY[0];
-  const academyEvidence=academyEvidenceFor(role,seeded);
+  const academyEvidence=seeded?evidenceFromLearning(role):[];
   const moduleStats=[
     ["Assigned modules",path.length,rc],
     ["Completed",completed,T.green],
-    ["Evidence records",seeded?completed:0,AI_GOLD],
-    ["Avg. quiz score",seeded?"86%":"--",T.blue],
+    ["Readiness index",seeded?readiness.index:"--",AI_GOLD],
+    ["Avg. quiz score",seeded&&qAvg?qAvg+"%":"--",T.blue],
   ];
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="Governance Academy" sub={`${R.label} learning path for AI governance, pilot readiness, approvals and audit evidence. The Academy measures maturity - completion updates the Governance Score.`}/>
     <Card style={{padding:16,marginBottom:14}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
         <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Governance maturity - who understands AI</h3>
-        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Learning completion feeds the Governance Score in AI Central</span>
+        <span title="mean role maturity = 0.55·path completion + 0.25·quiz + 0.20·initiative training" style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:999,padding:"3px 10px"}}>Readiness index {readiness.index} · feeds Governance Score</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:12}}>
-        {acCxoAlignment.slice(0,6).map(x=>{
-          const c=x.score>=80?T.green:x.score>=70?T.blue:T.amber;
-          return <div key={x.role} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+        {readiness.rows.slice(0,6).map(x=>{
+          const c=x.maturity>=80?T.green:x.maturity>=70?T.blue:T.amber;
+          return <div key={x.role} title={`Path ${x.progress}% · quiz ${x.quiz} · training ${x.training}%`} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
               <span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{x.role}</span>
-              <span style={{fontSize:14,fontWeight:900,fontFamily:F.m,color:c}}>{x.score}</span>
+              <span style={{fontSize:14,fontWeight:900,fontFamily:F.m,color:c}}>{x.maturity}</span>
             </div>
-            <Bar value={x.score} color={c}/>
+            <Bar value={x.maturity} color={c}/>
+            <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginTop:4}}>path {x.progress}% · quiz {x.quiz}</div>
           </div>;
         })}
       </div>
@@ -153,11 +160,12 @@ export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:10}}>
         {path.map((v,i)=>{
-          const done=seeded&&i<completed;
-          return <div key={v.id} style={{background:T.s3,border:`1px solid ${done?T.green+"45":T.border}`,borderRadius:11,padding:13,animation:`up ${.25+i*.05}s ease both`}}>
+          const st=seeded?stateOf(v.id):"Not started";const done=st==="Complete";const prog=st==="In progress";
+          const stColor=done?T.green:prog?AI_GOLD:T.ink4;const stBg=done?T.greenL:prog?AI_GOLD+"18":T.ink5;
+          return <div key={v.id} style={{background:T.s3,border:`1px solid ${done?T.green+"45":prog?AI_GOLD+"40":T.border}`,borderRadius:11,padding:13,animation:`up ${.25+i*.05}s ease both`}}>
             <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start",marginBottom:10}}>
               <div><Tag label={v.framework} color={v.framework==="AI Spine"?AI_GOLD:rc} bg={(v.framework==="AI Spine"?AI_GOLD:rc)+"16"}/></div>
-              <Tag label={done?"Evidence captured":"Not started"} color={done?T.green:T.ink4} bg={done?T.greenL:T.ink5}/>
+              <Tag label={done?"Evidence captured":prog?"In progress":"Not started"} color={stColor} bg={stBg}/>
             </div>
             <h4 style={{fontFamily:F.h,fontSize:14,fontWeight:900,color:T.ink,lineHeight:1.3,margin:"0 0 6px"}}>{v.title}</h4>
             <p style={{fontFamily:F.b,fontSize:10,lineHeight:1.55,color:T.ink3,margin:"0 0 10px"}}>{v.desc}</p>
