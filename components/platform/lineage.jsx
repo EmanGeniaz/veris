@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { lineageFor } from "@/lib/lineage";
+import { lineageFor, PROVENANCE, provenanceFor } from "@/lib/lineage";
 import { T, F, AI_GOLD, Tag } from "./core";
 
 /* ── Lineage drawer ─────────────────────────────────────────────────
@@ -15,6 +15,7 @@ export function LineageDrawer({ node, onAsset, onClose }){
      part for a showcase record) or just {label,value} to derive from the
      canonical assets. */
   const lin = node && node.rows ? node : lineageFor(node.label, node.value);
+  const prov = PROVENANCE[(lin && lin.provenance) || provenanceFor(lin.label, lin.value)] || PROVENANCE.calculated;
   return <div onMouseDown={onClose} style={{ position: "fixed", inset: 0, zIndex: 1001, background: "rgba(4,7,20,.5)", backdropFilter: "blur(2px)", display: "flex", justifyContent: "flex-end" }}>
     <div onMouseDown={e => e.stopPropagation()} style={{ width: 460, maxWidth: "92vw", height: "100%", overflowY: "auto", background: T.card || T.s1, borderLeft: `1px solid ${T.border}`, boxShadow: "-24px 0 60px rgba(0,0,0,.4)", animation: "slideIn .22s ease" }}>
       <style>{`@keyframes slideIn{from{transform:translateX(30px);opacity:.4}to{transform:translateX(0);opacity:1}}`}</style>
@@ -27,6 +28,10 @@ export function LineageDrawer({ node, onAsset, onClose }){
           <button onClick={onClose} aria-label="Close" style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 7, width: 28, height: 28, color: T.ink3, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>✕</button>
         </div>
         {lin.value && <div style={{ fontSize: 28, fontWeight: 800, color: AI_GOLD, fontFamily: F.m, marginTop: 8 }}>{lin.value}</div>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }} title="Metric provenance">
+          <span style={{ fontSize: 9.5, fontWeight: 900, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", color: prov.tone, background: prov.tone + "1a", border: `1px solid ${prov.tone}55`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>{prov.label}</span>
+          <span style={{ fontSize: 10, color: T.ink3, fontFamily: F.b, lineHeight: 1.4 }}>{prov.def}</span>
+        </div>
       </div>
       <div style={{ padding: "18px 20px" }}>
         <div style={{ fontSize: 9, fontWeight: 900, fontFamily: F.m, color: T.ink4, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>How it's computed</div>
