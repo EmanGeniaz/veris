@@ -7,7 +7,7 @@ import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demo
 import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
-import { inspectPrompt } from "@/lib/policy-rules";
+import { inspectPrompt, classify, validateResponse } from "@/lib/policy-rules";
 
 /* Prompt inspection now runs the shared canonical policy engine (lib/
    policy-rules) — the same rules the server gateway enforces and the policy
@@ -113,10 +113,11 @@ export function PageWorkbench({role,sessionMode,showToast}){
       evidenceLinks:0,retention:"90 days",messages:[],
     };
     const guard=wbInspectPrompt(text);
+    const cls=classify(text);
     const stamp=`m${Math.random().toString(36).slice(2,8)}`;
     const blocked=guard&&guard.action==="Blocked";
     const shown=blocked?"[Prompt blocked before leaving the enterprise boundary]":(guard?guard.masked:text);
-    const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null};
+    const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null,classification:cls.dataClass,categories:cls.categories};
     if(guard){
       /* Every enforcement event becomes a queryable violation record, tagged
          with the exact policy + clause the shared engine matched, so it
@@ -124,10 +125,11 @@ export function PageWorkbench({role,sessionMode,showToast}){
          table via the persistence bus. */
       pushBus("vz-violations",{rule:guard.detector,ruleId:guard.ruleId,policyKey:guard.policyKey,clauseRef:guard.clauseRef,
         policy:guard.policyKey,severity:guard.severity,action:blocked?"Blocked":"Masked",
-        model:provider.models[0]||provider.name,classification:base.classification,
+        model:provider.models[0]||provider.name,classification:cls.dataClass,
         time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
     }
     const withUser={...base,lastActivity:"Just now",messages:[...base.messages,userMsg],
+      classification:cls.dataClass,dataCategories:cls.categories,
       riskScore:blocked?Math.min(95,base.riskScore+20):base.riskScore,
       policyDecision:blocked?"Blocked by policy":base.policyDecision};
     setConvos(cs=>[withUser,...cs.filter(c=>c.id!==base.id)]);
@@ -139,10 +141,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
       ?`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`
       :`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
     const commit=finalText=>{
+      /* Egress control: validate the model's output before it lands in the
+         transcript — redact anything sensitive that slipped through. */
+      const rv=blocked?null:validateResponse(finalText);
+      const outText=rv?rv.redacted:finalText;
       setConvos(cs=>cs.map(c=>c.id!==base.id?c:{...c,lastActivity:"Just now",
         evidenceLinks:c.evidenceLinks+(artifact?1:0),
         policyDecision:blocked?"Blocked by policy":guard?"Allowed with masking":"Allowed with enrichment",
-        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:finalText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null}]}));
+        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:outText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null,responseValidation:rv?{ok:rv.ok,findings:rv.findings}:null}]}));
       setTyped(null);setPhase(null);
       if(blocked)showToast&&showToast(`Blocked by ${guard.detector} policy`,"error");
       else if(artifact){recordEvidence(base);showToast&&showToast("Evidence recorded in Trust & Evidence");}
@@ -263,6 +269,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
               {m.guardrail&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
                 <span style={{width:6,height:6,borderRadius:"50%",background:gaColor(m.guardrail.action)}}/>
                 <span style={{fontSize:9,fontWeight:800,color:gaColor(m.guardrail.action),fontFamily:F.m}}>{m.guardrail.action} · {m.guardrail.detector}</span>
+              </div>}
+              {m.from==="user"&&m.classification&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:8,fontWeight:900,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.07em",color:clsColor(m.classification),background:clsColor(m.classification)+"1c",border:`1px solid ${clsColor(m.classification)}55`,borderRadius:999,padding:"2px 8px"}}>{m.classification}</span>
+                {(m.categories||[]).map(c=><span key={c} style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:T.ink3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 7px"}}>{c}</span>)}
+              </div>}
+              {m.from==="assistant"&&m.responseValidation&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:m.responseValidation.ok?T.green:T.amber}}/>
+                <span style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:m.responseValidation.ok?T.green:T.amber}}>{m.responseValidation.ok?"Response validated · clean egress":`Egress redacted · ${m.responseValidation.findings.join(", ")}`}</span>
               </div>}
               {m.enrichedWith&&m.enrichedWith.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`}}>
                 <span style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",alignSelf:"center"}}>Enriched with</span>
