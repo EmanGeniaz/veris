@@ -1,7 +1,8 @@
 /* Shared demo-tenant seed - used by `npm run db:seed` and the one-time
    /api/admin/setup route. */
 import type { PrismaClient } from "@prisma/client";
-import { acInitiatives, acFeedback, acAssessments, riskRegister, kriRegister, knowledgeAssets } from "./platform-models";
+import { acInitiatives, acFeedback, acAssessments, riskRegister, kriRegister, knowledgeAssets, POLICY_REGISTER } from "./platform-models";
+import { RUNTIME_RULES } from "./policy-rules";
 import { hashPassword } from "../auth";
 
 export type TenantSpec = { slug?: string; name?: string; mode?: "demo" | "clean" };
@@ -62,6 +63,27 @@ export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
         sourceRef: a.sourceRef, reuseCount: a.reuseCount ?? 0 },
     });
   }
+  /* Policy engine: the register's governed documents and their runtime
+     rules become first-class rows the gateway queries and violations link to
+     — no longer an orphaned schema. Rule ids are stable so client-recorded
+     violations resolve to the right rule. */
+  if (mode === "demo") for (const p of POLICY_REGISTER) {
+    await prisma.policy.upsert({
+      where: { id: p.key },
+      update: {},
+      create: { id: p.key, tenantId: tenant.id, key: p.key, name: p.name, category: p.category,
+        status: p.status, ownerRole: p.owner, reviewCycleDays: p.reviewCycleDays, currentVersion: p.version },
+    });
+  }
+  if (mode === "demo") for (const r of RUNTIME_RULES) {
+    await prisma.runtimeRule.upsert({
+      where: { id: r.ruleId },
+      update: {},
+      create: { id: r.ruleId, tenantId: tenant.id, policyId: r.policyKey, clauseRef: r.clauseRef,
+        name: r.name, detector: r.detector, action: r.action, severity: r.severity },
+    });
+  }
+
   const roles = ["ceo","cfo","cio","coo","caio","ciso","chro","cdpo","cgo","employee","manager"];
   for (const role of roles) {
     await prisma.user.upsert({

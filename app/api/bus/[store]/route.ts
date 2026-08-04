@@ -8,7 +8,7 @@ import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
 import { can, isCap, STORE_REQUIREMENT, type AccessMatrix } from "@/lib/rbac";
 
-const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit", "rbacPolicy"]);
+const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit", "rbacPolicy", "policies", "violations"]);
 
 /* Per-tenant RBAC overrides → nested matrix laid over lib/rbac defaults. */
 async function loadOverrides(prisma: NonNullable<ReturnType<typeof db>>, tenantId: string): Promise<AccessMatrix> {
@@ -70,6 +70,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
       : store === "decisions" ? await prisma.decision.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "taxonomyAdds" ? await prisma.taxonomyAdd.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
       : store === "taxonomyRequests" ? await prisma.taxonomyRequest.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 })
+      : store === "policies" ? (await prisma.policy.findMany({ where: { tenantId: tid }, include: { rules: true } })).map(p => ({ id: p.id, key: p.key, name: p.name, category: p.category, status: p.status, owner: p.ownerRole, version: p.currentVersion, reviewCycleDays: p.reviewCycleDays, rules: p.rules.map(r => ({ id: r.id, name: r.name, clauseRef: r.clauseRef, action: r.action })) }))
+      : store === "violations" ? (await prisma.violation.findMany({ where: { tenantId: tid }, orderBy: { occurredAt: "desc" }, take: 200 })).map(v => ({ ruleId: v.ruleId, policyKey: v.policyId, action: v.action, severity: v.severity, model: v.model, classification: v.classification, time: new Date(v.occurredAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }))
       : await prisma.idea.findMany({ where: { tenantId: tid }, orderBy: { createdAt: "desc" }, take: 100 });
     return NextResponse.json({ enabled: true, rows });
   } catch {
@@ -139,6 +141,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
         tenantId: tid, vocab: String(b.vocab ?? ""), value: String(b.value ?? ""), noun: String(b.noun ?? ""),
         owner: String(b.owner ?? ""), requestedBy: String(b.requestedBy ?? identity?.name ?? ""), status: String(b.status ?? "Pending"),
       }});
+    } else if (store === "policies") {
+      await prisma.policy.upsert({
+        where: { tenantId_key: { tenantId: tid, key: String(b.key ?? b.name ?? "POL-NEW") } },
+        update: { name: String(b.name ?? ""), category: String(b.category ?? ""), status: String(b.status ?? "Draft"), ownerRole: String(b.owner ?? "Unassigned") },
+        create: { tenantId: tid, key: String(b.key ?? b.name ?? "POL-NEW"), name: String(b.name ?? ""), category: String(b.category ?? "Responsible AI"), status: String(b.status ?? "Draft"), ownerRole: String(b.owner ?? "Unassigned"), reviewCycleDays: Number(b.reviewCycleDays ?? 365) },
+      });
+    } else if (store === "violations") {
+      /* Enforcement telemetry: only recordable against a rule that exists in
+         the runtime rule table; unknown rules stay in the client bus only. */
+      const rule = b.ruleId ? await prisma.runtimeRule.findUnique({ where: { id: String(b.ruleId) } }) : null;
+      if (rule) {
+        await prisma.violation.create({ data: {
+          tenantId: tid, ruleId: rule.id, policyId: rule.policyId, action: String(b.action ?? "Flagged"),
+          severity: Number(b.severity ?? rule.severity ?? 2), model: b.model ? String(b.model) : null,
+          classification: b.classification ? String(b.classification) : null,
+        }});
+      } else {
+        return NextResponse.json({ enabled: true, ok: true, recorded: "client-only" });
+      }
     } else {
       await prisma.idea.create({ data: {
         tenantId: tid, title: String(b.title ?? ""), problem: String(b.problem ?? ""),

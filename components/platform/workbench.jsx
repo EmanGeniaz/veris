@@ -3,20 +3,16 @@
 import { readBus, pushBus } from "@/lib/bus";
 import { Library, Scale, Workflow } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed } from "@/lib/platform-models";
+import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed, managerUsageSeed } from "@/lib/platform-models";
 import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
+import { inspectPrompt } from "@/lib/policy-rules";
 
-export function wbInspectPrompt(text){
-  if(/(password|api[\s_-]?key|secret|token)\s*[:=]/i.test(text)||/\bsk-[A-Za-z0-9]{8,}/.test(text))
-    return {action:"Blocked",detector:"Credentials & API Keys",masked:text};
-  const cardRe=/\b(?:\d[ -]?){13,16}\b/g, emailRe=/[\w.+-]+@[\w-]+\.[\w.]+/g;
-  if(cardRe.test(text)||emailRe.test(text))
-    return {action:"Masked",detector:/(?:\d[ -]?){13,16}/.test(text)?"PCI / Card Data":"PII Detection",
-      masked:text.replace(/\b(?:\d[ -]?){13,16}\b/g,"[MASKED-CARD]").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,"[MASKED-EMAIL]")};
-  return null;
-}
+/* Prompt inspection now runs the shared canonical policy engine (lib/
+   policy-rules) — the same rules the server gateway enforces and the policy
+   register publishes — instead of a duplicated local regex. */
+export function wbInspectPrompt(text){ return inspectPrompt(text); }
 
 /* Internal Knowledge Engine: pick enrichment assets for a prompt. */
 export function wbEnrichFor(text){
@@ -122,9 +118,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
     const shown=blocked?"[Prompt blocked before leaving the enterprise boundary]":(guard?guard.masked:text);
     const userMsg={id:stamp,from:"user",text:shown,guardrail:guard?{action:guard.action,detector:guard.detector}:null};
     if(guard){
-      /* Every enforcement event becomes a queryable violation record. */
-      const RULE_POLICY={"PII":"POL-DH-002 Data Handling Standard","PCI / Card Data":"POL-DH-002 Data Handling Standard","Credentials":"POL-DH-002 Data Handling Standard","Prompt Filtering":"POL-RAI-001 Responsible GenAI Use"};
-      pushBus("vz-violations",{rule:guard.detector,policy:RULE_POLICY[guard.detector]||"POL-DH-002 Data Handling Standard",action:blocked?"Blocked":"Masked",model:provider.models[0]||provider.name,classification:base.classification,time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
+      /* Every enforcement event becomes a queryable violation record, tagged
+         with the exact policy + clause the shared engine matched, so it
+         reconciles with the register and (when the DB is live) the Violation
+         table via the persistence bus. */
+      pushBus("vz-violations",{rule:guard.detector,ruleId:guard.ruleId,policyKey:guard.policyKey,clauseRef:guard.clauseRef,
+        policy:guard.policyKey,severity:guard.severity,action:blocked?"Blocked":"Masked",
+        model:provider.models[0]||provider.name,classification:base.classification,
+        time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
     }
     const withUser={...base,lastActivity:"Just now",messages:[...base.messages,userMsg],
       riskScore:blocked?Math.min(95,base.riskScore+20):base.riskScore,
@@ -493,9 +494,12 @@ function EmployeeBenchmark({showToast}){
 
 export function PageAIUsage({role,sessionMode,showToast}){
   if(role==="employee")return <EmployeeBenchmark showToast={showToast}/>;
-  const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
-  const u=seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0};
   const isManager=role==="manager";
+  /* A manager's Team AI Adoption view is a governance rollup — it is always
+     populated with team aggregates (the parallel to the employee benchmark),
+     never one person's numbers and never a zeroed panel. */
+  const seeded=isManager||sessionMode==="demo"||sessionMode==="aicentral";
+  const u=isManager?managerUsageSeed:(seeded?employeeUsageSeed:{timeSavedHrs:0,prompts:0,blocked:0,warnings:0,successRate:0,knowledgeReuse:0,topSkills:[],preferredModels:[],learningProgress:0});
   const [lin,setLin]=useState(null);
   /* Every dashboard tile traces to the governed-activity figures behind
      it — prompt content is never shown, only aggregates. */
@@ -509,11 +513,11 @@ export function PageAIUsage({role,sessionMode,showToast}){
   ];
   const tileLineage=(l,v,sub)=>({label:l,value:String(v),formula:`${sub} · from your governed AI activity through the Gateway`,rows:activityRows,note:isManager?"Aggregated across your team's governed AI activity this period. Individual prompt content is never shown — aggregates only, by policy.":"Aggregated from your governed AI activity through the Gateway this period. The content of your prompts is never shown."});
   const teamLineage=(l,v)=>({label:l,value:String(v),formula:`${l} · rolled up across the team`,rows:[
-    {name:"Team adoption",v:seeded?"64%":"—",unit:"active AI users"},
-    {name:"Business value",v:seeded?"$1.2M":"—",unit:"realized this period"},
-    {name:"Compliance score",v:seeded?"92%":"—",unit:"policy adherence"},
-    {name:"High-risk activity",v:seeded?"1":"—",unit:"flagged this period"},
-    {name:"Blocked events",v:seeded?"3":"—",unit:"stopped at the boundary"},
+    {name:"Team adoption",v:"64%",unit:"14 of 22 active this week"},
+    {name:"Time saved",v:"118h",unit:"team · this month"},
+    {name:"Team compliance",v:"86%",unit:"3 acknowledgements outstanding"},
+    {name:"High-risk activity",v:"1",unit:"guardrail block this period"},
+    {name:"Blocked events",v:"2",unit:"unsafe prompts stopped"},
   ],note:"Team aggregates only — no individual is named and no prompt content is shown, by policy."});
   const tiles=[
     ["Time saved",`${u.timeSavedHrs}h`,"This month",T.green],
@@ -560,7 +564,7 @@ export function PageAIUsage({role,sessionMode,showToast}){
         <Tag label="Prompt content review: disabled by policy" color={T.ink3} bg={T.s3}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:13}}>
-        {[["Team adoption",seeded?"64%":"--",T.teal],["Business value",seeded?"$1.2M":"--",AI_GOLD],["Compliance score",seeded?"92%":"--",T.green],["High-risk activity",seeded?"1":"--",T.amber],["Blocked events",seeded?"3":"--",T.red],["Training gap",seeded?"People unit":"--",T.blue]].map(([l,v,c])=><button key={l} onClick={()=>setLin(teamLineage(l,v))} style={{textAlign:"left",background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
+        {[["Team adoption","64%",T.teal],["Time saved","118h",AI_GOLD],["Team compliance","86%",T.green],["High-risk activity","1",T.amber],["Blocked events","2",T.red],["Need enablement","2 members",T.blue]].map(([l,v,c])=><button key={l} onClick={()=>setLin(teamLineage(l,v))} style={{textAlign:"left",background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
           <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:7}}>{l}</div>
           <div style={{fontSize:17,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
         </button>)}

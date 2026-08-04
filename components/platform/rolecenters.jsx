@@ -30,7 +30,7 @@ const Pill = ({children,c=T.ink3}) => <span style={{display:"inline-flex",alignI
 function Kpis({items,ctx}){
   const clickable=ctx&&ctx.onLineage;
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((k,i)=><div key={i} onClick={()=>clickable&&ctx.onLineage(k[0],k[1])} className={clickable?"vz-lin":""} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:clickable?"pointer":"default",transition:"border-color .15s"}}>
+    {items.map((k,i)=><div key={i} onClick={()=>clickable&&ctx.onLineage(k[4]?{label:k[0],value:k[1],...k[4]}:k[0],k[4]?undefined:k[1])} className={clickable?"vz-lin":""} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:clickable?"pointer":"default",transition:"border-color .15s"}}>
       <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{k[0]}</div>
       <div style={{fontSize:22,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:col(k[2])}}>{k[1]}</div>
       <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{k[3]}</div>
@@ -39,12 +39,14 @@ function Kpis({items,ctx}){
   </div>;
 }
 function Attn({items,ctx}){
+  const go=a=>a[4]&&ctx&&ctx.setTab&&ctx.setTab(a[4]);
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((a,i)=><Card key={i} onClick={()=>a[4]&&ctx&&ctx.setTab&&ctx.setTab(a[4])} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:"pointer"}}>
+    {items.map((a,i)=>{const live=!!(a[4]&&ctx&&ctx.setTab);return <Card key={i} onClick={()=>go(a)} className={live?"vz-attn":""} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:live?"pointer":"default"}}>
       <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a[0]}</div>
       <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a[1]}</div>
       <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a[2]} →</div>
-    </Card>)}
+    </Card>;})}
+    <style>{`.vz-attn{transition:background .15s}.vz-attn:hover{background:${T.s2}}`}</style>
   </div>;
 }
 function Bars({eye,h3,rows,legend,raw}){
@@ -77,7 +79,15 @@ function toolNode(head,r){
 function Tbl({eye,h3,head,rows,ctx,linkKind}){
   const clickable=ctx&&ctx.onLineage;
   const val=r=>{const c=r.find((x,j)=>j>0&&(typeof x==="string"||typeof x==="number"));return Array.isArray(c)?c[0]:c;};
-  const onRow=r=>{ if(!clickable)return; ctx.onLineage(linkKind==="tool"?toolNode(head,r):r[0], linkKind==="tool"?undefined:val(r)); };
+  /* A glance row → its own detail node (each column becomes a fact), so a
+     click answers "what is this row" instead of a generic portfolio rollup. */
+  const detailNote={ session:"Every session runs through the Gateway with policy, redaction and evidence — this is the governed record behind it.", member:"Team aggregates for this person — adoption and compliance only, never prompt content, by policy." };
+  const detailNode=(kind,r)=>({ label:r[0], value:String(cellText(r[r.length-1])),
+    formula: kind==="session"?`Governed AI session · ${cellText(r[1])} · routed through the Gateway`:kind==="member"?`Team member · ${r[0]} · governed AI standing`:`${eye||h3} · ${r[0]}`,
+    rows: head.slice(1).map((h,k)=>({ name:h, v:String(cellText(r[k+1])), unit:"" })),
+    note: detailNote[kind]||"The detail behind this row, traced to its governed record." });
+  const nodeFor=r=>linkKind==="tool"?toolNode(head,r):detailNode(linkKind,r);
+  const onRow=r=>{ if(!clickable)return; const node=linkKind?nodeFor(r):r[0]; ctx.onLineage(node, linkKind?undefined:val(r)); };
   return <Card style={cardPad}><Eyebrow>{eye}</Eyebrow><H3>{h3}</H3>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
       <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>

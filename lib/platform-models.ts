@@ -766,6 +766,16 @@ export const employeeUsageSeed = {
   preferredModels: ["Claude Sonnet", "GPT-4o"], learningProgress: 68,
 };
 
+/* Manager rollup — team aggregates, never one person's numbers. Reconciles
+   with the manager Team Workspace config: 64% adoption (14/22 active),
+   118h saved this month, 2 unsafe-prompt blocks, 6 resolved warnings,
+   71% safe-use training. Individual prompt content is never surfaced. */
+export const managerUsageSeed = {
+  timeSavedHrs: 118, prompts: 1240, blocked: 2, warnings: 6, successRate: 91,
+  knowledgeReuse: 58, topSkills: ["Response drafting", "Case summarisation", "Knowledge search"],
+  preferredModels: ["ChatGPT Enterprise", "Claude (Enterprise)", "Microsoft Copilot"], learningProgress: 71,
+};
+
 /* ── Canonical risk register ─────────────────────────────────────
    Risk Center is the system of record. Every risk carries its owning
    initiative (or business unit for enterprise risks), accountable

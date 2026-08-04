@@ -5,18 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { knowledgeAssets, acInitiatives, riskRegister } from "@/lib/platform-models";
 import { retrieve } from "@/lib/knowledge";
-
-const CRED = /(password|api[\s_-]?key|secret|token)\s*[:=]|sk-[A-Za-z0-9]{8,}/i;
-const CARD = /\b(?:\d[ -]?){13,16}\b/g;
-const EMAIL = /[\w.+-]+@[\w-]+\.[\w.]+/g;
-
-function enforce(text: string) {
-  if (CRED.test(text)) return { blocked: true as const, detector: "Credential leakage" };
-  let masked = text; let didMask = false;
-  if (CARD.test(masked)) { masked = masked.replace(CARD, "[card-masked]"); didMask = true; }
-  if (EMAIL.test(masked)) { masked = masked.replace(EMAIL, "[email-masked]"); didMask = true; }
-  return { blocked: false as const, masked, didMask };
-}
+import { evaluateRules } from "@/lib/policy-rules";
 
 function internalContext(q: string): string[] {
   const ql = q.toLowerCase();
@@ -33,8 +22,10 @@ export async function POST(req: NextRequest) {
   try {
     const { prompt, tenant } = await req.json();
     const text = String(prompt || "").slice(0, 8000);
-    const guard = enforce(text);
-    if (guard.blocked) return NextResponse.json({ enabled: true, blocked: true, detector: guard.detector });
+    const guard = evaluateRules(text);
+    if (guard.blocked) return NextResponse.json({ enabled: true, blocked: true, detector: guard.primary?.name ?? "Policy",
+      clauseRef: guard.primary?.clauseRef, policyKey: guard.primary?.policyKey,
+      violations: guard.matches.map((m) => ({ ruleId: m.ruleId, name: m.name, policyKey: m.policyKey, action: m.action, severity: m.severity })) });
     /* Retrieve from the tenant's ingested documents (RAG) and merge with the
        structured enterprise context. */
     const passages = await retrieve(String(tenant || "demo"), guard.masked, 4);
