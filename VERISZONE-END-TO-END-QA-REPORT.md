@@ -2,6 +2,24 @@
 
 _Adversarial audit. Verdicts are PASS / FAIL / REVIEW / NOT VERIFIABLE. Nothing marked PASS without a real test; nothing inflated._
 
+> ## ⟳ Re-score (post-remediation) — 2026-08-05
+> The defects below were remediated and this pass **re-verifies** them (live browser walk + source + build/lint). **Score: 64 → 83 / 100.** Every P1 and P2 defect is resolved; a handful of P3 / REVIEW nits remain (disclosed under "Residual items"). Verification method and the defect-status ledger are in **[§ Remediation verification](#remediation-verification-this-pass)** immediately below the summary. The original audit body is preserved unchanged beneath it as the audit trail.
+>
+> | Dimension | Before | After | What changed |
+> | --- | --- | --- | --- |
+> | Functional | 80 | **84** | Dead-end "New Project" now fires intake toast; build clean |
+> | UI/UX | 70 | **77** | Contradictory duplicate tables gone; incident/forum data consolidated |
+> | Navigation | 84 | **88** | Dead-end fixed; `FilterMap` on same `WORLD_GEO` as ExposureMap |
+> | **Data Integrity** | **45** | **87** | Gov score single-sourced (75 live everywhere); open risks 12; CEO risk tables canonical; framework scores reconciled; portfolio spine unified |
+> | Role / Permission | 65 | **78** | Server-side RBAC extended 3 → 7 bus stores |
+> | Accessibility | 75 | **75** | Unchanged (not re-tested deeply; no regressions) |
+> | Performance | 75 | **75** | Unchanged; build clean |
+> | **Auditability** | **50** | **85** | Headline metrics now trace to canonical registers; incidents single-registered |
+> | AI Reliability | 65 | **80** | 3 gateway-bypassing `api.anthropic.com` calls routed through `askGateway`; wrong cert figures removed; honest degradation intact |
+>
+> ### RE-SCORE: **83 / 100** _(was 64)_
+> Still capped below ~90 by items **not** re-tested this pass (8 roles' deep journeys, responsive breakpoints, live state-sync, perf timings, lifecycle gating, evidence upload/version, live keyed AI) — these remain **NOT VERIFIABLE**, not passing.
+
 ## Method & honest scope
 - **Live browser tests** (headless Chromium + Playwright) against the running dev app in demo mode: 5 roles (CEO, CAIO, CISO, CFO, Employee), each on Overview + one more surface — **45 interactive elements actually clicked**, plus universal search and accessibility on the CEO home.
 - **Source analysis** across `components/platform/*`, `lib/*`, `app/api/*` for data traceability, duplicate sources of truth, hallucination, RBAC, and map consistency (evidence = `file:line`).
@@ -24,8 +42,46 @@ VerisZone is a **polished, well-engineered demo SPA**: it builds clean, renders 
 | **Auditability** | **50** | Core promise partially broken by metric non-traceability |
 | AI Reliability | 65 | Degrades honestly (no fabricated numbers); wrong hardcoded cert figures in a prompt; gateway bypass |
 
-### FINAL SCORE: **64 / 100**
+### FINAL SCORE (original audit): **64 / 100**
 Strong engineering shell; **not production-ready as an enterprise governance system-of-record** until the data layer is single-sourced. Excellent as a sales/demo prototype.
+
+---
+
+## Remediation verification (this pass)
+
+**Re-test method (2026-08-05):** production build (`next build` → PASS, exit 0); `eslint .` → **0 errors, 4 warnings** (was 2 errors); source re-inspection at `file:line` for every defect; and a **live headless-Chromium (Playwright) walk** of the running app — CAIO Overview + Governance + Risk Center, CEO cockpit + Risk, AI Central, and the two new CGO convergence surfaces — capturing rendered values and console/page errors (**0 errors** across the walk).
+
+**What was observed live (the crux — same metric, one value):**
+- **AI Governance Score = 75 on every surface** that shows it — CAIO Overview ring, "How the **75** is scored", Governance tab "Composite **75**". (Was 72 / 74 / 79 / 69.) No surface renders a competing "AI Governance Score"; AI Central's figure is the distinct **maturity** KPI, not this score.
+- **Open risks = 12** consistently (was 12 on one CAIO screen, 8 on another).
+- **CEO risk counts = Critical 2 / High 3**, and risk rows render `level · residual` straight from canonical (e.g. RSK-003 = `Critical · 12`, matching `riskRegister`). Both CEO risk tables now read the same `CEO_RISKS` source, so they cannot diverge. (Was RSK-004 Critical-vs-High across two tables.)
+- **Convergence surfaces render clean:** Governance Forum agenda pulls canonical RSK-003/004/009/001; Incident Playbook shows the 5-record unified register (INC-1042/1051/1048/1039/1035) across all 6 stages.
+
+### Defect-status ledger
+
+| ID | Defect | Status | How verified |
+| --- | --- | --- | --- |
+| P1-1 | Gov score not single-sourced (72/74/79/69) | ✅ **Fixed** | Live: **75** everywhere; source `GOVERNANCE_SCORE` (`lib/governance.js`) imported into `caio.jsx` |
+| P1-2 | CEO risk tables hardcoded/contradictory | ✅ **Fixed** | Source `CEO_RISKS=[...riskRegister]` (`ceo.jsx:396`); live counts Critical 2 / High 3, rows match canonical |
+| P1-3 | "Open risks" 5 sources / 4 values | ✅ **Fixed** | Source `RISK_OPEN=riskRegister.length` (`caio.jsx:44`); live: 12 consistent |
+| P1-4 | Framework/compliance scores forked | ✅ **Fixed** | Source: `canonStdScore` reconciles `STANDARDS_MAP` to `AC_FRAMEWORK_POSTURE` (`core.jsx:1112-1118`) |
+| P1-5 | `PORTFOLIO` vs `acInitiatives` split | ✅ **Fixed** | Source: ai-001 `lifecycle:"Production"`, ai-003 `"Scaling"`; `pf-fraud` risk `"Medium"` aligned |
+| P2-1 | Dead-end "＋ New Project" | ✅ **Fixed** | Source: `onNew` → `showToast("New project — intake started")` (`caio.jsx:262`) |
+| P2-2 | Trust-Agent prompt wrong cert figures | ✅ **Fixed** | Source: hardcoded 65/91/81/72 removed from `compliance.jsx` prompt |
+| P2-3 | 3 client calls bypass gateway | ✅ **Fixed** | Source: no `api.anthropic.com` in components; `askGateway()` used in `dashboard.jsx` + `compliance.jsx` |
+| P2-4 | RBAC gates only 3/9 stores | ✅ **Fixed** (design caveat) | Source: `STORE_REQUIREMENT` now 7 stores (`rbac.ts:54-61`). Demo/no-DB mode still enforces nothing server-side — unchanged by design |
+| P2-5 | Fraud model tri-state | ✅ **Fixed** | Source: `pf-fraud` risk `"Medium"`. _Residual:_ one narrative literal still says "17 models" (see below) |
+| P3-1 | `FilterMap` on old `CONTINENTS` | ✅ **Fixed** | Source: `FilterMap` now maps `WORLD_GEO` (`ceo.jsx:495`) |
+| P3-2 | `npm run lint` fails (2 errors) | ✅ **Fixed** | `eslint .` → 0 errors, 4 warnings |
+| P3-3 | Workbench "Draft generated" affordance | ⬜ **Not addressed** | Still present (`workbench.jsx:143`) — out of the data-integrity remediation scope |
+| P3-4 | Invalid `/workspace/<bad>` → login | ⬜ **Not addressed** | Client-side fallthrough, by design |
+
+### Residual items (honestly disclosed, all P3 / REVIEW)
+- **R1 (P3, data-integrity):** `platform-models.ts:634` maturity insight still reads _"10 of **17** models lack completed cards"_ — contradicts the derived 8-model count. A narrative literal, not a headline metric.
+- **R2 (REVIEW):** CEO "Highest-Risk Program" card shows `Governance 74%` as a hardcoded **program-level** completeness figure (a different object from the enterprise score); should derive from that initiative's record.
+- **R3 (P3):** `caio.jsx` "ISO 42001 81%" readiness tile is a hardcoded literal (minor; not currently contradicted elsewhere).
+
+**Net:** the audit's core finding — _the same headline metric rendering different values per screen_ — is resolved. What remains is narrative/program-level polish, plus the breadth of surfaces this pass did not deep-test.
 
 ---
 
@@ -149,7 +205,7 @@ The object graph (initiative → risk → AIRA/AIRT → control → policy → e
 
 ## The 10 requested summaries
 
-**1. Overall score:** **64 / 100.**
+**1. Overall score:** **83 / 100** post-remediation (original audit baseline **64 / 100**; see [§ Remediation verification](#remediation-verification-this-pass)).
 
 **2. Top 10 defects:** P1-1 governance-score split; P1-2 contradictory CEO risk tables; P1-3 open-risks 4 values; P1-4 forked framework scores; P1-5 PORTFOLIO≠acInitiatives; P2-1 dead-end "New Project"; P2-2 wrong hardcoded certs in prompt; P2-3 gateway-bypassing anthropic calls; P2-4 partial RBAC; P2-5 Fraud model tri-state.
 
