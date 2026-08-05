@@ -351,11 +351,11 @@ function Incidents(){
 }
 
 /* ══════════════════ IMPACT ASSESSMENT (AIA) ══════════════════ */
-function AIA(){
+function AIA({showToast}){
   const [cur,setCur]=useState(CAIO_PROJECTS[0]);
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title="Impact Assessment (AIA)" sub="Select a project or create one, then run a structured AI impact assessment — the outcome classifies the system and drives its controls."/>
-    <div style={{marginBottom:18}}><ProjectPicker projects={CAIO_PROJECTS} current={cur} onSelect={setCur} onNew={()=>{}}/></div>
+    <div style={{marginBottom:18}}><ProjectPicker projects={CAIO_PROJECTS} current={cur} onSelect={setCur} onNew={()=>showToast&&showToast("New project — start an intake to add it to the register")}/></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16}}>
       <Card style={cardPad}><Eyebrow>Assessment sections</Eyebrow><H3 style={{marginBottom:12}}>{cur.name}</H3>
         <Table>{[["Purpose & context","Complete",T.green],["Affected individuals","Complete",T.green],["Data & personal data","Complete",T.green],["Automated decision-making","Review",T.amber],["Rights & human oversight","Review",T.amber],["Risk & mitigation summary","Pending",T.ink3]].map(s=><tr key={s[0]}><Td style={{fontWeight:700,color:T.ink}}>{s[0]}</Td><Td><Pill c={s[2]}>{s[1]}</Pill></Td></tr>)}</Table>
@@ -375,7 +375,7 @@ function RiskCenter({role,openFull,showToast}){
   const [assigned,setAssigned]=useState(false);
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title="Risk Center" sub="Select a project, define or create a risk, and generate an AI Risk Treatment Plan with a mitigation roadmap."/>
-    <div style={{marginBottom:16}}><ProjectPicker projects={CAIO_PROJECTS} current={cur} onSelect={setCur} onNew={()=>{}}/></div>
+    <div style={{marginBottom:16}}><ProjectPicker projects={CAIO_PROJECTS} current={cur} onSelect={setCur} onNew={()=>showToast&&showToast("New project — start an intake to add it to the register")}/></div>
     <Card style={cardPad}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><Eyebrow style={{margin:0}}>Risk register · {cur.name}</Eyebrow>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open full Risk Center →</button></div>
@@ -413,7 +413,7 @@ export function CAIOCommandCenter({tab="home",role="caio",setTab,setAiCentralVie
     case "caiogov":       return <Governance/>;
     case "caioreports":   return <Reports showToast={showToast}/>;
     case "caioincidents": return <Incidents/>;
-    case "caioaia":       return <AIA/>;
+    case "caioaia":       return <AIA showToast={showToast}/>;
     case "caiorisk":      return <RiskCenter role={role} openFull={openFullRisk} showToast={showToast}/>;
     case "caiolibrary":   return <Library go={openCompliance}/>;
     default:              return <Overview role={role} go={go} showToast={showToast} userName={userName}/>;
