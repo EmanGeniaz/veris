@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AC_PHASES, AC_RBAC, acInitiatives, KPI_INSIGHTS } from "@/lib/platform-models";
+import { AC_PHASES, AC_RBAC, acInitiatives, KPI_INSIGHTS, AC_FRAMEWORK_POSTURE } from "@/lib/platform-models";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 
 export const FEEDBACK_DIMS = [
@@ -1103,6 +1103,19 @@ Object.assign(STANDARDS_MAP,{
   cfo:[{std:"Investment Governance",applies:"Funding gates",status:"Active",score:82},{std:"COSO ERM",applies:"Financial risk",status:"Active",score:72},{std:"Audit Evidence",applies:"Value assurance",status:"Active",score:91},{std:"FinOps",applies:"AI spend control",status:"Building",score:78}],
   chro:[{std:"Workforce Readiness",applies:"Training and adoption",status:"Active",score:68},{std:"Responsible AI",applies:"People impact",status:"Active",score:72},{std:"Change Management",applies:"Adoption readiness",status:"Building",score:64},{std:"Training Evidence",applies:"Competence proof",status:"Active",score:77}],
 });
+
+/* Single-source framework scores: any Standards Map row whose standard maps to
+   a canonical AC_FRAMEWORK_POSTURE framework (or SOC 2) takes the canonical
+   score, so the Standards Map never contradicts the governance posture.
+   Standards with no canonical counterpart keep their listed score. NIST CSF is
+   deliberately NOT unified with NIST AI RMF — they are different frameworks. */
+const CANON_STD_ID = { "ISO 27001":"iso27001", "ISO 42001":"iso42001", "EU AI Act":"euai", "GDPR":"gdpr" };
+const canonStdScore = std => {
+  if (CANON_STD_ID[std]) return (AC_FRAMEWORK_POSTURE.find(f=>f.id===CANON_STD_ID[std])||{}).score;
+  if (/^SOC 2/.test(std)) return 86;
+  return null;
+};
+for (const r in STANDARDS_MAP) for (const row of STANDARDS_MAP[r]) { const s=canonStdScore(row.std); if (s!=null) row.score=s; }
 
 Object.assign(ONBOARD,{
   ceo:[{id:1,title:"Review enterprise AI transformation score",tag:"Strategy",time:"20 min",urgent:false,desc:"Understand scale-ready pilots, risk drift, value realized and board-level AI maturity."},{id:2,title:"Review scale gate decisions",tag:"Critical",time:"15 min",urgent:true,desc:"Two initiatives require CEO decision before expansion to regulated departments."},{id:3,title:"Check AI value and risk balance",tag:"Board",time:"20 min",urgent:false,desc:"Compare AI portfolio value against executive risk appetite and evidence confidence."}],
