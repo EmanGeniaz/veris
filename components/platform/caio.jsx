@@ -5,6 +5,7 @@ import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card } from "./core";
 import { frameworkScore } from "@/lib/portfolio";
+import { GOVERNANCE_INPUTS, GOVERNANCE_SCORE } from "@/lib/governance";
 
 /* ── CAIO Command Center ────────────────────────────────────────────
    The AI Governance Office lens: governance score, compliance posture,
@@ -35,15 +36,15 @@ export const CAIO_PROJECTS=[
   {name:"RecoEngine v2", unit:"Retail Banking", stage:"Retired", phase:13, risk:"Low"},
 ];
 
-const GOV_INPUTS=[
-  {k:"Transparency & explainability", v:76, w:"18%", src:"Model cards, reason codes"},
-  {k:"Accountability & ownership", v:82, w:"16%", src:"Named owner, RACI, sign-offs"},
-  {k:"Fairness & bias control", v:68, w:"18%", src:"Bias tests, subgroup metrics"},
-  {k:"Human oversight", v:74, w:"16%", src:"HITL gates, override logs"},
-  {k:"Security & robustness", v:79, w:"16%", src:"Red-team, guardrail coverage"},
-  {k:"Data governance & privacy", v:70, w:"16%", src:"DPIA, lineage, retention"},
-];
-const GOV_SCORE=72;
+/* Governance inputs + composite come from the canonical governance module so
+   the headline score always equals its own weighted breakdown. */
+const GOV_INPUTS=GOVERNANCE_INPUTS.map(g=>({...g,w:`${Math.round(g.w*100)}%`}));
+const GOV_SCORE=GOVERNANCE_SCORE;
+/* Risk counts derived from the canonical riskRegister (enterprise scope). */
+const RISK_OPEN=riskRegister.length;
+const RISK_CRIT=riskRegister.filter(r=>r.level==="Critical").length;
+const RISK_HIGH=riskRegister.filter(r=>r.level==="High").length;
+const RISK_CH=`${RISK_CRIT} critical · ${RISK_HIGH} high`;
 /* Framework scores read the canonical posture (lib/portfolio.js) so CAIO,
    CEO and AI Central never disagree. */
 const _cc=v=>v>=85?T.green:v>=75?T.blue:AI_GOLD;
@@ -185,7 +186,7 @@ function Overview({role,go,showToast,userName}){
     {tab==="overview"&&<OverviewTab go={go}/>}
     {tab==="governance"&&<GovPanel withDefs/>}
     {tab==="compliance"&&<CompliancePanel/>}
-    {tab==="risks"&&<Card style={cardPad}><Eyebrow>Active risk register · all projects</Eyebrow><H3 style={{marginBottom:12}}>12 open · 1 critical · 3 high</H3>
+    {tab==="risks"&&<Card style={cardPad}><Eyebrow>Active risk register · all projects</Eyebrow><H3 style={{marginBottom:12}}>{RISK_OPEN} open · {RISK_CH}</H3>
       <Table head={["Risk","Project","Grade","Owner","Treatment"]}>{CAIO_RISKS.map(r=><tr key={r.r}><Td style={{fontWeight:700,color:T.ink}}>{r.r}</Td><Td>{r.p}</Td><Td><Pill c={r.gc}>{r.g}</Pill></Td><Td>{r.o}</Td><Td><Pill c={T.blue}>{r.t}</Pill></Td></tr>)}</Table></Card>}
     {tab==="incidents"&&<IncidentTable/>}
   </div>;
@@ -203,11 +204,11 @@ function OverviewTab({go}){
     </div>
     <Eyebrow style={{margin:"0 2px 9px"}}>CAIO domain metrics</Eyebrow>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-      <Kpi l="Governance score" v={<>72<span style={{fontSize:13,color:T.ink4}}>/100</span></>} vc={T.green} s="+4 vs last quarter" onClick={()=>go("caiogov")}/>
+      <Kpi l="Governance score" v={<>{GOV_SCORE}<span style={{fontSize:13,color:T.ink4}}>/100</span></>} vc={T.green} s="+4 vs last quarter" onClick={()=>go("caiogov")}/>
       <Kpi l="Active AI projects" v="9" s="4 high-risk · 3 limited" onClick={()=>go("caioplaybook")}/>
       <Kpi l="Policies enforced" v="24" vc={T.blue} s="avg adherence 88%" onClick={()=>go("caiogov")}/>
       <Kpi l="ISO 42001 readiness" v="81%" vc={AI_GOLD} s="Stage-2 audit Q4" onClick={()=>go("caiogov")}/>
-      <Kpi l="Open risks" v="12" vc={T.red} s="1 critical · 3 high" onClick={()=>go("caiorisk")}/>
+      <Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red} s={RISK_CH} onClick={()=>go("caiorisk")}/>
       <Kpi l="AI incidents" v="3" vc={T.amber} s="open · 1 P1" onClick={()=>go("caioincidents")}/>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16}}>
@@ -331,7 +332,7 @@ function Reports({showToast}){
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
       <Eyebrow style={{color:AI_GOLD}}>Governance pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>AI Governance Report — Q3 FY26</H3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
-        <Kpi l="Governance score" v="72" vc={T.green}/><Kpi l="ISO 42001" v="81%" vc={AI_GOLD}/><Kpi l="Open risks" v="12" vc={T.red}/><Kpi l="Open incidents" v="3" vc={T.amber}/>
+        <Kpi l="Governance score" v={String(GOV_SCORE)} vc={T.green}/><Kpi l="ISO 42001" v="81%" vc={AI_GOLD}/><Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red}/><Kpi l="Open incidents" v="3" vc={T.amber}/>
       </div>
       <div style={{display:"flex",gap:9}}><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export XLSX</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export audit PDF</button></div>
     </Card>}
