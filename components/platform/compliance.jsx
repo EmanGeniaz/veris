@@ -1,6 +1,7 @@
 "use client";
 
 import { pushBus } from "@/lib/bus";
+import { askGateway } from "@/lib/gateway-client";
 
 import { Activity, Cloud, Library, Map, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -861,11 +862,9 @@ export function PageTrustCenter({role, showToast}) {
   const runCopilot=async()=>{
     if(!question.trim())return;
     setLoading(true);setAiResponse(null);
-    try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:"You are VerisZone's CRM Trust Agent and AI Trust Copilot. Help sales and security teams respond to customer trust and security questions. You have knowledge of: ISO 27001 (65% readiness, targeting Q3 2026 cert), SOC 2 Type II (certified, 91%), GDPR compliance (81%), EU AI Act programme (72%), and security practices. Be specific, professional, and reference certifications where applicable. Keep responses concise and suitable for customer-facing use.",messages:[{role:"user",content:question}]})});
-      const d=await res.json();
-      setAiResponse((d.content&&d.content[0]&&d.content[0].text)||"");
-    }catch{showToast("Copilot failed","error");}
+    const r=await askGateway(`As VerisZone's customer-facing Trust Copilot, answer this trust/security question concisely and professionally, grounded only in the enterprise's live compliance posture: ${question}`);
+    if(!r.enabled)setAiResponse("The AI Trust Copilot runs through the Veris AI Gateway, which isn't configured in this environment (no model key). The certification posture shown above reflects the live Trust Center data.");
+    else setAiResponse(r.text||"No response returned.");
     setLoading(false);
   };
   return <div style={{animation:"up .3s ease"}}>
@@ -1044,13 +1043,10 @@ export function PageGapAnalysis({role,showToast}){
   const priColBg=p=>p==="Critical"?T.redL:p==="High"?T.amberL:p==="Medium"?T.blueL:T.ink5;
   const runAI=async()=>{
     setLoading(true);setAiInsight(null);
-    try{
-      const prompt="Analyse these compliance gaps and provide remediation plan: "+G.topGaps.slice(0,5).map(g=>g.gap+" ("+g.priority+", "+g.fw+")").join("; ");
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:"You are VerisZone's AI Gap Analysis Copilot. Return ONLY valid JSON: {\"summary\":\"string\",\"critical\":[{\"action\":\"string\",\"owner\":\"string\",\"days\":1,\"impact\":\"string\"}],\"quickWins\":[{\"action\":\"string\",\"effort\":\"Low\",\"days\":1}],\"insight\":\"string\"}",messages:[{role:"user",content:prompt}]})});
-      const d=await res.json();
-      const raw=(d.content&&d.content[0]&&d.content[0].text)||"";
-      try{setAiInsight(JSON.parse(raw.replace(/```json|```/g,"").trim()));}catch{setAiInsight({summary:raw,critical:[],quickWins:[],insight:""});}
-    }catch{showToast("AI analysis failed","error");}
+    const prompt="Return ONLY valid JSON {\"summary\":\"string\",\"critical\":[{\"action\":\"string\",\"owner\":\"string\",\"days\":1,\"impact\":\"string\"}],\"quickWins\":[{\"action\":\"string\",\"effort\":\"Low\",\"days\":1}],\"insight\":\"string\"} — a remediation plan for these compliance gaps: "+G.topGaps.slice(0,5).map(g=>g.gap+" ("+g.priority+", "+g.fw+")").join("; ");
+    const r=await askGateway(prompt);
+    if(!r.enabled)setAiInsight({summary:"AI gap analysis runs through the Veris AI Gateway, which isn't configured in this environment (no model key). The gaps, priorities and scores above are live.",critical:[],quickWins:[],insight:""});
+    else{try{setAiInsight(JSON.parse(r.text.replace(/```json|```/g,"").trim()));}catch{setAiInsight({summary:r.text,critical:[],quickWins:[],insight:""});}}
     setLoading(false);
   };
   return <div style={{animation:"up .3s ease"}}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { readBus, pushBus } from "@/lib/bus";
+import { askGateway } from "@/lib/gateway-client";
 import { pendingForRole, approveRequest, rejectRequest, addPendingValue, ownerLabelFor, TAXONOMY } from "@/lib/taxonomy";
 import { ExecutiveCockpit } from "./cockpit";
 import { Map, Scale, Target, Users } from "lucide-react";
@@ -215,12 +216,9 @@ export function PageStrategy({role,setTab}) {
     const fwList=fws.length?fws.join(", "):R.frameworks.join(", ");
     const systemPrompt="You are VerisZone's AI Strategy Engine, specialising in "+R.label+" ("+R.title+") responsibilities and ISO 42001 AIMS implementation.\nGenerate a governance strategy. Respond ONLY in valid JSON, no markdown, no backticks:\n{\"summary\":\"2-3 sentence summary\",\"riskLevel\":\"Critical|High|Medium|Low\",\"objectives\":[{\"title\":\"string\",\"desc\":\"string\"}],\"steps\":[{\"n\":1,\"action\":\"string\",\"owner\":\"string\",\"timeline\":\"string\",\"clause\":\"string\",\"priority\":\"Critical|High|Medium\"}],\"regulatory\":[{\"framework\":\"string\",\"article\":\"string\",\"req\":\"string\",\"risk\":\"string\"}],\"hitl\":true,\"hitlReason\":\"string\"}\nRules: exactly 4 objectives, exactly 6 steps ordered chronologically, exactly 3 regulatory items. Reference real ISO 42001 clauses and regulatory articles. Return ONLY the JSON object.";
     const userMsg="Role: "+R.label+" - "+R.title+"\nProject: "+pn+"\nDescription: "+pd+"\nFrameworks: "+fwList+"\nTimeline: "+tl+"\nPriority: "+pri;
-    try {
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:systemPrompt,messages:[{role:"user",content:userMsg}]})});
-      const d=await res.json();
-      const raw=(d.content&&d.content[0]&&d.content[0].text)||"";
-      try{setResult(JSON.parse(raw.replace(/```json|```/g,"").trim()));}catch{setErr("AI returned unexpected format. Please try again.");}
-    }catch{setErr("Connection error. Please try again.");}
+    const r=await askGateway(systemPrompt+"\n\n"+userMsg);
+    if(!r.enabled)setErr("AI strategy generation runs through the Veris AI Gateway, which isn't configured in this environment (no model key).");
+    else{const raw=r.text||"";try{setResult(JSON.parse(raw.replace(/```json|```/g,"").trim()));}catch{setErr("AI returned an unexpected format. Please try again.");}}
     setLoading(false);
   };
   const iColor=v=>v==="Critical"?T.red:v==="High"?T.amber:v==="Medium"?T.blue:T.ink3;
