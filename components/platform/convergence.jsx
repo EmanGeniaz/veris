@@ -9,6 +9,8 @@ import {
 import {
   INSTRUMENTS, CROSSWALK, CROSSWALK_DOMAINS, STATUS_META, crosswalkStats,
 } from "@/lib/crosswalk";
+import { PROHIBITED_PRACTICES, PP_RESULT_META, prohibitedStats } from "@/lib/prohibited";
+import { GPAI_QUESTIONS, GPAI_REGISTER, EXPOSURE_META, gpaiExposure, gpaiStats } from "@/lib/gpai";
 
 /* ── shared local primitives (match the platform's visual language) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -236,7 +238,125 @@ export function ConvergenceCrosswalk({ showToast }) {
       </div>)}
 
       <div style={{ marginTop: 6, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> The {s.gap} open gaps — prohibited-practice screening, the GPAI accidental-provider test, explainability, GenAI marking, personal-data transfer mapping, drift monitoring and redress — are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.
+        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> The {s.gap} open gaps — explainability, GenAI marking, personal-data transfer mapping, drift monitoring and redress — are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ 4 · PROHIBITED PRACTICES (Art. 5 red lines) ══════════════ */
+export function ProhibitedPractices({ showToast }) {
+  const s = prohibitedStats();
+  const everyday = PROHIBITED_PRACTICES.find(p => p.everyday);
+  const kpis = [
+    ["Practices screened", String(s.total), AI_GOLD, "EU AI Act Art. 5"],
+    ["Clear", String(s.clear), T.green, "no system in scope"],
+    ["Under review", String(s.review), T.amber, "confirm before deploy"],
+    ["Prohibited in use", String(s.flag), T.red, "would require a stop"],
+  ];
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Prohibited Practices" sub="The eight red lines of EU AI Act Article 5. These are a stop, not a control: a system in scope is not governed, it is not deployed. Every system is screened here before any risk tiering begins." />
+
+    <Card style={{ ...cardPad, marginBottom: 14, background: everyday ? `linear-gradient(135deg,${T.amber}14,${T.bg})` : T.card, border: `1px solid ${T.amber}45` }}>
+      <Eyebrow style={{ color: T.amber }}>The one that catches ordinary companies</Eyebrow>
+      <H3 style={{ fontSize: 17 }}>{everyday.practice} · {everyday.art}</H3>
+      <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{everyday.catches} <b style={{ color: T.ink2 }}>In scope here:</b> {everyday.system}. {everyday.note}</p>
+    </Card>
+
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 }}>
+      {kpis.map(([l, v, c, sub]) => <Card key={l} style={{ padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </Card>)}
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>The eight red lines · screened against the estate</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Where the answer is stop, not control</H3>
+      <Table head={["Article", "Prohibited practice", "What it catches", "System in scope", "Screen"]}>
+        {PROHIBITED_PRACTICES.map(p => { const m = PP_RESULT_META[p.result]; return <tr key={p.id}>
+          <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{p.art}</Td>
+          <Td style={{ fontWeight: 700, color: T.ink }}>{p.practice}{p.everyday && <Pill c={T.amber} >  everyday risk</Pill>}<div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 500, marginTop: 3, maxWidth: 320, lineHeight: 1.45 }}>{p.note}</div></Td>
+          <Td style={{ color: T.ink3, maxWidth: 240 }}>{p.catches}</Td>
+          <Td style={{ color: p.system === "—" ? T.ink4 : T.ink2, fontWeight: p.system === "—" ? 500 : 700 }}>{p.system}</Td>
+          <Td><Pill c={tok(m.tone)}>{m.label}</Pill></Td>
+        </tr>; })}
+      </Table>
+    </Card>
+
+    <Card style={cardPad}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 620 }}>
+          <Eyebrow style={{ color: s.attested ? T.green : T.amber }}>Prohibited-use attestation</Eyebrow>
+          <H3 style={{ fontSize: 16 }}>{s.attested ? "Clear to attest — no prohibited use" : `Attestation blocked — ${s.review} practice under review`}</H3>
+          <p style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, lineHeight: 1.6, margin: "5px 0 0" }}>The attestation is the single evidence artifact that closes crosswalk capability C08 across all four instruments. It cannot be signed while any practice is under review.</p>
+        </div>
+        <button onClick={() => showToast && showToast(s.attested ? "Prohibited-use attestation signed and filed" : "Emotion-recognition review opened — Workforce owner + Legal notified")} style={{ background: s.attested ? T.green : T.amber, border: "none", borderRadius: 10, padding: "10px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer", whiteSpace: "nowrap" }}>{s.attested ? "✦ Sign attestation" : "Open the review"}</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ 5 · GPAI EXPOSURE (accidental-provider test) ══════════════ */
+export function GpaiExposure({ showToast }) {
+  const s = gpaiStats();
+  const kpis = [
+    ["GenAI systems assessed", String(s.assessed), AI_GOLD, `of ${s.total} in the register`],
+    ["Likely provider", String(s.provider), T.red, "Art. 53/55 obligations"],
+    ["Monitor", String(s.monitor), T.amber, "modified, not yet shared"],
+    ["Deployer only", String(s.deployer), T.green, "no provider duty"],
+  ];
+  const yn = v => <Pill c={v ? AI_GOLD : T.ink3}>{v ? "Yes" : "No"}</Pill>;
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="GPAI Exposure" sub="The accidental-provider test — EU AI Act Art. 53 & 55. Modify a general-purpose model and share it beyond the team that modified it, and you may hold provider obligations with no procurement or board decision ever taken. Two yes answers flag the system." />
+
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12, marginBottom: 14 }}>
+      {GPAI_QUESTIONS.map((q, i) => <Card key={i} style={{ ...cardPad, borderLeft: `3px solid ${AI_GOLD}` }}>
+        <Eyebrow style={{ color: AI_GOLD }}>You answer</Eyebrow>
+        <H3 style={{ fontSize: 15 }}>{q.q}</H3>
+        <p style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, lineHeight: 1.6, margin: "6px 0 0" }}>{q.detail}</p>
+      </Card>)}
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
+      <Eyebrow style={{ color: AI_GOLD }}>The workbook derives</Eyebrow>
+      <H3 style={{ fontSize: 16 }}>Your GPAI exposure</H3>
+      <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 10px" }}>Two yes answers and the row flags. You may hold provider obligations under Articles 53 and 55.</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Pill c={T.red}>Modified + shared → likely provider · assess</Pill>
+        <Pill c={T.amber}>Modified only → monitor</Pill>
+        <Pill c={T.green}>Called, not modified → deployer only</Pill>
+      </div>
+    </Card>
+
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 }}>
+      {kpis.map(([l, v, c, sub]) => <Card key={l} style={{ padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </Card>)}
+    </div>
+
+    <Card style={cardPad}>
+      <Eyebrow>GPAI exposure register · every GenAI system</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Modified · shared beyond the team · derived exposure</H3>
+      <Table head={["System", "Basis", "Modified?", "Shared beyond team?", "Exposure", "Obligation"]}>
+        {GPAI_REGISTER.map(r => { const e = EXPOSURE_META[gpaiExposure(r)]; return <tr key={r.system}>
+          <Td style={{ fontWeight: 700, color: T.ink }}>{r.system}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 240 }}>{r.basis}</Td>
+          <Td>{r.gpai ? yn(r.modified) : <span style={{ color: T.ink4 }}>—</span>}</Td>
+          <Td>{r.gpai ? yn(r.distributed) : <span style={{ color: T.ink4 }}>—</span>}</Td>
+          <Td><Pill c={tok(e.tone)}>{e.label}</Pill></Td>
+          <Td style={{ fontFamily: F.m, fontSize: 10.5, color: T.ink3 }}>{r.arts}</Td>
+        </tr>; })}
+      </Table>
+      <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
+        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.provider} system carries likely GPAI provider obligations — the Customer Resolution Copilot was fine-tuned and rolled out enterprise-wide and into the product, which is exactly the accidental-provider path. Run the Art. 53 assessment before the next release; this closes crosswalk capability C24.
+      </div>
+      <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
+        <button onClick={() => showToast && showToast("Art. 53 GPAI provider assessment started for Customer Resolution Copilot")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Run Art. 53 assessment</button>
+        <button onClick={() => showToast && showToast("GPAI exposure register exported to Trust & Evidence")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export register</button>
       </div>
     </Card>
   </div>;
