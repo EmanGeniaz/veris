@@ -59,3 +59,6 @@ Supabase; with `AUTH_SECRET` set, auth + server-side RBAC are live too.
 - DB reachable: `npm run db:push` succeeds
 - AI live: the Veris Intelligence advisor returns real answers (not the
   "simulation" fallback) once `ANTHROPIC_API_KEY` is set.
+- **End-to-end check:** with the dev server running, `node scripts/verify-backend.mjs`
+  exercises live inference, agent least-privilege enforcement, the PII policy
+  guardrail, and confirms Article 12 inference events landed in your audit chain.
