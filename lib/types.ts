@@ -8,6 +8,7 @@ export type ACModuleId =
   | "inventory"
   | "lifecycle"
   | "gateway"
+  | "agents"
   | "risk"
   | "trust"
   | "evidence"

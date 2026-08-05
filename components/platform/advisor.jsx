@@ -2,7 +2,7 @@
 
 import { readBus, pushBus } from "@/lib/bus";
 import { Map, Scale } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, ASSISTANT_NUDGES, riskRegister } from "@/lib/platform-models";
 import { DEFAULT_FEEDBACK, feedbackDecision, feedbackAvg, decisionColorOf, T, ROLES, NAV, AI_GOLD, AI_GOLD_B, F, Tag } from "./core";
 
@@ -10,8 +10,6 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const [chat,setChat]=useState([]);
   const [q,setQ]=useState("");
   const [busy,setBusy]=useState(false);
-  const chatTimer=useRef(null);
-  useEffect(()=>()=>{if(chatTimer.current)clearTimeout(chatTimer.current);},[]);
   const pageLabel=(NAV.find(n=>n.id===tab)||{}).label||(tab==="aicentral"?"AI Central":tab==="home"?"Dashboard":"Workspace");
   const isWorkbench=tab==="workbench";
   const artifactActions=["Generate AIRA","Generate AI Impact Assessment","Generate Risk Register","Create Evidence Folder","Recommend Controls"];
@@ -53,14 +51,31 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
     if(/help|what can|who are/.test(t))return {text:`I am Veris Intelligence, your Executive Advisor. I watch your priorities, decisions, risks and evidence across VerisZone and reason over internal knowledge first - external models are used for reasoning only, never trained on your data.`,src:"Internal",srcNote:"Platform knowledge"};
     return {text:`${nudges[0]} Your top priority right now is "${p0.title}" - want me to open it?`,link:p0.link,label:"Open top priority",src:"Internal",srcNote:"Your priorities and nudges"};
   };
+  /* Live Veris Intelligence: route the question through the same enterprise
+     AI Gateway the workbench uses — internal knowledge first, then a
+     governed external model — surfacing the source, data classification,
+     egress validation and metered cost. Falls back to the grounded
+     responder when the gateway is disabled (no key) or unreachable. */
   const send=t=>{
     if(!t||busy)return;
     setChat(c=>[...c.slice(-5),{from:"user",text:t}]);
     setQ("");setBusy(true);
-    chatTimer.current=setTimeout(()=>{
-      setChat(c=>[...c.slice(-5),{from:"ai",...answer(t)}]);
+    (async()=>{
+      let reply=null;
+      try{
+        const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:t,tenant:"demo"})});
+        const d=await res.json();
+        if(d&&d.enabled&&d.blocked){
+          reply={text:`Stopped at the enterprise boundary by the ${d.detector||"policy"} guardrail — nothing left the gateway. Rephrase without the sensitive content, or request an exception through HITL approval.`,src:"Internal",srcNote:`Gateway policy · ${d.clauseRef||d.policyKey||"data policy"}`,live:true};
+        } else if(d&&d.enabled&&d.text){
+          reply={text:d.text,src:d.source||"Hybrid",srcNote:d.citations&&d.citations.length?`Grounded in ${d.citations.length} of your document(s)`:"Live via the AI Gateway",live:true,
+            gov:{cls:d.classification&&d.classification.dataClass,ok:d.responseValidation?d.responseValidation.ok:true,cost:d.cost&&d.cost.costLabel,tokens:d.cost&&d.cost.tokens,masked:d.masked}};
+        }
+      }catch{/* gateway unreachable — grounded fallback */}
+      if(!reply)reply=answer(t);
+      setChat(c=>[...c.slice(-5),{from:"ai",...reply}]);
       setBusy(false);
-    },700);
+    })();
   };
   const ask=()=>send(q.trim());
   /* Surface-aware quick asks - each routes into the grounded responder above. */
@@ -147,10 +162,16 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
             {chat.map((m,i)=><div key={i} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"92%"}}>
               <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:10,padding:"8px 11px"}}>
                 <div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{m.text}</div>
-                {m.from!=="user"&&m.src&&<div style={{marginTop:5,display:"inline-flex",alignItems:"center",gap:5}} title={m.srcNote||""}>
-                  <span style={{width:6,height:6,borderRadius:"50%",background:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber}}/>
-                  <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber,textTransform:"uppercase",letterSpacing:"0.06em"}}>Source: {m.src}</span>
+                {m.from!=="user"&&m.src&&<div style={{marginTop:5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}} title={m.srcNote||""}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:5}}>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber}}/>
+                    <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber,textTransform:"uppercase",letterSpacing:"0.06em"}}>Source: {m.src}</span>
+                  </span>
                   {m.srcNote&&<span style={{fontSize:8.5,color:T.ink4,fontFamily:F.b}}>· {m.srcNote}</span>}
+                  {m.live&&<span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:AI_GOLD,background:AI_GOLD+"1c",border:`1px solid ${AI_GOLD}55`,borderRadius:999,padding:"1px 7px",letterSpacing:"0.04em"}}>⚡ LIVE · GATEWAY</span>}
+                  {m.gov&&m.gov.cls&&<span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:m.gov.cls==="Restricted"?T.red:m.gov.cls==="Confidential"?T.amber:T.blue,background:(m.gov.cls==="Restricted"?T.red:m.gov.cls==="Confidential"?T.amber:T.blue)+"1c",borderRadius:999,padding:"1px 7px"}}>{m.gov.cls}</span>}
+                  {m.gov&&<span style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:m.gov.ok?T.green:T.amber}}>{m.gov.ok?"✓ egress clean":"⚠ egress redacted"}</span>}
+                  {m.gov&&m.gov.cost&&<span style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:T.ink4}} title={`${m.gov.tokens||0} tokens metered`}>⛽ {m.gov.cost}</span>}
                 </div>}
                 {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
               </div>

@@ -4,6 +4,7 @@ import { readBus, pushBus } from "@/lib/bus";
 import { Map } from "lucide-react";
 import { useState, useEffect } from "react";
 import { acInitiatives, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments } from "@/lib/platform-models";
+import { liveResidual, levelFor, riskMath, inherentOf } from "@/lib/risk-engine";
 import { T, AI_GOLD, ROLES, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 import { PageAISpine } from "./spine";
 import { SmartSelect } from "./smartselect";
@@ -130,7 +131,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
   };
   const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;
-  const openCritHigh=scopedRisks.filter(r=>(r.level==="Critical"||r.level==="High")&&r.status!=="Closed").length;
+  const openCritHigh=scopedRisks.filter(r=>{const l=levelFor(r,effT(r));return (l==="Critical"||l==="High")&&r.status!=="Closed";}).length;
   const inProg=scopedRisks.filter(r=>effT(r)==="In Progress").length;
   const breaching=kriRegister.filter(kriBreach).length;
   const kpis=[
@@ -141,18 +142,34 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   ];
   const TABS=[["register","Risk Register"],["assessments","Assessments"],["heatmap","Heat Map"],["treatments","Treatments"],["residual","Residual & Trends"],["kris","KRIs"],["drift","Risk Drift"]];
   const Dots=({n,color})=><div style={{display:"flex",gap:2}}>{[1,2,3,4,5].map(x=><div key={x} style={{width:7,height:7,borderRadius:2,background:x<=n?color:T.border}}/>)}</div>;
-  const detail=sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${lvColor(sel.level)}10`,animation:"fade .25s ease"}}>
-    <div style={{background:`linear-gradient(135deg,${lvColor(sel.level)}18,${T.s3})`,borderBottom:`1px solid ${lvColor(sel.level)}30`,padding:"14px 16px"}}>
-      <div style={{display:"flex",gap:7,alignItems:"center"}}><Tag label={sel.level} color={lvColor(sel.level)} bg={lvColor(sel.level)+"20"}/><STag s={sel.status}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:"auto"}}>{sel.id}</span></div>
+  const selMath=sel&&riskMath(sel,effT(sel));
+  const detail=sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${lvColor(selMath.level)}10`,animation:"fade .25s ease"}}>
+    <div style={{background:`linear-gradient(135deg,${lvColor(selMath.level)}18,${T.s3})`,borderBottom:`1px solid ${lvColor(selMath.level)}30`,padding:"14px 16px"}}>
+      <div style={{display:"flex",gap:7,alignItems:"center"}}><Tag label={selMath.level} color={lvColor(selMath.level)} bg={lvColor(selMath.level)+"20"}/><STag s={sel.status}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:"auto"}}>{sel.id}</span></div>
       <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.title}</h3>
       <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:3}}>{sel.system}</p>
     </div>
     <div style={{padding:16}}>
       <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:12}}>{sel.desc}</p>
-      {[["Category",sel.category],["Business unit",sel.unit],["Executive owner",sel.execOwner],["Risk owner",sel.riskOwner],["Inherent score",`${sel.likelihood*sel.impact}/25`],["Residual score",`${sel.residual}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
+      {[["Category",sel.category],["Business unit",sel.unit],["Executive owner",sel.execOwner],["Risk owner",sel.riskOwner],["Inherent score",`${selMath.inherent}/25`],["Residual score",`${selMath.live}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
         <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
         <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:170}}>{v}</span>
       </div>)}
+      {/* ── Risk math: residual computed from inherent minus treatment
+          buy-down, live with the treatment status. ── */}
+      <div style={{marginTop:12,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Residual math</div>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",fontFamily:F.m}}>
+          <span style={{fontSize:11,fontWeight:800,color:T.ink2}} title="likelihood × impact">Inherent {selMath.inherent}</span>
+          <span style={{color:T.ink4,fontSize:11}}>−</span>
+          <span style={{fontSize:11,fontWeight:800,color:selMath.progressed?T.green:T.ink3}} title="bought down by treatment">buy-down {selMath.boughtDown}</span>
+          <span style={{color:T.ink4,fontSize:11}}>=</span>
+          <span style={{fontSize:13,fontWeight:900,color:lvColor(selMath.level)}}>{selMath.live}</span>
+          <Tag label={selMath.level} color={lvColor(selMath.level)} bg={lvColor(selMath.level)+"18"}/>
+          {selMath.progressed&&<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",borderRadius:999,padding:"2px 8px"}}>▼ from {selMath.assessed}</span>}
+        </div>
+        <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5,marginTop:7}}>{selMath.note}</div>
+      </div>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"11px 0 0"}}>
         {sel.frameworks.map(f=><Tag key={f} label={f} color={T.blue} bg={T.blue+"14"}/>)}
         {sel.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.violet+"14",border:`1px solid ${T.violet}40`,borderRadius:6,padding:"2px 8px",color:T.violet,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
@@ -258,7 +275,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
         </div>
         <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
           {rows.map((r,i)=>{
-            const c=lvColor(r.level);const ini=initOf(r);
+            const rLvl=levelFor(r,effT(r));const rRes=liveResidual(r,effT(r));const moved=rRes!==(r.residual??inherentOf(r));
+            const c=lvColor(rLvl);const ini=initOf(r);
             return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",background:sel&&sel.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel&&sel.id===r.id?`3px solid ${c}`:"3px solid transparent",transition:"all .15s"}}>
               <div>
                 <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
@@ -271,8 +289,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
               <Dots n={r.likelihood} color={T.amber}/>
               <Dots n={r.impact} color={c}/>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:c}}>{r.residual}</span>
-                <Tag label={r.level} color={c} bg={c+"18"}/>
+                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:c}} title={moved?`Assessed ${r.residual} → live ${rRes} after treatment progress`:undefined}>{rRes}{moved&&<span style={{fontSize:9,color:T.green,marginLeft:2}}>▼</span>}</span>
+                <Tag label={rLvl} color={c} bg={c+"18"}/>
               </div>
             </div>;
           })}

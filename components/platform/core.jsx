@@ -456,6 +456,7 @@ export const AI_CENTRAL_NAV = [
   {id:"inventory", label:"AI Inventory", sub:"Systems, datasets, vendors", owner:"CIO", oversight:"AI Governance Office"},
   {id:"lifecycle", label:"AI Lifecycle", sub:"Governed pilot-to-scale journey", owner:"AI Governance Office", oversight:"CAIO"},
   {id:"gateway", label:"AI Gateway", sub:"Runtime control plane", owner:"CISO", oversight:"CIO"},
+  {id:"agents", label:"AI Agents", sub:"Least-privilege capability control", owner:"CISO", oversight:"CAIO"},
   {id:"risk", label:"Risk Center", sub:"AI risk framework and treatment", owner:"CRO", oversight:"CAIO"},
   {id:"trust", label:"Trust Center", sub:"Live posture and attestations", owner:"CDPO", oversight:"CISO"},
   {id:"evidence", label:"Evidence Fabric", sub:"Searchable, versioned proof", owner:"AI Governance Office", oversight:"CAIO"},
