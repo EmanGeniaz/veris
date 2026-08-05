@@ -239,7 +239,7 @@ export function ConvergenceCrosswalk({ showToast }) {
       </div>)}
 
       <div style={{ marginTop: 6, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.gap === 0 ? <>Every capability is now owned — <b style={{ color: T.ink2 }}>no unowned gaps remain</b>. The last five were closed in the Gap Closure workspace: GenAI marking and redress are operational; transfer mapping, explainability and drift are in-flight, pending their live findings. Convergence coverage is {s.coverage}%.</> : <>The {s.gap} open gaps are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.</>}
+        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.gap === 0 ? <>Every capability is owned and evidenced — <b style={{ color: T.ink2 }}>no unowned gaps remain</b>, and all five former gaps are now <b style={{ color: T.ink2 }}>operational</b> with their linked findings resolved (INC-1048 contained, RSK-005 treated, drift monitoring live). Convergence coverage is {s.coverage}%.</> : <>The {s.gap} open gaps are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.</>}
       </div>
     </Card>
   </div>;
@@ -374,14 +374,14 @@ export function GapClosure({ showToast }) {
     ["Convergence coverage", `${s.coverage}%`, AI_GOLD, "up from 55%"],
   ];
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Gap Closure" sub="The five capabilities the convergence crosswalk last flagged as gaps, turned into owned, evidenced closures. Two had no external dependency and are operational; three are tied to a live finding and are in-flight. Status is read from the crosswalk, so this workspace and the crosswalk never disagree." />
+    <Head title="Gap Closure" sub="The five capabilities the convergence crosswalk last flagged as gaps, turned into owned, evidenced closures — all now operational, with their linked findings resolved (INC-1048 contained, RSK-005 treated, drift monitoring live). Status is read from the crosswalk, so this workspace and the crosswalk never disagree." />
 
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.green}12,${T.bg})`, border: `1px solid ${T.green}45` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ maxWidth: 640 }}>
           <Eyebrow style={{ color: T.green }}>Convergence complete</Eyebrow>
           <H3 style={{ fontSize: 18 }}>{s.remaining === 0 ? "No unowned gaps remain across the 32 capabilities" : `${s.remaining} unowned gaps remain`}</H3>
-          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>Every capability is now an owned control with a named evidence artifact. The three in-flight closures reach operational when their live finding clears — INC-1048, RSK-005 and the drift-monitoring wiring.</p>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>Every capability is an owned control with a named evidence artifact, and all five closures are now operational — their linked findings resolved (INC-1048 contained, RSK-005 treated, drift monitoring live).</p>
         </div>
         <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${T.green}45`, borderRadius: 12, padding: "12px 18px", minWidth: 120 }}>
           <div style={{ fontSize: 34, fontWeight: 900, color: T.green, fontFamily: F.m, lineHeight: 1 }}>{s.coverage}%</div>
