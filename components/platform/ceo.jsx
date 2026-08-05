@@ -269,23 +269,12 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
   </div>;
 }
 
-/* Simplified equirectangular world map (viewBox 1000×480) with continent
-   silhouettes and one marker per deployment region, sized by live count.
-   Theme-aware: light ocean/land in light mode, deep navy in dark mode. */
-const CONTINENTS=[
-  /* North America */ "M150,70 L250,58 L318,74 L326,120 L288,150 L266,196 L232,214 L206,180 L214,150 L176,150 L150,104 Z",
-  /* Greenland */ "M338,44 L392,40 L410,70 L384,92 L350,82 Z",
-  /* South America */ "M262,232 L300,224 L316,258 L306,312 L280,372 L258,404 L242,360 L250,300 L246,262 Z",
-  /* Europe */ "M486,92 L556,84 L582,104 L566,140 L520,152 L494,132 L482,110 Z",
-  /* Africa */ "M498,158 L580,150 L604,196 L588,258 L556,330 L520,346 L500,286 L488,222 L486,182 Z",
-  /* Asia */ "M566,80 L720,62 L840,74 L906,108 L878,150 L806,158 L742,150 L688,168 L628,150 L586,120 Z",
-  /* SE Asia / India nub */ "M640,158 L690,172 L676,214 L648,206 L636,180 Z",
-  /* Oceania */ "M812,300 L880,292 L906,322 L872,352 L820,342 L804,318 Z",
-];
+/* Region markers for the flat deployment map, positioned in the real
+   WORLD_GEO projection (1000×500) so they sit on the correct continents. */
 const REGION_MARKERS=[
-  {region:"Americas", x:222, y:150},
-  {region:"EMEA",     x:524, y:120},
-  {region:"APAC",     x:806, y:150},
+  {region:"Americas", x:235, y:150},
+  {region:"EMEA",     x:520, y:150},
+  {region:"APAC",     x:762, y:175},
 ];
 /* Marker colour = the region's HIGHEST open AI-risk exposure (data-driven
    from the portfolio), so red/amber/blue/green carry real meaning; the
@@ -495,15 +484,15 @@ function FilterMap({regionData,metric,big}){
   const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
   const ocean=isLight?"#EAF1F8":"#0c1030", land=isLight?"#C6D3E4":"#252c5c", landEdge=isLight?"#AFC0D6":"#39407a", grat=isLight?"#D4DEEC":"#ffffff12";
   return <div style={{position:"relative",height:big?360:280,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`}}>
-    <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
+    <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
       <defs>
         <radialGradient id="geoOcean" cx="50%" cy="0%" r="120%"><stop offset="0" stopColor={isLight?"#F2F7FC":"#1a2050"}/><stop offset="1" stopColor={ocean}/></radialGradient>
         <filter id="geoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#5b6b8033":"#00000066"}/></filter>
       </defs>
-      <rect x="0" y="0" width="1000" height="480" fill="url(#geoOcean)"/>
-      {[80,160,240,320,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
-      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="480" stroke={grat} strokeWidth="1"/>)}
-      {CONTINENTS.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.5" strokeLinejoin="round"/>)}
+      <rect x="0" y="0" width="1000" height="500" fill="url(#geoOcean)"/>
+      {[100,200,300,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
+      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="500" stroke={grat} strokeWidth="1"/>)}
+      {WORLD_GEO.map((c,i)=><path key={i} d={c.d} fill={land} stroke={landEdge} strokeWidth="0.5" strokeLinejoin="round"/>)}
       {regionData.map(m=>{const v=metric==="count"?m.count:m.adoption;const r=metric==="count"?(big?16+v*3:13+v*2.2):(big?14+v*0.2:12+v*0.16);const empty=metric==="count"&&v===0;return <g key={m.region} opacity={empty?0.35:1}>
         <circle cx={m.x} cy={m.y} r={r+9} fill={m.color} opacity="0.16"><animate attributeName="r" values={`${r+5};${r+13};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
         <circle cx={m.x} cy={m.y} r={r} fill={m.color} filter="url(#geoMk)"/>
