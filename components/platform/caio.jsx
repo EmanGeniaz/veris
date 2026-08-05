@@ -41,6 +41,7 @@ export const CAIO_PROJECTS=[
 const GOV_INPUTS=GOVERNANCE_INPUTS.map(g=>({...g,w:`${Math.round(g.w*100)}%`}));
 const GOV_SCORE=GOVERNANCE_SCORE;
 /* Risk counts derived from the canonical riskRegister (enterprise scope). */
+const ISO42001=frameworkScore("iso42001");
 const RISK_OPEN=riskRegister.length;
 const RISK_CRIT=riskRegister.filter(r=>r.level==="Critical").length;
 const RISK_HIGH=riskRegister.filter(r=>r.level==="High").length;
@@ -73,7 +74,7 @@ const CAIO_POLICIES=[
   {m:"Resolution Copilot", n:"5 applied", a:79, c:T.amber},{m:"Skills Navigator", n:"4 applied", a:72, c:T.amber},
 ];
 const CAIO_STANDARDS=[
-  {f:"ISO/IEC 42001", ty:"AI management system", sc:"Enterprise-wide", st:"Certified body · 81%", c:T.green},
+  {f:"ISO/IEC 42001", ty:"AI management system", sc:"Enterprise-wide", st:`Certified body · ${ISO42001}%`, c:T.green},
   {f:"ISO/IEC 27001", ty:"Information security", sc:"Enterprise-wide", st:"Certified · 90%", c:T.green},
   {f:"EU AI Act", ty:"Regulation", sc:"High-risk systems", st:"Conformity in progress", c:T.blue},
   {f:"NIST AI RMF", ty:"Framework", sc:"All AI systems", st:"Aligned · 77%", c:T.violet},
@@ -207,7 +208,7 @@ function OverviewTab({go}){
       <Kpi l="Governance score" v={<>{GOV_SCORE}<span style={{fontSize:13,color:T.ink4}}>/100</span></>} vc={T.green} s="+4 vs last quarter" onClick={()=>go("caiogov")}/>
       <Kpi l="Active AI projects" v="9" s="4 high-risk · 3 limited" onClick={()=>go("caioplaybook")}/>
       <Kpi l="Policies enforced" v="24" vc={T.blue} s="avg adherence 88%" onClick={()=>go("caiogov")}/>
-      <Kpi l="ISO 42001 readiness" v="81%" vc={AI_GOLD} s="Stage-2 audit Q4" onClick={()=>go("caiogov")}/>
+      <Kpi l="ISO 42001 readiness" v={`${ISO42001}%`} vc={AI_GOLD} s="Stage-2 audit Q4" onClick={()=>go("caiogov")}/>
       <Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red} s={RISK_CH} onClick={()=>go("caiorisk")}/>
       <Kpi l="AI incidents" v="3" vc={T.amber} s="open · 1 P1" onClick={()=>go("caioincidents")}/>
     </div>
@@ -332,7 +333,7 @@ function Reports({showToast}){
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
       <Eyebrow style={{color:AI_GOLD}}>Governance pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>AI Governance Report — Q3 FY26</H3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
-        <Kpi l="Governance score" v={String(GOV_SCORE)} vc={T.green}/><Kpi l="ISO 42001" v="81%" vc={AI_GOLD}/><Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red}/><Kpi l="Open incidents" v="3" vc={T.amber}/>
+        <Kpi l="Governance score" v={String(GOV_SCORE)} vc={T.green}/><Kpi l="ISO 42001" v={`${ISO42001}%`} vc={AI_GOLD}/><Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red}/><Kpi l="Open incidents" v="3" vc={T.amber}/>
       </div>
       <div style={{display:"flex",gap:9}}><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export XLSX</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export audit PDF</button></div>
     </Card>}

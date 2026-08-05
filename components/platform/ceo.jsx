@@ -372,14 +372,14 @@ function BudgetValue({big}){
 function HighestRisk(){
   return <Card style={cardPad}>
     <Eyebrow>Highest-Risk Program</Eyebrow>
-    <H3>Credit Decision Assurance</H3>
-    <div style={{fontSize:11,color:T.ink3,marginTop:4,fontFamily:F.b}}>Retail Banking · Sponsor Rafael Torres · Phase 7/13</div>
+    <H3>{HR_PROG.name}</H3>
+    <div style={{fontSize:11,color:T.ink3,marginTop:4,fontFamily:F.b}}>{HR_PROG.unit} · {HR_PROG.approval} · {HR_PROG.stage}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:14}}>
-      {[["Residual risk","12/25",T.red],["Governance","74%",AI_GOLD],["Owner","O. Khan",T.ink],["Mitigation","In progress",T.blue]].map(([l,v,c])=>
+      {[["Residual risk",`${HR_RISK.residual}/25`,T.red],["Program health",`${HR_PROG.health}%`,HR_PROG.health>=80?T.green:HR_PROG.health>=60?AI_GOLD:T.red],["Owner",HR_RISK.owner,T.ink],["Mitigation",HR_RISK.mit,mitStatusColor(HR_RISK.mit)]].map(([l,v,c])=>
         <div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:l==="Owner"||l==="Mitigation"?13:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
     </div>
     <div style={{marginTop:12,padding:"11px 13px",borderRadius:10,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}>
-      <b style={{color:AI_GOLD}}>Veris Intelligence:</b> Adverse-decision harm is the top exposure. Human-oversight design record is awaiting approval — clearing it unblocks the scale gate and $7.2M of value.
+      <b style={{color:AI_GOLD}}>Veris Intelligence:</b> {HR_RISK.title} is the top exposure on {HR_PROG.name}. Clearing the human-oversight design record unblocks the scale gate.
     </div>
   </Card>;
 }
@@ -406,6 +406,10 @@ const CEO_RISK_COUNTS={
   onTrack:riskRegister.filter(r=>/progress|complete/i.test(r.treatment?.status||"")).length,
 };
 const riskLineage=r=>{const p=CEO_PORTFOLIO.find(x=>x.name===r.system)||CEO_PORTFOLIO.find(x=>x.id===r.initiativeId);return p?programLineage(p):{label:r.title,value:`${r.level} · ${r.residual}`};};
+/* Highest-risk program + its worst residual risk — both derived from the
+   canonical portfolio and register (no hand-typed program facts). */
+const HR_PROG=[...CEO_PORTFOLIO].sort((a,b)=>(SEV_RANK[b.risk]-SEV_RANK[a.risk])||(a.health-b.health))[0];
+const HR_RISK=CEO_RISKS.filter(r=>r.initiativeId===HR_PROG.id).sort((a,b)=>b.residual-a.residual)[0]||CEO_RISKS[0];
 function CeoRiskRows({rows}){
   return rows.map(r=><LinRow key={r.id} node={riskLineage(r)}>
     <Td style={{fontWeight:700,color:T.ink}}>{r.title}</Td><Td>{r.system}</Td>
