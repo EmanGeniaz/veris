@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, ROLES, Card, vzDownload } from "./core";
 import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { PORTFOLIO as CEO_PORTFOLIO, PF, FRAMEWORKS as CANON_FRAMEWORKS, COMPLIANCE_PCT, OPEN_INCIDENTS } from "@/lib/portfolio";
+import { WORLD_GEO } from "@/lib/world-geo";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
 
@@ -61,11 +62,14 @@ const CEO_BU=[
   {bu:"People", head:260, adoption:31, band:T.red},
 ];
 
-const CEO_REGIONS=[
-  {region:"EMEA", live:5, cities:"London, Frankfurt", adoption:72, regime:"EU AI Act · GDPR", c:T.green},
-  {region:"Americas", live:4, cities:"NYC, São Paulo", adoption:58, regime:"NIST · SOC 2", c:AI_GOLD},
-  {region:"APAC", live:3, cities:"Singapore, Sydney", adoption:44, regime:"PDPA · ISO 42001", c:T.blue},
+/* Descriptive region metadata; `live` is DERIVED from the portfolio so the
+   count always traces to its source records (no hardcoded, drifting totals). */
+const REGION_META=[
+  {region:"EMEA", cities:"London, Frankfurt", adoption:72, regime:"EU AI Act · GDPR", c:T.green},
+  {region:"Americas", cities:"NYC, São Paulo", adoption:58, regime:"NIST · SOC 2", c:AI_GOLD},
+  {region:"APAC", cities:"Singapore, Sydney", adoption:44, regime:"PDPA · ISO 42001", c:T.blue},
 ];
+const CEO_REGIONS=REGION_META.map(m=>({...m, live:CEO_PORTFOLIO.filter(p=>p.region===m.region).length}));
 
 /* Immediate-attention items surfaced above everything. */
 const CEO_ATTENTION=[
@@ -289,106 +293,74 @@ const REGION_MARKERS=[
 const SEV_RANK={Critical:4,High:3,Medium:2,Low:1};
 const sevColor=s=>s==="Critical"?T.red:s==="High"?T.amber:s==="Medium"?T.blue:T.green;
 const regionSeverity=region=>CEO_PORTFOLIO.filter(p=>p.region===region).reduce((m,p)=>SEV_RANK[p.risk]>SEV_RANK[m]?p.risk:m,"Low");
-/* Continent silhouettes for the spinning globe, authored in a 280×280
-   equirectangular tile (x:0→280 = lon −180→180, y:0→280 = lat 90→−90).
-   Two copies scroll seamlessly to give the illusion of rotation. */
-const GLOBE_LAND=[
-  /* N. America */ "M40,58 L82,48 L100,66 L94,90 L74,108 L58,96 L48,80 Z",
-  /* Greenland  */ "M104,30 L120,26 L126,40 L114,50 L102,42 Z",
-  /* S. America */ "M84,120 L106,126 L102,164 L88,206 L79,216 L74,176 L82,144 Z",
-  /* Europe     */ "M138,56 L166,50 L174,68 L158,82 L140,74 Z",
-  /* Africa     */ "M138,90 L174,86 L184,120 L168,166 L150,186 L139,150 L133,114 Z",
-  /* Asia       */ "M172,58 L236,44 L270,68 L252,96 L214,102 L186,90 L174,72 Z",
-  /* India/SE   */ "M196,98 L216,102 L222,120 L206,140 L197,118 Z",
-  /* Oceania    */ "M232,168 L258,162 L266,182 L248,196 L232,188 Z",
+/* Numbers count up from zero on mount (cubic ease-out) — the "live" feel. */
+function useCountUp(target,dur=1200){
+  const [v,setV]=useState(0);
+  useEffect(()=>{
+    let raf, start=null;
+    const tick=t=>{ if(start===null)start=t; const p=Math.min(1,(t-start)/dur);
+      setV(Math.round(target*(1-Math.pow(1-p,3)))); if(p<1)raf=requestAnimationFrame(tick); };
+    raf=requestAnimationFrame(tick); return ()=>cancelAnimationFrame(raf);
+  },[target,dur]);
+  return v;
+}
+/* Region hubs on the world map (Americas / EMEA / APAC), positioned in the
+   1000x500 projected space. Size = live program count, colour = worst open
+   exposure — both derived from the portfolio. */
+const GEO_HUBS=[
+  {region:"Americas", x:235, y:150},
+  {region:"EMEA",     x:520, y:150},
+  {region:"APAC",     x:762, y:175},
 ];
-/* Region pins float over the spinning globe (Americas left, EMEA centre,
-   APAC right) near the equator so the numbers stay readable — they are
-   region indicators, not geo-locked pins that rotate out of view. */
-const GLOBE_PINS=[
-  {region:"Americas", x:150, y:210},
-  {region:"EMEA",     x:206, y:182},
-  {region:"APAC",     x:268, y:214},
-];
-/* Animated spinning globe. The ocean sphere is fixed; two land tiles scroll
-   leftward inside the sphere clip to read as rotation, with limb-darkening
-   shading, a pulsing atmosphere and a drifting starfield. Pins keep the
-   original semantics: size = live programs, colour = highest risk exposure,
-   number = live count. Theme-aware (warm/sky light, deep-space dark). */
+const hubLive=region=>(CEO_REGIONS.find(r=>r.region===region)||{}).live||0;
+function GeoHub({region,x,y,idx}){
+  const sev=regionSeverity(region), c=sevColor(sev), n=hubLive(region);
+  const val=useCountUp(n,1000+idx*260), rad=13+n*2.6;
+  return <g>
+    <circle cx={x} cy={y} r={rad+6} fill={c} opacity="0.2">
+      <animate attributeName="r" values={`${rad+3};${rad+14};${rad+3}`} dur={`${3+idx*0.5}s`} repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.24;0.05;0.24" dur={`${3+idx*0.5}s`} repeatCount="indefinite"/>
+    </circle>
+    <circle cx={x} cy={y} r={rad} fill={c} filter="url(#ceoGlow)"/>
+    <circle cx={x} cy={y} r={rad-4} fill="#08101f" opacity="0.62"/>
+    <text x={x} y={y+5} textAnchor="middle" fontSize="15" fontWeight="800" fill="#f2f6ff" fontFamily={F.m}>{val}</text>
+    <text x={x} y={y-rad-8} textAnchor="middle" fontSize="11" fontWeight="800" fill="#93a6c8" letterSpacing="1.4" fontFamily={F.m}>{region.toUpperCase()}</text>
+  </g>;
+}
+/* Deployment connection map: the enterprise AI estate as one connected
+   network. A dark world map (real Natural Earth geography) with the three
+   deployment hubs — sized by live program count, coloured by worst exposure —
+   linked by animated data-pulse arcs. Pure SVG/SMIL + a small count-up. */
 function ExposureMap({big}){
-  const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
-  const cx=200, cy=200, R=138;
-  const ocean1=isLight?"#dce9f7":"#16204e";
-  const ocean2=isLight?"#9dbde0":"#070b28";
-  const land=isLight?"#8fb0d6":"#39468a";
-  const landEdge=isLight?"#79a0cc":"#4c5cae";
-  const bg=isLight?"#f6f1e7":"#05070f";
-  const grid=isLight?"#ffffff66":"#ffffff14";
-  const cnt=r=>(CEO_REGIONS.find(x=>x.region===r)||{}).live||0;
-  const stars=[[70,60],[120,44],[300,70],[340,150],[60,260],[330,300],[150,344],[280,352],[40,164],[360,224]];
-  return <div style={{position:"relative",height:big?380:280,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`,background:bg}}>
-    <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" width="100%" height="100%" style={{display:"block"}}>
+  const arcs=[[0,1],[1,2],[0,2]].map(([i,j],k)=>{const a=GEO_HUBS[i],b=GEO_HUBS[j];
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2-95; return {d:`M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`,k};});
+  return <div style={{position:"relative",height:big?430:360,borderRadius:12,overflow:"hidden",border:`1px solid ${T.border}`,background:"#0a1120"}}>
+    <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" width="100%" height="100%" style={{display:"block"}}>
       <defs>
-        <clipPath id="ceoSphere"><circle cx={cx} cy={cy} r={R}/></clipPath>
-        <radialGradient id="ceoOceanG" cx="38%" cy="32%" r="78%">
-          <stop offset="0" stopColor={ocean1}/><stop offset="1" stopColor={ocean2}/>
-        </radialGradient>
-        <radialGradient id="ceoShade" cx="36%" cy="30%" r="74%">
-          <stop offset="0" stopColor="#ffffff" stopOpacity={isLight?0.55:0.42}/>
-          <stop offset="0.5" stopColor="#ffffff" stopOpacity="0"/>
-          <stop offset="1" stopColor={isLight?"#3f5f8a":"#000010"} stopOpacity={isLight?0.32:0.62}/>
-        </radialGradient>
-        <radialGradient id="ceoAtmo" cx="50%" cy="50%" r="50%">
-          <stop offset="0.82" stopColor={isLight?"#7fa8d8":"#4f78c8"} stopOpacity="0"/>
-          <stop offset="0.94" stopColor={isLight?"#7fa8d8":"#5b86d6"} stopOpacity={isLight?0.35:0.5}/>
-          <stop offset="1" stopColor={isLight?"#7fa8d8":"#5b86d6"} stopOpacity="0"/>
-        </radialGradient>
-        <filter id="ceoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#3a4c6633":"#00000088"}/></filter>
+        <filter id="ceoGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="ceoArcG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#4f78c8" stopOpacity="0.06"/><stop offset="0.5" stopColor="#9fbcff" stopOpacity="0.6"/><stop offset="1" stopColor="#4f78c8" stopOpacity="0.06"/>
+        </linearGradient>
       </defs>
-      {/* deep-field starfield (subtle in light, brighter in dark) */}
-      {stars.map(([sx,sy],i)=><circle key={i} cx={sx} cy={sy} r={i%3===0?1.4:1} fill={isLight?"#c9b48f":"#8fa6d8"}>
-        <animate attributeName="opacity" values={`${isLight?0.18:0.3};${isLight?0.5:0.85};${isLight?0.18:0.3}`} dur={`${3+i%4}s`} repeatCount="indefinite"/>
-      </circle>)}
-      {/* atmosphere halo */}
-      <circle cx={cx} cy={cy} r={R+14} fill="url(#ceoAtmo)">
-        <animate attributeName="r" values={`${R+10};${R+18};${R+10}`} dur="6s" repeatCount="indefinite"/>
-      </circle>
-      {/* sphere */}
-      <g clipPath="url(#ceoSphere)">
-        <circle cx={cx} cy={cy} r={R} fill="url(#ceoOceanG)"/>
-        {/* spinning land: two identical tiles scroll one tile-width and loop */}
-        <g>
-          <animateTransform attributeName="transform" type="translate" from="0 0" to="-280 0" dur={big?"26s":"30s"} repeatCount="indefinite"/>
-          {[cx-R, cx-R+280].map((ox,k)=><g key={k} transform={`translate(${ox},${cy-140})`}>
-            {GLOBE_LAND.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.2" strokeLinejoin="round" opacity="0.95"/>)}
-          </g>)}
-        </g>
-        {/* latitude chords + meridian ellipses = sphere wireframe */}
-        {[-90,-45,0,45,90].map(l=>{const yy=cy+(l/90)*R*0.86;const half=Math.sqrt(Math.max(0,R*R-(yy-cy)*(yy-cy)));return <line key={"lat"+l} x1={cx-half} y1={yy} x2={cx+half} y2={yy} stroke={grid} strokeWidth="1"/>;})}
-        {[0.35,0.7,1].map((f,i)=><ellipse key={"mer"+i} cx={cx} cy={cy} rx={R*f} ry={R} fill="none" stroke={grid} strokeWidth="1"/>)}
-        {/* 3D limb-darkening + specular highlight */}
-        <circle cx={cx} cy={cy} r={R} fill="url(#ceoShade)"/>
-      </g>
-      {/* crisp rim */}
-      <circle cx={cx} cy={cy} r={R} fill="none" stroke={isLight?"#9db8d8":"#5b86d6"} strokeWidth="1.5" opacity="0.7"/>
-      {/* region pins: size = live programs, colour = highest risk exposure */}
-      {GLOBE_PINS.map((m,idx)=>{const n=cnt(m.region);const sev=regionSeverity(m.region);const c=sevColor(sev);const r=big?15+n*2.2:12+n*1.8;return <g key={m.region}>
-        <animateTransform attributeName="transform" type="translate" values="0 0;0 -3;0 0" dur={`${4+idx}s`} repeatCount="indefinite"/>
-        <circle cx={m.x} cy={m.y} r={r+9} fill={c} opacity="0.18"><animate attributeName="r" values={`${r+5};${r+14};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
-        <circle cx={m.x} cy={m.y} r={r} fill={c} filter="url(#ceoMk)"/>
-        <text x={m.x} y={m.y+4} textAnchor="middle" fontSize={big?15:13} fontWeight="800" fill="#0b0e24" fontFamily={F.m}>{n}</text>
-        <text x={m.x} y={m.y-r-8} textAnchor="middle" fontSize="11" letterSpacing="1.5" fontWeight="800" fill={isLight?T.ink3:"#cbd5e1"} fontFamily={F.m}>{m.region.toUpperCase()}</text>
-      </g>;})}
+      {/* real world land */}
+      {WORLD_GEO.map((c,i)=><path key={i} d={c.d} fill="#17233d" stroke="#26364f" strokeWidth="0.4"/>)}
+      {/* network arcs with travelling data pulses */}
+      {arcs.map(a=><g key={a.k}>
+        <path d={a.d} fill="none" stroke="url(#ceoArcG)" strokeWidth="1.6" opacity="0.7"/>
+        <circle r="3" fill="#dbe6ff" filter="url(#ceoGlow)"><animateMotion dur={`${2.6+a.k*0.5}s`} repeatCount="indefinite" path={a.d}/></circle>
+      </g>)}
+      {/* region hubs */}
+      {GEO_HUBS.map((h,idx)=><GeoHub key={h.region} region={h.region} x={h.x} y={h.y} idx={idx}/>)}
     </svg>
   </div>;
 }
 function RegionLegend(){
   return <div style={{marginTop:11}}>
     <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
-      {CEO_REGIONS.map(r=>{const sev=regionSeverity(r.region);return <span key={r.region} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:sevColor(sev)}}/>{r.region} · {r.live} live · worst exposure {sev}</span>;})}
+      {[...CEO_REGIONS].sort((a,b)=>b.live-a.live).map((r,i)=>{const sev=regionSeverity(r.region);return <span key={r.region} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{fontFamily:F.m,fontWeight:900,color:T.ink4}}>{i+1}</span><span style={{width:9,height:9,borderRadius:"50%",background:sevColor(sev)}}/>{r.region} · {r.live} live · worst exposure {sev}</span>;})}
     </div>
     <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`,alignItems:"center"}}>
-      <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>Marker size = live programs · colour = highest risk exposure</span>
+      <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>Node size = live programs · colour = highest risk exposure · arcs = enterprise network</span>
       {[["Critical",T.red],["High",AI_GOLD],["Medium",T.blue],["Low",T.green]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:9.5,color:T.ink3,fontWeight:700,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:c}}/>{l}</span>)}
     </div>
   </div>;
