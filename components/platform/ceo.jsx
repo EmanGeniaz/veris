@@ -269,23 +269,12 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
   </div>;
 }
 
-/* Simplified equirectangular world map (viewBox 1000×480) with continent
-   silhouettes and one marker per deployment region, sized by live count.
-   Theme-aware: light ocean/land in light mode, deep navy in dark mode. */
-const CONTINENTS=[
-  /* North America */ "M150,70 L250,58 L318,74 L326,120 L288,150 L266,196 L232,214 L206,180 L214,150 L176,150 L150,104 Z",
-  /* Greenland */ "M338,44 L392,40 L410,70 L384,92 L350,82 Z",
-  /* South America */ "M262,232 L300,224 L316,258 L306,312 L280,372 L258,404 L242,360 L250,300 L246,262 Z",
-  /* Europe */ "M486,92 L556,84 L582,104 L566,140 L520,152 L494,132 L482,110 Z",
-  /* Africa */ "M498,158 L580,150 L604,196 L588,258 L556,330 L520,346 L500,286 L488,222 L486,182 Z",
-  /* Asia */ "M566,80 L720,62 L840,74 L906,108 L878,150 L806,158 L742,150 L688,168 L628,150 L586,120 Z",
-  /* SE Asia / India nub */ "M640,158 L690,172 L676,214 L648,206 L636,180 Z",
-  /* Oceania */ "M812,300 L880,292 L906,322 L872,352 L820,342 L804,318 Z",
-];
+/* Region markers for the flat deployment map, positioned in the real
+   WORLD_GEO projection (1000×500) so they sit on the correct continents. */
 const REGION_MARKERS=[
-  {region:"Americas", x:222, y:150},
-  {region:"EMEA",     x:524, y:120},
-  {region:"APAC",     x:806, y:150},
+  {region:"Americas", x:235, y:150},
+  {region:"EMEA",     x:520, y:150},
+  {region:"APAC",     x:762, y:175},
 ];
 /* Marker colour = the region's HIGHEST open AI-risk exposure (data-driven
    from the portfolio), so red/amber/blue/green carry real meaning; the
@@ -383,40 +372,64 @@ function BudgetValue({big}){
 function HighestRisk(){
   return <Card style={cardPad}>
     <Eyebrow>Highest-Risk Program</Eyebrow>
-    <H3>Credit Decision Assurance</H3>
-    <div style={{fontSize:11,color:T.ink3,marginTop:4,fontFamily:F.b}}>Retail Banking · Sponsor Rafael Torres · Phase 7/13</div>
+    <H3>{HR_PROG.name}</H3>
+    <div style={{fontSize:11,color:T.ink3,marginTop:4,fontFamily:F.b}}>{HR_PROG.unit} · {HR_PROG.approval} · {HR_PROG.stage}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:14}}>
-      {[["Residual risk","12/25",T.red],["Governance","74%",AI_GOLD],["Owner","O. Khan",T.ink],["Mitigation","In progress",T.blue]].map(([l,v,c])=>
+      {[["Residual risk",`${HR_RISK.residual}/25`,T.red],["Program health",`${HR_PROG.health}%`,HR_PROG.health>=80?T.green:HR_PROG.health>=60?AI_GOLD:T.red],["Owner",HR_RISK.owner,T.ink],["Mitigation",HR_RISK.mit,mitStatusColor(HR_RISK.mit)]].map(([l,v,c])=>
         <div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:l==="Owner"||l==="Mitigation"?13:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
     </div>
     <div style={{marginTop:12,padding:"11px 13px",borderRadius:10,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}>
-      <b style={{color:AI_GOLD}}>Veris Intelligence:</b> Adverse-decision harm is the top exposure. Human-oversight design record is awaiting approval — clearing it unblocks the scale gate and $7.2M of value.
+      <b style={{color:AI_GOLD}}>Veris Intelligence:</b> {HR_RISK.title} is the top exposure on {HR_PROG.name}. Clearing the human-oversight design record unblocks the scale gate.
     </div>
   </Card>;
 }
 
 /* ── Overview sub-tabs ── */
+/* ── Canonical CEO risk view ───────────────────────────────────────────
+   Derived ONCE from the single riskRegister so the CEO Risk tab, the CEO
+   Risk Center and the enterprise Risk Center all cite the same records —
+   no hand-typed, drifting risk rows. Colour maps to level; lineage resolves
+   to the owning portfolio program by name or initiative id. */
+const CEO_RISK_RANK={Critical:4,High:3,Medium:2,Low:1};
+const riskLevelColor=l=>l==="Critical"?T.red:l==="High"?AI_GOLD:l==="Medium"?T.blue:T.ink3;
+const mitStatusColor=s=>/complete|closed|resolved/i.test(s)?T.green:/overdue|blocked/i.test(s)?T.red:/progress/i.test(s)?T.blue:T.ink3;
+const CEO_RISKS=[...riskRegister]
+  .sort((a,b)=>(CEO_RISK_RANK[b.level]-CEO_RISK_RANK[a.level])||(b.residual-a.residual))
+  .map(r=>({id:r.id,title:r.title,system:r.system,level:r.level,residual:r.residual,
+    owner:r.riskOwner||r.execOwner||"—",mit:r.treatment?.status||r.status||"—",initiativeId:r.initiativeId}));
+const CEO_RISK_COUNTS={
+  open:riskRegister.length,
+  critical:riskRegister.filter(r=>r.level==="Critical").length,
+  high:riskRegister.filter(r=>r.level==="High").length,
+  medium:riskRegister.filter(r=>r.level==="Medium").length,
+  low:riskRegister.filter(r=>r.level==="Low").length,
+  onTrack:riskRegister.filter(r=>/progress|complete/i.test(r.treatment?.status||"")).length,
+};
+const riskLineage=r=>{const p=CEO_PORTFOLIO.find(x=>x.name===r.system)||CEO_PORTFOLIO.find(x=>x.id===r.initiativeId);return p?programLineage(p):{label:r.title,value:`${r.level} · ${r.residual}`};};
+/* Highest-risk program + its worst residual risk — both derived from the
+   canonical portfolio and register (no hand-typed program facts). */
+const HR_PROG=[...CEO_PORTFOLIO].sort((a,b)=>(SEV_RANK[b.risk]-SEV_RANK[a.risk])||(a.health-b.health))[0];
+const HR_RISK=CEO_RISKS.filter(r=>r.initiativeId===HR_PROG.id).sort((a,b)=>b.residual-a.residual)[0]||CEO_RISKS[0];
+function CeoRiskRows({rows}){
+  return rows.map(r=><LinRow key={r.id} node={riskLineage(r)}>
+    <Td style={{fontWeight:700,color:T.ink}}>{r.title}</Td><Td>{r.system}</Td>
+    <Td><Pill c={riskLevelColor(r.level)}>{r.level} · {r.residual}</Pill></Td>
+    <Td>{r.owner}</Td><Td><Pill c={mitStatusColor(r.mit)}>{r.mit}</Pill></Td>
+  </LinRow>);
+}
 function RiskTab({openFull}){
-  const rows=[
-    ["Adverse-decision harm","Credit Decision Assurance","Critical · 12",T.red,"O. Khan","In progress",T.blue],
-    ["Prompt-injection exposure","Customer Resolution Copilot","High · 9",AI_GOLD,"CISO office","Overdue",AI_GOLD],
-    ["Model drift on fraud signals","Fraud Detection Model","High · 8",AI_GOLD,"D. Osei","On track",T.green],
-    ["Vendor concentration","Portfolio-wide","Medium · 6",T.blue,"Procurement","On track",T.green],
-    ["Data-residency (APAC)","Predictive Maintenance","Medium · 5",T.blue,"Legal","On track",T.green],
-    ["Workforce displacement concern","Workforce Skills Navigator","Low · 3",T.ink3,"People team","On track",T.green],
-  ];
-  const linOf=(riskLabel,sev,program)=>{const p=CEO_PORTFOLIO.find(x=>x.name===program);return p?programLineage(p):{label:riskLabel,value:sev};};
+  const onTrackPct=Math.round(CEO_RISK_COUNTS.onTrack/CEO_RISK_COUNTS.open*100);
   return <div style={{animation:"up .2s ease"}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
-      <Kpi l="Open risks" v={<>12<span style={{fontSize:12,color:T.ink4}}>/25</span></>} vc={T.red} s="portfolio residual score" lin={["Open risks","12/25"]}/>
-      <Kpi l="Critical / High" v={<><span style={{color:T.red}}>1</span> · <span style={{color:AI_GOLD}}>2</span></>} s="need executive attention" lin={["Critical / High risks","1 critical · 2 high"]}/>
-      <Kpi l="Mitigations on track" v="68%" vc={T.green} s="11 of 16 treatments" lin={["Mitigations on track","68%"]}/>
+      <Kpi l="Open risks" v={CEO_RISK_COUNTS.open} vc={T.red} s="in the risk register" lin={["Open risks",String(CEO_RISK_COUNTS.open)]}/>
+      <Kpi l="Critical / High" v={<><span style={{color:T.red}}>{CEO_RISK_COUNTS.critical}</span> · <span style={{color:AI_GOLD}}>{CEO_RISK_COUNTS.high}</span></>} s="need executive attention" lin={["Critical / High risks",`${CEO_RISK_COUNTS.critical} critical · ${CEO_RISK_COUNTS.high} high`]}/>
+      <Kpi l="Mitigations on track" v={`${onTrackPct}%`} vc={T.green} s={`${CEO_RISK_COUNTS.onTrack} of ${CEO_RISK_COUNTS.open} treatments`} lin={["Mitigations on track",`${onTrackPct}%`]}/>
     </div>
     <Card style={cardPad}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Risk Register — highest exposure first</Eyebrow><H3>Severity · owner · mitigation status · click a row to trace it</H3></div>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open full Risk Center →</button></div>
       <Table head={["Risk","Program","Severity","Owner","Mitigation"]}>
-        {rows.map(r=><LinRow key={r[0]} node={linOf(r[0],r[2],r[1])}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={r[3]}>{r[2]}</Pill></Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></LinRow>)}
+        <CeoRiskRows rows={CEO_RISKS.slice(0,6)}/>
       </Table>
     </Card>
   </div>;
@@ -475,15 +488,15 @@ function FilterMap({regionData,metric,big}){
   const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
   const ocean=isLight?"#EAF1F8":"#0c1030", land=isLight?"#C6D3E4":"#252c5c", landEdge=isLight?"#AFC0D6":"#39407a", grat=isLight?"#D4DEEC":"#ffffff12";
   return <div style={{position:"relative",height:big?360:280,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`}}>
-    <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
+    <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
       <defs>
         <radialGradient id="geoOcean" cx="50%" cy="0%" r="120%"><stop offset="0" stopColor={isLight?"#F2F7FC":"#1a2050"}/><stop offset="1" stopColor={ocean}/></radialGradient>
         <filter id="geoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#5b6b8033":"#00000066"}/></filter>
       </defs>
-      <rect x="0" y="0" width="1000" height="480" fill="url(#geoOcean)"/>
-      {[80,160,240,320,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
-      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="480" stroke={grat} strokeWidth="1"/>)}
-      {CONTINENTS.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.5" strokeLinejoin="round"/>)}
+      <rect x="0" y="0" width="1000" height="500" fill="url(#geoOcean)"/>
+      {[100,200,300,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
+      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="500" stroke={grat} strokeWidth="1"/>)}
+      {WORLD_GEO.map((c,i)=><path key={i} d={c.d} fill={land} stroke={landEdge} strokeWidth="0.5" strokeLinejoin="round"/>)}
       {regionData.map(m=>{const v=metric==="count"?m.count:m.adoption;const r=metric==="count"?(big?16+v*3:13+v*2.2):(big?14+v*0.2:12+v*0.16);const empty=metric==="count"&&v===0;return <g key={m.region} opacity={empty?0.35:1}>
         <circle cx={m.x} cy={m.y} r={r+9} fill={m.color} opacity="0.16"><animate attributeName="r" values={`${r+5};${r+13};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
         <circle cx={m.x} cy={m.y} r={r} fill={m.color} filter="url(#geoMk)"/>
@@ -739,7 +752,11 @@ function Budget(){
 
 /* ══════════════════ RISK CENTER (CEO lens) ══════════════════ */
 function RiskCenter({openFull}){
-  const grades=[["High",T.red,riskRegister.filter(r=>["Critical","High"].includes(r.level)).length||3,"1 critical · 2 high"],["Medium",AI_GOLD,5,"mitigations on track"],["Low",T.green,8,"monitored"]];
+  const grades=[
+    ["High",T.red,CEO_RISK_COUNTS.critical+CEO_RISK_COUNTS.high,`${CEO_RISK_COUNTS.critical} critical · ${CEO_RISK_COUNTS.high} high`],
+    ["Medium",AI_GOLD,CEO_RISK_COUNTS.medium,"treatments tracked"],
+    ["Low",T.green,CEO_RISK_COUNTS.low,"monitored"],
+  ];
   return <div style={{animation:"up .3s ease"}}>
     <PageHead title="Risk Center" sub="Every risk graded High / Medium / Low with a named owner and live mitigation status."/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:16,marginBottom:16}}>
@@ -749,8 +766,7 @@ function RiskCenter({openFull}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><Eyebrow style={{margin:0}}>Risk register</Eyebrow><H3>Severity · owner · mitigation — click a row to trace it</H3></div>
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open full Risk Center →</button></div>
       <Table head={["Risk","Program","Grade","Owner","Mitigation"]}>
-        {[["Adverse-decision harm","Credit Decision Assurance","High · 12",T.red,"O. Khan","Human-oversight record in review",T.blue],["Prompt-injection exposure","Customer Resolution Copilot","High · 9",T.red,"CISO office","Evidence overdue 4d",AI_GOLD],["Model drift on fraud signals","Fraud Detection Model","High · 8",T.red,"D. Osei","Auto-retrain live",T.green],["Vendor concentration","Portfolio-wide","Medium · 6",AI_GOLD,"Procurement","Second-source in flight",T.green],["Data-residency (APAC)","Predictive Maintenance","Medium · 5",AI_GOLD,"Legal","Regionalised",T.green],["Workforce displacement concern","Workforce Skills Navigator","Low · 3",T.ink3,"People team","Reskilling plan",T.green]].map(r=>{const p=CEO_PORTFOLIO.find(x=>x.name===r[1]);return
-          <LinRow key={r[0]} node={p?programLineage(p):{label:r[0],value:r[2]}}><Td style={{fontWeight:700,color:T.ink}}>{r[0]}</Td><Td>{r[1]}</Td><Td><Pill c={r[3]}>{r[2]}</Pill></Td><Td>{r[4]}</Td><Td><Pill c={r[6]}>{r[5]}</Pill></Td></LinRow>;})}
+        <CeoRiskRows rows={CEO_RISKS.slice(0,6)}/>
       </Table>
     </Card>
   </div>;

@@ -12,12 +12,15 @@ import { hydrateBus } from "@/lib/bus";
 import { hydrateTaxonomy } from "@/lib/taxonomy";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 import { CommandPalette } from "./platform/palette";
+import { GovernanceForum, IncidentPlaybook, ConvergenceCrosswalk, ProhibitedPractices, GpaiExposure, GapClosure } from "./platform/convergence";
 /* Employee/Manager command-center surfaces that delegate to a real,
    fully-built platform page rather than a config block — so the governed
    AI Assistant (with safe-use guardrails), ideas, usage and academy keep
    their working depth inside the new command center. */
 const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",emp_usage:"aiusage",mgr_usage:"aiusage",emp_learning:"academy",
-  coo_reports:"reports",cfo_reports:"reports",chro_reports:"reports",ciso_reports:"reports",cio_reports:"reports",cdpo_reports:"reports",cgo_reports:"reports",cro_reports:"reports"};
+  coo_reports:"reports",cfo_reports:"reports",chro_reports:"reports",ciso_reports:"reports",cio_reports:"reports",cdpo_reports:"reports",cgo_reports:"reports",cro_reports:"reports",
+  cgo_forum:"govforum",cgo_incidents:"incidents",cgo_crosswalk:"crosswalk",cgo_redlines:"redlines",cgo_gpai:"gpai",
+  caio_crosswalk:"crosswalk",legal_crosswalk:"crosswalk",cgo_gapclosure:"gapclosure"};
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
 const PageHome=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHome),{ssr:false,loading:vzLoading});
@@ -825,6 +828,12 @@ export default function VerisZone() {
         {ROLE_PAGE_OVERRIDE[tab]==="aiusage"&&<PageAIUsage role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="academy"&&<PageGovernanceAcademy role={role} sessionMode={sessionMode} showToast={showToast} setTab={setTab}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="reports"&&<PageReports role={role} sessionMode={sessionMode} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="govforum"&&<GovernanceForum role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="incidents"&&<IncidentPlaybook role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="crosswalk"&&<ConvergenceCrosswalk role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="redlines"&&<ProhibitedPractices role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="gpai"&&<GpaiExposure role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="gapclosure"&&<GapClosure role={role} showToast={showToast}/>}
         {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {tab==="admin"      &&<PageAdmin      role={role} showToast={showToast} setTab={setTab}/>}

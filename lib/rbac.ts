@@ -48,9 +48,15 @@ export function can(role: string | undefined | null, module: string, minCap: Cap
   return capRank(capabilityFor(role, module, overrides)) >= capRank(minCap);
 }
 
-/** Minimum capability a write to each persistence store requires. */
+/** Minimum capability a write to each persistence store requires. Authoritative
+   governance stores are gated; open submission stores (ideas, taxonomyRequests)
+   are intentionally left ungated so any user can propose an item for review. */
 export const STORE_REQUIREMENT: Record<string, { module: string; minCap: Cap }> = {
   decisions: { module: "dec", minCap: "approve" },
   adminAudit: { module: "admin", minCap: "contribute" },
   rbacPolicy: { module: "admin", minCap: "admin" },
+  evidence: { module: "comp", minCap: "contribute" },
+  policies: { module: "comp", minCap: "contribute" },
+  violations: { module: "comp", minCap: "contribute" },
+  taxonomyAdds: { module: "ac", minCap: "contribute" },
 };
