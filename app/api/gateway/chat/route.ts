@@ -8,6 +8,21 @@ import { retrieve } from "@/lib/knowledge";
 import { evaluateRules, classify, validateResponse } from "@/lib/policy-rules";
 import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
 import { capabilityCheck } from "@/lib/agent-registry";
+import { db } from "@/lib/db";
+import { auditAppend } from "@/lib/audit";
+
+/* EU AI Act Art.12 — append a structured, tamper-evident record of every
+   inference to the audit hash chain. Best-effort: never breaks the response,
+   no-ops when no database is configured. */
+async function logInference(tenantSlug: string, ev: { model: string; agent?: string; tool?: string; decision: string; dataClass?: string; tokens?: number }) {
+  try {
+    const prisma = db();
+    if (!prisma) return;
+    const t = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug || "demo") } });
+    if (!t) return;
+    await auditAppend(prisma, t.id, `inference:${ev.decision}`, ev.model, JSON.stringify({ agent: ev.agent, tool: ev.tool, dataClass: ev.dataClass, tokens: ev.tokens }), ev.agent || "gateway");
+  } catch { /* logging must never break the response */ }
+}
 
 function internalContext(q: string): string[] {
   const ql = q.toLowerCase();
@@ -24,19 +39,26 @@ export async function POST(req: NextRequest) {
   try {
     const { prompt, tenant, agent, tool } = await req.json();
     const text = String(prompt || "").slice(0, 8000);
+    const model = process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5";
     /* Agent least-privilege enforcement at call time: if this request is an
        agent invoking a tool, the capability is checked before anything
        else — an out-of-scope tool call is denied by default. */
     if (agent && tool) {
       const cap = capabilityCheck(String(agent), String(tool));
-      if (!cap.allowed) return NextResponse.json({ enabled: true, blocked: true, detector: "Agent least-privilege",
-        capability: { agent, tool, decision: cap.decision, reason: cap.reason, control: cap.control } });
+      if (!cap.allowed) {
+        await logInference(tenant, { model, agent, tool, decision: "block", dataClass: "Restricted" });
+        return NextResponse.json({ enabled: true, blocked: true, detector: "Agent least-privilege",
+          capability: { agent, tool, decision: cap.decision, reason: cap.reason, control: cap.control } });
+      }
     }
     const classification = classify(text);
     const guard = evaluateRules(text);
-    if (guard.blocked) return NextResponse.json({ enabled: true, blocked: true, detector: guard.primary?.name ?? "Policy",
-      clauseRef: guard.primary?.clauseRef, policyKey: guard.primary?.policyKey,
-      violations: guard.matches.map((m) => ({ ruleId: m.ruleId, name: m.name, policyKey: m.policyKey, action: m.action, severity: m.severity })) });
+    if (guard.blocked) {
+      await logInference(tenant, { model, agent, tool, decision: "block", dataClass: classification.dataClass });
+      return NextResponse.json({ enabled: true, blocked: true, detector: guard.primary?.name ?? "Policy",
+        clauseRef: guard.primary?.clauseRef, policyKey: guard.primary?.policyKey,
+        violations: guard.matches.map((m) => ({ ruleId: m.ruleId, name: m.name, policyKey: m.policyKey, action: m.action, severity: m.severity })) });
+    }
     /* Retrieve from the tenant's ingested documents (RAG) and merge with the
        structured enterprise context. */
     const passages = await retrieve(String(tenant || "demo"), guard.masked, 4);
@@ -47,7 +69,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5", max_tokens: 700, system, messages: [{ role: "user", content: guard.masked }] }),
+      body: JSON.stringify({ model, max_tokens: 700, system, messages: [{ role: "user", content: guard.masked }] }),
     });
     if (!res.ok) return NextResponse.json({ enabled: false });
     const data = await res.json();
@@ -64,6 +86,7 @@ export async function POST(req: NextRequest) {
     const providerId = "gw-claude";
     const tokensIn = estimateTokens(guard.masked), tokensOut = estimateTokens(answer);
     const cost = costOf(tokensIn + tokensOut, providerId);
+    await logInference(tenant, { model, agent, tool, decision: guard.didMask ? "mask" : "allow", dataClass: classification.dataClass, tokens: tokensIn + tokensOut });
     return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask,
       classification, responseValidation: { ok: rv.ok, findings: rv.findings },
       cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
