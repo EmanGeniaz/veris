@@ -1,9 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { T, F, AI_GOLD, Card } from "./core";
 import { driftRows, driftStats, DRIFT_META } from "@/lib/drift";
 import { workflowRows, workflowStats, WF_DECISION_META } from "@/lib/agent-workflows";
-import { INFERENCE_EVENTS, INF_DECISION_META, inferenceStats, INFERENCE_FIELDS } from "@/lib/inference-log";
+import { INFERENCE_EVENTS, INF_DECISION_META, inferenceStats, INFERENCE_FIELDS, eventTokens } from "@/lib/inference-log";
 
 /* ── shared local primitives ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -90,14 +91,26 @@ export function WorkflowPermissions({ showToast }) {
 
 /* ══════════════ ARTICLE 12 — INFERENCE LOG ══════════════ */
 export function Article12Log({ showToast }) {
-  const s = inferenceStats();
+  const [live, setLive] = useState(null);
+  useEffect(() => {
+    let on = true;
+    fetch("/api/inference-log?tenant=demo").then(r => r.json()).then(d => { if (on && d.enabled && Array.isArray(d.events) && d.events.length) setLive({ events: d.events, intact: d.chainIntact }); }).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const isLive = !!live;
+  const events = isLive ? live.events : INFERENCE_EVENTS;
+  const s = inferenceStats(events, isLive ? live.intact : undefined);
+  const shortTime = ts => (String(ts).split(" ")[1] || String(ts)).replace("Z", "");
   return <div style={{ animation: "up .3s ease" }}>
     <Head title="Article 12 Log" sub="EU AI Act Art.12 automatic record-keeping. Every gateway inference emits a structured, machine-readable event appended to the tamper-evident audit hash chain (SHA-256): what ran, when, the policy decision, data class, tokens and a hash that cannot change without breaking every later row. This is the record a regulator reads — not a dashboard screenshot." />
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+      <Pill c={isLive ? T.green : T.ink3}>{isLive ? "● Live · read from your audit chain" : "Sample · connect a database for live rows"}</Pill>
+    </div>
     <div style={kpiGrid}>
-      <Kpi l="Events logged" v={String(s.total)} c={AI_GOLD} sub="sample window" />
+      <Kpi l="Events logged" v={String(s.total)} c={AI_GOLD} sub={isLive ? "from your database" : "sample window"} />
       <Kpi l="Blocked" v={String(s.blocked)} c={T.red} sub="policy / least-privilege" />
       <Kpi l="Masked" v={String(s.masked)} c={T.blue} sub="PII redacted at ingress" />
-      <Kpi l="Hash chain" v={s.intact ? "Intact" : "Broken"} c={s.intact ? T.green : T.red} sub="tamper-evident" />
+      <Kpi l="Hash chain" v={s.intact ? "Intact" : "Broken"} c={s.intact ? T.green : T.red} sub={isLive ? "verified over full chain" : "tamper-evident"} />
     </div>
     <Card style={cardPad}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
@@ -105,17 +118,17 @@ export function Article12Log({ showToast }) {
         <button onClick={() => showToast && showToast("Art.12 inference log exported (JSON + hash chain) for the audit file")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 13px", color: T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export log</button>
       </div>
       <Table head={["Time (UTC)", "Model", "Agent · tool", "Decision", "Data class", "Tokens", "prev → hash"]}>
-        {INFERENCE_EVENTS.map(e => { const m = INF_DECISION_META[e.decision]; return <tr key={e.id}>
-          <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{e.ts.replace("2026-08-05 ", "").replace("Z", "")}</Td>
+        {events.map(e => { const m = INF_DECISION_META[e.decision] || { label: e.decision, tone: "ink3" }; return <tr key={e.id}>
+          <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{shortTime(e.ts)}</Td>
           <Td style={{ fontFamily: F.m, color: T.ink3 }}>{e.model}</Td>
           <Td style={{ fontWeight: 700, color: T.ink }}>{e.agent}<div style={{ fontSize: 9.5, color: T.ink4, fontFamily: F.m }}>{e.tool}</div></Td>
-          <Td><Pill c={tok(m.tone)}>{m.label}</Pill><div style={{ fontSize: 9, color: T.ink4, fontFamily: F.b, marginTop: 2, maxWidth: 200 }}>{e.detail}</div></Td>
+          <Td><Pill c={tok(m.tone)}>{m.label}</Pill>{e.detail ? <div style={{ fontSize: 9, color: T.ink4, fontFamily: F.b, marginTop: 2, maxWidth: 200 }}>{e.detail}</div> : null}</Td>
           <Td>{e.dataClass}</Td>
-          <Td style={{ fontFamily: F.m, color: T.ink3 }}>{e.tokensIn + e.tokensOut}</Td>
-          <Td style={{ fontFamily: F.m, color: T.ink4, whiteSpace: "nowrap" }}>{e.prevHash} → <span style={{ color: T.ink2 }}>{e.hash}</span></Td>
+          <Td style={{ fontFamily: F.m, color: T.ink3 }}>{eventTokens(e)}</Td>
+          <Td style={{ fontFamily: F.m, color: T.ink4, whiteSpace: "nowrap" }}>{String(e.prevHash).slice(0, 6)} → <span style={{ color: T.ink2 }}>{String(e.hash).slice(0, 6)}</span></Td>
         </tr>; })}
       </Table>
-      {advisor(<>Fields per event: {INFERENCE_FIELDS.join(", ")}. The chain is {s.intact ? <b style={{ color: T.green }}>intact</b> : <b style={{ color: T.red }}>broken</b>} — each row’s prev-hash matches the previous row’s hash, so altering any historical event breaks every hash after it. Live events append through the gateway to the SHA-256 audit chain when a database is configured.</>)}
+      {advisor(<>Fields per event: {INFERENCE_FIELDS.join(", ")}. The chain is {s.intact ? <b style={{ color: T.green }}>intact</b> : <b style={{ color: T.red }}>broken</b>} — {isLive ? <>re-verified over your full audit chain by recomputing every SHA-256 hash. These are the real events the gateway wrote for your inferences.</> : <>each row’s prev-hash matches the previous row’s hash, so altering any historical event breaks every hash after it. Connect a database and live events append here through the gateway.</>}</>)}
     </Card>
   </div>;
 }
