@@ -352,6 +352,7 @@ export const CAIO_NAV = [
   {id:"caioaia",      icon:"A", label:"Impact Assessment (AIA)"},
   {id:"caiorisk",     icon:"R", label:"Risk Center"},
   {id:"caiolibrary",  icon:"L", label:"Governance Library"},
+  {id:"caio_crosswalk", icon:"D", label:"Convergence Crosswalk"},
 ];
 
 /* CEO Command Center surfaces - each is a tab that renders a view of the
@@ -380,7 +381,7 @@ export const CEO_NAV_SECTIONS = [
 
 /* CAIO gets the AI Governance Office command center. "Overview" is home. */
 export const CAIO_NAV_SECTIONS = [
-  {title:"AI Governance Office", items:["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"]},
+  {title:"AI Governance Office", items:["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary","caio_crosswalk"]},
   {title:"Enterprise", items:["aicentral","academy"]},
 ];
 
