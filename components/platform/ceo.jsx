@@ -138,7 +138,7 @@ function GradeCard({g}){
   return <Card onClick={()=>openLin(`${g[0]} risks`,String(g[2]))} style={{...cardPad,cursor:"pointer"}}><Eyebrow style={{color:g[1]}}>{g[0]}</Eyebrow><div style={{fontSize:30,fontWeight:800,color:g[1],fontFamily:F.m}}>{g[2]}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{g[3]}</div></Card>;
 }
 const Table=({head,children})=><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
-  <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+  {head&&head.length>0&&<thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>}
   <tbody>{children}</tbody>
 </table></div>;
 const Td=({children,style})=><td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink2,verticalAlign:"middle",...style}}>{children}</td>;
@@ -661,13 +661,13 @@ function Playbook({showToast,role="ceo"}){
     <Card style={{...cardPad,marginBottom:16}}>
       <Eyebrow>Decisions the portfolio is asking of you</Eyebrow>
       <H3 style={{marginBottom:12}}>{decisions.length} program{decisions.length===1?"":"s"} at a governance gate — click any to trace it</H3>
-      <div style={{display:"grid",gap:7}}>
+      <Table head={[]}>
         {decisions.map(p=>{const v=programVerdict(p);return <LinRow key={p.name} node={programLineage(p)}>
           <Td style={{fontWeight:700,color:T.ink}}>{p.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:600,fontFamily:F.b,marginTop:1}}>{p.unit} · {p.stage}</div></Td>
           <Td><Pill c={v.c}>{v.label}</Pill></Td>
           <Td style={{fontSize:10.5,color:T.ink3,maxWidth:360}}>{v.why}</Td>
         </LinRow>;})}
-      </div>
+      </Table>
     </Card>
 
     {/* The complete portfolio, by lifecycle band */}
@@ -682,7 +682,7 @@ function Playbook({showToast,role="ceo"}){
           <span style={{fontSize:10,color:T.ink4,fontWeight:700,fontFamily:F.m}}>{rows.length}</span>
           <span style={{flex:1,height:1,background:T.border}}/>
         </div>
-        <div style={{display:"grid",gap:5}}>
+        <Table head={[]}>
           {rows.map(p=>{const v=programVerdict(p);return <LinRow key={p.name} node={programLineage(p)}>
             <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink}}>{p.name}</Td>
             <Td style={{width:90}}>{p.stage==="Completed"?"✓ Done":p.stage==="Retired"?"↓ Retired":<span>Health {p.health}</span>}</Td>
@@ -690,7 +690,7 @@ function Playbook({showToast,role="ceo"}){
             <Td style={{width:90}}><Pill c={p.risk==="Critical"?T.red:p.risk==="High"?AI_GOLD:p.risk==="Medium"?T.blue:T.green}>{p.risk}</Pill></Td>
             <Td style={{width:110}}><Pill c={v.c}>{v.label}</Pill></Td>
           </LinRow>;})}
-        </div>
+        </Table>
       </div>;})}
     </Card>
 
