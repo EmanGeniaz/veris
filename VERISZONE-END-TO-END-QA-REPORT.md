@@ -2,6 +2,28 @@
 
 _Adversarial audit. Verdicts are PASS / FAIL / REVIEW / NOT VERIFIABLE. Nothing marked PASS without a real test; nothing inflated._
 
+> ## ⟳ Re-score (post-convergence) — 2026-08-05
+> Third pass, after the convergence layer merged (PR #62): the R1/R2/R3 residual data-integrity nits are gone, and six converged-governance surfaces now ship — **Governance Forum, Incident Playbook, Convergence Crosswalk, Prohibited Practices, GPAI Exposure, Gap Closure** (crosswalk also on CAIO + Legal). **Score: 83 → 85 / 100.**
+>
+> **What was re-verified this pass (all real, not asserted):** `next build` → **compiled successfully, exit 0**; `eslint` → **0 errors, 4 warnings**; the crosswalk's derived stats read from the module — **operational 12 · in-progress 20 · gaps 0 · coverage 69% · 128 obligations**; and a **live headless-Chromium walk** confirming all 6 convergence surfaces render under CGO, the crosswalk shows 0 gaps / 69% / "128 framework obligations", Gap Closure shows "no unowned gaps remain", CAIO carries the crosswalk with governance score 75, and Legal carries the crosswalk — **0 runtime errors** across the walk.
+>
+> | Dimension | Post-remediation | Post-convergence | What changed |
+> | --- | --- | --- | --- |
+> | Functional | 84 | **86** | 6 new working governance surfaces render clean, add real capability |
+> | UI/UX | 77 | **80** | Convergence surfaces consistent with the design system; coherent structure |
+> | Navigation | 88 | **89** | New nav wired + verified across CGO / CAIO / Legal |
+> | **Data Integrity** | 87 | **92** | R1/R2/R3 eliminated; every convergence surface single-sources from canonical registers; crosswalk + gap-closure read one status source |
+> | Role / Permission | 78 | **78** | Unchanged — convergence surfaces are client-rendered demo, no RBAC delta |
+> | Accessibility | 75 | **75** | Not re-tested deeply; no regressions |
+> | Performance | 75 | **75** | Build clean (103 kB shared first-load); live timings still not measured |
+> | **Auditability** | 85 | **91** | Control-level traceability across all 4 instruments (32-capability crosswalk); gap-closure register; prohibited-use + GPAI attestation artifacts |
+> | AI Reliability | 80 | **80** | Unchanged; advisor copy is static + honest |
+>
+> ### RE-SCORE: **85 / 100** _(was 83)_
+> The **+2** is deliberately modest and honest: convergence **deepened the two core-value-prop dimensions** (Data Integrity, Auditability — the ones the original audit said were broken) but did **not** touch the breadth that still caps the score. The **same items remain NOT VERIFIABLE** and hold it below ~90: 8 of 13 roles' deep live journeys, responsive breakpoints, live state-sync, performance timings, lifecycle completion-gating, evidence upload/version, and live keyed Veris Intelligence. Nothing here is marked passing that wasn't observed.
+>
+> ---
+>
 > ## ⟳ Re-score (post-remediation) — 2026-08-05
 > The defects below were remediated and this pass **re-verifies** them (live browser walk + source + build/lint). **Score: 64 → 83 / 100.** Every P1 and P2 defect is resolved; a handful of P3 / REVIEW nits remain (disclosed under "Residual items"). Verification method and the defect-status ledger are in **[§ Remediation verification](#remediation-verification-this-pass)** immediately below the summary. The original audit body is preserved unchanged beneath it as the audit trail.
 >
@@ -205,7 +227,7 @@ The object graph (initiative → risk → AIRA/AIRT → control → policy → e
 
 ## The 10 requested summaries
 
-**1. Overall score:** **83 / 100** post-remediation (original audit baseline **64 / 100**; see [§ Remediation verification](#remediation-verification-this-pass)).
+**1. Overall score:** **85 / 100** post-convergence (post-remediation **83**, original audit baseline **64**; see the two re-score blocks at the top).
 
 **2. Top 10 defects:** P1-1 governance-score split; P1-2 contradictory CEO risk tables; P1-3 open-risks 4 values; P1-4 forked framework scores; P1-5 PORTFOLIO≠acInitiatives; P2-1 dead-end "New Project"; P2-2 wrong hardcoded certs in prompt; P2-3 gateway-bypassing anthropic calls; P2-4 partial RBAC; P2-5 Fraud model tri-state.
 
