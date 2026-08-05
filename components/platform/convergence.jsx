@@ -11,6 +11,7 @@ import {
 } from "@/lib/crosswalk";
 import { PROHIBITED_PRACTICES, PP_RESULT_META, prohibitedStats } from "@/lib/prohibited";
 import { GPAI_QUESTIONS, GPAI_REGISTER, EXPOSURE_META, gpaiExposure, gpaiStats } from "@/lib/gpai";
+import { gapClosureRows, gapClosureStats } from "@/lib/gap-closure";
 
 /* ── shared local primitives (match the platform's visual language) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -238,7 +239,7 @@ export function ConvergenceCrosswalk({ showToast }) {
       </div>)}
 
       <div style={{ marginTop: 6, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> The {s.gap} open gaps — explainability, GenAI marking, personal-data transfer mapping, drift monitoring and redress — are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.
+        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.gap === 0 ? <>Every capability is now owned — <b style={{ color: T.ink2 }}>no unowned gaps remain</b>. The last five were closed in the Gap Closure workspace: GenAI marking and redress are operational; transfer mapping, explainability and drift are in-flight, pending their live findings. Convergence coverage is {s.coverage}%.</> : <>The {s.gap} open gaps are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.</>}
       </div>
     </Card>
   </div>;
@@ -357,6 +358,67 @@ export function GpaiExposure({ showToast }) {
       <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={() => showToast && showToast("Art. 53 GPAI provider assessment started for Customer Resolution Copilot")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Run Art. 53 assessment</button>
         <button onClick={() => showToast && showToast("GPAI exposure register exported to Trust & Evidence")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export register</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ 6 · GAP CLOSURE ══════════════ */
+export function GapClosure({ showToast }) {
+  const rows = gapClosureRows();
+  const s = gapClosureStats();
+  const kpis = [
+    ["Unowned gaps left", String(s.remaining), s.remaining === 0 ? T.green : T.red, "across all 32 capabilities"],
+    ["Closed outright", String(s.closed), T.green, "artifact operational"],
+    ["In-flight closures", String(s.inflight), T.amber, "pending a live finding"],
+    ["Convergence coverage", `${s.coverage}%`, AI_GOLD, "up from 55%"],
+  ];
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Gap Closure" sub="The five capabilities the convergence crosswalk last flagged as gaps, turned into owned, evidenced closures. Two had no external dependency and are operational; three are tied to a live finding and are in-flight. Status is read from the crosswalk, so this workspace and the crosswalk never disagree." />
+
+    <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.green}12,${T.bg})`, border: `1px solid ${T.green}45` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 640 }}>
+          <Eyebrow style={{ color: T.green }}>Convergence complete</Eyebrow>
+          <H3 style={{ fontSize: 18 }}>{s.remaining === 0 ? "No unowned gaps remain across the 32 capabilities" : `${s.remaining} unowned gaps remain`}</H3>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>Every capability is now an owned control with a named evidence artifact. The three in-flight closures reach operational when their live finding clears — INC-1048, RSK-005 and the drift-monitoring wiring.</p>
+        </div>
+        <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${T.green}45`, borderRadius: 12, padding: "12px 18px", minWidth: 120 }}>
+          <div style={{ fontSize: 34, fontWeight: 900, color: T.green, fontFamily: F.m, lineHeight: 1 }}>{s.coverage}%</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>COVERAGE</div>
+        </div>
+      </div>
+    </Card>
+
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 }}>
+      {kpis.map(([l, v, c, sub]) => <Card key={l} style={{ padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </Card>)}
+    </div>
+
+    <Card style={cardPad}>
+      <Eyebrow>The five closures · owner · evidence artifact · what it clears</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>From gap to owned control</H3>
+      <Table head={["Ref", "Capability", "Evidence artifact", "Owner", "Clears", "Article", "Target", "Status"]}>
+        {rows.map(r => { const meta = STATUS_META[r.status]; return <tr key={r.ref}>
+          <Td style={{ fontFamily: F.m, fontWeight: 700, color: T.ink }}>{r.ref}</Td>
+          <Td style={{ fontWeight: 700, color: T.ink, minWidth: 160 }}>{r.capability}<div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 500, marginTop: 3, maxWidth: 300, lineHeight: 1.45 }}>{r.action}</div></Td>
+          <Td style={{ fontWeight: 700, color: T.ink2 }}>{r.artifact}</Td>
+          <Td>{r.owner}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 200 }}>{r.clears}</Td>
+          <Td style={{ fontFamily: F.m, fontSize: 10.5, color: T.ink3, whiteSpace: "nowrap" }}>{r.euai}</Td>
+          <Td style={{ color: T.ink3, whiteSpace: "nowrap" }}>{r.target}</Td>
+          <Td><Pill c={tok(meta.tone)}>{meta.label}</Pill></Td>
+        </tr>; })}
+      </Table>
+      <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
+        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.closed} gaps closed outright and {s.inflight} are in-flight, owned and dated. The three in-flight closures are the same live items the Risk Center and Incident register track — closing INC-1048, RSK-005 and the drift wiring moves them to operational and lifts convergence coverage past {s.coverage}%.
+      </div>
+      <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
+        <button onClick={() => showToast && showToast("Gap-closure pack assembled — 5 evidence artifacts, owners and target dates")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Assemble closure pack</button>
+        <button onClick={() => showToast && showToast("Closure plan exported to Trust & Evidence")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export closure plan</button>
       </div>
     </Card>
   </div>;
