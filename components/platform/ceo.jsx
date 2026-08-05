@@ -138,7 +138,7 @@ function GradeCard({g}){
   return <Card onClick={()=>openLin(`${g[0]} risks`,String(g[2]))} style={{...cardPad,cursor:"pointer"}}><Eyebrow style={{color:g[1]}}>{g[0]}</Eyebrow><div style={{fontSize:30,fontWeight:800,color:g[1],fontFamily:F.m}}>{g[2]}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{g[3]}</div></Card>;
 }
 const Table=({head,children})=><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
-  <thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+  {head&&head.length>0&&<thead><tr>{head.map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>}
   <tbody>{children}</tbody>
 </table></div>;
 const Td=({children,style})=><td style={{padding:"11px 10px",borderBottom:`1px solid ${T.border}`,color:T.ink2,verticalAlign:"middle",...style}}>{children}</td>;
@@ -289,29 +289,92 @@ const REGION_MARKERS=[
 const SEV_RANK={Critical:4,High:3,Medium:2,Low:1};
 const sevColor=s=>s==="Critical"?T.red:s==="High"?T.amber:s==="Medium"?T.blue:T.green;
 const regionSeverity=region=>CEO_PORTFOLIO.filter(p=>p.region===region).reduce((m,p)=>SEV_RANK[p.risk]>SEV_RANK[m]?p.risk:m,"Low");
+/* Continent silhouettes for the spinning globe, authored in a 280×280
+   equirectangular tile (x:0→280 = lon −180→180, y:0→280 = lat 90→−90).
+   Two copies scroll seamlessly to give the illusion of rotation. */
+const GLOBE_LAND=[
+  /* N. America */ "M40,58 L82,48 L100,66 L94,90 L74,108 L58,96 L48,80 Z",
+  /* Greenland  */ "M104,30 L120,26 L126,40 L114,50 L102,42 Z",
+  /* S. America */ "M84,120 L106,126 L102,164 L88,206 L79,216 L74,176 L82,144 Z",
+  /* Europe     */ "M138,56 L166,50 L174,68 L158,82 L140,74 Z",
+  /* Africa     */ "M138,90 L174,86 L184,120 L168,166 L150,186 L139,150 L133,114 Z",
+  /* Asia       */ "M172,58 L236,44 L270,68 L252,96 L214,102 L186,90 L174,72 Z",
+  /* India/SE   */ "M196,98 L216,102 L222,120 L206,140 L197,118 Z",
+  /* Oceania    */ "M232,168 L258,162 L266,182 L248,196 L232,188 Z",
+];
+/* Region pins float over the spinning globe (Americas left, EMEA centre,
+   APAC right) near the equator so the numbers stay readable — they are
+   region indicators, not geo-locked pins that rotate out of view. */
+const GLOBE_PINS=[
+  {region:"Americas", x:150, y:210},
+  {region:"EMEA",     x:206, y:182},
+  {region:"APAC",     x:268, y:214},
+];
+/* Animated spinning globe. The ocean sphere is fixed; two land tiles scroll
+   leftward inside the sphere clip to read as rotation, with limb-darkening
+   shading, a pulsing atmosphere and a drifting starfield. Pins keep the
+   original semantics: size = live programs, colour = highest risk exposure,
+   number = live count. Theme-aware (warm/sky light, deep-space dark). */
 function ExposureMap({big}){
   const isLight=typeof document!=="undefined"&&document.documentElement.dataset.theme==="light";
-  const ocean=isLight?"#EAF1F8":"#0c1030";
-  const land=isLight?"#C6D3E4":"#252c5c";
-  const landEdge=isLight?"#AFC0D6":"#39407a";
-  const grat=isLight?"#D4DEEC":"#ffffff12";
+  const cx=200, cy=200, R=138;
+  const ocean1=isLight?"#dce9f7":"#16204e";
+  const ocean2=isLight?"#9dbde0":"#070b28";
+  const land=isLight?"#8fb0d6":"#39468a";
+  const landEdge=isLight?"#79a0cc":"#4c5cae";
+  const bg=isLight?"#f6f1e7":"#05070f";
+  const grid=isLight?"#ffffff66":"#ffffff14";
   const cnt=r=>(CEO_REGIONS.find(x=>x.region===r)||{}).live||0;
-  return <div style={{position:"relative",height:big?360:264,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`}}>
-    <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{display:"block"}}>
+  const stars=[[70,60],[120,44],[300,70],[340,150],[60,260],[330,300],[150,344],[280,352],[40,164],[360,224]];
+  return <div style={{position:"relative",height:big?380:280,borderRadius:11,overflow:"hidden",border:`1px solid ${T.border}`,background:bg}}>
+    <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" width="100%" height="100%" style={{display:"block"}}>
       <defs>
-        <radialGradient id="ceoOcean" cx="50%" cy="0%" r="120%">
-          <stop offset="0" stopColor={isLight?"#F2F7FC":"#1a2050"}/><stop offset="1" stopColor={ocean}/>
+        <clipPath id="ceoSphere"><circle cx={cx} cy={cy} r={R}/></clipPath>
+        <radialGradient id="ceoOceanG" cx="38%" cy="32%" r="78%">
+          <stop offset="0" stopColor={ocean1}/><stop offset="1" stopColor={ocean2}/>
         </radialGradient>
-        <filter id="ceoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#5b6b8033":"#00000066"}/></filter>
+        <radialGradient id="ceoShade" cx="36%" cy="30%" r="74%">
+          <stop offset="0" stopColor="#ffffff" stopOpacity={isLight?0.55:0.42}/>
+          <stop offset="0.5" stopColor="#ffffff" stopOpacity="0"/>
+          <stop offset="1" stopColor={isLight?"#3f5f8a":"#000010"} stopOpacity={isLight?0.32:0.62}/>
+        </radialGradient>
+        <radialGradient id="ceoAtmo" cx="50%" cy="50%" r="50%">
+          <stop offset="0.82" stopColor={isLight?"#7fa8d8":"#4f78c8"} stopOpacity="0"/>
+          <stop offset="0.94" stopColor={isLight?"#7fa8d8":"#5b86d6"} stopOpacity={isLight?0.35:0.5}/>
+          <stop offset="1" stopColor={isLight?"#7fa8d8":"#5b86d6"} stopOpacity="0"/>
+        </radialGradient>
+        <filter id="ceoMk" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor={isLight?"#3a4c6633":"#00000088"}/></filter>
       </defs>
-      <rect x="0" y="0" width="1000" height="480" fill="url(#ceoOcean)"/>
-      {/* graticule */}
-      {[80,160,240,320,400].map(y=><line key={"h"+y} x1="0" y1={y} x2="1000" y2={y} stroke={grat} strokeWidth="1"/>)}
-      {[125,250,375,500,625,750,875].map(x=><line key={"v"+x} x1={x} y1="0" x2={x} y2="480" stroke={grat} strokeWidth="1"/>)}
-      {CONTINENTS.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.5" strokeLinejoin="round"/>)}
-      {/* region markers: size = live programs, colour = highest risk exposure */}
-      {REGION_MARKERS.map(m=>{const n=cnt(m.region);const sev=regionSeverity(m.region);const c=sevColor(sev);const r=big?15+n*2.4:12+n*1.8;return <g key={m.region}>
-        <circle cx={m.x} cy={m.y} r={r+9} fill={c} opacity="0.16"><animate attributeName="r" values={`${r+5};${r+14};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
+      {/* deep-field starfield (subtle in light, brighter in dark) */}
+      {stars.map(([sx,sy],i)=><circle key={i} cx={sx} cy={sy} r={i%3===0?1.4:1} fill={isLight?"#c9b48f":"#8fa6d8"}>
+        <animate attributeName="opacity" values={`${isLight?0.18:0.3};${isLight?0.5:0.85};${isLight?0.18:0.3}`} dur={`${3+i%4}s`} repeatCount="indefinite"/>
+      </circle>)}
+      {/* atmosphere halo */}
+      <circle cx={cx} cy={cy} r={R+14} fill="url(#ceoAtmo)">
+        <animate attributeName="r" values={`${R+10};${R+18};${R+10}`} dur="6s" repeatCount="indefinite"/>
+      </circle>
+      {/* sphere */}
+      <g clipPath="url(#ceoSphere)">
+        <circle cx={cx} cy={cy} r={R} fill="url(#ceoOceanG)"/>
+        {/* spinning land: two identical tiles scroll one tile-width and loop */}
+        <g>
+          <animateTransform attributeName="transform" type="translate" from="0 0" to="-280 0" dur={big?"26s":"30s"} repeatCount="indefinite"/>
+          {[cx-R, cx-R+280].map((ox,k)=><g key={k} transform={`translate(${ox},${cy-140})`}>
+            {GLOBE_LAND.map((d,i)=><path key={i} d={d} fill={land} stroke={landEdge} strokeWidth="1.2" strokeLinejoin="round" opacity="0.95"/>)}
+          </g>)}
+        </g>
+        {/* latitude chords + meridian ellipses = sphere wireframe */}
+        {[-90,-45,0,45,90].map(l=>{const yy=cy+(l/90)*R*0.86;const half=Math.sqrt(Math.max(0,R*R-(yy-cy)*(yy-cy)));return <line key={"lat"+l} x1={cx-half} y1={yy} x2={cx+half} y2={yy} stroke={grid} strokeWidth="1"/>;})}
+        {[0.35,0.7,1].map((f,i)=><ellipse key={"mer"+i} cx={cx} cy={cy} rx={R*f} ry={R} fill="none" stroke={grid} strokeWidth="1"/>)}
+        {/* 3D limb-darkening + specular highlight */}
+        <circle cx={cx} cy={cy} r={R} fill="url(#ceoShade)"/>
+      </g>
+      {/* crisp rim */}
+      <circle cx={cx} cy={cy} r={R} fill="none" stroke={isLight?"#9db8d8":"#5b86d6"} strokeWidth="1.5" opacity="0.7"/>
+      {/* region pins: size = live programs, colour = highest risk exposure */}
+      {GLOBE_PINS.map((m,idx)=>{const n=cnt(m.region);const sev=regionSeverity(m.region);const c=sevColor(sev);const r=big?15+n*2.2:12+n*1.8;return <g key={m.region}>
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -3;0 0" dur={`${4+idx}s`} repeatCount="indefinite"/>
+        <circle cx={m.x} cy={m.y} r={r+9} fill={c} opacity="0.18"><animate attributeName="r" values={`${r+5};${r+14};${r+5}`} dur="3s" repeatCount="indefinite"/></circle>
         <circle cx={m.x} cy={m.y} r={r} fill={c} filter="url(#ceoMk)"/>
         <text x={m.x} y={m.y+4} textAnchor="middle" fontSize={big?15:13} fontWeight="800" fill="#0b0e24" fontFamily={F.m}>{n}</text>
         <text x={m.x} y={m.y-r-8} textAnchor="middle" fontSize="11" letterSpacing="1.5" fontWeight="800" fill={isLight?T.ink3:"#cbd5e1"} fontFamily={F.m}>{m.region.toUpperCase()}</text>
@@ -598,13 +661,13 @@ function Playbook({showToast,role="ceo"}){
     <Card style={{...cardPad,marginBottom:16}}>
       <Eyebrow>Decisions the portfolio is asking of you</Eyebrow>
       <H3 style={{marginBottom:12}}>{decisions.length} program{decisions.length===1?"":"s"} at a governance gate — click any to trace it</H3>
-      <div style={{display:"grid",gap:7}}>
+      <Table head={[]}>
         {decisions.map(p=>{const v=programVerdict(p);return <LinRow key={p.name} node={programLineage(p)}>
           <Td style={{fontWeight:700,color:T.ink}}>{p.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:600,fontFamily:F.b,marginTop:1}}>{p.unit} · {p.stage}</div></Td>
           <Td><Pill c={v.c}>{v.label}</Pill></Td>
           <Td style={{fontSize:10.5,color:T.ink3,maxWidth:360}}>{v.why}</Td>
         </LinRow>;})}
-      </div>
+      </Table>
     </Card>
 
     {/* The complete portfolio, by lifecycle band */}
@@ -619,7 +682,7 @@ function Playbook({showToast,role="ceo"}){
           <span style={{fontSize:10,color:T.ink4,fontWeight:700,fontFamily:F.m}}>{rows.length}</span>
           <span style={{flex:1,height:1,background:T.border}}/>
         </div>
-        <div style={{display:"grid",gap:5}}>
+        <Table head={[]}>
           {rows.map(p=>{const v=programVerdict(p);return <LinRow key={p.name} node={programLineage(p)}>
             <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink}}>{p.name}</Td>
             <Td style={{width:90}}>{p.stage==="Completed"?"✓ Done":p.stage==="Retired"?"↓ Retired":<span>Health {p.health}</span>}</Td>
@@ -627,7 +690,7 @@ function Playbook({showToast,role="ceo"}){
             <Td style={{width:90}}><Pill c={p.risk==="Critical"?T.red:p.risk==="High"?AI_GOLD:p.risk==="Medium"?T.blue:T.green}>{p.risk}</Pill></Td>
             <Td style={{width:110}}><Pill c={v.c}>{v.label}</Pill></Td>
           </LinRow>;})}
-        </div>
+        </Table>
       </div>;})}
     </Card>
 
