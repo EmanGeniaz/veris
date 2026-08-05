@@ -102,7 +102,7 @@ export const AC_RBAC: Record<string, ACRoleAccess> = {
 
 export const acInitiatives: ACInitiativeRecord[] = [
   {
-    id: "ai-001", name: "Customer Resolution Copilot", unit: "Customer Operations", category: "GenAI Copilot", lifecycle: "Pilot",
+    id: "ai-001", name: "Customer Resolution Copilot", unit: "Customer Operations", category: "GenAI Copilot", lifecycle: "Production",
     businessOwner: "Priya Mehta", technicalOwner: "Platform AI", sponsor: "Aisha Patel", champion: "Leila Haddad", cxo: "CAIO, COO, CISO",
     status: "In Progress", priority: "Critical", risk: "High", expected: "$4.8M", actual: "$0.3M", stage: "Governance Review",
     guardrail: 82, adoption: 64, valueScore: 76,
@@ -130,9 +130,9 @@ export const acInitiatives: ACInitiativeRecord[] = [
     phaseIndex: 6, phaseArtifactsDone: 3, blockedBy: "Human oversight design record awaiting approval",
   },
   {
-    id: "ai-003", name: "Finance Close Automation", unit: "Finance", category: "Process Automation", lifecycle: "Production",
+    id: "ai-003", name: "Finance Close Automation", unit: "Finance", category: "Process Automation", lifecycle: "Scaling",
     businessOwner: "Elena Rossi", technicalOwner: "Enterprise Apps", sponsor: "Marcus Reid", champion: "Tom Adeyemi", cxo: "CFO, CIO, COO",
-    status: "Build", priority: "High", risk: "Medium", expected: "$3.1M", actual: "$1.6M", stage: "Build",
+    status: "Build", priority: "High", risk: "Low", expected: "$3.1M", actual: "$1.6M", stage: "Build",
     guardrail: 91, adoption: 79, valueScore: 88,
     policies: ["Automation Control Policy", "Audit Evidence Policy"], controls: ["CTRL-FIN-008", "CTRL-AUD-019"], audits: ["AUD-SOX-11"],
     risks: ["Incorrect journal suggestion", "Segregation of duties"], roi: "78%", savings: "$1.5M", revenue: "$0.1M", productivity: "26%", training: "82%", resistance: "Low",

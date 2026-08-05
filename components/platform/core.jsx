@@ -727,8 +727,8 @@ export const PLAYBOOK = {
   caio:[
     {id:1,title:"LLM v2 Production Deployment",priority:"Critical",status:"Awaiting Approval",due:"May 10",fw:"EU AI Act Art.6",owner:"You (CAIO)",collab:"CISO, Legal, Engineering",hitl:true,desc:"Customer-facing LLM for support automation. High-Risk under EU AI Act Art.6. Bias assessment passed (95.2% fairness). Transparency docs 80% complete."},
     {id:2,title:"EU AI Act Art.9 Risk Management System",priority:"Critical",status:"In Progress",due:"May 30",fw:"EU AI Act",owner:"You (CAIO)",collab:"GRC, Legal",hitl:false,desc:"Mandatory risk management system for all High-Risk AI systems. Requires ISO 42001 Clause 8.2/8.3 alignment and documented treatment plans."},
-    {id:3,title:"AI Model Inventory ",priority:"High",status:"In Progress",due:"May 25",fw:"ISO 42001 C.8.4",owner:"AI Governance Lead",collab:"You (CAIO), All BUs",hitl:false,desc:"17 production models. 3 unclassified under EU AI Act risk tiers. ISO 42001 Clause 8.4 requires all system objectives documented before deployment."},
-    {id:4,title:"Model Card Documentation Suite",priority:"Medium",status:"In Progress",due:"Jun 5",fw:"ISO 42001",owner:"ML Engineering",collab:"You (CAIO), Product",hitl:false,desc:"Standardised model cards for all 17 production models per ISO 42001 Annex A data documentation requirements. 7 of 17 complete."},
+    {id:3,title:"AI Model Inventory ",priority:"High",status:"In Progress",due:"May 25",fw:"ISO 42001 C.8.4",owner:"AI Governance Lead",collab:"You (CAIO), All BUs",hitl:false,desc:"8 production models. 2 unclassified under EU AI Act risk tiers. ISO 42001 Clause 8.4 requires all system objectives documented before deployment."},
+    {id:4,title:"Model Card Documentation Suite",priority:"Medium",status:"In Progress",due:"Jun 5",fw:"ISO 42001",owner:"ML Engineering",collab:"You (CAIO), Product",hitl:false,desc:"Standardised model cards for all 8 production models per ISO 42001 Annex A data documentation requirements. 4 of 8 complete."},
     {id:5,title:"AI Transparency Report Q2 2026",priority:"High",status:"Scheduled",due:"Jun 30",fw:"EU AI Act Art.13",owner:"You (CAIO)",collab:"Comms, Legal",hitl:true,desc:"Mandatory public transparency report per EU AI Act Art.13. Covers AI systems in use, training data sources, human oversight mechanisms, known limitations."},
   ],
   ciso:[
@@ -765,7 +765,7 @@ export const PLAYBOOK = {
 export const HITL = {
   caio:[
     {id:"hc1",title:"LLM v2 ",risk:"Critical",conf:87,time:"Go-live in 6 days",clause:"ISO 42001 C.8.5 / EU AI Act Art.6",reasoning:"High-Risk classification under EU AI Act Art.6confirmed. Bias assessment passed ",action:"Approve conditional deployment with real-time bias monitoring and 30-day CAIO review checkpoint"},
-    {id:"hc2",title:"AI Transparency Report Q1 ",risk:"High",conf:82,time:"Pending 1 day",clause:"EU AI Act Art.13",reasoning:"Report reviewed by Legal and Comms. EU AI Act Art.13 disclosures verified for 14/17 systems. One training data source flag requires CAIO judgment: publicly-scraped web data ",action:"Review training data disclosure options and approve publication with chosen approach"},
+    {id:"hc2",title:"AI Transparency Report Q1 ",risk:"High",conf:82,time:"Pending 1 day",clause:"EU AI Act Art.13",reasoning:"Report reviewed by Legal and Comms. EU AI Act Art.13 disclosures verified for 6/8 systems. One training data source flag requires CAIO judgment: publicly-scraped web data ",action:"Review training data disclosure options and approve publication with chosen approach"},
   ],
   ciso:[
     {id:"hs1",title:"GDPR Art.35 DPIA ",risk:"Critical",conf:97,time:"2 days overdue",clause:"GDPR Art.35 / ISO 27001 A.18",reasoning:"Processing >10k EU data subjects with behavioural profiling triggers mandatory DPIA under Art.35. Platform is live and processing without completed DPIA ",action:"Submit DPIA to DPO and initiate processing suspension assessment within 24 hours"},
@@ -846,7 +846,7 @@ export const ROLE_KPIS = {
     {cat:"AI Risk",            kpi:"High-Risk AI Systems Governed", target:"100%",      threshold:"< 90%",      fw:"EU AI Act",   status:"Alert",    value:"82%"},
     {cat:"Model Performance",  kpi:"Avg. Model Accuracy",          target:"> 92%",      threshold:"< 80%",      fw:"ISO 42001",   status:"Good",     value:"91.3%"},
     {cat:"Bias & Fairness",    kpi:"Fairness Score (avg.)",        target:"> 95%",      threshold:"< 85%",      fw:"NIST AI RMF", status:"Alert",    value:"89.4%"},
-    {cat:"AI Transparency",    kpi:"Model Cards Complete",         target:"100%",       threshold:"< 80%",      fw:"ISO 42001",   status:"Alert",    value:"7/17"},
+    {cat:"AI Transparency",    kpi:"Model Cards Complete",         target:"100%",       threshold:"< 80%",      fw:"ISO 42001",   status:"Alert",    value:"4/8"},
     {cat:"AI Incidents",       kpi:"AI Incident Response Time",    target:"< 4 hrs",    threshold:"> 24 hrs",   fw:"ISO 42001",   status:"Good",     value:"3.2 hrs"},
     {cat:"HITL Compliance",    kpi:"HITL Override Rate",           target:"< 5%",       threshold:"> 15%",      fw:"EU AI Act",   status:"Good",     value:"3.1%"},
     {cat:"Data Governance",    kpi:"Training Data Provenance",     target:"100%",       threshold:"< 90%",      fw:"ISO 42001",   status:"Alert",    value:"76%"},
@@ -896,7 +896,7 @@ export const DOMAIN_METRICS = {
   ],
   caio:[
     {label:"EU AI Act Conformity",   value:72,  unit:"%",    color:"#E84040", trend:4,  fw:"EU AI Act"},
-    {label:"Model Cards Complete",   value:7,   unit:"/17",  color:"#E8A020", trend:2,  fw:"ISO 42001"},
+    {label:"Model Cards Complete",   value:4,   unit:"/8",  color:"#E8A020", trend:2,  fw:"ISO 42001"},
     {label:"Avg. Model Accuracy",    value:91.3,unit:"%",    color:"#1FB864", trend:1.3,fw:"ISO 42001"},
     {label:"Fairness Score",         value:89.4,unit:"%",    color:"#E8A020", trend:2.1,fw:"NIST AI RMF"},
     {label:"Drift Detection Cvg.",   value:61,  unit:"%",    color:"#E84040", trend:8,  fw:"NIST AI RMF"},
@@ -961,7 +961,7 @@ export const STANDARDS_MAP = {
 export const ONBOARD = {
   caio:[
     {id:1,title:"Read your AI Governance Charter",tag:"Foundation",time:"20 min",urgent:false,desc:"Your mandate under ISO 42001 covers all AI systems in development, production, pilot, and procurement. Clause 5.3 requires you to own the CAIO role formally."},
-    {id:2,title:"Audit the AI Model Inventory",tag:"Critical",time:"25 min",urgent:true,desc:"17 models in production. 3 unclassified under EU AI Act risk tiers. ISO 42001 Clause 8.4 requires documented system objectives for all deployed AI."},
+    {id:2,title:"Audit the AI Model Inventory",tag:"Critical",time:"25 min",urgent:true,desc:"8 models in production. 2 unclassified under EU AI Act risk tiers. ISO 42001 Clause 8.4 requires documented system objectives for all deployed AI."},
     {id:3,title:"Review the pending LLM v2 approval",tag:"Urgent",time:"15 min",urgent:true,desc:"Go-live in 6 days. Awaiting your HITL sign-off. EU AI Act Art.6high-risk deployment requires explicit CAIO approval before any production traffic."},
     {id:4,title:"Understand the HITL workflow",tag:"Protocol",time:"10 min",urgent:false,desc:"ISO 42001 Clause 8.1 requires operational controls for AI decisions. Every high-stakes action requires your explicit approval before VerisZone can act."},
     {id:5,title:"Schedule your EU AI Act enforcement briefing",tag:"Compliance",time:"45 min",urgent:false,desc:"August 2026 enforcement is 12 weeks away. GRC team has a 45-min brief on your personal liability obligations as CAIO under Article 9 risk management."},
@@ -1203,7 +1203,7 @@ export const MODEL_REGISTRY = [
 /* Section */
 export const MATURITY_DOMAINS = [
   {domain:"Legal & Regulatory Compliance",score:72,target:90,desc:"Alignment with EU AI Act, ISO 42001, GDPR Art.22. 3 high-risk systems classified. 3 unclassified."},
-  {domain:"Algorithmic Accountability",score:58,target:85,desc:"Bias testing complete on 2/8 high-impact systems. Model cards 7/17. Fairness score avg 89.4%."},
+  {domain:"Algorithmic Accountability",score:58,target:85,desc:"Bias testing complete on 2/8 high-impact systems. Model cards 4/8. Fairness score avg 89.4%."},
   {domain:"Data Sovereignty & Governance",score:65,target:80,desc:"Training data provenance documented for 76% of models. 3 datasets with PII not yet anonymised."},
   {domain:"Human Oversight & HITL",score:84,target:95,desc:"HITL override rate 3.1%. All critical decisions gated. Kill switch deployed on 4/8 high-risk systems."},
   {domain:"Transparency & Explainability",score:61,target:85,desc:"Transparency documentation 80% complete for LLM v2. 7 model cards complete. Art.13 gaps remain."},
@@ -1649,7 +1649,7 @@ export const GAP_DATA={
     {id:"g1",gap:"Business Continuity Policy not reviewed",priority:"Critical",fw:"ISO 27001 A.5.29",owner:"CIO",effort:"Low",days:7,type:"Policy"},
     {id:"g2",gap:"47 assets without ISO 27001 classification",priority:"Critical",fw:"ISO 27001 A.5.9",owner:"IT Ops",effort:"Medium",days:14,type:"Control"},
     {id:"g3",gap:"Privileged access review overdue (3 accounts)",priority:"Critical",fw:"ISO 27001 A.8.3",owner:"IT Ops",effort:"Low",days:2,type:"Evidence"},
-    {id:"g4",gap:"AI Model Cards missing for 10/17 systems",priority:"High",fw:"ISO 42001 C.8.4",owner:"CAIO",effort:"High",days:30,type:"Documentation"},
+    {id:"g4",gap:"AI Model Cards missing for 4/8 systems",priority:"High",fw:"ISO 42001 C.8.4",owner:"CAIO",effort:"High",days:30,type:"Documentation"},
     {id:"g5",gap:"Cloud Security Policy in draft review",priority:"High",fw:"ISO 27001 A.5.23",owner:"CISO",effort:"Low",days:5,type:"Policy"},
     {id:"g6",gap:"ISMS Internal Audit overdue by 4 months",priority:"High",fw:"ISO 27001 C.9.2",owner:"GRC",effort:"Medium",days:21,type:"Audit"},
     {id:"g7",gap:"Secure Development Policy needs update",priority:"High",fw:"ISO 27001 A.8.25",owner:"Engineering",effort:"Medium",days:14,type:"Policy"},
