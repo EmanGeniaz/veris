@@ -15,6 +15,7 @@ import { CommandPalette } from "./platform/palette";
 import { GovernanceForum, IncidentPlaybook, ConvergenceCrosswalk, ProhibitedPractices, GpaiExposure, GapClosure } from "./platform/convergence";
 import { JurisdictionAtlas, StatementOfApplicability, EvidenceFreshness, Glossary } from "./platform/guidebook";
 import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/roadmap";
+import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
 /* Employee/Manager command-center surfaces that delegate to a real,
    fully-built platform page rather than a config block — so the governed
    AI Assistant (with safe-use guardrails), ideas, usage and academy keep
@@ -24,7 +25,8 @@ const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",em
   cgo_forum:"govforum",cgo_incidents:"incidents",cgo_crosswalk:"crosswalk",cgo_redlines:"redlines",cgo_gpai:"gpai",
   caio_crosswalk:"crosswalk",legal_crosswalk:"crosswalk",cgo_gapclosure:"gapclosure",
   cgo_jurisdictions:"jurisdictions",legal_jurisdictions:"jurisdictions",cgo_soa:"soa",caio_soa:"soa",cgo_freshness:"freshness",cgo_glossary:"glossary",
-  cgo_drift:"drift",caio_drift:"drift",cgo_workflows:"workflows",ciso_workflows:"workflows",cgo_art12:"art12",legal_art12:"art12"};
+  cgo_drift:"drift",caio_drift:"drift",cgo_workflows:"workflows",ciso_workflows:"workflows",cgo_art12:"art12",legal_art12:"art12",
+  ciso_enforce:"enforce",cgo_enforce:"enforce",ciso_authority:"authority",ciso_ledger:"ledger",cgo_ledger:"ledger"};
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
 const PageHome=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHome),{ssr:false,loading:vzLoading});
@@ -845,6 +847,9 @@ export default function VerisZone() {
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="drift"&&<DriftMonitor role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="workflows"&&<WorkflowPermissions role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="art12"&&<Article12Log role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="enforce"&&<EnforcementOverview role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="authority"&&<AgentAuthority role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="ledger"&&<ToolCallLedger role={role} showToast={showToast}/>}
         {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {tab==="admin"      &&<PageAdmin      role={role} showToast={showToast} setTab={setTab}/>}
