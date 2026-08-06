@@ -4,6 +4,8 @@ import { useState } from "react";
 import { T, F, AI_GOLD, Card } from "./core";
 import { AI_AGENTS, agentPosture } from "@/lib/agent-registry";
 import { TOOLCALL_LEDGER, enforceStats, ENFORCE_DECISION_META, issueToken, TOKEN_TTL_SECONDS } from "@/lib/enforce";
+import { EGRESS_POLICY, EGRESS_EVENTS, EGRESS_DECISION_META, egressStats } from "@/lib/egress";
+import { HITL_GATES, hitlStats } from "@/lib/hitl";
 
 /* ── shared local primitives (match roadmap/convergence) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -162,6 +164,80 @@ export function ToolCallLedger({ showToast }) {
         </tr>)}
       </Table>
       {advisor(<>Rows where the agent reached for a tool it does not hold and was <b>Blocked</b> or <b>Egress-denied</b> are the containment wins — {s.preventedBreaches} in this window — a successful injection that never reached money, data, or the internet. Each decision is deterministic (identity + capability + provenance), so it survives a more capable model, and each is signed into the same chain the Article 12 log verifies.</>)}
+    </Card>
+  </div>;
+}
+
+/* ══════════════ EGRESS POLICY — the containment guarantee ══════════════ */
+export function EgressPolicy({ showToast }) {
+  const s = egressStats();
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Egress Policy" sub="The containment guarantee: a successful injection cannot reach money, data, or the internet. Least privilege stops an agent calling a tool it doesn't hold; egress policy stops the tools it does hold from reaching a destination they shouldn't. Enforced on the destination — an allow-list plus named deny categories, never a text classifier — so it holds against a more capable model. Closes data-exfiltration and SSRF against the cloud metadata service." />
+    <div style={kpiGrid}>
+      <Kpi l="Egress attempts" v={String(s.total)} c={AI_GOLD} sub="this window" />
+      <Kpi l="Allowed" v={String(s.allowed)} c={T.green} sub="to allow-listed hosts" />
+      <Kpi l="Denied" v={String(s.denied)} c={T.red} sub={`${s.denyRate}% blocked at the boundary`} />
+      <Kpi l="SSRF blocked" v={String(s.ssrf)} c={s.ssrf ? T.red : T.green} sub="metadata-service theft stopped" />
+      <Kpi l="Allow-list" v={String(s.allowlisted)} c={T.blue} sub="explicit destinations" />
+    </div>
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Egress attempts · destination decisions</Eyebrow><H3 style={{ marginBottom: 12 }}>What the tools tried to reach</H3>
+      <Table head={["Agent", "Tool", "Destination", "Decision", "Why"]}>
+        {EGRESS_EVENTS.map(e => { const m = EGRESS_DECISION_META[e.decision]; return <tr key={e.id}>
+          <Td style={{ fontWeight: 700, color: T.ink }}>{e.agent}</Td>
+          <Td style={{ fontFamily: F.m, color: T.ink3 }}>{e.tool}</Td>
+          <Td style={{ fontFamily: F.m, color: e.decision === "allow" ? T.ink2 : T.red }}>{e.dest}</Td>
+          <Td><Pill c={tok(m.tone)}>{m.label}</Pill></Td>
+          <Td style={{ color: T.ink3 }}>{e.reason}</Td>
+        </tr>; })}
+      </Table>
+      {advisor(<>The two containment wins in this window are the ones that matter: an exfiltration attempt to a known sink, and an SSRF against <b>169.254.169.254</b> to steal cloud credentials — both denied deterministically before leaving the boundary. Every deny is written to the Tool-Call Ledger.</>)}
+    </Card>
+    <Card style={cardPad}>
+      <Eyebrow>Egress policy · allow-list + deny categories</Eyebrow><H3 style={{ marginBottom: 12 }}>Deny-by-default destinations</H3>
+      <Table head={["Destination", "Category", "Note"]}>
+        {EGRESS_POLICY.map(p => { const c = p.category === "allow" ? T.green : p.category === "internal" ? T.amber : T.red; return <tr key={p.host}>
+          <Td style={{ fontFamily: F.m, color: T.ink }}>{p.host}</Td>
+          <Td><Pill c={c}>{p.category}</Pill></Td>
+          <Td style={{ color: T.ink3 }}>{p.note}</Td>
+        </tr>; })}
+      </Table>
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Egress policy exported — denies reconciled to the Tool-Call Ledger and incident register")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export egress policy</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ HITL GATES — human oversight thresholds ══════════════ */
+export function HitlGates({ showToast }) {
+  const s = hitlStats();
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Human-in-the-Loop Gates" sub="High-impact actions are gated behind human approval — with a threshold, so the gate fires only where it matters. An agent auto-runs the routine and routes the consequential to a person, rather than a blanket approve-everything that trains people to rubber-stamp. Maps to EU AI Act Art.14 (human oversight) and Art.22 (no solely-automated decision with legal effect)." />
+    <div style={kpiGrid}>
+      <Kpi l="Gates" v={String(s.gates)} c={AI_GOLD} sub="high-impact actions" />
+      <Kpi l="Pending approvals" v={String(s.pending)} c={s.pending ? T.amber : T.green} sub="awaiting a human now" />
+      <Kpi l="Always-gated" v={String(s.alwaysGated)} c={T.blue} sub="legal-effect actions" />
+      <Kpi l="Threshold-gated" v={String(s.thresholdGated)} c={T.blue} sub="fire above a trip point" />
+      <Kpi l="Art.14 / 22" v={String(s.art14)} c={T.green} sub="regulator-mapped gates" />
+    </div>
+    <Card style={cardPad}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div><Eyebrow>Approval gates · where autonomy stops</Eyebrow><H3>Action · threshold · approver</H3></div>
+        <button onClick={() => showToast && showToast(`${s.pending} actions routed to their approvers — SLA clocks running`)} style={{ background: s.pending ? AI_GOLD : T.s2, border: `1px solid ${s.pending ? AI_GOLD : T.border}`, borderRadius: 10, padding: "8px 13px", color: s.pending ? "#0b0e24" : T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{s.pending ? `Review ${s.pending} pending` : "No approvals pending"}</button>
+      </div>
+      <Table head={["Action", "Agent", "Trips when", "Approver", "SLA", "Basis", "Pending"]}>
+        {HITL_GATES.map(g => <tr key={g.id}>
+          <Td style={{ fontWeight: 700, color: T.ink }}>{g.label}</Td>
+          <Td style={{ fontFamily: F.m, color: T.ink3 }}>{g.agent}</Td>
+          <Td style={{ color: T.ink3 }}>{g.condition}</Td>
+          <Td>{g.approver}</Td>
+          <Td style={{ fontFamily: F.m, color: T.ink3 }}>{g.sla}</Td>
+          <Td><Pill c={/Art\./.test(g.basis) ? T.green : T.blue}>{g.basis}</Pill></Td>
+          <Td>{g.pending ? <Pill c={T.amber}>{g.pending}</Pill> : <Pill c={T.green}>0</Pill>}</Td>
+        </tr>)}
+      </Table>
+      {advisor(<>Thresholds keep oversight meaningful: routine actions run autonomously and are logged, while the {s.alwaysGated} legal-effect actions (adverse credit, account freeze, direct customer email) always route to a named approver under Art.14 / Art.22. Every gate decision — approved, held, or auto-run below threshold — lands in the Tool-Call Ledger.</>)}
     </Card>
   </div>;
 }
