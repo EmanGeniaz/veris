@@ -96,11 +96,17 @@ const Eyebrow=({children,style})=><div style={{fontSize:9.5,letterSpacing:"0.14e
 const H3=({children,style})=><div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,margin:0,...style}}>{children}</div>;
 const Pill=({children,c=T.ink3,big})=><span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:big?11:9.5,fontWeight:800,fontFamily:F.m,padding:big?"5px 12px":"2px 9px",borderRadius:20,whiteSpace:"nowrap",background:c+"1f",color:c}}>{children}</span>;
 function Kpi({l,v,vc,s,onClick}){
-  return <button onClick={onClick} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:onClick?"pointer":"default",textAlign:"left"}}>
+  const st={background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",textAlign:"left"};
+  const body=<>
     <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div>
     <div style={{fontSize:23,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:vc||T.ink}}>{v}</div>
     <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{s}</div>
-  </button>;
+  </>;
+  // Only render an interactive control when there's something to do; otherwise a
+  // plain stat tile — so a metric display is never a clickable-but-dead button.
+  return onClick
+    ? <button onClick={onClick} style={{...st,cursor:"pointer"}}>{body}</button>
+    : <div style={st}>{body}</div>;
 }
 function ScoreRow({label,v,c}){
   return <div style={{display:"grid",gridTemplateColumns:"150px 1fr 34px",alignItems:"center",gap:12,padding:"7px 0",borderBottom:`1px solid ${T.border}`}}>
@@ -328,7 +334,7 @@ function Reports({showToast}){
     <PageHead title="Reports" sub="Build a governance report by dimension, then export a board-ready or auditor-ready pack."/>
     <Card style={cardPad}><Eyebrow>Report builder</Eyebrow><H3 style={{marginBottom:12}}>Choose the dimensions to include</H3>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{REPORT_DIMS.map(d=><button key={d} onClick={()=>toggle(d)} style={{padding:"7px 14px",borderRadius:20,fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px solid ${sel.has(d)?AI_GOLD:T.border}`,background:sel.has(d)?AI_GOLD:T.s2,color:sel.has(d)?"#0b0e24":T.ink3}}>{d}</button>)}</div>
-      <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}><button onClick={()=>{setGen(true);showToast&&showToast("Governance pack generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule monthly</button></div>
+      <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}><button onClick={()=>{setGen(true);showToast&&showToast("Governance pack generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button><button onClick={()=>showToast&&showToast("Monthly delivery scheduled — added to the reporting calendar")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule monthly</button></div>
     </Card>
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
       <Eyebrow style={{color:AI_GOLD}}>Governance pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>AI Governance Report — Q3 FY26</H3>
@@ -364,7 +370,7 @@ function AIA({showToast}){
       <Card style={cardPad}><Eyebrow>Assessment outcome</Eyebrow><H3 style={{marginBottom:10}}>Classification &amp; controls</H3>
         <div style={{display:"flex",alignItems:"center",gap:12,margin:"6px 0 12px"}}><Pill c={T.red} big>High-risk system</Pill><span style={{fontSize:11,color:T.ink3}}>EU AI Act Annex III · credit scoring</span></div>
         <div style={{padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD}}>Veris Intelligence:</b> Automated decision-making with legal effect on individuals ⇒ mandatory human oversight (Art.14), logging (Art.12) and a conformity assessment before deployment. 2 sections remain to complete the record.</div>
-        <div style={{display:"flex",gap:9,marginTop:14}}><button style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"9px 16px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Continue assessment</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"9px 16px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Send to Risk Center →</button></div>
+        <div style={{display:"flex",gap:9,marginTop:14}}><button onClick={()=>showToast&&showToast("Assessment reopened — continue the remaining sections")} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"9px 16px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Continue assessment</button><button onClick={()=>{pushBus("vz-gw-evidence",{item:`Impact assessment routed to Risk Center — ${cur.name}`,initiative:cur.name,scope:"Risk Center",control:"AI Impact Assessment",risk:"Adverse-decision harm",owner:ROLES.caio.name,status:"In Progress",approval:"Routed",version:"v1",time:"Just now"});showToast&&showToast("Sent to Risk Center — a treatment can now be planned");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"9px 16px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Send to Risk Center →</button></div>
       </Card>
     </div>
   </div>;
@@ -385,7 +391,7 @@ function RiskCenter({role,openFull,showToast}){
     <Card style={{...cardPad,marginTop:16}}><Eyebrow style={{color:AI_GOLD}}>AI Risk Treatment Plan · generated</Eyebrow><H3 style={{marginBottom:6}}>Adverse-decision harm → mitigation roadmap</H3>
       <div style={{marginTop:8,padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD}}>Veris Intelligence:</b> Recommended treatment — <b>Mitigate</b>. 1) Deploy human-in-the-loop review for all declines above threshold. 2) Publish reason codes to applicants. 3) Run parallel-run vs manual for 6 weeks and log divergence. 4) Independent bias audit before scale gate. Residual risk projected <b>12 → 5</b>.</div>
       {assigned?<div style={{fontSize:11,fontWeight:800,color:T.green,fontFamily:F.b,marginTop:12}}>✓ Treatment plan accepted &amp; assigned — evidence minted to the audit trail</div>
-      :<div style={{display:"flex",gap:9,marginTop:14}}><button onClick={()=>{setAssigned(true);pushBus("vz-gw-evidence",{item:`AI Risk Treatment Plan accepted — ${cur.name}`,initiative:cur.name,scope:"Risk Center",control:"AI Risk Treatment Plan",risk:"Adverse-decision harm",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Accepted",version:"v1",time:"Just now"});showToast&&showToast("Treatment plan accepted — evidence minted");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"9px 16px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Accept plan &amp; assign</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"9px 16px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Edit treatment</button></div>}
+      :<div style={{display:"flex",gap:9,marginTop:14}}><button onClick={()=>{setAssigned(true);pushBus("vz-gw-evidence",{item:`AI Risk Treatment Plan accepted — ${cur.name}`,initiative:cur.name,scope:"Risk Center",control:"AI Risk Treatment Plan",risk:"Adverse-decision harm",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Accepted",version:"v1",time:"Just now"});showToast&&showToast("Treatment plan accepted — evidence minted");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"9px 16px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Accept plan &amp; assign</button><button onClick={()=>showToast&&showToast("Treatment plan opened for editing — revise the mitigation steps before accepting")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"9px 16px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Edit treatment</button></div>}
     </Card>
   </div>;
 }
