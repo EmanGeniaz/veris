@@ -8,6 +8,10 @@ import { retrieve } from "@/lib/knowledge";
 import { evaluateRules, classify, validateResponse } from "@/lib/policy-rules";
 import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
 import { capabilityCheck } from "@/lib/agent-registry";
+import { issueToken } from "@/lib/enforce";
+import { egressDecision } from "@/lib/egress";
+import { requiresApproval } from "@/lib/hitl";
+import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -37,19 +41,59 @@ export async function POST(req: NextRequest) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ enabled: false });
   try {
-    const { prompt, tenant, agent, tool } = await req.json();
+    const { prompt, tenant, agent, tool, mcpServer, dest, value } = await req.json();
     const text = String(prompt || "").slice(0, 8000);
     const model = process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5";
-    /* Agent least-privilege enforcement at call time: if this request is an
-       agent invoking a tool, the capability is checked before anything
-       else — an out-of-scope tool call is denied by default. */
+    /* Veris Enforce — the enforcement plane, at call time. If this request is an
+       agent invoking a tool, the decision runs deterministically here (identity,
+       capability, provenance — never text classification) before anything else,
+       and a scoped capability token is minted only when every gate passes. Each
+       outcome is appended to the Article 12 hash chain. */
+    let capabilityToken: unknown = null;
     if (agent && tool) {
+      /* 0 · Supply-chain provenance — never bind an agent to a rug-pulled or
+         unsigned MCP server (manifest hash ≠ pinned). */
+      if (mcpServer) {
+        const srv = MCP_SERVERS.find((s: { id: string; name: string }) => s.id === String(mcpServer) || s.name === String(mcpServer));
+        if (srv) {
+          const st = mcpServerStatus(srv);
+          if (st.blocked) {
+            await logInference(tenant, { model, agent, tool, decision: "block", dataClass: "Restricted" });
+            return NextResponse.json({ enabled: true, blocked: true, detector: "MCP supply-chain",
+              mcp: { server: srv.name, status: st.status, reason: `Manifest ${st.status} — server quarantined; no capability may bind to its tools.` } });
+          }
+        }
+      }
+      /* 1 · Least privilege — deny-by-default; ungranted or high-stakes tools
+         never run autonomously. */
       const cap = capabilityCheck(String(agent), String(tool));
       if (!cap.allowed) {
-        await logInference(tenant, { model, agent, tool, decision: "block", dataClass: "Restricted" });
-        return NextResponse.json({ enabled: true, blocked: true, detector: "Agent least-privilege",
+        const decision = cap.decision === "escalate" ? "escalate" : "block";
+        await logInference(tenant, { model, agent, tool, decision, dataClass: "Restricted" });
+        return NextResponse.json({ enabled: true, blocked: true, escalated: decision === "escalate", detector: "Agent least-privilege",
           capability: { agent, tool, decision: cap.decision, reason: cap.reason, control: cap.control } });
       }
+      /* 2 · Human-in-the-loop threshold — a granted but high-impact action
+         (by type or value) routes to a named approver (Art.14/22). */
+      const gate = requiresApproval(String(tool), value != null ? Number(value) : null);
+      if (gate.gated) {
+        await logInference(tenant, { model, agent, tool, decision: "escalate", dataClass: "Confidential" });
+        return NextResponse.json({ enabled: true, blocked: true, escalated: true, detector: "HITL gate",
+          hitl: { action: tool, approver: gate.gate?.approver, basis: gate.gate?.basis, reason: gate.reason } });
+      }
+      /* 3 · Egress policy — a granted tool still cannot reach a denied
+         destination (data exfiltration, SSRF against the metadata service). */
+      if (dest) {
+        const eg = egressDecision(String(dest));
+        if (eg.decision !== "allow") {
+          await logInference(tenant, { model, agent, tool, decision: "block", dataClass: "Restricted" });
+          return NextResponse.json({ enabled: true, blocked: true, detector: eg.decision === "ssrf" ? "Egress · SSRF" : "Egress policy",
+            egress: { dest, decision: eg.decision, category: eg.category, reason: eg.note } });
+        }
+      }
+      /* 4 · Allowed — mint a short-lived, scoped capability token for this one
+         call; no agent holds a standing key. */
+      capabilityToken = issueToken(String(agent), String(tool), undefined, new Date().toISOString()).token;
     }
     const classification = classify(text);
     const guard = evaluateRules(text);
@@ -88,7 +132,7 @@ export async function POST(req: NextRequest) {
     const cost = costOf(tokensIn + tokensOut, providerId);
     await logInference(tenant, { model, agent, tool, decision: guard.didMask ? "mask" : "allow", dataClass: classification.dataClass, tokens: tokensIn + tokensOut });
     return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask,
-      classification, responseValidation: { ok: rv.ok, findings: rv.findings },
+      classification, capabilityToken, responseValidation: { ok: rv.ok, findings: rv.findings },
       cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
       source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
