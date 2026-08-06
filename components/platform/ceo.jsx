@@ -810,7 +810,7 @@ function Reporting({showToast}){
       </div>
       <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}>
         <button onClick={()=>{setGen(true);showToast&&showToast("Board pack generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button>
-        <button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule weekly</button>
+        <button onClick={()=>showToast&&showToast("Weekly delivery scheduled — added to the reporting calendar")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule weekly</button>
       </div>
     </Card>
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
