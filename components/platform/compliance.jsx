@@ -503,6 +503,44 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
   </div>;
 }
 
+/* ISO 42001 AIMS implementation roadmap — PDCA, 4 phases / 15 steps.
+   The single source for the Implementation Tracker (PageImpl). Statuses drive
+   the progress bar and phase completion, cross-referenced to the Annex A / SoA
+   surfaces so the tracker reads as one system, not a parallel copy. */
+export const IMPL_PHASES = [
+  { id:"plan", label:"Plan", subtitle:"Establish the AIMS", color:T.blue, clause:"Clause 4–6",
+    desc:"Set the context, scope, leadership commitment and AI risk basis for the AI management system before any control is operated.",
+    steps:[
+      { n:1,  title:"Context & interested parties", owner:"CGO office", status:"complete", clause:"Clause 4.1", detail:"Determine internal/external issues and the interested parties relevant to the AIMS, and their requirements.", deliverable:"Context register + interested-parties matrix" },
+      { n:2,  title:"AIMS scope definition", owner:"CAIO office", status:"complete", clause:"Clause 4.3", detail:"Define the boundaries and applicability of the AI management system across in-scope AI systems and business units.", deliverable:"Documented AIMS scope statement" },
+      { n:3,  title:"Leadership & AI policy", owner:"Executive sponsor", status:"complete", clause:"Clause 5.2", detail:"Top management establishes the AI policy, assigns roles and responsibilities, and commits resources.", deliverable:"Signed AI policy + RACI" },
+      { n:4,  title:"AI risk assessment", owner:"Model Risk · D. Osei", status:"complete", clause:"Clause 6.1", detail:"Assess risks and opportunities to the AIMS and to individuals/society from the AI systems in scope.", deliverable:"AI risk assessment report" },
+      { n:5,  title:"Statement of Applicability", owner:"CGO office", status:"active", clause:"Clause 6.1.3", detail:"Select Annex A controls, justify inclusions/exclusions, and link each to its implementation evidence.", deliverable:"Approved Statement of Applicability" },
+    ] },
+  { id:"do", label:"Do", subtitle:"Operate the controls", color:T.violet, clause:"Clause 7–8",
+    desc:"Stand up the resources, competence and operational controls, and run AI-system impact assessments in production.",
+    steps:[
+      { n:6,  title:"Resources & competence", owner:"CHRO office", status:"complete", clause:"Clause 7.2", detail:"Ensure the people operating the AIMS are competent, with training records maintained.", deliverable:"Competence matrix + training log" },
+      { n:7,  title:"Awareness & communication", owner:"CAIO office", status:"complete", clause:"Clause 7.3", detail:"Make staff aware of the AI policy and their contribution to the AIMS; define internal/external communication.", deliverable:"Awareness plan + comms register" },
+      { n:8,  title:"Operational controls", owner:"CISO office", status:"active", clause:"Clause 8.1", detail:"Plan, implement and control the processes needed to meet AIMS requirements and treat AI risks.", deliverable:"Operational control procedures" },
+      { n:9,  title:"AI system impact assessment", owner:"CDPO office", status:"pending", clause:"Clause 8.4", detail:"Assess impacts of AI systems on individuals and groups, including fairness, safety and rights.", deliverable:"AI impact assessments per system" },
+    ] },
+  { id:"check", label:"Check", subtitle:"Evaluate performance", color:T.amber, clause:"Clause 9",
+    desc:"Monitor, audit and review the AIMS to confirm the controls are working and the objectives are being met.",
+    steps:[
+      { n:10, title:"Monitoring & measurement", owner:"CGO office", status:"pending", clause:"Clause 9.1", detail:"Determine what to monitor, the methods, and evaluate AIMS performance and effectiveness.", deliverable:"KPI dashboard + measurement plan" },
+      { n:11, title:"Internal audit", owner:"Internal Audit", status:"pending", clause:"Clause 9.2", detail:"Conduct planned internal audits to confirm the AIMS conforms and is effectively implemented.", deliverable:"Internal audit report + findings" },
+      { n:12, title:"Management review", owner:"Executive sponsor", status:"pending", clause:"Clause 9.3", detail:"Top management reviews the AIMS for continuing suitability, adequacy and effectiveness.", deliverable:"Management review minutes" },
+    ] },
+  { id:"act", label:"Act", subtitle:"Improve continually", color:T.green, clause:"Clause 10",
+    desc:"Close nonconformities, drive continual improvement, and prepare for external certification.",
+    steps:[
+      { n:13, title:"Nonconformity & corrective action", owner:"CGO office", status:"pending", clause:"Clause 10.2", detail:"React to nonconformities, evaluate root cause, and implement corrective actions with verification.", deliverable:"CAPA register" },
+      { n:14, title:"Continual improvement", owner:"CAIO office", status:"pending", clause:"Clause 10.1", detail:"Continually improve the suitability, adequacy and effectiveness of the AIMS.", deliverable:"Improvement backlog" },
+      { n:15, title:"Certification readiness", owner:"CGO office", status:"pending", clause:"Stage 1 / 2", detail:"Assemble the evidence pack and run a readiness review ahead of the Stage 1 / Stage 2 certification audit.", deliverable:"Certification readiness pack" },
+    ] },
+];
+
 /* Section */
 /* Generated reports - never built by hand. Filters scope what goes
    into each generated pack; every download is real content derived
