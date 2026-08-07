@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
-import { can, isCap, STORE_REQUIREMENT, type AccessMatrix } from "@/lib/rbac";
+import { can, isCap, STORE_REQUIREMENT, STORE_READ_REQUIREMENT, type AccessMatrix } from "@/lib/rbac";
 
 const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit", "rbacPolicy", "policies", "violations"]);
 
@@ -67,7 +67,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
   const prisma = db();
   if (!prisma) return NextResponse.json({ enabled: false });
   try {
-    const { tenantId: tid } = await sessionCtx(prisma, _req.headers.get("x-forwarded-host") || _req.headers.get("host"));
+    const { tenantId: tid, identity } = await sessionCtx(prisma, _req.headers.get("x-forwarded-host") || _req.headers.get("host"));
+    /* Per-role read gate for admin-scoped stores. Only enforced for an
+       authenticated caller (identity present ⇒ auth configured + signed in);
+       the public demo tenant carries no identity and stays open for showcase. */
+    const readNeed = STORE_READ_REQUIREMENT[store];
+    if (readNeed && identity && !can(await sessionRole(), readNeed.module, readNeed.minCap, await loadOverrides(prisma, tid))) {
+      return NextResponse.json({ enabled: true, ok: false, error: `reading ${store} requires '${readNeed.minCap}' on ${readNeed.module}` }, { status: 403 });
+    }
     const rows =
       store === "rbacPolicy" ? (await prisma.rbacGrant.findMany({ where: { tenantId: tid } })).map(r => ({ role: r.role, module: r.module, capability: r.capability }))
       : store === "adminAudit" ? (await prisma.auditLog.findMany({ where: { tenantId: tid, entity: "admin" }, orderBy: { createdAt: "desc" }, take: 40 })).map(r => ({ at: new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), actor: r.actor, action: r.action, target: r.detail }))
