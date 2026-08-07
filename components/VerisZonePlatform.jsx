@@ -162,7 +162,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
     const badge=(item.id==="home"&&hitlCount>0)?hitlCount:item.badge||null;
     const delay=Math.min(navIdx++*0.018,0.28);
-    const btn=<button key="btn" className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?"#fff":RAIL.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
+    const btn=<button key="btn" aria-label={item.label} aria-current={isA?"page":undefined} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?"#fff":RAIL.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
       {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${rc}2e,${rc}12 62%,transparent)`,border:`1px solid ${rc}55`,boxShadow:`inset 0 0 20px ${rc}12`}}/>}
       {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
       <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?"#fff":RAIL.ink3} size={14}/></span>
@@ -177,7 +177,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         {AI_CENTRAL_NAV.filter(m=>m.id!=="academy").map(m=>{
           const on=aiCentralView===m.id;
           const locked=!acAccessFor(role).modules.includes(m.id);
-          return <button key={m.id} disabled={locked} onClick={()=>{if(locked)return;if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} title={locked?"Not available for your role":undefined} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"1f":"transparent",border:`1px solid ${on?AI_GOLD+"55":"transparent"}`,color:on?AI_GOLD:RAIL.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1}}>
+          return <button key={m.id} disabled={locked} aria-label={m.id==="dashboard"?"Overview":m.label} onClick={()=>{if(locked)return;if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} title={locked?"Not available for your role":undefined} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"1f":"transparent",border:`1px solid ${on?AI_GOLD+"55":"transparent"}`,color:on?AI_GOLD:RAIL.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1}}>
             <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.id==="dashboard"?"Overview":m.label}</span>
             {locked&&<span style={{marginLeft:"auto",fontSize:9,opacity:.8}}>🔒</span>}
           </button>;
@@ -213,7 +213,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           const on=tab==="admin";
           return <div style={{marginBottom:4}}>
             {renderSectionHeader("Administration")}
-            <button className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab("admin");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:on?"#fff":RAIL.ink2,fontSize:11,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer"}}>
+            <button aria-label="Admin Portal" aria-current={on?"page":undefined} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab("admin");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:on?"#fff":RAIL.ink2,fontSize:11,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer"}}>
               {on&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${rc}2e,${rc}12 62%,transparent)`,border:`1px solid ${rc}55`}}/>}
               {on&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
               <span style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.72,flexShrink:0,position:"relative",zIndex:1,color:on?"#fff":RAIL.ink3}}><Shield size={14}/></span>
@@ -228,7 +228,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         {acOnly&&AI_CENTRAL_NAV.map((item,idx)=>{
           const isA=aiCentralView===item.id;
           const locked=!acAccessFor(role).modules.includes(item.id);
-          return <button key={item.id} disabled={locked} className={`vz-nav-btn ${themeClass}`} title={locked?"Not available for your role":undefined} onClick={()=>{if(locked)return;if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:RAIL.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1,animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
+          return <button key={item.id} disabled={locked} aria-label={item.label} aria-current={isA?"page":undefined} className={`vz-nav-btn ${themeClass}`} title={locked?"Not available for your role":undefined} onClick={()=>{if(locked)return;if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:RAIL.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1,animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {locked&&<span style={{position:"absolute",right:9,top:10,fontSize:9,zIndex:2,opacity:.8}}>🔒</span>}
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
@@ -314,11 +314,6 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
     return valid;
   };
   const enterProfile=e=>{
-    e?.preventDefault?.();
-    if(!canEnter())return;
-    onEnter(profile);
-  };
-  const enterProfileLink=e=>{
     e?.preventDefault?.();
     if(!canEnter())return;
     onEnter(profile);
@@ -416,8 +411,8 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
           <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");}} style={fieldStyle}/>
         </div>
         {loginError&&<div style={{fontSize:11,lineHeight:1.5,color:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{loginError}</div>}
-        <a href={`#workspace-${profile.id}`} onClick={enterProfileLink} style={{display:"block",textDecoration:"none",textAlign:"center",width:"100%",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:"pointer"}}>Enter {profile.label} Workspace</a>
-        {selected!=="demo"&&<a href="#workspace-demo" onClick={enterDemoLink} style={{display:"block",textDecoration:"none",textAlign:"center",width:"100%",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Demo Center</a>}
+        <button type="submit" style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:"pointer"}}>Enter {profile.label} Workspace</button>
+        {selected!=="demo"&&<button type="button" onClick={enterDemoLink} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Demo Center</button>}
         <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"grid",gap:7,fontSize:11,color:T.ink3,fontFamily:F.b}}>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>SSO</span><strong style={{color:T.green}}>Ready</strong></div>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Evidence retention</span><strong style={{color:T.ink}}>7 years</strong></div>

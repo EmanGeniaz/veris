@@ -38,12 +38,17 @@ async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>, reqHost?: 
     }
   }
   if (!tenantId) {
-    /* Per-tenant domains: acme.veriszone.com resolves the acme workspace;
-       unknown or console/www hosts fall back to the demo tenant. */
+    /* Anonymous callers are confined to the public demo tenant whenever auth is
+       configured: a real tenant's data is only ever served to a signed-in user
+       (resolved above from their session). Without this guard, an unauthenticated
+       request to acme.veriszone.com/api/bus/* would return acme's real data —
+       including adminAudit / rbacPolicy — purely from the Host header.
+       Host-based tenant routing therefore applies only in the no-auth mode used
+       for local/self-hosted demo deployments. */
     const host = (reqHost || "").split(":")[0];
     const label = host.split(".")[0];
     let slug = "demo";
-    if (label && !["console", "www", "localhost", "veriszone", "veris"].includes(label)) {
+    if (!authConfigured() && label && !["console", "www", "localhost", "veriszone", "veris"].includes(label)) {
       if (await prisma.tenant.findUnique({ where: { slug: label } })) slug = label;
     }
     const t = await prisma.tenant.upsert({
