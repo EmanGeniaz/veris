@@ -60,3 +60,12 @@ export const STORE_REQUIREMENT: Record<string, { module: string; minCap: Cap }> 
   violations: { module: "comp", minCap: "contribute" },
   taxonomyAdds: { module: "ac", minCap: "contribute" },
 };
+
+/** Minimum capability required to READ a store. Only the governance-sensitive
+   admin stores are gated on read — the admin audit trail and the RBAC access
+   matrix. Every other store is readable by any authenticated member of the
+   tenant (and openly on the public demo tenant, which carries no identity). */
+export const STORE_READ_REQUIREMENT: Record<string, { module: string; minCap: Cap }> = {
+  adminAudit: { module: "admin", minCap: "view" },
+  rbacPolicy: { module: "admin", minCap: "view" },
+};
