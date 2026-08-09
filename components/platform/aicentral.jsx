@@ -581,7 +581,13 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
   const openInitiative=(id,tab="overview")=>{setSelectedId(id);setInitTab(tab);setPhaseSel(null);setView("initiatives");setRecentIds(r=>[id,...r.filter(x=>x!==id)].slice(0,4));};
   /* Registry-bound navigation for every clickable object inside AI Central. */
   const nav=(objectType,ctx={})=>navigateTo(objectType,ctx,{setTab,setAiCentralView:setView,setInitToOpen:(id,it)=>openInitiative(id,it)});
-  const openModule=id=>{if(access.modules.includes(id))setView(id);};
+  const openModule=id=>{
+    if(access.modules.includes(id)){setView(id);return;}
+    /* Never a silent dead click: a dashboard tile can point at a module the
+       current role can't open — tell the user why instead of doing nothing. */
+    const m=AI_CENTRAL_NAV.find(x=>x.id===id);
+    showToast&&showToast(`${m?m.label:"That module"} isn't enabled for ${R.label} — ask an admin to grant access.`,"error");
+  };
 
   const SubTabs=({tabs,active:a,onChange})=><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
     {tabs.map(([id,label])=><button key={id} onClick={()=>onChange(id)} style={{background:a===id?rc+"20":T.s2,border:`1px solid ${a===id?rc+"55":T.border}`,color:a===id?rc:T.ink2,borderRadius:8,padding:"7px 11px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
