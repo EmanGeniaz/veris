@@ -34,6 +34,10 @@ export function PageModelRegistry({setTab,openInitiative,role="caio",showToast})
   const ALL_MODELS=[...extra,...MODEL_REGISTRY];
   const [selId,setSelId]=useState(MODEL_REGISTRY[0].id);
   const [openGroups,setOpenGroups]=useState({[MODEL_REGISTRY[0].initiativeId]:true});
+  /* Summary tiles double as drill-down filters: click one to list just that
+     segment (ungoverned / unclassified / critical), click Total or Clear to reset. */
+  const [statFilter,setStatFilter]=useState(null);
+  const STAT_PRED={ungoverned:m=>!m.initiativeId,unclassified:m=>m.euAiAct==="Unclassified",critical:m=>m.risk==="Critical"};
   const sel=ALL_MODELS.find(m=>m.id===selId)||MODEL_REGISTRY[0];
   const setMK=k=>v=>setMdraft(d=>({...d,[k]:v}));
   const registerModel=()=>{
@@ -105,19 +109,29 @@ export function PageModelRegistry({setTab,openInitiative,role="caio",showToast})
     })()}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
       {[
-        {label:"Total Models",value:ALL_MODELS.length,color:T.caio,sub:`across ${groups.length} governed initiatives`},
-        {label:"Ungoverned",value:ungoverned.length,color:T.amber,sub:"No initiative - intake required"},
-        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap"},
-        {label:"Critical Risk",value:critical,color:T.red,sub:"Require treatment"},
-      ].map(k=><Card key={k.label} style={{padding:"13px 14px"}}>
-        <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{k.label}</div>
+        {label:"Total Models",value:ALL_MODELS.length,color:T.caio,sub:`across ${groups.length} governed initiatives`,fk:null},
+        {label:"Ungoverned",value:ungoverned.length,color:T.amber,sub:"No initiative - intake required",fk:"ungoverned"},
+        {label:"Unclassified",value:unclassified,color:T.red,sub:"EU AI Act gap",fk:"unclassified"},
+        {label:"Critical Risk",value:critical,color:T.red,sub:"Require treatment",fk:"critical"},
+      ].map(k=>{const on=k.fk!==null&&statFilter===k.fk;return <Card key={k.label} title={k.fk?`Show only ${k.label.toLowerCase()} models`:"Show all models"} onClick={()=>setStatFilter(s=>s===k.fk?null:k.fk)} style={{padding:"13px 14px",border:`1px solid ${on?k.color:T.border}`,background:on?k.color+"0e":undefined,boxShadow:on?`inset 0 0 0 1px ${k.color}`:undefined}}>
+        <div style={{fontSize:9,fontWeight:700,color:on?k.color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{k.label}</div>
         <div style={{fontSize:26,fontWeight:800,fontFamily:F.m,color:k.color,letterSpacing:"-0.02em",marginBottom:3}}>{k.value}</div>
         <div style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>{k.sub}</div>
-      </Card>)}
+      </Card>;})}
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:14,alignItems:"start"}}>
       <div>
-        {extra.length>0&&<div style={{border:`1px solid ${T.green}45`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+        {statFilter&&(()=>{const matched=ALL_MODELS.filter(STAT_PRED[statFilter]);const titles={ungoverned:"Ungoverned models · intake required",unclassified:"Unclassified models · EU AI Act gap",critical:"Critical-risk models · require treatment"};return <div style={{border:`1px solid ${T.border}`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.s1,flexWrap:"wrap"}}>
+            <div style={{flex:1,minWidth:180}}>
+              <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{titles[statFilter]}</div>
+              <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:3}}>{matched.length} of {ALL_MODELS.length} models</div>
+            </div>
+            <button onClick={()=>setStatFilter(null)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 11px",fontSize:10,fontWeight:800,fontFamily:F.b,color:T.ink2,cursor:"pointer"}}>Clear filter ✕</button>
+          </div>
+          {matched.length?matched.map(modelRow):<div style={{padding:"16px 14px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No models in this segment.</div>}
+        </div>;})()}
+        {!statFilter&&extra.length>0&&<div style={{border:`1px solid ${T.green}45`,borderRadius:10,marginBottom:10,overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",background:T.greenL||T.s1,flexWrap:"wrap"}}>
             <div style={{flex:1,minWidth:180}}>
               <div style={{fontSize:12.5,fontWeight:800,color:T.green,fontFamily:F.b}}>Registered this session</div>
@@ -127,7 +141,7 @@ export function PageModelRegistry({setTab,openInitiative,role="caio",showToast})
           </div>
           {extra.map(modelRow)}
         </div>}
-        {groups.map(({ini,models})=>{
+        {!statFilter&&groups.map(({ini,models})=>{
           const open=!!openGroups[ini.id];
           const techs=[...new Set(models.map(m=>m.type.split(" / ")[0]))];
           const vendors=[...new Set(models.map(m=>m.vendor))];
