@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
-import { T, F, AI_GOLD, ROLES, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card } from "./core";
 import { frameworkScore } from "@/lib/portfolio";
 import { GOVERNANCE_INPUTS, GOVERNANCE_SCORE } from "@/lib/governance";
 
@@ -48,7 +48,7 @@ const RISK_HIGH=riskRegister.filter(r=>r.level==="High").length;
 const RISK_CH=`${RISK_CRIT} critical · ${RISK_HIGH} high`;
 /* Framework scores read the canonical posture (lib/portfolio.js) so CAIO,
    CEO and AI Central never disagree. */
-const _cc=v=>v>=85?T.green:v>=75?T.blue:AI_GOLD;
+const _cc=v=>v>=85?T.green:v>=75?T.blue:AI_GOLD_INK;
 const COMPLIANCE=[
   {k:"ISO 42001 (AIMS)", v:frameworkScore("iso42001"), c:_cc(frameworkScore("iso42001"))},{k:"ISO 27001 (ISMS)", v:frameworkScore("iso27001"), c:_cc(frameworkScore("iso27001"))},
   {k:"EU AI Act", v:frameworkScore("euai"), c:_cc(frameworkScore("euai"))},{k:"NIST AI RMF", v:frameworkScore("nist"), c:_cc(frameworkScore("nist"))},{k:"GDPR / privacy", v:frameworkScore("gdpr"), c:_cc(frameworkScore("gdpr"))},
@@ -140,7 +140,7 @@ function ProjectPicker({projects,current,onSelect,onNew}){
   if(projects.length<=4){
     return <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
       {projects.map(p=><button key={p.name} onClick={()=>onSelect(p)} style={{padding:"7px 14px",borderRadius:20,fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px solid ${p===current?AI_GOLD:T.border}`,background:p===current?AI_GOLD:T.s2,color:p===current?"#0b0e24":T.ink3}}>{p.name}</button>)}
-      <button onClick={onNew} style={{padding:"7px 14px",borderRadius:20,fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px dashed ${AI_GOLD}`,background:T.s2,color:AI_GOLD}}>＋ New Project</button>
+      <button onClick={onNew} style={{padding:"7px 14px",borderRadius:20,fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px dashed ${AI_GOLD}`,background:T.s2,color:AI_GOLD_INK}}>＋ New Project</button>
     </div>;
   }
   const rows=ai?projects.filter(p=>["Critical","High"].includes(p.risk))
@@ -154,8 +154,8 @@ function ProjectPicker({projects,current,onSelect,onNew}){
     <select value={stage} onChange={e=>{setStage(e.target.value);setAi(false);setOpen(true);}} style={{...inp,padding:"9px 14px",cursor:"pointer",fontWeight:700,color:T.ink2}}>
       <option value="">All stages</option>{["Scaling","In Production","In Progress","Completed","Retired"].map(s=><option key={s}>{s}</option>)}
     </select>
-    <button onMouseDown={e=>{e.preventDefault();setAi(true);setOpen(true);setQ("high-risk · needs a decision");}} style={{background:`linear-gradient(135deg,${AI_GOLD}22,transparent)`,border:`1px solid ${AI_GOLD}44`,color:AI_GOLD,borderRadius:22,padding:"9px 15px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:F.b,whiteSpace:"nowrap"}}>✦ Ask Veris</button>
-    <button onClick={onNew} style={{padding:"9px 14px",borderRadius:22,fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px dashed ${AI_GOLD}`,background:T.s2,color:AI_GOLD}}>＋ New Project</button>
+    <button onMouseDown={e=>{e.preventDefault();setAi(true);setOpen(true);setQ("high-risk · needs a decision");}} style={{background:`linear-gradient(135deg,${AI_GOLD}22,transparent)`,border:`1px solid ${AI_GOLD}44`,color:AI_GOLD_INK,borderRadius:22,padding:"9px 15px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:F.b,whiteSpace:"nowrap"}}>✦ Ask Veris</button>
+    <button onClick={onNew} style={{padding:"9px 14px",borderRadius:22,fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:F.b,border:`1px dashed ${AI_GOLD}`,background:T.s2,color:AI_GOLD_INK}}>＋ New Project</button>
     <span style={{fontSize:10.5,color:T.ink4,fontWeight:800,fontFamily:F.m,letterSpacing:"0.04em"}}>{projects.length} projects · showing: {current.name}</span>
     {open&&<div style={{position:"absolute",top:46,left:0,width:390,maxWidth:"92vw",maxHeight:300,overflow:"auto",background:T.s1,border:`1px solid ${T.border}`,borderRadius:12,boxShadow:"0 18px 44px rgba(0,0,0,.34)",zIndex:30,padding:6}}>
       <div style={{padding:"6px 10px 4px",fontSize:8.5,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4,fontWeight:800,fontFamily:F.m}}>{ai?`✦ Veris found ${rows.length} high-risk projects awaiting attention`:stage||(q?"Matches":"All projects")}</div>
@@ -177,7 +177,7 @@ function Overview({role,go,showToast,userName}){
   return <div style={{animation:"up .3s ease"}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
-        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD}}>{name}.</span></h1>
+        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
         <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b}}>AI governance is <b style={{color:T.green}}>on track</b> — 3 approvals need you, 12 active risks, 3 open incidents.</div>
       </div>
       <button onClick={()=>go("caiogov")} title="Open Governance & Compliance" style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"12px 20px",cursor:"pointer",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
@@ -206,7 +206,7 @@ function OverviewTab({go}){
       {CAIO_ATTENTION.map(a=><Card key={a.t} style={{padding:"13px 15px",borderLeft:`3px solid ${a.c}`,cursor:"pointer"}}>
         <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.t}</div>
         <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a.d}</div>
-        <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
+        <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
       </Card>)}
     </div>
     <Eyebrow style={{margin:"0 2px 9px"}}>CAIO domain metrics</Eyebrow>
@@ -214,7 +214,7 @@ function OverviewTab({go}){
       <Kpi l="Governance score" v={<>{GOV_SCORE}<span style={{fontSize:13,color:T.ink4}}>/100</span></>} vc={T.green} s="+4 vs last quarter" onClick={()=>go("caiogov")}/>
       <Kpi l="Active AI projects" v="9" s="4 high-risk · 3 limited" onClick={()=>go("caioplaybook")}/>
       <Kpi l="Policies enforced" v="24" vc={T.blue} s="avg adherence 88%" onClick={()=>go("caiogov")}/>
-      <Kpi l="ISO 42001 readiness" v={`${ISO42001}%`} vc={AI_GOLD} s="Stage-2 audit Q4" onClick={()=>go("caiogov")}/>
+      <Kpi l="ISO 42001 readiness" v={`${ISO42001}%`} vc={AI_GOLD_INK} s="Stage-2 audit Q4" onClick={()=>go("caiogov")}/>
       <Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red} s={RISK_CH} onClick={()=>go("caiorisk")}/>
       <Kpi l="AI incidents" v="3" vc={T.amber} s="open · 1 P1" onClick={()=>go("caioincidents")}/>
     </div>
@@ -245,7 +245,7 @@ function GovPanel({withDefs}){
       <div style={{flex:1,minWidth:220}}>{GOV_INPUTS.map(g=><ScoreRow key={g.k} label={g.k} v={g.v} c={g.v>=75?T.green:T.amber}/>)}</div>
     </div>
     {withDefs&&<div style={{marginTop:14}}><Table head={["Parameter","Source of evidence","Weight"]}>{GOV_INPUTS.map(g=><tr key={g.k}><Td style={{fontWeight:700,color:T.ink}}>{g.k}</Td><Td>{g.src}</Td><Td>{g.w}</Td></tr>)}</Table></div>}
-    {!withDefs&&<div style={{marginTop:12,padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD}}>Veris Intelligence:</b> Fairness &amp; bias control (68) is the lowest input — two high-risk models lack a documented bias-testing cycle. Closing that lifts the composite to an estimated 76.</div>}
+    {!withDefs&&<div style={{marginTop:12,padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> Fairness &amp; bias control (68) is the lowest input — two high-risk models lack a documented bias-testing cycle. Closing that lifts the composite to an estimated 76.</div>}
   </Card>;
 }
 function CompliancePanel({compact}){
@@ -337,9 +337,9 @@ function Reports({showToast}){
       <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}><button onClick={()=>{setGen(true);showToast&&showToast("Governance pack generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button><button onClick={()=>showToast&&showToast("Monthly delivery scheduled — added to the reporting calendar")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule monthly</button></div>
     </Card>
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
-      <Eyebrow style={{color:AI_GOLD}}>Governance pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>AI Governance Report — Q3 FY26</H3>
+      <Eyebrow style={{color:AI_GOLD_INK}}>Governance pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>AI Governance Report — Q3 FY26</H3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
-        <Kpi l="Governance score" v={String(GOV_SCORE)} vc={T.green}/><Kpi l="ISO 42001" v={`${ISO42001}%`} vc={AI_GOLD}/><Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red}/><Kpi l="Open incidents" v="3" vc={T.amber}/>
+        <Kpi l="Governance score" v={String(GOV_SCORE)} vc={T.green}/><Kpi l="ISO 42001" v={`${ISO42001}%`} vc={AI_GOLD_INK}/><Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red}/><Kpi l="Open incidents" v="3" vc={T.amber}/>
       </div>
       <div style={{display:"flex",gap:9}}><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export XLSX</button><button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export audit PDF</button></div>
     </Card>}
@@ -369,7 +369,7 @@ function AIA({showToast}){
       </Card>
       <Card style={cardPad}><Eyebrow>Assessment outcome</Eyebrow><H3 style={{marginBottom:10}}>Classification &amp; controls</H3>
         <div style={{display:"flex",alignItems:"center",gap:12,margin:"6px 0 12px"}}><Pill c={T.red} big>High-risk system</Pill><span style={{fontSize:11,color:T.ink3}}>EU AI Act Annex III · credit scoring</span></div>
-        <div style={{padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD}}>Veris Intelligence:</b> Automated decision-making with legal effect on individuals ⇒ mandatory human oversight (Art.14), logging (Art.12) and a conformity assessment before deployment. 2 sections remain to complete the record.</div>
+        <div style={{padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> Automated decision-making with legal effect on individuals ⇒ mandatory human oversight (Art.14), logging (Art.12) and a conformity assessment before deployment. 2 sections remain to complete the record.</div>
         <div style={{display:"flex",gap:9,marginTop:14}}><button onClick={()=>showToast&&showToast("Assessment reopened — continue the remaining sections")} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"9px 16px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Continue assessment</button><button onClick={()=>{pushBus("vz-gw-evidence",{item:`Impact assessment routed to Risk Center — ${cur.name}`,initiative:cur.name,scope:"Risk Center",control:"AI Impact Assessment",risk:"Adverse-decision harm",owner:ROLES.caio.name,status:"In Progress",approval:"Routed",version:"v1",time:"Just now"});showToast&&showToast("Sent to Risk Center — a treatment can now be planned");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"9px 16px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Send to Risk Center →</button></div>
       </Card>
     </div>
@@ -388,8 +388,8 @@ function RiskCenter({role,openFull,showToast}){
         <button onClick={openFull} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"7px 13px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open full Risk Center →</button></div>
       <Table head={["Risk","Grade","Owner","Treatment","Status"]}>{CAIO_RISKS.map(r=><tr key={r.r}><Td style={{fontWeight:700,color:T.ink}}>{r.r}</Td><Td><Pill c={r.gc}>{r.g}</Pill></Td><Td>{r.o}</Td><Td><Pill c={r.t==="Transfer"?T.violet:T.blue}>{r.t}</Pill></Td><Td><Pill c={r.sc}>{r.s}</Pill></Td></tr>)}</Table>
     </Card>
-    <Card style={{...cardPad,marginTop:16}}><Eyebrow style={{color:AI_GOLD}}>AI Risk Treatment Plan · generated</Eyebrow><H3 style={{marginBottom:6}}>Adverse-decision harm → mitigation roadmap</H3>
-      <div style={{marginTop:8,padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD}}>Veris Intelligence:</b> Recommended treatment — <b>Mitigate</b>. 1) Deploy human-in-the-loop review for all declines above threshold. 2) Publish reason codes to applicants. 3) Run parallel-run vs manual for 6 weeks and log divergence. 4) Independent bias audit before scale gate. Residual risk projected <b>12 → 5</b>.</div>
+    <Card style={{...cardPad,marginTop:16}}><Eyebrow style={{color:AI_GOLD_INK}}>AI Risk Treatment Plan · generated</Eyebrow><H3 style={{marginBottom:6}}>Adverse-decision harm → mitigation roadmap</H3>
+      <div style={{marginTop:8,padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}><b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> Recommended treatment — <b>Mitigate</b>. 1) Deploy human-in-the-loop review for all declines above threshold. 2) Publish reason codes to applicants. 3) Run parallel-run vs manual for 6 weeks and log divergence. 4) Independent bias audit before scale gate. Residual risk projected <b>12 → 5</b>.</div>
       {assigned?<div style={{fontSize:11,fontWeight:800,color:T.green,fontFamily:F.b,marginTop:12}}>✓ Treatment plan accepted &amp; assigned — evidence minted to the audit trail</div>
       :<div style={{display:"flex",gap:9,marginTop:14}}><button onClick={()=>{setAssigned(true);pushBus("vz-gw-evidence",{item:`AI Risk Treatment Plan accepted — ${cur.name}`,initiative:cur.name,scope:"Risk Center",control:"AI Risk Treatment Plan",risk:"Adverse-decision harm",owner:(ROLES[role]||ROLES.caio).name,status:"Complete",approval:"Accepted",version:"v1",time:"Just now"});showToast&&showToast("Treatment plan accepted — evidence minted");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"9px 16px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Accept plan &amp; assign</button><button onClick={()=>showToast&&showToast("Treatment plan opened for editing — revise the mitigation steps before accepting")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"9px 16px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Edit treatment</button></div>}
     </Card>

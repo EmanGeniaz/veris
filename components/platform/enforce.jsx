@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { T, F, AI_GOLD, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import { AI_AGENTS, agentPosture } from "@/lib/agent-registry";
 import { TOOLCALL_LEDGER, enforceStats, ENFORCE_DECISION_META, issueToken, TOKEN_TTL_SECONDS } from "@/lib/enforce";
 import { EGRESS_POLICY, EGRESS_EVENTS, EGRESS_DECISION_META, egressStats } from "@/lib/egress";
@@ -19,7 +19,7 @@ const Td = ({ children, style }) => <td style={{ padding: "10px", borderBottom: 
 const Table = ({ head, children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr>{head.map(h => <Th key={h}>{h}</Th>)}</tr></thead><tbody>{children}</tbody></table></div>;
 const Kpi = ({ l, v, c, sub }) => <Card style={{ padding: "13px 15px" }}><Eyebrow>{l}</Eyebrow><div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div><div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div></Card>;
 const kpiGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 };
-const advisor = children => <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}><b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {children}</div>;
+const advisor = children => <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}><b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {children}</div>;
 const decPill = d => { const m = ENFORCE_DECISION_META[d] || { label: d, tone: "ink3" }; return <Pill c={tok(m.tone)}>{m.label}</Pill>; };
 
 /* ══════════════ ENFORCEMENT OVERVIEW — the closed loop ══════════════ */

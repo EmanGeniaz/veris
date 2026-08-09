@@ -7,7 +7,7 @@ import { ExecutiveCockpit } from "./cockpit";
 import { Map, Scale, Target, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, EXEC_DECISIONS, EXEC_RECOMMENDATIONS, KPI_INSIGHTS, riskRegister, EXEC_QUICK_ACTIONS, EXEC_RECENT_CHANGES } from "@/lib/platform-models";
-import { DEFAULT_FEEDBACK, feedbackDecision, decisionColorOf, T, RC, RCL, ROLES, AI_GOLD, AI_ROLLOUT_PROGRAMS, AI_SPINE_SIGNALS, HITL, KPI, ROLE_KPIS, DOMAIN_METRICS, STANDARDS_MAP, ONBOARD, ROADMAP, PILLARS, F, CountUp, Tag, PTag, Spinner, Bar, Ring, Card, SHead, priColor, execHealthOf, execMoney, execInitiativesFor, KpiInsightPanel } from "./core";
+import { DEFAULT_FEEDBACK, feedbackDecision, decisionColorOf, T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, AI_ROLLOUT_PROGRAMS, AI_SPINE_SIGNALS, HITL, KPI, ROLE_KPIS, DOMAIN_METRICS, STANDARDS_MAP, ONBOARD, ROADMAP, PILLARS, F, CountUp, Tag, PTag, Spinner, Bar, Ring, Card, SHead, priColor, execHealthOf, execMoney, execInitiativesFor, KpiInsightPanel } from "./core";
 
 export function ExecDecisionCenter({role,goto,showToast}){
   const items=EXEC_DECISIONS[role]||EXEC_DECISIONS.caio;
@@ -37,10 +37,10 @@ export function ExecDecisionCenter({role,goto,showToast}){
         </div>
         {decided?<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <Tag label={decided} color={T.green} bg={T.greenL}/>
-          <span style={{display:"inline-flex",alignItems:"center",gap:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:AI_GOLD,animation:"up .45s ease",boxShadow:`0 0 18px ${AI_GOLD}30`}}>
+          <span style={{display:"inline-flex",alignItems:"center",gap:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"4px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,color:AI_GOLD_INK,animation:"up .45s ease",boxShadow:`0 0 18px ${AI_GOLD}30`}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:"pulse 2s infinite"}}/>Evidence record created → Trust &amp; Evidence
           </span>
-          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
+          <button onClick={()=>goto(d.link)} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
         </div>
         :<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
           {[["Approve",T.green],["Reject",T.red],["Request changes",T.amber],["Escalate",T.violet]].map(([label,c])=><button key={label} onClick={()=>act(i,label,d)} style={{background:c+"14",border:`1px solid ${c}40`,borderRadius:7,padding:"7px 12px",color:c,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{label}</button>)}
@@ -175,7 +175,7 @@ export function PageOpportunityIntake({role,setTab,showToast}) {
         </div>
         <div style={{display:"flex",gap:8,marginTop:14}}>
           <button onClick={submit} style={{background:rc,border:"none",borderRadius:9,padding:"10px 14px",color:"#fff",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Create CXO strategy review</button>
-          <button onClick={()=>showToast("Strategy hand-off packs arrive with the production workflow service - record the decision in AI Central instead","error")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:9,padding:"10px 14px",color:AI_GOLD,fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Prepare AI Central handoff</button>
+          <button onClick={()=>showToast("Strategy hand-off packs arrive with the production workflow service - record the decision in AI Central instead","error")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:9,padding:"10px 14px",color:AI_GOLD_INK,fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Prepare AI Central handoff</button>
         </div>
       </Card>
       <div style={{display:"grid",gap:12}}>
@@ -619,7 +619,7 @@ export function PageDecisions({role,setTab,setAiCentralView,showToast}){
           return <div key={i.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px"}}>
             <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:2}}>{i.unit} · readiness {Math.round((i.guardrail+i.adoption+i.valueScore)/3)}%</div></div>
             <Tag label={`Recommend: ${rec}`} color={c} bg={c+"16"}/>
-            <button onClick={()=>goto({ac:"initiatives"})} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record decision →</button>
+            <button onClick={()=>goto({ac:"initiatives"})} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Record decision →</button>
           </div>;
         })}
       </div>

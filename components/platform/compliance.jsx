@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { AC_FRAMEWORK_POSTURE, knowledgeAssets , POLICY_REGISTER, acInitiatives} from "@/lib/platform-models";
 import { SmartSelect } from "./smartselect";
 import { walkBack, conformitySummary } from "@/lib/compliance-engine";
-import { T, RC, RCL, ROLES, AI_GOLD, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
+import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
   const [openStd,setOpenStd]=useState(null);
@@ -1318,13 +1318,13 @@ export function PageKnowledge({role,setTab,showToast}){
       {filtered.map((r,i)=><Card key={r.title} style={{padding:15,animation:`up ${.25+Math.min(i,8)*.04}s ease both`}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center",marginBottom:8}}>
           <Tag label={r.kind} color={T.blue} bg={T.blue+"14"}/>
-          {r.reuse!=null&&<span style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{r.reuse} reuses</span>}
+          {r.reuse!=null&&<span style={{fontSize:9,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>{r.reuse} reuses</span>}
         </div>
         <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:5}}>{r.title}</div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:10}}>{r.desc}</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.ref}</span>
-          {r.action?<button onClick={r.action} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open →</button>
+          {r.action?<button onClick={r.action} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open →</button>
           :<button onClick={()=>{showToast&&showToast("Asset available to the Gateway enrichment engine");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 11px",color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>In enrichment</button>}
         </div>
       </Card>)}

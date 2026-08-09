@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { T, F, AI_GOLD, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import { mcpRows, mcpStats, MCP_STATUS_META } from "@/lib/mcp-registry";
 
 /* ── shared local primitives (match enforce/roadmap) ── */
@@ -15,7 +15,7 @@ const Th = ({ children, style }) => <th style={{ textAlign: "left", fontSize: 9,
 const Td = ({ children, style }) => <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}`, color: T.ink2, fontSize: 11.5, fontFamily: F.b, verticalAlign: "middle", ...style }}>{children}</td>;
 const Kpi = ({ l, v, c, sub }) => <Card style={{ padding: "13px 15px" }}><Eyebrow>{l}</Eyebrow><div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div><div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div></Card>;
 const kpiGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 };
-const advisor = children => <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}><b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {children}</div>;
+const advisor = children => <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}><b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {children}</div>;
 
 /* ══════════════ MCP REGISTRY — supply-chain control ══════════════ */
 export function McpRegistry({ showToast }) {

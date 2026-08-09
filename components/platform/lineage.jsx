@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { lineageFor, PROVENANCE, provenanceFor } from "@/lib/lineage";
-import { T, F, AI_GOLD, Tag } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Tag } from "./core";
 
 /* ── Lineage drawer ─────────────────────────────────────────────────
    Opens on any metric: shows its value, how it was computed, and the
@@ -27,7 +27,7 @@ export function LineageDrawer({ node, onAsset, onClose }){
           </div>
           <button onClick={onClose} aria-label="Close" style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 7, width: 28, height: 28, color: T.ink3, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>✕</button>
         </div>
-        {lin.value && <div style={{ fontSize: 28, fontWeight: 800, color: AI_GOLD, fontFamily: F.m, marginTop: 8 }}>{lin.value}</div>}
+        {lin.value && <div style={{ fontSize: 28, fontWeight: 800, color: AI_GOLD_INK, fontFamily: F.m, marginTop: 8 }}>{lin.value}</div>}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }} title="Metric provenance">
           <span style={{ fontSize: 9.5, fontWeight: 900, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", color: prov.tone, background: prov.tone + "1a", border: `1px solid ${prov.tone}55`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>{prov.label}</span>
           <span style={{ fontSize: 10, color: T.ink3, fontFamily: F.b, lineHeight: 1.4 }}>{prov.def}</span>
@@ -43,7 +43,7 @@ export function LineageDrawer({ node, onAsset, onClose }){
           {lin.rows.map((r, i) => { const drill = r.id && onAsset; return <button key={(r.id || r.name) + i} onClick={() => drill && onAsset(r.id)} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, alignItems: "center", textAlign: "left", background: T.s2, border: `1px solid ${T.border}`, borderRadius: 9, padding: "9px 11px", cursor: drill ? "pointer" : "default" }}>
             <div style={{ minWidth: 0 }}><div style={{ fontSize: 11.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{r.name}</div><div style={{ fontSize: 9.5, color: T.ink4, fontFamily: F.b, marginTop: 1 }}>{r.unit}</div></div>
             <Tag label={String(r.v)} color={T.blue} bg={T.blue + "16"} />
-            <span style={{ color: AI_GOLD, fontWeight: 900, fontFamily: F.b, fontSize: 11, opacity: drill ? 1 : 0 }}>→</span>
+            <span style={{ color: AI_GOLD_INK, fontWeight: 900, fontFamily: F.b, fontSize: 11, opacity: drill ? 1 : 0 }}>→</span>
           </button>; })}
         </div>
         <div style={{ marginTop: 16, fontSize: 10, color: T.ink4, fontFamily: F.b, lineHeight: 1.6, display: "flex", gap: 8 }}><span>⛓</span><span>Every value traces to its source records and their evidence — the audit trail behind the number.</span></div>

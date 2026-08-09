@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { pushBus } from "@/lib/bus";
 import { AI_ASSETS, assetById } from "@/lib/ai-assets";
-import { T, F, AI_GOLD, Card, Tag, SHead, vzDownload, ISO42001_CHECKLIST } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card, Tag, SHead, vzDownload, ISO42001_CHECKLIST } from "./core";
 
 /* ── Templates & Register ───────────────────────────────────────────
    Governance templates that PRE-FILL from the canonical AI Asset record —
@@ -72,7 +72,7 @@ export function PageTemplates({ role = "caio", showToast }){
     <div style={{ fontSize:12, fontWeight:700, color:c || T.ink, fontFamily:F.b, marginTop:3 }}>{v || "—"}</div>
   </div>;
   const Gap = ({ l, k, ph }) => <label style={{ display:"grid", gap:5 }}>
-    <span style={{ fontSize:8.5, fontWeight:900, fontFamily:F.m, color:AI_GOLD, textTransform:"uppercase", letterSpacing:"0.08em" }}>✎ {l} · gap to complete</span>
+    <span style={{ fontSize:8.5, fontWeight:900, fontFamily:F.m, color:AI_GOLD_INK, textTransform:"uppercase", letterSpacing:"0.08em" }}>✎ {l} · gap to complete</span>
     <textarea value={gapVal(k)} onChange={e => setGap(k, e.target.value)} onBlur={e => e.target.value.trim() && showToast && showToast("Saved to the asset record")} placeholder={ph} rows={2} style={{ ...field, resize:"vertical", lineHeight:1.5 }} />
   </label>;
   const Sec = ({ t, children }) => <div style={{ marginBottom:14 }}><div style={{ fontSize:9.5, letterSpacing:"0.12em", textTransform:"uppercase", color:T.ink4, fontWeight:900, fontFamily:F.m, marginBottom:8 }}>{t}</div>{children}</div>;
@@ -134,8 +134,8 @@ export function PageTemplates({ role = "caio", showToast }){
     <Sec t="Identified risks — assess each">{a.risksList.length ? <div style={{ display:"grid", gap:10 }}>{a.risksList.map((r, i) => <Card key={r} style={{ padding:"12px 14px" }}>
       <div style={{ fontSize:12.5, fontWeight:800, color:T.ink, fontFamily:F.b, marginBottom:8 }}>{r}</div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <label style={{ display:"grid", gap:4 }}><span style={{ fontSize:8.5, fontWeight:900, color:AI_GOLD, fontFamily:F.m, textTransform:"uppercase" }}>✎ Mitigation</span><input value={gapVal("mit" + i)} onChange={e => setGap("mit" + i, e.target.value)} placeholder="Treatment / control…" style={field} /></label>
-        <label style={{ display:"grid", gap:4 }}><span style={{ fontSize:8.5, fontWeight:900, color:AI_GOLD, fontFamily:F.m, textTransform:"uppercase" }}>✎ Owner</span><input value={gapVal("own" + i)} onChange={e => setGap("own" + i, e.target.value)} placeholder="Accountable owner…" style={field} /></label>
+        <label style={{ display:"grid", gap:4 }}><span style={{ fontSize:8.5, fontWeight:900, color:AI_GOLD_INK, fontFamily:F.m, textTransform:"uppercase" }}>✎ Mitigation</span><input value={gapVal("mit" + i)} onChange={e => setGap("mit" + i, e.target.value)} placeholder="Treatment / control…" style={field} /></label>
+        <label style={{ display:"grid", gap:4 }}><span style={{ fontSize:8.5, fontWeight:900, color:AI_GOLD_INK, fontFamily:F.m, textTransform:"uppercase" }}>✎ Owner</span><input value={gapVal("own" + i)} onChange={e => setGap("own" + i, e.target.value)} placeholder="Accountable owner…" style={field} /></label>
       </div></Card>)}</div> : <div style={{ fontSize:11.5, color:T.ink3, fontFamily:F.b }}>No risks recorded for this asset.</div>}</Sec>
     <Sec t="Mapped controls"><div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>{a.controls.map(c => <Tag key={c} label={c} color={T.blue} bg={T.blue + "16"} />)}</div></Sec>
     <Sec t="Residual position"><Card style={{ padding:"12px 14px", borderLeft:`3px solid ${col(a.rec.color)}` }}><b style={{ color:col(a.rec.color) }}>{a.rec.verdict}</b> <span style={{ color:T.ink2, fontSize:11.5, fontFamily:F.b }}>— {a.rec.why}</span></Card></Sec>
@@ -175,7 +175,7 @@ export function PageTemplates({ role = "caio", showToast }){
       </div>
       <Card style={{ padding:"16px 18px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${T.border}` }}>
-          <span style={{ width:28, height:28, borderRadius:8, display:"grid", placeItems:"center", background:AI_GOLD + "22", color:AI_GOLD, fontSize:13 }}>▦</span>
+          <span style={{ width:28, height:28, borderRadius:8, display:"grid", placeItems:"center", background:AI_GOLD + "22", color:AI_GOLD_INK, fontSize:13 }}>▦</span>
           <div><div style={{ fontSize:14, fontWeight:800, color:T.ink, fontFamily:F.h }}>{TPLS.find(t => t[0] === tpl)[1]} · {a.name}</div><div style={{ fontSize:9.5, color:T.ink4, fontFamily:F.b }}>Pre-filled from the AI Asset record</div></div>
         </div>
         {tpl === "modelcard" && <ModelCard />}

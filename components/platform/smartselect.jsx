@@ -10,7 +10,7 @@
    Backed by lib/taxonomy. Session adds/requests persist in-memory. */
 
 import { useState, useRef, useEffect } from "react";
-import { T, F, AI_GOLD } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK } from "./core";
 import { TAXONOMY, canEditTaxonomy, optionsFor, addSessionValue, addPendingValue } from "@/lib/taxonomy";
 
 /* Read per-call so the coloured dots track the active theme (a frozen

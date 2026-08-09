@@ -4,7 +4,7 @@ import { PageTemplates, PageChecklists } from "./compliance";
 import { readBus, pushBus } from "@/lib/bus";
 import { useState, useEffect } from "react";
 import { AC_PHASES, acInitiatives, riskRegister, PLAYBOOK_LENS } from "@/lib/platform-models";
-import { T, RC, RCL, AI_GOLD, PLAYBOOK, HITL, F, Tag, PTag, STag, Bar, Card, SHead } from "./core";
+import { T, RC, RCL, AI_GOLD, AI_GOLD_INK, PLAYBOOK, HITL, F, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 
 export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
   const rc=RC(role);
@@ -48,7 +48,7 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
         <div style={{minWidth:200,flex:1}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
             <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>Implementation completion</span>
-            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{overall}%</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD_INK}}>{overall}%</span>
           </div>
           <Bar value={overall} color={AI_GOLD}/>
           <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:5}}>Phase {ini.phaseIndex+1} of {AC_PHASES.length} - {AC_PHASES[ini.phaseIndex]?.name} · {ini.phaseArtifactsDone}/{AC_PHASES[ini.phaseIndex]?.deliverables.length} artifacts</div>
@@ -111,7 +111,7 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
                 <span style={{width:15,height:15,borderRadius:4,background:done?T.green:"transparent",border:`2px solid ${done?T.green:T.ink4}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:900,flexShrink:0}}>{done?"✓":""}</span>
                 <span style={{fontSize:11,color:done?T.ink:T.ink2,fontFamily:F.b,fontWeight:done?700:500,flex:1}}>{d}</span>
                 {isApproval&&<Tag label="Approval gate" color={T.amber} bg={T.amberL}/>}
-                {done?<button onClick={()=>gotoAC("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Evidence →</button>
+                {done?<button onClick={()=>gotoAC("evidence")} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Evidence →</button>
                 :<span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>Pending</span>}
               </div>;
             })}
@@ -132,9 +132,9 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
             {ini.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.blue+"12",border:`1px solid ${T.blue}40`,borderRadius:6,padding:"2px 8px",color:T.blue,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
           </div>
           {activePhase===4&&<div style={{background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
-            <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Governance-phase assessments</div>
+            <div style={{fontSize:9,fontWeight:800,color:AI_GOLD_INK,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Governance-phase assessments</div>
             <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:7}}>The VerisZone engine cascade (AiOA → AiIA → AiRA → AiSA → AiPA → AiCA → AiGA → AiRT) runs automatically for this initiative.</div>
-            <button onClick={()=>setTab&&setTab("aiia")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open the assessment cascade →</button>
+            <button onClick={()=>setTab&&setTab("aiia")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open the assessment cascade →</button>
           </div>}
           <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Project risks - Risk Center register</div>
           <div style={{display:"grid",gap:6}}>
@@ -149,14 +149,14 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
     </Card>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
       <Card style={{padding:16}}>
-        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>AI recommendation for this project</div>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD_INK,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>AI recommendation for this project</div>
         <p style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.7,margin:"0 0 10px"}}>
           {ini.blockedBy
             ?`Progression to ${AC_PHASES[ini.phaseIndex+1]?.name||"the next phase"} is blocked: ${ini.blockedBy}. Resolve this artifact first - it gates ${ini.expected} of expected value. `
             :`No blockers. Complete the remaining ${AC_PHASES[ini.phaseIndex].deliverables.length-ini.phaseArtifactsDone} artifact(s) in ${AC_PHASES[ini.phaseIndex].name} to advance. `}
           {risks.find(r=>r.aiRecommendation)?risks.find(r=>r.aiRecommendation).aiRecommendation:""}
         </p>
-        <button onClick={()=>gotoAC("initiatives")} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
+        <button onClick={()=>gotoAC("initiatives")} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"7px 12px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Review initiative →</button>
       </Card>
       <Card style={{padding:16}}>
         <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Lessons from previous projects</div>

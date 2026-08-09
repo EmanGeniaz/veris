@@ -4,7 +4,7 @@ import { readBus, pushBus } from "@/lib/bus";
 import { Library, Scale, Workflow } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed, managerUsageSeed } from "@/lib/platform-models";
-import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
+import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
 import { inspectPrompt, classify, validateResponse } from "@/lib/policy-rules";
@@ -207,7 +207,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
           <div style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",padding:"6px 6px 4px",display:"flex",justifyContent:"space-between"}}><span>Projects</span><span>{projects.length}</span></div>
           {activeProject&&<button onClick={()=>{setActiveProject(null);}} style={{width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"5px 8px",color:T.ink4,fontSize:10.5,fontFamily:F.b,cursor:"pointer"}}>← All chats</button>}
           {projects.map(p=><button key={p.id} onClick={()=>{setActiveProject(p.id);setSelId(null);}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"7px 8px",borderRadius:8,background:activeProject===p.id?AI_GOLD+"14":"transparent",border:`1px solid ${activeProject===p.id?AI_GOLD+"40":"transparent"}`,cursor:"pointer",marginBottom:1}}>
-            <span style={{width:20,height:20,borderRadius:6,flexShrink:0,display:"grid",placeItems:"center",fontSize:10,background:AI_GOLD+"22",color:AI_GOLD}}>▦</span>
+            <span style={{width:20,height:20,borderRadius:6,flexShrink:0,display:"grid",placeItems:"center",fontSize:10,background:AI_GOLD+"22",color:AI_GOLD_INK}}>▦</span>
             <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
             <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,flexShrink:0}}>{projChatCount(p)}</span>
           </button>)}
@@ -253,14 +253,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
         {proj&&<div style={{padding:"12px 16px",borderBottom:`1px solid ${T.border}`,background:T.s2}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
             <div style={{display:"flex",alignItems:"center",gap:9}}>
-              <span style={{width:26,height:26,borderRadius:8,display:"grid",placeItems:"center",background:AI_GOLD+"22",color:AI_GOLD,fontSize:13}}>▦</span>
+              <span style={{width:26,height:26,borderRadius:8,display:"grid",placeItems:"center",background:AI_GOLD+"22",color:AI_GOLD_INK,fontSize:13}}>▦</span>
               <div><div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.h}}>{proj.name}</div><div style={{fontSize:9.5,color:T.ink4,fontFamily:F.b}}>Project · {projChatCount(proj)} chats · {proj.files.length} files</div></div>
             </div>
-            <button onClick={startNewChat} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"6px 11px",color:AI_GOLD,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>＋ New chat in project</button>
+            <button onClick={startNewChat} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:8,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>＋ New chat in project</button>
           </div>
           {(proj.files.length>0)&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10,alignItems:"center"}}>
             {proj.files.map(f=><span key={f} style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,background:T.s3||T.s1,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 8px"}}>📄 {f}</span>)}
-            <button onClick={()=>fileRef.current&&fileRef.current.click()} style={{fontSize:9.5,color:AI_GOLD,background:"transparent",border:`1px dashed ${AI_GOLD}55`,borderRadius:6,padding:"3px 8px",fontFamily:F.b,fontWeight:700,cursor:"pointer"}}>＋ Add knowledge</button>
+            <button onClick={()=>fileRef.current&&fileRef.current.click()} style={{fontSize:9.5,color:AI_GOLD_INK,background:"transparent",border:`1px dashed ${AI_GOLD}55`,borderRadius:6,padding:"3px 8px",fontFamily:F.b,fontWeight:700,cursor:"pointer"}}>＋ Add knowledge</button>
           </div>}
           {proj.instructions&&<div style={{marginTop:9,fontSize:10,color:T.ink3,fontFamily:F.b,fontStyle:"italic",lineHeight:1.5,borderLeft:`2px solid ${AI_GOLD}55`,paddingLeft:9}}>{proj.instructions}</div>}
         </div>}
@@ -288,14 +288,14 @@ export function PageWorkbench({role,sessionMode,showToast}){
               </div>}
               {m.enrichedWith&&m.enrichedWith.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`}}>
                 <span style={{fontSize:8,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em",alignSelf:"center"}}>Enriched with</span>
-                {m.enrichedWith.map(k=><span key={k} style={{fontSize:9,color:AI_GOLD,background:AI_GOLD+"10",border:`1px solid ${AI_GOLD}30`,borderRadius:5,padding:"2px 7px",fontFamily:F.b,fontWeight:700}}>{k}</span>)}
+                {m.enrichedWith.map(k=><span key={k} style={{fontSize:9,color:AI_GOLD_INK,background:AI_GOLD+"10",border:`1px solid ${AI_GOLD}30`,borderRadius:5,padding:"2px 7px",fontFamily:F.b,fontWeight:700}}>{k}</span>)}
               </div>}
             </div>
           </div>)}
           {phase&&sel&&phase.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
             <div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:12,padding:"11px 14px",display:"flex",gap:10,alignItems:"center"}}>
               <span style={{display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</span>
-              <span style={{fontSize:11,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>{["Checking policy at the boundary...","Searching enterprise knowledge...",`Routing to ${provider.name}...`][phase.stageIdx]||"Working..."}</span>
+              <span style={{fontSize:11,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>{["Checking policy at the boundary...","Searching enterprise knowledge...",`Routing to ${provider.name}...`][phase.stageIdx]||"Working..."}</span>
             </div>
           </div>}
           {typed&&sel&&typed.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
@@ -503,7 +503,7 @@ function EmployeeBenchmark({showToast}){
     {gap?<Card style={{padding:"13px 15px",display:"flex",gap:12,alignItems:"flex-start",border:`1px solid ${T.amber}55`,background:T.amber+"14"}}>
       <span style={{fontSize:15,color:T.amber}}>↗</span>
       <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{gap.title}</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>{gap.body}</div>
-        <button onClick={()=>showToast&&showToast("Opening your Assistant's prompt library")} style={{marginTop:9,background:T.s1||T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 11px",color:AI_GOLD,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{gap.cta} →</button></div>
+        <button onClick={()=>showToast&&showToast("Opening your Assistant's prompt library")} style={{marginTop:9,background:T.s1||T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{gap.cta} →</button></div>
     </Card>:<Card style={{padding:"13px 15px",display:"flex",gap:12,alignItems:"flex-start",border:`1px solid ${T.green}55`,background:T.green+"14"}}>
       <span style={{fontSize:15,color:T.green}}>✓</span>
       <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>You're ahead of this cohort on every measure</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>Nice — consider sharing your best prompts so your team can catch up.</div></div>
@@ -658,7 +658,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
                 <span style={{display:"block",fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t2.what}</span>
                 <span style={{display:"block",fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{t2.src}</span>
               </span>
-              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900}}>→</span>
+              <span style={{fontSize:11,color:AI_GOLD_INK,fontWeight:900}}>→</span>
             </button>)}
           </div>
         </div>
@@ -668,7 +668,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
             {[["Continue working",()=>primary&&openInitiative&&openInitiative(primary.ini.id)],
               ["Start new AI chat",()=>setTab&&setTab("workbench")],
               ["Submit new idea",()=>setTab&&setTab("myideas")],
-              ["Open Governance Academy",()=>setTab&&setTab("academy")]].map(([l,go])=><button key={l} onClick={go} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}35`,borderRadius:9,padding:"9px 14px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{l}</button>)}
+              ["Open Governance Academy",()=>setTab&&setTab("academy")]].map(([l,go])=><button key={l} onClick={go} style={{background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}35`,borderRadius:9,padding:"9px 14px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{l}</button>)}
           </div>
         </div>
         <div>
@@ -703,7 +703,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
                 <span style={{display:"block",fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.title}</span>
                 <span style={{display:"block",fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:2}}>{c.project} · {c.model} · {c.classification} · {c.lastActivity}</span>
               </span>
-              <span style={{fontSize:9.5,color:AI_GOLD,fontWeight:900,fontFamily:F.b,flexShrink:0}}>Continue →</span>
+              <span style={{fontSize:9.5,color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,flexShrink:0}}>Continue →</span>
             </button>)}
           </div>
         </div>
@@ -747,7 +747,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
           {secHead("My governance training")}
           {training.map(t2=><div key={t2} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:11,color:T.ink2,fontFamily:F.b}}>{t2}</span>
-            <button onClick={()=>setTab&&setTab("academy")} style={{background:"transparent",border:"none",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Start →</button>
+            <button onClick={()=>setTab&&setTab("academy")} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Start →</button>
           </div>)}
           <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}>Auto-assigned from {primary?`${primary.ini.name} · ${phaseName(primary.ini)} phase · your role`:"your role"}. No manual assignment.</div>
         </Card>
@@ -761,7 +761,7 @@ export function PageMyWorkspace({role="employee",sessionMode,showToast,setTab,op
         <Card style={{padding:15}}>
           {secHead("Recent activity")}
           {[`${employeeUsageSeed.prompts} governed prompts · ${employeeUsageSeed.timeSavedHrs}h saved`,`${employeeUsageSeed.blocked} prompts blocked by the Trust Gateway`,`Knowledge reuse ${employeeUsageSeed.knowledgeReuse}% · learning ${employeeUsageSeed.learningProgress}%`].map((a,i)=><div key={i} style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.7}}>· {a}</div>)}
-          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open my AI dashboard →</button>
+          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open my AI dashboard →</button>
         </Card>
       </div>
     </div>
@@ -812,7 +812,7 @@ export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,o
             {team.map(m=><div key={m.name} style={{display:"grid",gridTemplateColumns:"1.2fr 1.6fr auto",gap:12,alignItems:"center"}}>
               <div><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{m.role} · {m.certs}{m.evidence?` · ${m.evidence} evidence pending`:""}</div></div>
               <div><Bar value={m.training} color={m.training>=70?T.green:m.training>=45?T.amber:T.red}/><div style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginTop:3}}>training {m.training}%</div></div>
-              {m.ready?<Tag label="Ready" color={T.green} bg={T.greenL}/>:<button onClick={()=>act(`Learning path assigned to ${m.name}`,`Learning path assigned to ${m.name} - completion will lift team readiness`)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Assign learning</button>}
+              {m.ready?<Tag label="Ready" color={T.green} bg={T.greenL}/>:<button onClick={()=>act(`Learning path assigned to ${m.name}`,`Learning path assigned to ${m.name} - completion will lift team readiness`)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD_INK,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Assign learning</button>}
             </div>)}
           </div>
           <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
@@ -845,7 +845,7 @@ export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,o
           {secHead("Capacity")}
           {(acPmo[assigns[0]?.initiativeId]?.resources||[]).map(r=><div key={r.role} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
             <div><div style={{fontSize:11,color:T.ink,fontFamily:F.b,fontWeight:700}}>{r.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{r.role}</div></div>
-            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{r.allocation}</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:AI_GOLD_INK}}>{r.allocation}</span>
           </div>)}
         </Card>
         <Card style={{padding:15}}>
@@ -853,7 +853,7 @@ export function PageTeamWorkspace({role="manager",sessionMode,showToast,setTab,o
           {[["Compliance rate","92%",T.green],["Blocked events","3",T.amber],["Gateway coverage","100%",T.green]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
             <span style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{l}</span><span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:c}}>{v}</span>
           </div>)}
-          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open team dashboard →</button>
+          <button onClick={()=>setTab&&setTab("aiusage")} style={{marginTop:8,background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>Open team dashboard →</button>
         </Card>
       </div>
     </div>
