@@ -26,3 +26,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Local scratch / deck-build workspace (not part of the app)
+scratch/
