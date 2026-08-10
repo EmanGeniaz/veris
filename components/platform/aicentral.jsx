@@ -18,6 +18,7 @@ import { acModuleLensFor } from "@/lib/ai-central-module-lens";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
 import { PF, OPEN_INCIDENTS } from "@/lib/portfolio";
+import { sustainabilityStats } from "@/lib/sustainability";
 
 export function PageModelRegistry({setTab,openInitiative,role="caio",showToast}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
@@ -2528,7 +2529,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
 
   /* ── Value Realization ── expected vs realized ROI ── */
   const totExp=items.reduce((s,i)=>s+money(i.expected),0),totAct=items.reduce((s,i)=>s+money(i.actual),0);
-  const ValueRealization=()=><div>
+  const ValueRealization=()=>{const S=sustainabilityStats();return <div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
       <Metric label="Expected value" value={"$"+totExp.toFixed(1)+"M"} sub="portfolio target" color={AI_GOLD}/>
       <Metric label="Realized value" value={"$"+totAct.toFixed(1)+"M"} sub={Math.round(totAct/totExp*100)+"% captured"} color={T.green} score={Math.round(totAct/totExp*100)}/>
@@ -2548,7 +2549,49 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         </tr>;})}</tbody>
       </table></div>
     </Card>
-  </div>;
+
+    {/* ── Environmental footprint · the "Measure" plane (ISO/IEC TR 20226) ── */}
+    <div style={{marginTop:18,display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+      <span style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",whiteSpace:"nowrap"}}>Environmental footprint</span>
+      <Tag label="ISO/IEC TR 20226" color={T.green} bg={T.green+"16"}/>
+      <span style={{flex:1,height:1,background:`linear-gradient(90deg,${T.border},transparent)`}}/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:14}}>
+      <Metric label="Energy use" value={`${S.mwhMo} MWh`} sub="per month · PUE 1.4" color={T.blue}/>
+      <Metric label="Carbon" value={`${S.tCo2eYr} tCO₂e`} sub={`per year · ${S.trendPct}% MoM`} color={S.trendPct<0?T.green:T.amber}/>
+      <Metric label="Measured coverage" value={`${S.measuredPct}%`} sub="metered vs estimated" color={S.measuredPct>=60?T.green:T.amber} score={S.measuredPct}/>
+      <Metric label="Efficiency index" value={String(S.efficiency)} sub="carbon per $ value" color={S.efficiency>=70?T.green:T.amber} score={S.efficiency}/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1.4fr .82fr",gap:14,alignItems:"start"}}>
+      <Card style={{padding:"16px 18px"}}>
+        <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:4}}>Footprint by initiative</div>
+        <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:10,lineHeight:1.5}}>Estimated from inference volume × model-class energy intensity × regional grid carbon × data-centre PUE. Live meters replace the estimate as gateway telemetry is wired.</div>
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+          <thead><tr>{["Initiative","Class","Region","kWh/mo","kgCO₂e/mo","Basis"].map(h=><th key={h} style={{textAlign:h==="kWh/mo"||h==="kgCO₂e/mo"?"right":"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+          <tbody>{S.rows.map(r=><tr key={r.id} onClick={()=>openInitiative(r.id,"value")} style={{cursor:"pointer"}} className="vz-pn-row">
+            <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{r.name}</td>
+            <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{r.cls}</td>
+            <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{r.region}</td>
+            <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2,fontFamily:F.m,textAlign:"right"}}>{r.kwhMo.toLocaleString()}</td>
+            <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontFamily:F.m,fontWeight:700,textAlign:"right"}}>{r.carbonKgMo.toLocaleString()}</td>
+            <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`}}><Tag label={r.measured?"Measured":"Estimated"} color={r.measured?T.green:T.amber} bg={(r.measured?T.green:T.amber)+"16"}/></td>
+          </tr>)}</tbody>
+        </table></div>
+      </Card>
+      <div>
+        <Card style={{padding:"16px 18px",marginBottom:12}}>
+          <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:10}}>TR 20226 practice posture · {S.postureScore}%</div>
+          {S.posture.map((pp,i)=><div key={i} style={{marginBottom:9}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:10.5,marginBottom:3}}><span style={{color:T.ink2,fontFamily:F.b}}>{pp.practice}</span><span style={{color:T.ink3,fontFamily:F.m,fontWeight:800,whiteSpace:"nowrap"}}>{pp.status}</span></div>
+            <Bar value={pp.pct} color={pp.pct>=70?T.green:pp.pct>=40?T.amber:T.red}/>
+          </div>)}
+        </Card>
+        <div style={{padding:"11px 13px",borderRadius:10,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}30`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}>
+          <b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> {S.recs[0]?.label} — est. −{S.recs[0]?.saveTyr} tCO₂e/yr. Reduction opportunities identified across the portfolio total <b>{S.reductionTyr} tCO₂e/yr</b> ({Math.round(S.reductionTyr/Math.max(1,S.tCo2eYr)*100)}% of current footprint).
+        </div>
+      </div>
+    </div>
+  </div>;};
 
   /* ── Audit Center ── immutable trail + findings + packs ── */
   const AUDIT_TRAIL=[["Scale decision recorded","Resolution Copilot","A. Patel","09:42","Decision"],["Guardrail policy v6 approved","Responsible GenAI Use","A. Patel","08:15","Policy"],["DPIA evidence uploaded","Credit Decision","N. Lynch","Jul 24","Evidence"],["Risk treatment advanced","Servicing drift","D. Nair","Jul 23","Risk"],["Control test logged","CTRL-AI-014","R. Torres","Jul 22","Control"],["Model approved for production","Finance Close","M. Reid","Jul 21","Approval"]];
