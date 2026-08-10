@@ -607,7 +607,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {tabs.map(([id,label])=><button key={id} onClick={()=>onChange(id)} style={{background:a===id?rc+"20":T.s2,border:`1px solid ${a===id?rc+"55":T.border}`,color:a===id?rc:T.ink2,borderRadius:8,padding:"7px 11px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
   </div>;
 
-  const Metric=({label,value,sub,color,score,onClick})=><Card onClick={onClick} style={{padding:16,cursor:onClick?"pointer":"default",transition:"border-color .15s"}}>
+  /* Every summary tile is clickable. If a tile is given an explicit onClick it
+     drills into the owning surface; otherwise it opens the metric's lineage
+     drawer — so no module-page stat tile is ever a silent dead click. */
+  const Metric=({label,value,sub,color,score,onClick})=><Card onClick={onClick||(()=>setLineage({label,value}))} style={{padding:16,cursor:"pointer",transition:"border-color .15s"}}>
     <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"center"}}>
       <div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:8}}>{label}</div>
