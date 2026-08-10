@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { facetsFor } from "@/lib/initiative-facets";
-import { T, F, AI_GOLD, Card, Tag } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card, Tag } from "./core";
 
 /* ── Initiative Brief ───────────────────────────────────────────────
    The shared, self-explanatory view of one initiative — the intent, the

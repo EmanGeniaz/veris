@@ -4,7 +4,7 @@ import { readBus, pushBus } from "@/lib/bus";
 import { Map, Scale } from "lucide-react";
 import { useState } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acEvidence, acFeedback, gatewayStats, EXEC_BRIEF, EXEC_PRIORITIES, ASSISTANT_NUDGES, riskRegister } from "@/lib/platform-models";
-import { DEFAULT_FEEDBACK, feedbackDecision, feedbackAvg, decisionColorOf, T, ROLES, NAV, AI_GOLD, AI_GOLD_B, F, Tag } from "./core";
+import { DEFAULT_FEEDBACK, feedbackDecision, feedbackAvg, decisionColorOf, T, ROLES, NAV, AI_GOLD, AI_GOLD_INK, AI_GOLD_B, F, Tag } from "./core";
 
 export function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const [chat,setChat]=useState([]);
@@ -98,7 +98,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
     {open&&<div style={{position:"fixed",bottom:22,right:22,zIndex:9000,width:isMobile?"calc(100vw - 32px)":360,maxHeight:"78vh",display:"flex",flexDirection:"column",background:T.card,border:`1px solid ${AI_GOLD}45`,borderRadius:16,boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden",animation:"up .25s ease"}}>
       <div style={{padding:"13px 15px",borderBottom:`1px solid ${T.border}`,background:`linear-gradient(135deg,${T.s2},${T.s1})`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:34,height:34,borderRadius:10,background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:13,fontWeight:900,color:"#111",fontFamily:F.h}}>AI</span></div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>Veris Intelligence</div><div style={{fontSize:9,color:AI_GOLD,fontFamily:F.m,fontWeight:800}}>Executive Advisor · {R.label} · {pageLabel}</div></div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:900,color:T.ink,fontFamily:F.h}}>Veris Intelligence</div><div style={{fontSize:9,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>Executive Advisor · {R.label} · {pageLabel}</div></div>
         <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:T.ink3,cursor:"pointer",padding:4,display:"flex"}}><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg></button>
       </div>
       <div style={{padding:"13px 15px",overflowY:"auto",display:"grid",gap:12}}>
@@ -137,7 +137,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
           <div style={{display:"grid",gap:6}}>
             {artifactActions.map(a=><button key={a} onClick={()=>runArtifact(a)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
               <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:700}}>{a}</span>
-              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900,flexShrink:0}}>+</span>
+              <span style={{fontSize:11,color:AI_GOLD_INK,fontWeight:900,flexShrink:0}}>+</span>
             </button>)}
           </div>
         </div>}
@@ -152,7 +152,7 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
           <div style={{display:"grid",gap:6}}>
             {priorities.slice(0,3).map((p,i)=><button key={i} onClick={()=>{goto(p.link);setOpen(false);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",cursor:"pointer",textAlign:"left"}}>
               <span style={{fontSize:10,color:T.ink,fontFamily:F.b,fontWeight:700,minWidth:0}}>{p.title}</span>
-              <span style={{fontSize:11,color:AI_GOLD,fontWeight:900,flexShrink:0}}>→</span>
+              <span style={{fontSize:11,color:AI_GOLD_INK,fontWeight:900,flexShrink:0}}>→</span>
             </button>)}
           </div>
         </div>
@@ -168,12 +168,12 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
                     <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:m.src==="Internal"?T.green:m.src==="External"?T.blue:T.amber,textTransform:"uppercase",letterSpacing:"0.06em"}}>Source: {m.src}</span>
                   </span>
                   {m.srcNote&&<span style={{fontSize:8.5,color:T.ink4,fontFamily:F.b}}>· {m.srcNote}</span>}
-                  {m.live&&<span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:AI_GOLD,background:AI_GOLD+"1c",border:`1px solid ${AI_GOLD}55`,borderRadius:999,padding:"1px 7px",letterSpacing:"0.04em"}}>⚡ LIVE · GATEWAY</span>}
+                  {m.live&&<span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:AI_GOLD_INK,background:AI_GOLD+"1c",border:`1px solid ${AI_GOLD}55`,borderRadius:999,padding:"1px 7px",letterSpacing:"0.04em"}}>⚡ LIVE · GATEWAY</span>}
                   {m.gov&&m.gov.cls&&<span style={{fontSize:8,fontWeight:900,fontFamily:F.m,color:m.gov.cls==="Restricted"?T.red:m.gov.cls==="Confidential"?T.amber:T.blue,background:(m.gov.cls==="Restricted"?T.red:m.gov.cls==="Confidential"?T.amber:T.blue)+"1c",borderRadius:999,padding:"1px 7px"}}>{m.gov.cls}</span>}
                   {m.gov&&<span style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:m.gov.ok?T.green:T.amber}}>{m.gov.ok?"✓ egress clean":"⚠ egress redacted"}</span>}
                   {m.gov&&m.gov.cost&&<span style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:T.ink4}} title={`${m.gov.tokens||0} tokens metered`}>⛽ {m.gov.cost}</span>}
                 </div>}
-                {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
+                {m.link&&<button onClick={()=>{goto(m.link);setOpen(false);}} style={{marginTop:6,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"4px 9px",color:AI_GOLD_INK,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{m.label||"Open"} →</button>}
               </div>
             </div>)}
             {busy&&<div style={{justifySelf:"start"}}><div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:10,padding:"8px 11px",display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:5,height:5,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</div></div>}

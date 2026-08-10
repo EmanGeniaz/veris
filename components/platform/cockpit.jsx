@@ -4,7 +4,7 @@ import { useState } from "react";
 import { acInitiatives, acFeedback, riskRegister, EXEC_DECISIONS, EXEC_RECENT_CHANGES, EXEC_BRIEF } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { navigateTo } from "@/lib/navigation";
-import { T, F, AI_GOLD, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } from "./core";
 
 /* ── CEO Executive Cockpit ─────────────────────────────────────────
    Answers exactly four questions: what is happening, what needs my
@@ -43,14 +43,14 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
     `Approving today's recommendations unlocks an estimated $${(expected-realized).toFixed(1)}M in enterprise value.`,
   ].filter(Boolean).slice(0,5);
   const hero=[
-    ["Portfolio value",`$${realized.toFixed(1)}M`,AI_GOLD,()=>nav("kpiValue"),"Value reporting lives in Reports"],
+    ["Portfolio value",`$${realized.toFixed(1)}M`,AI_GOLD_INK,()=>nav("kpiValue"),"Value reporting lives in Reports"],
     ["Enterprise health",`${health}`,health>=75?T.green:T.amber,()=>nav("kpiHealth"),"Execution health lives in AI Central"],
     ["Decisions waiting",decisions,T.blue,()=>nav("kpiDecisions"),"Open the Decision Center"],
     ["Active risks",risksOpen,critHigh?T.red:T.green,()=>nav("kpiRisks"),"Every risk lives in the Risk Center"],
     ["Compliance confidence",`${compliance}%`,T.green,()=>nav("kpiCompliance"),"Controls live in Compliance & Standards"],
   ];
   const snapshot=[
-    ["Enterprise AI value",`$${expected.toFixed(1)}M`,"expected",AI_GOLD,()=>nav("kpiValue")],
+    ["Enterprise AI value",`$${expected.toFixed(1)}M`,"expected",AI_GOLD_INK,()=>nav("kpiValue")],
     ["Portfolio health",`${health}/100`,"execution",T.green,()=>nav("kpiHealth")],
     ["AI maturity",`${maturity}/100`,"capability",T.blue,()=>nav("kpiMaturity")],
     ["Compliance confidence",`${compliance}%`,"all frameworks",T.teal,()=>nav("kpiCompliance")],
@@ -115,7 +115,7 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
       <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"flex-start"}}>
         <span style={{width:7,height:7,borderRadius:"50%",background:AI_GOLD,boxShadow:`0 0 10px ${AI_GOLD}`,marginTop:5,flexShrink:0,animation:"pulse 2.4s infinite"}}/>
         <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.7,maxWidth:980}}>
-          <strong style={{color:AI_GOLD,fontSize:9.5,fontFamily:F.m,letterSpacing:"0.1em"}}>VERIS INTELLIGENCE · </strong>
+          <strong style={{color:AI_GOLD_INK,fontSize:9.5,fontFamily:F.m,letterSpacing:"0.1em"}}>VERIS INTELLIGENCE · </strong>
           {narrative.join(" ")}
         </div>
       </div>

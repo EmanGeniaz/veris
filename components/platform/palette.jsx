@@ -11,7 +11,7 @@
    invents a route. */
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { T, F, AI_GOLD, MODEL_REGISTRY, TEMPLATES, ROLES } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, MODEL_REGISTRY, TEMPLATES, ROLES } from "./core";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
 const RECENT_KEY = "vz-palette-recent";
@@ -123,7 +123,7 @@ export function CommandPalette({ open, onClose, actions, role = "caio", theme = 
     g.items.push({ ...e, idx: i });
   });
 
-  const chip = { fontSize: 8, fontWeight: 900, fontFamily: F.m, color: AI_GOLD, textTransform: "uppercase", letterSpacing: "0.08em", width: 66, flexShrink: 0 };
+  const chip = { fontSize: 8, fontWeight: 900, fontFamily: F.m, color: AI_GOLD_INK, textTransform: "uppercase", letterSpacing: "0.08em", width: 66, flexShrink: 0 };
 
   return (
     <div onMouseDown={onClose} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(4,7,20,.55)", backdropFilter: "blur(3px)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "12vh 16px 16px" }}>
@@ -134,7 +134,7 @@ export function CommandPalette({ open, onClose, actions, role = "caio", theme = 
         else if (e.key === "Enter") { e.preventDefault(); run(results[active]); }
       }} style={{ width: "100%", maxWidth: 620, background: T.card || T.s1, border: `1px solid ${AI_GOLD}35`, borderRadius: 14, boxShadow: "0 32px 80px rgba(0,0,0,.6)", overflow: "hidden", animation: "up .18s ease" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <span style={{ fontSize: 13, color: AI_GOLD, fontWeight: 900 }}>⌘K</span>
+          <span style={{ fontSize: 13, color: AI_GOLD_INK, fontWeight: 900 }}>⌘K</span>
           <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search initiatives, models, risks, policies, people — or type a command…"
             style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: T.ink, fontSize: 14, fontFamily: F.b, fontWeight: 600 }} />
           <span style={{ fontSize: 9, color: T.ink4, fontFamily: F.m, border: `1px solid ${T.border}`, borderRadius: 5, padding: "2px 6px" }}>esc</span>
@@ -153,7 +153,7 @@ export function CommandPalette({ open, onClose, actions, role = "caio", theme = 
                     <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: T.ink, fontFamily: F.b, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.label}</span>
                     <span style={{ display: "block", fontSize: 9.5, color: T.ink4, fontFamily: F.b, marginTop: 1 }}>{e.sub}</span>
                   </span>
-                  {on && <span style={{ fontSize: 9, color: AI_GOLD, fontFamily: F.m, fontWeight: 800, flexShrink: 0 }}>↵</span>}
+                  {on && <span style={{ fontSize: 9, color: AI_GOLD_INK, fontFamily: F.m, fontWeight: 800, flexShrink: 0 }}>↵</span>}
                 </button>;
               })}
             </div>

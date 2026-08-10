@@ -132,22 +132,22 @@ export const LIGHT_T = {
   shadow:  "0 1px 2px rgba(74,20,40,.04), 0 14px 34px rgba(120,30,60,.08)",
   ink:     "#241820",
   ink2:    "#5A4B54",
-  ink3:    "#8A7A82",
-  ink4:    "#B4A6AE",
+  ink3:    "#685863",   /* muted text — AA (>=4.5:1) on cream surfaces */
+  ink4:    "#736069",   /* very muted — AA (>=4.5:1) on cream surfaces */
   ink5:    "#E7DDD0",
-  ceo:   "#C99A2E", ceoL:  "#FAF4E6",
+  ceo:   "#7E620F", ceoL:  "#FAF4E6",
   coo:   "#0B4EA2", cooL:  "#EAF2FF",
   cfo:   "#2F6F63", cfoL:  "#E7F3F0",
   chro:  "#BE185D", chroL: "#FCE7F3",
   ciso:  "#0B4EA2", cisoL: "#EAF2FF",
   caio:  "#0B4EA2", caioL: "#EAF2FF",
   cio:   "#0B4EA2", cioL:  "#EAF2FF",
-  cdpo:  "#C99A2E", cdpoL: "#FAF4E6",
-  cgo:   "#C99A2E", cgoL:  "#FAF4E6",
+  cdpo:  "#7E620F", cdpoL: "#FAF4E6",
+  cgo:   "#7E620F", cgoL:  "#FAF4E6",
   cro:   "#B42318", croL:  "#FEF3F2",
   legal: "#334155", legalL:"#F1F5F9",
   red:    "#B42318", redL:   "#FEF3F2",
-  amber:  "#C99A2E", amberL: "#FAF4E6",
+  amber:  "#7E620F", amberL: "#FAF4E6",
   green:  "#2F6F63", greenL: "#E7F3F0",
   blue:   "#0B4EA2", blueL:  "#EAF2FF",
   violet: "#334155", violetL:"#F1F5F9",
@@ -516,6 +516,10 @@ export const RETIREMENT_REASONS = [
 ];
 
 export const AI_GOLD = "#D6A84F";
+/* Text-safe gold: AI_GOLD as foreground text fails WCAG AA on the light cream
+   surfaces (~2:1). Use AI_GOLD_INK for gold *text*; keep AI_GOLD for fills,
+   borders, tints and large decoration. #7E620F clears 4.5:1 on the cream ground. */
+export const AI_GOLD_INK = "#7E620F";
 export const AI_GOLD_L = "#211806";
 export const AI_GOLD_B = "#6F5420";
 
@@ -527,7 +531,7 @@ export const AI_ROLLOUT_PROGRAMS = [
 ];
 
 export const AI_SPINE_SIGNALS = [
-  {label:"AI Spine Readiness",value:"72%",sub:"Pilot-to-scale composite",color:AI_GOLD},
+  {label:"AI Spine Readiness",value:"72%",sub:"Pilot-to-scale composite",color:AI_GOLD_INK},
   {label:"Evidence Confidence",value:"81%",sub:"Audit proof quality",color:T.blue},
   {label:"Risk Drift Alerts",value:"3",sub:"Above approved appetite",color:T.red},
   {label:"Scale Gates Pending",value:"4",sub:"CXO decisions required",color:T.amber},
@@ -1094,9 +1098,9 @@ Object.assign(ROLE_KPIS,{
 });
 
 Object.assign(DOMAIN_METRICS,{
-  ceo:[{label:"Scale-ready Pilots",value:2,unit:"",color:AI_GOLD,trend:1,fw:"AI Spine"},{label:"Enterprise AI Value",value:3.6,unit:"M",color:T.green,trend:8,fw:"Value"},{label:"Risk Drift Alerts",value:3,unit:"",color:T.red,trend:-1,fw:"COSO"},{label:"Evidence Confidence",value:81,unit:"%",color:T.blue,trend:4,fw:"Audit"}],
-  coo:[{label:"Pilots In Flight",value:4,unit:"",color:AI_GOLD,trend:1,fw:"Ops"},{label:"Adoption Score",value:64,unit:"%",color:T.amber,trend:6,fw:"Change"},{label:"Blocked Tasks",value:3,unit:"",color:T.red,trend:-2,fw:"Execution"},{label:"Wave Readiness",value:76,unit:"%",color:T.blue,trend:5,fw:"AI Spine"}],
-  cfo:[{label:"AI Portfolio Value",value:3.6,unit:"M",color:T.green,trend:9,fw:"Finance"},{label:"Budget Variance",value:6,unit:"%",color:T.green,trend:-1,fw:"FinOps"},{label:"ROI Confidence",value:88,unit:"%",color:AI_GOLD,trend:4,fw:"Value"},{label:"Unfunded Gates",value:2,unit:"",color:T.amber,trend:0,fw:"Budget"}],
+  ceo:[{label:"Scale-ready Pilots",value:2,unit:"",color:AI_GOLD_INK,trend:1,fw:"AI Spine"},{label:"Enterprise AI Value",value:3.6,unit:"M",color:T.green,trend:8,fw:"Value"},{label:"Risk Drift Alerts",value:3,unit:"",color:T.red,trend:-1,fw:"COSO"},{label:"Evidence Confidence",value:81,unit:"%",color:T.blue,trend:4,fw:"Audit"}],
+  coo:[{label:"Pilots In Flight",value:4,unit:"",color:AI_GOLD_INK,trend:1,fw:"Ops"},{label:"Adoption Score",value:64,unit:"%",color:T.amber,trend:6,fw:"Change"},{label:"Blocked Tasks",value:3,unit:"",color:T.red,trend:-2,fw:"Execution"},{label:"Wave Readiness",value:76,unit:"%",color:T.blue,trend:5,fw:"AI Spine"}],
+  cfo:[{label:"AI Portfolio Value",value:3.6,unit:"M",color:T.green,trend:9,fw:"Finance"},{label:"Budget Variance",value:6,unit:"%",color:T.green,trend:-1,fw:"FinOps"},{label:"ROI Confidence",value:88,unit:"%",color:AI_GOLD_INK,trend:4,fw:"Value"},{label:"Unfunded Gates",value:2,unit:"",color:T.amber,trend:0,fw:"Budget"}],
   chro:[{label:"Training Completion",value:68,unit:"%",color:T.amber,trend:7,fw:"People"},{label:"Adoption Resistance",value:2,unit:"",color:T.amber,trend:-1,fw:"Change"},{label:"Role Impact Reviews",value:72,unit:"%",color:T.blue,trend:5,fw:"Responsible AI"},{label:"AI Literacy Pulse",value:77,unit:"%",color:T.green,trend:6,fw:"Workforce"}],
 });
 
@@ -1493,7 +1497,7 @@ export function KpiInsightPanel({label,status,role,goto}){
     </div>
     <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
       {linked&&<span style={{fontSize:9,color:T.ink3,fontFamily:F.b}}>Linked initiative: <strong style={{color:T.ink2}}>{linked.name}</strong></span>}
-      <button onClick={e=>{e.stopPropagation();goto(d.link);}} style={{marginLeft:"auto",background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"5px 10px",color:AI_GOLD,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Resolve blocker →</button>
+      <button onClick={e=>{e.stopPropagation();goto(d.link);}} style={{marginLeft:"auto",background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"5px 10px",color:AI_GOLD_INK,fontSize:9,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Resolve blocker →</button>
       <button onClick={e=>{e.stopPropagation();goto({ac:"evidence"});}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 10px",color:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Evidence →</button>
     </div>
   </div>;

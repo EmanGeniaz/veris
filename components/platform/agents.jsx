@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { readBus, pushBus } from "@/lib/bus";
 import { AI_AGENTS, agentStats, capabilityCheck, agentControls, agentPosture, isOverPrivileged } from "@/lib/agent-registry";
-import { T, F, AI_GOLD, Tag, Bar, Card, SHead } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Tag, Bar, Card, SHead } from "./core";
 
 /* ── AI Agents · least-privilege capability control ─────────────────
    Every agent is a governed object with declared capabilities. The

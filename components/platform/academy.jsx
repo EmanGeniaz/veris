@@ -2,7 +2,7 @@
 
 import { CheckCircle2, PlayCircle } from "lucide-react";
 import { acInitiatives } from "@/lib/platform-models";
-import { T, RC, ROLES, AI_GOLD, GOVERNANCE_ACADEMY, ROLE_LEARNING_PATHS, academyEvidenceFor, F, Tag, Bar, Card, SHead } from "./core";
+import { T, RC, ROLES, AI_GOLD, AI_GOLD_INK, GOVERNANCE_ACADEMY, ROLE_LEARNING_PATHS, academyEvidenceFor, F, Tag, Bar, Card, SHead } from "./core";
 import { pathProgress, quizAvg, stateOf, isComplete, enterpriseReadiness, evidenceFromLearning } from "@/lib/academy-engine";
 
 /* Employee learner hub - the Academy as a personal learning experience.
@@ -28,7 +28,7 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
     </span>
     {action}
   </div>;
-  const startBtn=n=><button onClick={()=>start(n)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Start</button>;
+  const startBtn=n=><button onClick={()=>start(n)} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"5px 11px",color:AI_GOLD_INK,fontSize:9.5,fontWeight:900,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Start</button>;
   return <div style={{animation:"up .3s ease"}}>
     <SHead title="Governance Academy" sub="Your learning hub - courses, certifications, simulations and challenges. Completions become governance evidence automatically."/>
     <Card style={{padding:16,marginBottom:14,border:`1px solid ${AI_GOLD}30`}}>
@@ -105,7 +105,7 @@ export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
     <Card style={{padding:16,marginBottom:14}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
         <h3 style={{fontFamily:F.h,fontSize:15,fontWeight:800,color:T.ink,margin:0}}>Governance maturity - who understands AI</h3>
-        <span title="mean role maturity = 0.55·path completion + 0.25·quiz + 0.20·initiative training" style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD,background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:999,padding:"3px 10px"}}>Readiness index {readiness.index} · feeds Governance Score</span>
+        <span title="mean role maturity = 0.55·path completion + 0.25·quiz + 0.20·initiative training" style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:AI_GOLD_INK,background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:999,padding:"3px 10px"}}>Readiness index {readiness.index} · feeds Governance Score</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:12}}>
         {readiness.rows.slice(0,6).map(x=>{
@@ -146,7 +146,7 @@ export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
           <div style={{height:120,borderRadius:10,background:`radial-gradient(circle at 28% 38%, ${rc}55, transparent 26%), radial-gradient(circle at 72% 58%, ${AI_GOLD}55, transparent 22%), linear-gradient(135deg, ${T.bg}, ${T.s2})`,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12}}>
             <div style={{width:54,height:54,borderRadius:"50%",background:rc+"18",border:`1px solid ${rc}45`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 16px 38px ${rc}22`}}><PlayCircle size={26} color={rc}/></div>
           </div>
-          <div style={{fontSize:10,color:AI_GOLD,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:5}}>Featured path</div>
+          <div style={{fontSize:10,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:5}}>Featured path</div>
           <h3 style={{fontFamily:F.h,fontSize:16,fontWeight:900,color:T.ink,margin:"0 0 5px"}}>{featured.title}</h3>
           <p style={{fontFamily:F.b,fontSize:10,lineHeight:1.55,color:T.ink3,margin:"0 0 10px"}}>{featured.desc}</p>
           <button type="button" onClick={()=>showToast("Video lessons ship with the production media library - module outline is available now","error")} style={{background:rc,border:"none",borderRadius:9,padding:"9px 12px",color:"#fff",fontFamily:F.b,fontSize:11,fontWeight:900,cursor:"pointer"}}>Preview lesson</button>

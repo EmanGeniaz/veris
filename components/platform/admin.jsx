@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { pushBus, readBus, writeBus } from "@/lib/bus";
 import { MODULES, CAPS, RBAC_ROLES, DEFAULT_ACCESS } from "@/lib/rbac";
-import { T, F, AI_GOLD, RC, ROLES, USER_PROFILES, Card, SHead, Tag, CountUp } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, RC, ROLES, USER_PROFILES, Card, SHead, Tag, CountUp } from "./core";
 
 /* RBAC model (roles, modules, capability grants) is the shared source of
    truth in lib/rbac.ts — imported so the UI and server enforcement agree. */
@@ -257,7 +257,7 @@ export function PageAdmin({ role = "caio", showToast, setTab }) {
         {requests.length === 0 && <div style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, padding: "8px 2px" }}>No access requests are waiting.</div>}
         <div style={{ display: "grid", gap: 8 }}>
           {requests.map(r => <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, alignItems: "center", background: T.s2, border: `1px solid ${T.border}`, borderLeft: `3px solid ${r.risk === "crit" ? T.red : r.risk === "warn" ? T.amber : T.blue}`, borderRadius: 9, padding: "11px 13px" }}>
-            <div><div style={{ fontSize: 12, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{r.who} · <span style={{ color: AI_GOLD }}>{r.roleTo}</span></div>
+            <div><div style={{ fontSize: 12, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{r.who} · <span style={{ color: AI_GOLD_INK }}>{r.roleTo}</span></div>
               <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b, marginTop: 2 }}>{r.roleFrom !== "—" ? `from ${r.roleFrom} · ` : ""}requested by {r.by} · {r.reason}</div></div>
             <button onClick={() => { setRequests(x => x.filter(y => y.id !== r.id)); act("Approved access request", `${r.who} → ${r.roleTo}`, `Approved · ${r.who}`); }} style={{ background: T.green + "18", border: `1px solid ${T.green}45`, borderRadius: 7, padding: "7px 13px", color: T.green, fontSize: 10.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Approve</button>
             <button onClick={() => { setRequests(x => x.filter(y => y.id !== r.id)); act("Denied access request", `${r.who} → ${r.roleTo}`, `Denied · ${r.who}`); }} style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 7, padding: "7px 13px", color: T.ink3, fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>Deny</button>

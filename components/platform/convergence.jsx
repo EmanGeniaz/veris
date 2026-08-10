@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { T, F, AI_GOLD, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import {
   FORUM_COUNCIL, FORUM_CADENCE, OWNERSHIP_MATRIX, forumAgenda,
   UNIFIED_INCIDENTS, INCIDENT_STAGES, INCIDENT_CLASSES, incidentStats,
@@ -33,7 +33,7 @@ export function GovernanceForum({ showToast }) {
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ maxWidth: 620 }}>
-          <Eyebrow style={{ color: AI_GOLD }}>Convergence charter</Eyebrow>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>Convergence charter</Eyebrow>
           <H3 style={{ fontSize: 18 }}>Data & AI governance, run as one agenda</H3>
           <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{FORUM_CADENCE}. Data lineage, access control, retention and quality are treated as inseparable from model performance, safety and compliance.</p>
         </div>
@@ -77,7 +77,7 @@ export function GovernanceForum({ showToast }) {
         </tr>)}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> Risk tiers here are the same records the Risk Center and AI Central cite — one source of truth. Ratifying the acceptable-use policy clears the overdue review and unblocks two dependent AI use-case reviews.
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> Risk tiers here are the same records the Risk Center and AI Central cite — one source of truth. Ratifying the acceptable-use policy clears the overdue review and unblocks two dependent AI use-case reviews.
       </div>
     </Card>
   </div>;
@@ -128,7 +128,7 @@ export function IncidentPlaybook({ showToast }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10 }}>
         {INCIDENT_STAGES.map(st => <div key={st.n} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 13px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 22, height: 22, borderRadius: 7, background: AI_GOLD + "1c", border: `1px solid ${AI_GOLD}45`, color: AI_GOLD, fontFamily: F.m, fontWeight: 900, fontSize: 11, display: "grid", placeItems: "center" }}>{st.n}</span>
+            <span style={{ width: 22, height: 22, borderRadius: 7, background: AI_GOLD + "1c", border: `1px solid ${AI_GOLD}45`, color: AI_GOLD_INK, fontFamily: F.m, fontWeight: 900, fontSize: 11, display: "grid", placeItems: "center" }}>{st.n}</span>
             <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{st.stage}</span>
           </div>
           <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, marginBottom: 6 }}>{st.crit}</div>
@@ -168,12 +168,12 @@ export function ConvergenceCrosswalk({ showToast }) {
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ maxWidth: 620 }}>
-          <Eyebrow style={{ color: AI_GOLD }}>The master map</Eyebrow>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>The master map</Eyebrow>
           <H3 style={{ fontSize: 18 }}>{s.obligations} framework obligations → {s.total} controls → {s.total} evidence artifacts</H3>
           <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{s.total} capabilities × {s.instruments} instruments collapse into one control set. Design controls from this sheet and every framework is satisfied by the same artifact — the reason the toolkit exists.</p>
         </div>
         <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 120 }}>
-          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD, fontFamily: F.m, lineHeight: 1 }}>{s.coverage}%</div>
+          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{s.coverage}%</div>
           <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>CONVERGENCE COVERAGE</div>
         </div>
       </div>
@@ -212,7 +212,7 @@ export function ConvergenceCrosswalk({ showToast }) {
       </div>
 
       {domainsShown.map(dom => <div key={dom} style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 10, fontWeight: 900, color: AI_GOLD, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>{dom}</div>
+        <div style={{ fontSize: 10, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>{dom}</div>
         <Table head={["Capability", "EU AI Act", "NIST AI RMF", "ISO 42001", "Singapore MGF", "Evidence artifact", "Owner", "Status"]}>
           {rows.filter(c => c.domain === dom).map(c => {
             const meta = STATUS_META[c.status];
@@ -230,7 +230,7 @@ export function ConvergenceCrosswalk({ showToast }) {
               </tr>,
               isOpen && <tr key={c.id + "-d"}><td colSpan={8} style={{ padding: "0 10px 12px" }}>
                 <div style={{ background: AI_GOLD + "10", border: `1px solid ${AI_GOLD}30`, borderRadius: 10, padding: "11px 13px", fontSize: 11, color: T.ink2, fontFamily: F.b, lineHeight: 1.6 }}>
-                  <b style={{ color: AI_GOLD }}>{c.id} · one control, four instruments:</b> {c.note} <span style={{ color: T.ink3 }}>The single <b style={{ color: T.ink2 }}>{c.artifact}</b> closes EU AI Act {c.euai}, NIST {c.nist}, ISO/IEC 42001 {c.iso} and Singapore MGF ({c.sg}) — owned by {c.owner}.</span>
+                  <b style={{ color: AI_GOLD_INK }}>{c.id} · one control, four instruments:</b> {c.note} <span style={{ color: T.ink3 }}>The single <b style={{ color: T.ink2 }}>{c.artifact}</b> closes EU AI Act {c.euai}, NIST {c.nist}, ISO/IEC 42001 {c.iso} and Singapore MGF ({c.sg}) — owned by {c.owner}.</span>
                 </div>
               </td></tr>,
             ];
@@ -239,7 +239,7 @@ export function ConvergenceCrosswalk({ showToast }) {
       </div>)}
 
       <div style={{ marginTop: 6, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.gap === 0 ? <>Every capability is owned and evidenced — <b style={{ color: T.ink2 }}>no unowned gaps remain</b>, and all five former gaps are now <b style={{ color: T.ink2 }}>operational</b> with their linked findings resolved (INC-1048 contained, RSK-005 treated, drift monitoring live). Convergence coverage is {s.coverage}%.</> : <>The {s.gap} open gaps are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.</>}
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.gap === 0 ? <>Every capability is owned and evidenced — <b style={{ color: T.ink2 }}>no unowned gaps remain</b>, and all five former gaps are now <b style={{ color: T.ink2 }}>operational</b> with their linked findings resolved (INC-1048 contained, RSK-005 treated, drift monitoring live). Convergence coverage is {s.coverage}%.</> : <>The {s.gap} open gaps are the same items the Risk Center and Incident register already flag. Closing one artifact clears the obligation in all four instruments at once.</>}
       </div>
     </Card>
   </div>;
@@ -314,14 +314,14 @@ export function GpaiExposure({ showToast }) {
 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12, marginBottom: 14 }}>
       {GPAI_QUESTIONS.map((q, i) => <Card key={i} style={{ ...cardPad, borderLeft: `3px solid ${AI_GOLD}` }}>
-        <Eyebrow style={{ color: AI_GOLD }}>You answer</Eyebrow>
+        <Eyebrow style={{ color: AI_GOLD_INK }}>You answer</Eyebrow>
         <H3 style={{ fontSize: 15 }}>{q.q}</H3>
         <p style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, lineHeight: 1.6, margin: "6px 0 0" }}>{q.detail}</p>
       </Card>)}
     </div>
 
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
-      <Eyebrow style={{ color: AI_GOLD }}>The workbook derives</Eyebrow>
+      <Eyebrow style={{ color: AI_GOLD_INK }}>The workbook derives</Eyebrow>
       <H3 style={{ fontSize: 16 }}>Your GPAI exposure</H3>
       <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 10px" }}>Two yes answers and the row flags. You may hold provider obligations under Articles 53 and 55.</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -353,7 +353,7 @@ export function GpaiExposure({ showToast }) {
         </tr>; })}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.provider} system carries likely GPAI provider obligations — the Customer Resolution Copilot was fine-tuned and rolled out enterprise-wide and into the product, which is exactly the accidental-provider path. Run the Art. 53 assessment before the next release; this closes crosswalk capability C24.
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.provider} system carries likely GPAI provider obligations — the Customer Resolution Copilot was fine-tuned and rolled out enterprise-wide and into the product, which is exactly the accidental-provider path. Run the Art. 53 assessment before the next release; this closes crosswalk capability C24.
       </div>
       <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={() => showToast && showToast("Art. 53 GPAI provider assessment started for Customer Resolution Copilot")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Run Art. 53 assessment</button>
@@ -414,7 +414,7 @@ export function GapClosure({ showToast }) {
         </tr>; })}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.closed} gaps closed outright and {s.inflight} are in-flight, owned and dated. The three in-flight closures are the same live items the Risk Center and Incident register track — closing INC-1048, RSK-005 and the drift wiring moves them to operational and lifts convergence coverage past {s.coverage}%.
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.closed} gaps closed outright and {s.inflight} are in-flight, owned and dated. The three in-flight closures are the same live items the Risk Center and Incident register track — closing INC-1048, RSK-005 and the drift wiring moves them to operational and lifts convergence coverage past {s.coverage}%.
       </div>
       <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={() => showToast && showToast("Gap-closure pack assembled — 5 evidence artifacts, owners and target dates")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Assemble closure pack</button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { T, F, AI_GOLD, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import { driftRows, driftStats, DRIFT_META } from "@/lib/drift";
 import { workflowRows, workflowStats, WF_DECISION_META } from "@/lib/agent-workflows";
 import { INFERENCE_EVENTS, INF_DECISION_META, inferenceStats, INFERENCE_FIELDS, eventTokens } from "@/lib/inference-log";
@@ -18,7 +18,7 @@ const Td = ({ children, style }) => <td style={{ padding: "10px", borderBottom: 
 const Table = ({ head, children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr>{head.map(h => <Th key={h}>{h}</Th>)}</tr></thead><tbody>{children}</tbody></table></div>;
 const Kpi = ({ l, v, c, sub }) => <Card style={{ padding: "13px 15px" }}><Eyebrow>{l}</Eyebrow><div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div><div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div></Card>;
 const kpiGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 };
-const advisor = children => <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}><b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {children}</div>;
+const advisor = children => <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}><b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {children}</div>;
 
 /* ══════════════ DRIFT MONITOR ══════════════ */
 export function DriftMonitor({ showToast }) {
@@ -74,7 +74,7 @@ export function WorkflowPermissions({ showToast }) {
           {w.steps.map((st, i) => { const m = WF_DECISION_META[st.decision]; return <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", background: T.s2, border: `1px solid ${st.decision === "deny" ? T.red + "55" : T.border}`, borderRadius: 9, padding: "8px 11px" }}>
             <span style={{ minWidth: 18, fontSize: 10, fontWeight: 900, color: T.ink4, fontFamily: F.m }}>{i + 1}</span>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{st.agent} <span style={{ color: T.ink4 }}>·</span> <span style={{ fontFamily: F.m }}>{st.tool}</span>{st.handoff && <span style={{ marginLeft: 6, fontSize: 9, color: AI_GOLD, fontWeight: 800 }}>⇥ handoff</span>}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{st.agent} <span style={{ color: T.ink4 }}>·</span> <span style={{ fontFamily: F.m }}>{st.tool}</span>{st.handoff && <span style={{ marginLeft: 6, fontSize: 9, color: AI_GOLD_INK, fontWeight: 800 }}>⇥ handoff</span>}</div>
               <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{st.note}</div>
             </div>
             <Pill c={tok(m.tone)}>{m.label}</Pill>

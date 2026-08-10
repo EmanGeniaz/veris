@@ -3,7 +3,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
-import { T, F, AI_GOLD, ROLES, Card, vzDownload } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card, vzDownload } from "./core";
 import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { PORTFOLIO as CEO_PORTFOLIO, PF, FRAMEWORKS as CANON_FRAMEWORKS, COMPLIANCE_PCT, OPEN_INCIDENTS } from "@/lib/portfolio";
@@ -174,7 +174,7 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
         <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle}</div></div>
         <div style={{display:"flex",gap:11}}>{rag(r.cleared,T.green)}{rag(r.review,T.blue)}{rag(r.blocked,T.red)}</div>
         <div style={{fontSize:10,fontWeight:700,fontFamily:F.b,color:w?(w.key==="blocked"?T.red:T.amber):T.green}}>{w?`${w.key==="blocked"?"Blocked":"Needs review"} · ${w.domain} (${w.owner})`:"All facets cleared"}</div>
-        <span style={{color:AI_GOLD,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
+        <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
       </button>;})}
     </div>
   </Card>;
@@ -184,8 +184,8 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
     {/* greeting + gold total tile */}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
-        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD}}>{name}.</span></h1>
-        <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b}}>Enterprise AI is <b style={{color:AI_GOLD}}>holding steady</b> — 3 items need your decision, and one program is at critical exposure.</div>
+        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
+        <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b}}>Enterprise AI is <b style={{color:AI_GOLD_INK}}>holding steady</b> — 3 items need your decision, and one program is at critical exposure.</div>
       </div>
       <button onClick={goPortfolio} title="Open Portfolio" style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"13px 22px",cursor:"pointer",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
         <div style={{fontSize:40,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{CEO_PORTFOLIO.length}</div>
@@ -215,7 +215,7 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
       {CEO_ATTENTION.map(a=><Card key={a.t} onClick={()=>goto(a.to)} style={{padding:"13px 15px",borderLeft:`3px solid ${a.c}`,cursor:"pointer"}}>
         <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.t}</div>
         <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a.d}</div>
-        <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
+        <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
       </Card>)}
     </div>
 
@@ -226,7 +226,7 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
       <Kpi l="Overall AI risk" v={<>{PF.criticalCount+PF.highCount+PF.mediumCount}<span style={{fontSize:13,color:T.ink4}}>/{PF.count}</span></>} vc={T.red} s={`${PF.criticalCount} critical · ${PF.highCount} high open`} spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
       <Kpi l="Compliance" v={`${COMPLIANCE_PCT}%`} vc={T.blue} s="EU AI Act · ISO 42001 · GDPR" onClick={openCompliance}/>
       <Kpi l="Adoption" v={`${PF.adoption}%`} s="across 4 business units" onClick={goPortfolio}/>
-      <Kpi l="Security incidents" v={OPEN_INCIDENTS} vc={AI_GOLD} s="open this quarter · 0 breaches" onClick={openFull}/>
+      <Kpi l="Security incidents" v={OPEN_INCIDENTS} vc={AI_GOLD_INK} s="open this quarter · 0 breaches" onClick={openFull}/>
     </div>
 
     {/* lifecycle bands */}
@@ -379,7 +379,7 @@ function HighestRisk(){
         <div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:l==="Owner"||l==="Mitigation"?13:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
     </div>
     <div style={{marginTop:12,padding:"11px 13px",borderRadius:10,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}>
-      <b style={{color:AI_GOLD}}>Veris Intelligence:</b> {HR_RISK.title} is the top exposure on {HR_PROG.name}. Clearing the human-oversight design record unblocks the scale gate.
+      <b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> {HR_RISK.title} is the top exposure on {HR_PROG.name}. Clearing the human-oversight design record unblocks the scale gate.
     </div>
   </Card>;
 }
@@ -422,7 +422,7 @@ function RiskTab({openFull}){
   return <div style={{animation:"up .2s ease"}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
       <Kpi l="Open risks" v={CEO_RISK_COUNTS.open} vc={T.red} s="in the risk register" lin={["Open risks",String(CEO_RISK_COUNTS.open)]}/>
-      <Kpi l="Critical / High" v={<><span style={{color:T.red}}>{CEO_RISK_COUNTS.critical}</span> · <span style={{color:AI_GOLD}}>{CEO_RISK_COUNTS.high}</span></>} s="need executive attention" lin={["Critical / High risks",`${CEO_RISK_COUNTS.critical} critical · ${CEO_RISK_COUNTS.high} high`]}/>
+      <Kpi l="Critical / High" v={<><span style={{color:T.red}}>{CEO_RISK_COUNTS.critical}</span> · <span style={{color:AI_GOLD_INK}}>{CEO_RISK_COUNTS.high}</span></>} s="need executive attention" lin={["Critical / High risks",`${CEO_RISK_COUNTS.critical} critical · ${CEO_RISK_COUNTS.high} high`]}/>
       <Kpi l="Mitigations on track" v={`${onTrackPct}%`} vc={T.green} s={`${CEO_RISK_COUNTS.onTrack} of ${CEO_RISK_COUNTS.open} treatments`} lin={["Mitigations on track",`${onTrackPct}%`]}/>
     </div>
     <Card style={cardPad}>
@@ -463,7 +463,7 @@ function AdoptionTab(){
       </Card>
       <Card style={cardPad}><Eyebrow>Adoption by Region</Eyebrow><H3 style={{marginBottom:12}}>Active users vs licensed seats</H3>
         {CEO_REGIONS.map(r=><BarRow key={r.region} label={r.region} pct={r.adoption} color={r.c}/>)}
-        <div style={{marginTop:14,padding:"11px 13px",borderRadius:10,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}><b style={{color:AI_GOLD}}>Feedback analysis:</b> 1,140 responses · sentiment <b>+64 net</b>. Top request: deeper integration with core banking. People-team adoption is the priority gap.</div>
+        <div style={{marginTop:14,padding:"11px 13px",borderRadius:10,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}><b style={{color:AI_GOLD_INK}}>Feedback analysis:</b> 1,140 responses · sentiment <b>+64 net</b>. Top request: deeper integration with core banking. People-team adoption is the priority gap.</div>
       </Card>
     </div>
     <Card style={{...cardPad,marginTop:16}}><Eyebrow>Adoption trend</Eyebrow><H3 style={{marginBottom:12}}>Enterprise active-user rate — 61% and climbing</H3>
@@ -638,7 +638,7 @@ function Playbook({showToast,role="ceo"}){
       <Kpi l="AI programs" v={CEO_PORTFOLIO.length} s="the full governed estate" lin={["Portfolio initiatives",String(CEO_PORTFOLIO.length)]}/>
       <Kpi l="Value realized" v={`$${realized.toFixed(1)}M`} vc={T.green} s={`of $${CEO_PORTFOLIO.reduce((s,p)=>s+p.budget,0).toFixed(1)}M allocated`} lin={["Value realized",`$${realized.toFixed(1)}M`]}/>
       <Kpi l="Realized / invested" v={`${realizedRatio}%`} vc={realizedRatio>=100?T.green:AI_GOLD} s="value booked per $ spent" lin={["Realized value",`$${realized.toFixed(1)}M`]}/>
-      <Kpi l="Scale-ready" v={scaleReady.length} vc={AI_GOLD} s="at the scale gate" lin={["Scale-ready initiatives",String(scaleReady.length)]}/>
+      <Kpi l="Scale-ready" v={scaleReady.length} vc={AI_GOLD_INK} s="at the scale gate" lin={["Scale-ready initiatives",String(scaleReady.length)]}/>
       <Kpi l="Critical risk" v={critical.length} vc={critical.length?T.red:T.green} s="need board attention" lin={["Critical risks",String(critical.length)]}/>
     </div>
 
@@ -688,7 +688,7 @@ function Playbook({showToast,role="ceo"}){
           <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle}</div></div>
           <div style={{display:"flex",gap:11}}>{rag(r.cleared,T.green)}{rag(r.review,T.blue)}{rag(r.blocked,T.red)}</div>
           <div style={{fontSize:10,fontWeight:700,fontFamily:F.b,color:w?(w.key==="blocked"?T.red:T.amber):T.green}}>{w?`${w.key==="blocked"?"Blocked":"Needs review"} · ${w.domain} (${w.owner})`:"All facets cleared"}</div>
-          <span style={{color:AI_GOLD,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
+          <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
         </button>;})}
       </div>
     </Card>
@@ -720,7 +720,7 @@ function Portfolio(){
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}><Eyebrow style={{margin:0}}>All AI Projects · {CEO_PORTFOLIO.length}</Eyebrow><Pill c={AI_GOLD}>★ CEO-approved</Pill></div>
       <Table head={["Program","Business unit","Stage","Health","Region","Approval"]}>
         {CEO_PORTFOLIO.map(p=>{const appr=p.approval==="CEO-approved";return <LinRow key={p.name} node={programLineage(p)}>
-          <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink,background:appr?AI_GOLD+"12":undefined}}>{appr&&<span style={{color:AI_GOLD,fontWeight:900}}>★ </span>}{p.name}</Td>
+          <Td style={{fontWeight:700,color:p.stage==="Retired"?T.ink4:T.ink,background:appr?AI_GOLD+"12":undefined}}>{appr&&<span style={{color:AI_GOLD_INK,fontWeight:900}}>★ </span>}{p.name}</Td>
           <Td style={{background:appr?AI_GOLD+"12":undefined}}>{p.unit}</Td><Td style={{background:appr?AI_GOLD+"12":undefined}}><Pill c={stageColor(p.stage)}>{p.stage}</Pill></Td>
           <Td style={{background:appr?AI_GOLD+"12":undefined}}>{p.stage==="Completed"?"✓":p.stage==="Retired"?"↓":p.health}</Td><Td style={{background:appr?AI_GOLD+"12":undefined}}>{p.region}</Td><Td style={{background:appr?AI_GOLD+"12":undefined}}><Pill c={appColor(p.approval)}>{p.approval}</Pill></Td>
         </LinRow>;})}
@@ -739,7 +739,7 @@ function Budget(){
     <PageHead title="Budget" sub="Per-project budget, ROI and time-to-value across the portfolio."/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
       <Kpi l="Allocated" v={`$${PF.budget.toFixed(1)}M`} s="FY26 AI budget" lin={["Budget allocated",`$${PF.budget.toFixed(1)}M`]}/><Kpi l="Value realized" v={`$${PF.realized.toFixed(1)}M`} vc={T.green} s={`${PF.valueToBudgetPct}% turned to value`} lin={["Value realized",`$${PF.realized.toFixed(1)}M`]}/>
-      <Kpi l="Consumed, no value" v={`$${PF.consumedNoValue.toFixed(1)}M`} vc={AI_GOLD} s="pre-payload programs" lin={["Value leaked",`$${PF.consumedNoValue.toFixed(1)}M`]}/><Kpi l="Avg time-to-value" v={`${PF.avgTtv} mo`} s={`fastest ${Math.min(...ttvVals)} · slowest ${Math.max(...ttvVals)}`} lin={["Avg time-to-value",`${PF.avgTtv} mo`]}/>
+      <Kpi l="Consumed, no value" v={`$${PF.consumedNoValue.toFixed(1)}M`} vc={AI_GOLD_INK} s="pre-payload programs" lin={["Value leaked",`$${PF.consumedNoValue.toFixed(1)}M`]}/><Kpi l="Avg time-to-value" v={`${PF.avgTtv} mo`} s={`fastest ${Math.min(...ttvVals)} · slowest ${Math.max(...ttvVals)}`} lin={["Avg time-to-value",`${PF.avgTtv} mo`]}/>
     </div>
     <Card style={cardPad}><Eyebrow>Budget per project</Eyebrow><H3 style={{marginBottom:14}}>Allocated · consumed · ROI · time-to-value — click a program to trace it</H3>
       <Table head={["Program","Allocated","Consumed","Realized","ROI","Time-to-value"]}>
@@ -814,7 +814,7 @@ function Reporting({showToast}){
       </div>
     </Card>
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
-      <Eyebrow style={{color:AI_GOLD}}>Board pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>Executive AI Report — Q3 FY26</H3>
+      <Eyebrow style={{color:AI_GOLD_INK}}>Board pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>Executive AI Report — Q3 FY26</H3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
         {[["Portfolio value",`$${PF.realized.toFixed(1)}M`,T.ink],["Overall risk",`${PF.criticalCount+PF.highCount+PF.mediumCount}/${PF.count}`,T.red],["Adoption",`${PF.adoption}%`,T.ink]].map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
       </div>

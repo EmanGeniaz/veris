@@ -2,7 +2,7 @@
 
 import { Map, Scale } from "lucide-react";
 import { AC_PHASES } from "@/lib/platform-models";
-import { T, AI_GOLD, AI_GOLD_L, AI_ROLLOUT_PROGRAMS, AI_SPINE_SIGNALS, HITL, F, Tag, Bar, Ring, Card } from "./core";
+import { T, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_ROLLOUT_PROGRAMS, AI_SPINE_SIGNALS, HITL, F, Tag, Bar, Ring, Card } from "./core";
 
 export function PageAISpine({mode="overview",setTab,focus}) {
   const titles={
@@ -94,7 +94,7 @@ export function PageAISpine({mode="overview",setTab,focus}) {
             <td style={{padding:"13px 12px",color:T.ink2,lineHeight:1.45}}>{row.trigger}</td>
             <td style={{padding:"13px 12px",color:T.ink2,lineHeight:1.45}}>{row.controls}</td>
             <td style={{padding:"13px 12px",color:T.ink2}}>{row.evidence}</td>
-            <td style={{padding:"13px 12px",color:AI_GOLD,fontWeight:900,fontFamily:F.m}}>{row.owner}</td>
+            <td style={{padding:"13px 12px",color:AI_GOLD_INK,fontWeight:900,fontFamily:F.m}}>{row.owner}</td>
             <td style={{padding:"13px 12px"}}><Tag label={row.status} color={row.status==="Activated"?T.green:row.status==="In Review"?T.amber:AI_GOLD} bg={(row.status==="Activated"?T.green:row.status==="In Review"?T.amber:AI_GOLD)+"18"}/></td>
           </tr>)}</tbody>
         </table>

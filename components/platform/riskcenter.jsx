@@ -5,7 +5,7 @@ import { Map } from "lucide-react";
 import { useState, useEffect } from "react";
 import { acInitiatives, riskRegister, kriRegister, AI_GOV_ENGINES, acAssessments } from "@/lib/platform-models";
 import { liveResidual, levelFor, riskMath, inherentOf } from "@/lib/risk-engine";
-import { T, AI_GOLD, ROLES, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
+import { T, AI_GOLD, AI_GOLD_INK, ROLES, F, CountUp, Tag, PTag, STag, Bar, Card, SHead } from "./core";
 import { PageAISpine } from "./spine";
 import { SmartSelect } from "./smartselect";
 import { SECURITY_EVENTS } from "@/lib/role-centers";
@@ -41,7 +41,7 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
           <Card style={{padding:"13px 15px",border:`1px solid ${c}30`}}>
             <div style={{display:"grid",gridTemplateColumns:"64px 1.2fr 2fr auto",gap:14,alignItems:"center"}}>
               <div style={{textAlign:"center"}}>
-                <div style={{fontSize:13,fontWeight:900,fontFamily:F.m,color:AI_GOLD}}>{e.code}</div>
+                <div style={{fontSize:13,fontWeight:900,fontFamily:F.m,color:AI_GOLD_INK}}>{e.code}</div>
                 <div style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:scoreCol,marginTop:3}}>{o.score}</div>
               </div>
               <div>
@@ -179,7 +179,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
         <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.treatment.action}</p>
       </div>
       <div style={{marginTop:10,background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px"}}>
-        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>AI recommendation</div>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD_INK,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>AI recommendation</div>
         <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.aiRecommendation}</p>
       </div>
       {(()=>{
@@ -204,13 +204,13 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
           </div>}
           {assessments.length>0&&<div style={{marginTop:12,background:T.s3,borderRadius:8,padding:"9px 12px"}}>
             <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Assessment history</div>
-            <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{assessments.length} assessment{assessments.length>1?"s":""} on record · <button onClick={()=>setRcTab("assessments")} style={{background:"none",border:"none",padding:0,color:AI_GOLD,fontWeight:800,fontFamily:F.b,fontSize:10.5,cursor:"pointer"}}>open cascade →</button></span>
+            <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{assessments.length} assessment{assessments.length>1?"s":""} on record · <button onClick={()=>setRcTab("assessments")} style={{background:"none",border:"none",padding:0,color:AI_GOLD_INK,fontWeight:800,fontFamily:F.b,fontSize:10.5,cursor:"pointer"}}>open cascade →</button></span>
           </div>}
         </>;
       })()}
       <div style={{display:"grid",gridTemplateColumns:initOf(sel)?"1fr 1fr":"1fr",gap:8,marginTop:12}}>
         <button onClick={()=>{setRcTab("treatments");}} style={{background:T.violet,border:"none",borderRadius:7,padding:"9px",color:"#fff",fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{effT(sel)==="Complete"?"Treatment complete":"Manage treatment"}</button>
-        {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open initiative →</button>}
+        {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open initiative →</button>}
       </div>
     </div>
   </Card>;
@@ -409,7 +409,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
             <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.unit} · threshold {k.direction==="above"?"≤":"≥"} {k.threshold}</span>
           </div>
           <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginBottom:10}}>Protects {k.framework}{linked.length>0&&` · watches ${linked.map(r=>r.id).join(", ")}`}</div>
-          {ini?<button onClick={openInitiative} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ini.name} →</button>
+          {ini?<button onClick={openInitiative} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ini.name} →</button>
           :<Tag label="Enterprise-level" color={T.blue} bg={T.blue+"14"}/>}
         </Card>;
       })}

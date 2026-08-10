@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { T, F, AI_GOLD, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import { REGIMES, REGIME_STATUS_META, jurisdictionStats, OPERATING_REGIONS } from "@/lib/jurisdictions";
 import { SOA_CONTROLS, SOA_STATUS_META, CERT_CLAUSES, soaStats } from "@/lib/soa";
 import { EVIDENCE_ARTIFACTS, FRESHNESS_META, freshnessStats } from "@/lib/evidence-freshness";
@@ -53,7 +53,7 @@ export function JurisdictionAtlas({ showToast }) {
         </tr>; })}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.applies} regimes bind the estate today across {s.regions} regions. Rather than run one programme per regime, each maps to the shared 32-capability control set — one artifact satisfies the matching clause in every regime that cites it.
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.applies} regimes bind the estate today across {s.regions} regions. Rather than run one programme per regime, each maps to the shared 32-capability control set — one artifact satisfies the matching clause in every regime that cites it.
       </div>
     </Card>
   </div>;
@@ -67,12 +67,12 @@ export function StatementOfApplicability({ showToast }) {
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div style={{ maxWidth: 620 }}>
-          <Eyebrow style={{ color: AI_GOLD }}>Certification readiness</Eyebrow>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>Certification readiness</Eyebrow>
           <H3 style={{ fontSize: 18 }}>{s.readiness}% ready for a Stage-2 ISO/IEC 42001 audit</H3>
           <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{s.applicable} of {s.total} Annex A controls applicable · {s.implemented} implemented · {s.partial} partial. Weakest clause: Performance evaluation (internal audit + management review).</p>
         </div>
         <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 120 }}>
-          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD, fontFamily: F.m, lineHeight: 1 }}>{s.readiness}%</div>
+          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{s.readiness}%</div>
           <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>READY</div>
         </div>
       </div>
@@ -143,7 +143,7 @@ export function EvidenceFreshness({ showToast }) {
         </tr>; })}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD }}>Veris Intelligence:</b> {s.stale} artifacts are stale — the APAC transfer assessment (INC-1048) and the acceptable-use policy are overdue and block their crosswalk capabilities. Fresh evidence is the difference between a governance file and a defensible audit.
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.stale} artifacts are stale — the APAC transfer assessment (INC-1048) and the acceptable-use policy are overdue and block their crosswalk capabilities. Fresh evidence is the difference between a governance file and a defensible audit.
       </div>
     </Card>
   </div>;
@@ -167,7 +167,7 @@ export function Glossary() {
     </Card>
     {rows.length === 0 ? <Card style={cardPad}><div style={{ fontSize: 12, color: T.ink3, fontFamily: F.b }}>No terms match “{q}”.</div></Card> :
       shown.map(c => <Card key={c} style={{ ...cardPad, marginBottom: 12 }}>
-        <Eyebrow style={{ color: AI_GOLD, marginBottom: 10 }}>{c}</Eyebrow>
+        <Eyebrow style={{ color: AI_GOLD_INK, marginBottom: 10 }}>{c}</Eyebrow>
         <div style={{ display: "grid", gap: 10 }}>
           {rows.filter(r => r.cat === c).map(r => <div key={r.term} style={{ borderLeft: `2px solid ${T.border}`, paddingLeft: 12 }}>
             <div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{r.term}</div>

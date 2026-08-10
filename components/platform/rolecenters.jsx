@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { pushBus } from "@/lib/bus";
 import { ROLE_CENTERS } from "@/lib/role-centers";
-import { T, F, AI_GOLD, ROLES, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card } from "./core";
 import { initiativesForRole, ROLE_FACET } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { BriefDrawer } from "./initiative-brief";
@@ -19,7 +19,7 @@ import { LineageDrawer } from "./lineage";
 /* Built per-call (not a frozen module const) so status colors track the
    active theme — a literal map would capture dark-theme accents at import
    time and render with dark colors in light mode. */
-const col = k => ({ good:T.green, warn:T.amber, crit:T.red, info:T.blue, violet:T.violet, teal:T.teal, gold:AI_GOLD, ink3:T.ink3, ink:T.ink }[k] || T.ink);
+const col = k => ({ good:T.green, warn:T.amber, crit:T.red, info:T.blue, violet:T.violet, teal:T.teal, gold:AI_GOLD_INK, ink3:T.ink3, ink:T.ink }[k] || T.ink);
 
 const cardPad = { padding:"16px 18px" };
 const Eyebrow = ({children}) => <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,marginBottom:6}}>{children}</div>;
@@ -44,7 +44,7 @@ function Attn({items,ctx}){
     {items.map((a,i)=>{const live=!!(a[4]&&ctx&&ctx.setTab);return <Card key={i} onClick={()=>go(a)} className={live?"vz-attn":""} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:live?"pointer":"default"}}>
       <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a[0]}</div>
       <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a[1]}</div>
-      <div style={{fontSize:10,color:AI_GOLD,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a[2]} →</div>
+      <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a[2]} →</div>
     </Card>;})}
     <style>{`.vz-attn{transition:background .15s}.vz-attn:hover{background:${T.s2}}`}</style>
   </div>;
@@ -132,7 +132,7 @@ function Drawer({rec,onClose,ctx}){
         {rec.summary&&<p style={{fontSize:11.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:"0 0 14px"}}>{rec.summary}</p>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 14px",marginBottom:16}}>
           {meta.map(([l,v])=><div key={l}><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>{l}</div>
-            {l==="Project"&&rec.project?<button onClick={openProject} style={{background:"none",border:"none",padding:0,fontSize:11.5,fontWeight:800,color:AI_GOLD,fontFamily:F.b,cursor:"pointer",textAlign:"left"}}>{v} →</button>
+            {l==="Project"&&rec.project?<button onClick={openProject} style={{background:"none",border:"none",padding:0,fontSize:11.5,fontWeight:800,color:AI_GOLD_INK,fontFamily:F.b,cursor:"pointer",textAlign:"left"}}>{v} →</button>
               :<div style={{fontSize:11.5,color:T.ink,fontWeight:600,fontFamily:F.b}}>{v}</div>}
           </div>)}
         </div>
@@ -142,7 +142,7 @@ function Drawer({rec,onClose,ctx}){
             {rec.plan.map((s,i)=>{const label=Array.isArray(s)?s[0]:s;const st=Array.isArray(s)?s[1]:"ink3";const isDone=done[i]||st==="good";return <div key={i} style={{display:"flex",gap:9,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px"}}>
               <span style={{width:16,height:16,borderRadius:5,flexShrink:0,display:"grid",placeItems:"center",fontSize:10,fontWeight:900,background:isDone?T.green+"22":col(st)+"18",color:isDone?T.green:col(st)}}>{isDone?"✓":i+1}</span>
               <span style={{flex:1,fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.4,textDecoration:isDone?"line-through":"none",opacity:isDone?.7:1}}>{label}</span>
-              {!isDone&&<button onClick={()=>record(i,label)} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"3px 9px",color:AI_GOLD,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Record</button>}
+              {!isDone&&<button onClick={()=>record(i,label)} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}40`,borderRadius:6,padding:"3px 9px",color:AI_GOLD_INK,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",flexShrink:0}}>Record</button>}
             </div>;})}
           </div>
         </div>}
@@ -177,7 +177,7 @@ function Register({eye,h3,kind,kindLabel,items,ctx}){
       <tbody>{shown.map((r,i)=><tr key={i} onClick={()=>open(r)} className="vz-reg-row" style={{cursor:"pointer"}}>
         <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:T.ink,fontWeight:700}}>{r.ref}</td>
         <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:T.ink2}}>{r.title}</td>
-        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:AI_GOLD,fontWeight:700}}>{r.project||"—"}</td>
+        <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:AI_GOLD_INK,fontWeight:700}}>{r.project||"—"}</td>
         <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none"}}>{r.severity?<Pill c={col(r.severity[1])}>{r.severity[0]}</Pill>:"—"}</td>
         <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none"}}>{r.status?<Pill c={col(r.status[1])}>{r.status[0]}</Pill>:"—"}</td>
         <td style={{padding:"11px 10px",borderBottom:i<shown.length-1?`1px solid ${T.border}`:"none",color:T.ink4,textAlign:"right",fontWeight:800}}>→</td>
@@ -362,7 +362,7 @@ function Overview({role,cfg,ctx,userName}){
       {queue.map(({a,facet})=><button key={a.id} onClick={()=>setBrief(a)} className="vz-reg-row" style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
         <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle} · {facet.note}</div></div>
         <Pill c={col(facet.color)}>{facet.label}</Pill>
-        <span style={{color:AI_GOLD,fontWeight:900,fontFamily:F.b,fontSize:12}}>Open brief →</span>
+        <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:12}}>Open brief →</span>
       </button>)}
     </div>:<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:6}}>Nothing needs your {facetDomain} review right now — every initiative's {facetDomain} facet is cleared.</div>}
   </Card>;
@@ -372,7 +372,7 @@ function Overview({role,cfg,ctx,userName}){
     {lineage&&<LineageDrawer node={lineage} onAsset={id=>{setBrief(assetById(id));setLineage(null);}} onClose={()=>setLineage(null)}/>}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
-        <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD}}>{name}.</span></h1>
+        <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
         <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b,maxWidth:680}}>{cfg.greet} — {cfg.sub}</div>
         <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{cfg.thesis}</div>
       </div>
