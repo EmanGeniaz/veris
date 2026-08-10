@@ -421,6 +421,7 @@ export const AC_FRAMEWORK_POSTURE: FrameworkPosture[] = [
   { id: "nist",     name: "NIST AI RMF", score: 71, sub: "Risk management framework" },
   { id: "euai",     name: "EU AI Act", score: 68, sub: "Regulatory conformity" },
   { id: "gdpr",     name: "GDPR", score: 83, sub: "Data protection" },
+  { id: "tr20226",  name: "ISO/IEC TR 20226", score: 47, sub: "AI & environmental sustainability" },
   { id: "internal", name: "Internal Controls", score: 81, sub: "Enterprise control set" },
 ];
 
