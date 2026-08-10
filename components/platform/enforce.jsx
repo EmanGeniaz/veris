@@ -6,6 +6,7 @@ import { AI_AGENTS, agentPosture } from "@/lib/agent-registry";
 import { TOOLCALL_LEDGER, enforceStats, ENFORCE_DECISION_META, issueToken, TOKEN_TTL_SECONDS } from "@/lib/enforce";
 import { EGRESS_POLICY, EGRESS_EVENTS, EGRESS_DECISION_META, egressStats } from "@/lib/egress";
 import { HITL_GATES, hitlStats } from "@/lib/hitl";
+import { breakerSessions, breakerStats, BREAKER_STATES, SIGNALS, stateMeta } from "@/lib/circuit-breaker";
 
 /* ── shared local primitives (match roadmap/convergence) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -238,6 +239,55 @@ export function HitlGates({ showToast }) {
         </tr>)}
       </Table>
       {advisor(<>Thresholds keep oversight meaningful: routine actions run autonomously and are logged, while the {s.alwaysGated} legal-effect actions (adverse credit, account freeze, direct customer email) always route to a named approver under Art.14 / Art.22. Every gate decision — approved, held, or auto-run below threshold — lands in the Tool-Call Ledger.</>)}
+    </Card>
+  </div>;
+}
+
+/* ══════════════ CIRCUIT BREAKER — real-time capability revocation ══════════════ */
+export function CircuitBreaker({ showToast }) {
+  const rows = breakerSessions();
+  const s = breakerStats();
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Circuit Breaker" sub="Static gates say what an agent may never do. The circuit breaker adds the dynamic half — it watches each agent's risk signal as a session runs and revokes capability in real time the moment it crosses a threshold, before the agent reaches a human gate. Tokens are short-lived (90s) and per-call, so revocation is instant: the agent's tokens hit a revocation list and the next issuance is refused. Every trip is written to the Article 12 chain. This is the continuous, adaptive oversight EU AI Act Art.14 requires." />
+    <div style={kpiGrid}>
+      <Kpi l="Sessions watched" v={String(s.watched)} c={AI_GOLD} sub="live, this window" />
+      <Kpi l="Breaker tripped" v={String(s.acted)} c={T.red} sub="downscoped · suspended · halted" />
+      <Kpi l="Tokens revoked" v={String(s.tokensRevoked)} c={T.red} sub={`within the ${s.ttlSeconds}s TTL`} />
+      <Kpi l="Routed to human" v={String(s.routedToHuman)} c={T.amber} sub="Art.14 escalation" />
+    </div>
+
+    <Card style={cardPad}>
+      <Eyebrow>The escalation ladder · risk score → automatic action</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Graduated response, not a single kill-switch</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10 }}>
+        {BREAKER_STATES.map(b => { const c = tok(b.tone); return <div key={b.id} style={{ padding: "12px 13px", borderRadius: 10, background: c + "0e", border: `1px solid ${c}33` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 5 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.b }}>{b.label}</span>
+            <span style={{ fontSize: 10, fontWeight: 900, color: c, fontFamily: F.m }}>{b.id === "normal" ? "0" : "≥" + b.min}</span>
+          </div>
+          <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.5, margin: 0 }}>{b.action}</p>
+        </div>; })}
+      </div>
+    </Card>
+
+    <Card style={{ ...cardPad, marginTop: 14 }}>
+      <Eyebrow>Live sessions · score & state computed from signals</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What the breaker did, and why</H3>
+      <Table head={["Session", "Agent", "Risk signals", "Score", "Breaker", "Capability revoked", "Art.12"]}>
+        {rows.map(r => { const c = tok(r.tone); return <tr key={r.id}>
+          <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{r.id}<div style={{ fontSize: 9, color: T.ink4 }}>{r.started}</div></Td>
+          <Td style={{ color: T.ink, fontWeight: 700 }}>{r.agentName}<div style={{ fontSize: 9, color: T.ink4, fontFamily: F.b }}>owner · {r.owner}</div></Td>
+          <Td><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{r.signals.map(k => { const sg = SIGNALS[k]; return <span key={k} style={{ fontSize: 9, fontWeight: 800, fontFamily: F.m, color: tok(sg.tone), background: tok(sg.tone) + "16", border: `1px solid ${tok(sg.tone)}33`, borderRadius: 999, padding: "2px 7px" }}>{sg.label}</span>; })}</div></Td>
+          <Td style={{ fontFamily: F.m, fontWeight: 900, color: c }}>{r.score}</Td>
+          <Td><Pill c={c}>{r.stateLabel}</Pill>{r.humanGate && <div style={{ fontSize: 8.5, color: T.amber, fontFamily: F.m, fontWeight: 800, marginTop: 3 }}>→ human</div>}</Td>
+          <Td style={{ color: T.ink2, fontSize: 10.5 }}>{r.acted ? (r.revoked.length ? <span style={{ fontFamily: F.m }}>{r.revoked.join(", ")}</span> : "—") : <span style={{ color: T.ink4 }}>none · monitoring</span>}</Td>
+          <Td style={{ fontFamily: F.m, color: r.ledgerRef ? T.green : T.ink4, whiteSpace: "nowrap" }}>{r.ledgerRef || "—"}</Td>
+        </tr>; })}
+      </Table>
+      {advisor(<>Session <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> shows the mechanism: the {rows.find(r => r.state === "halt") ? "Fraud Signal Agent's score hit " + rows.find(r => r.state === "halt")?.score + " (injection + egress + sensitive spike), so the breaker halted the session and revoked every token" : "score crossed the threshold and capability was pulled"} — before it reached a human gate, then wrote the trip to the Art.12 chain with the accountable owner. A fixed per-tool gate can't do this; it only fires at the tool the agent was already allowed to call. {s.tokensRevoked} tokens were revoked inside the {s.ttlSeconds}s TTL across {s.acted} tripped session{s.acted === 1 ? "" : "s"}.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Circuit-breaker trips exported — reconciled to the Article 12 evidence chain")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export breaker trips</button>
+      </div>
     </Card>
   </div>;
 }
