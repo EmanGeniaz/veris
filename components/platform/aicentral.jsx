@@ -618,7 +618,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         <div style={{fontSize:26,fontWeight:800,color:T.ink,fontFamily:F.h}}><CountUp value={value}/></div>
         <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,marginTop:4}}>{sub}</div>
       </div>
-      {typeof score==="number"?<Ring score={score} color={color||rc} size={54}/>:<div style={{width:38,height:38,borderRadius:12,background:(color||rc)+"18",border:"1px solid "+(color||rc)+"35"}}/>}
+      {typeof score==="number"&&<Ring score={score} color={color||rc} size={54}/>}
     </div>
   </Card>;
 
