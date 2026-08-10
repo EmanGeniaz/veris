@@ -76,7 +76,7 @@ export function WorkflowPermissions({ showToast }) {
     </div>
 
     <SectionLabel eye="Altitude 1 · per step" title="Workflow permissions" sub="Authored chains. Each step is re-checked against the agent’s own grant; a step invoking a tool the agent doesn’t hold is blocked as privilege escalation, and high-stakes steps escalate to a human." />
-    <div style={{ display: "grid", gap: 14 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14, alignItems: "start" }}>
       {rows.map(w => <Card key={w.id} style={cardPad}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
           <div><Eyebrow>{w.owner} · trigger: {w.trigger}</Eyebrow><H3>{w.name}</H3></div>
