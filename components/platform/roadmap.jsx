@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import { driftRows, driftStats, DRIFT_META } from "@/lib/drift";
 import { workflowRows, workflowStats, WF_DECISION_META } from "@/lib/agent-workflows";
+import { orchestrationRows, workflowCompositionRows, compositionStats, DELEG_DECISION_META, toolMeta } from "@/lib/agent-composition";
 import { INFERENCE_EVENTS, INF_DECISION_META, inferenceStats, INFERENCE_FIELDS, eventTokens } from "@/lib/inference-log";
 
 /* ── shared local primitives ── */
@@ -53,18 +54,29 @@ export function DriftMonitor({ showToast }) {
 }
 
 /* ══════════════ WORKFLOW PERMISSIONS ══════════════ */
+const SectionLabel = ({ eye, title, sub }) => <div style={{ margin: "22px 0 12px" }}>
+  <Eyebrow style={{ color: AI_GOLD_INK }}>{eye}</Eyebrow>
+  <h3 style={{ fontFamily: F.h, fontSize: 18, fontWeight: 900, color: T.ink, margin: "3px 0 0", letterSpacing: "-0.01em" }}>{title}</h3>
+  <p style={{ fontFamily: F.b, fontSize: 11.5, color: T.ink3, margin: "4px 0 0", maxWidth: 820, lineHeight: 1.6 }}>{sub}</p>
+</div>;
+
 export function WorkflowPermissions({ showToast }) {
   const rows = workflowRows();
   const s = workflowStats();
+  const orc = orchestrationRows();
+  const wfComp = workflowCompositionRows();
+  const cs = compositionStats();
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Workflow Permissions" sub="Least privilege across multi-agent workflows. A workflow is a chain of steps — each an agent invoking a tool, sometimes handing off to another. Every step is re-checked against that agent’s own capability set (deny-by-default), so an agent cannot gain a capability just by being placed in a workflow. High-stakes steps escalate to human approval; a step invoking a tool the agent doesn’t hold is blocked as privilege escalation." />
+    <Head title="Agent Chain Permissions" sub="Least privilege across multi-agent chains — at three altitudes. (1) Per step: every step is re-checked against that agent’s own capabilities (deny-by-default), so an agent can’t gain a capability by being placed in a chain. (2) Per delegation: a sub-agent runs with the intersection of its grants and the orchestrator’s mandate — min(orchestrator, sub-agent) — so an orchestrator can borrow a capability but never widen its own data reach. (3) Per composition: taint analysis across the whole chain catches emergent data paths where individually-allowed steps compose into an exfiltration route." />
     <div style={kpiGrid}>
-      <Kpi l="Workflows" v={String(s.workflows)} c={AI_GOLD} sub="governed chains" />
-      <Kpi l="Steps checked" v={String(s.steps)} c={T.blue} sub="per-step, transitively" />
-      <Kpi l="Escalation blocked" v={String(s.blocked)} c={T.red} sub="privilege-escalation attempts" />
-      <Kpi l="HITL gates" v={String(s.gated)} c={T.amber} sub="high-stakes → human" />
+      <Kpi l="Chains analysed" v={String(cs.chainsAnalysed)} c={AI_GOLD} sub="workflows + orchestrations" />
+      <Kpi l="Escalation blocked" v={String(s.blocked)} c={T.red} sub="per-step privilege escalation" />
+      <Kpi l="Scope-widening blocked" v={String(cs.widened)} c={T.red} sub="delegation boundary" />
+      <Kpi l="Emergent paths caught" v={String(cs.emergentPaths)} c={T.amber} sub="compositional exfil routes" />
     </div>
-    <div style={{ display: "grid", gap: 14 }}>
+
+    <SectionLabel eye="Altitude 1 · per step" title="Workflow permissions" sub="Authored chains. Each step is re-checked against the agent’s own grant; a step invoking a tool the agent doesn’t hold is blocked as privilege escalation, and high-stakes steps escalate to a human." />
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14, alignItems: "start" }}>
       {rows.map(w => <Card key={w.id} style={cardPad}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
           <div><Eyebrow>{w.owner} · trigger: {w.trigger}</Eyebrow><H3>{w.name}</H3></div>
@@ -82,9 +94,53 @@ export function WorkflowPermissions({ showToast }) {
         </div>
       </Card>)}
     </div>
+
+    <SectionLabel eye="Altitude 2 · per delegation" title="Orchestrator delegation" sub="An orchestrator delegates to sub-agents at runtime. Deny-by-default applies to the delegation, not just the agent: a sub-agent runs with min(orchestrator mandate, sub-agent grant). A delegation whose data scope lies outside the orchestrator’s mandate is scope-widening — blocked even though the sub-agent legitimately holds the tool." />
+    <div style={{ display: "grid", gap: 14 }}>
+      {orc.map(o => <Card key={o.id} style={cardPad}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+          <div><Eyebrow>{o.owner} · trigger: {o.trigger}</Eyebrow><H3>{o.name}</H3></div>
+          <Pill c={o.safe ? T.green : T.red}>{o.widened ? `${o.widened} scope-widening blocked` : o.risks.length ? `${o.risks.length} emergent path` : "Delegation holds"}</Pill>
+        </div>
+        <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, marginBottom: 10 }}>Orchestrator <b style={{ color: T.ink2 }}>{o.orchestratorName}</b> · mandate: <span style={{ fontFamily: F.m }}>{o.mandate.join(" · ")}</span></div>
+        <div style={{ display: "grid", gap: 7 }}>
+          {o.delegations.map((d, i) => { const m = DELEG_DECISION_META[d.decision]; const bad = d.decision === "widen" || d.decision === "deny"; return <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", background: T.s2, border: `1px solid ${bad ? T.red + "55" : T.border}`, borderRadius: 9, padding: "8px 11px" }}>
+            <span style={{ minWidth: 18, fontSize: 10, fontWeight: 900, color: T.ink4, fontFamily: F.m }}>{i + 1}</span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: T.ink, fontFamily: F.b }}>⇒ {d.to} <span style={{ color: T.ink4 }}>·</span> <span style={{ fontFamily: F.m }}>{d.tool}</span>{d.handoff && <span style={{ marginLeft: 6, fontSize: 9, color: AI_GOLD_INK, fontWeight: 800 }}>⇥ delegated</span>}</div>
+              <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{d.note} <span style={{ color: T.ink4 }}>· scope {d.scope} → effective {d.effective}</span></div>
+            </div>
+            <Pill c={tok(m.tone)}>{m.label}</Pill>
+          </div>; })}
+        </div>
+        {o.widened ? <div style={{ marginTop: 9, fontSize: 10.5, color: T.ink2, fontFamily: F.b, lineHeight: 1.55, background: T.red + "12", border: `1px solid ${T.red}33`, borderRadius: 9, padding: "9px 11px" }}>{o.delegations.find(d => d.decision === "widen")?.reason}</div> : null}
+      </Card>)}
+    </div>
+
+    <SectionLabel eye="Altitude 3 · per composition" title="Compositional risk" sub="Taint analysis across the whole chain. A step that reads sensitive data taints the chain; a mask or human gate clears it; an egress sink reached while tainted — with every step individually allowed — is an emergent exfiltration path per-step least privilege can’t see." />
+    <Card style={cardPad}>
+      {(() => {
+        const paths = [
+          ...orc.flatMap(o => o.risks.map(r => ({ chain: o.name, kind: "Orchestration", ...r }))),
+          ...wfComp.flatMap(w => w.risks.map(r => ({ chain: w.name, kind: "Workflow", ...r }))),
+        ];
+        if (!paths.length) return <div style={{ fontSize: 12, color: T.ink3, fontFamily: F.b }}>No emergent paths across the analysed chains.</div>;
+        return <div style={{ display: "grid", gap: 10 }}>
+          {paths.map((p, i) => <div key={i} style={{ background: T.s2, border: `1px solid ${T.amber}55`, borderRadius: 10, padding: "11px 13px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 5 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 900, color: T.ink, fontFamily: F.m }}>{p.path}</div>
+              <Pill c={T.amber}>Emergent exfil path · {p.chain}</Pill>
+            </div>
+            <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55 }}>{p.detail}</div>
+            <div style={{ fontSize: 10, color: T.ink4, fontFamily: F.b, marginTop: 5 }}>Remediation: insert a mask on the source or a human gate before the sink — then the path is contained without removing either capability.</div>
+          </div>)}
+        </div>;
+      })()}
+    </Card>
+
     <Card style={{ ...cardPad, marginTop: 14 }}>
-      {advisor(<>The Credit adjudication workflow tries to route <span style={{ fontFamily: F.m }}>issue_decision</span> through the Resolution Copilot — an agent that doesn’t hold it. Deny-by-default holds transitively, so the step is <b style={{ color: T.red }}>blocked</b> and the accountable agent issues it under human oversight. {s.blocked} escalation attempt blocked across {s.workflows} workflows.</>)}
-      <div style={{ marginTop: 12 }}><button onClick={() => showToast && showToast("Workflow permission report exported to Trust & Evidence")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export permission report</button></div>
+      {advisor(<>Three altitudes, one guarantee. Per step, the Credit workflow’s attempt to route <span style={{ fontFamily: F.m }}>issue_decision</span> through an agent that doesn’t hold it is <b style={{ color: T.red }}>blocked</b>. Per delegation, the Adjudication orchestrator’s attempt to pull <span style={{ fontFamily: F.m }}>read_hris_full</span> — a capability the sub-agent holds but whose <b>HRIS</b> scope is outside the orchestrator’s mandate — is <b style={{ color: T.red }}>blocked as scope-widening</b>. Per composition, the Resolution orchestrator’s doc-summariser can read sensitive documents and reach the open web in one context — an <b style={{ color: T.amber }}>emergent exfil path</b> every step passes individually — flagged for a mask or gate. {cs.emergentPaths} emergent path{cs.emergentPaths === 1 ? "" : "s"} and {cs.widened} scope-widening delegation{cs.widened === 1 ? "" : "s"} caught across {cs.chainsAnalysed} chains.</>)}
+      <div style={{ marginTop: 12 }}><button onClick={() => showToast && showToast("Agent-chain permission report exported to Trust & Evidence (per-step, delegation & compositional)")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export permission report</button></div>
     </Card>
   </div>;
 }

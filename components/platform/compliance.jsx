@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { AC_FRAMEWORK_POSTURE, knowledgeAssets , POLICY_REGISTER, acInitiatives} from "@/lib/platform-models";
 import { SmartSelect } from "./smartselect";
 import { walkBack, conformitySummary } from "@/lib/compliance-engine";
+import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats, regionLabel, STATUS_META } from "@/lib/frameworks";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -71,6 +72,69 @@ export function CompliancePosture({role,setTab,setAiCentralView}) {
   </div>;
 }
 
+/* ── Global Framework Library ── the whole landscape, hardcoded. Pick the
+   customer's jurisdiction and VerisZone auto-surfaces the frameworks that
+   govern them: the global foundational + security + lifecycle standards that
+   apply everywhere, plus that country's own national law or standard. */
+export function PageFrameworkLibrary({role,showToast}){
+  const rc=RC(role);
+  const [region,setRegion]=useState("global");
+  const list=frameworksForRegion(region);
+  const s=frameworkStats(region);
+  const statusTone=t=>({good:T.green,info:T.blue,ink3:T.ink4}[t]||T.ink4);
+  const KPI=({l,v,c,sub})=><Card style={{padding:"13px 15px"}}><div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:26,fontWeight:900,color:c,fontFamily:F.m,margin:"5px 0 2px"}}>{v}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{sub}</div></Card>;
+  return <div>
+    <SHead title="Global Framework Library" sub="No single framework covers everything — VerisZone ships the whole landscape hardcoded. Select the customer's jurisdiction and the applicable stack surfaces automatically: the global foundational, security and lifecycle standards that apply everywhere, plus that country's own national law or standard."/>
+
+    <Card style={{padding:16,marginBottom:14}}>
+      <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,marginBottom:9}}>Customer jurisdiction</div>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+        {REGIONS.map(r=>{const on=region===r.code;return <button key={r.code} onClick={()=>setRegion(r.code)} style={{background:on?rc+"18":T.s2,border:`1px solid ${on?rc+"55":T.border}`,color:on?rc:T.ink2,borderRadius:999,padding:"7px 13px",fontSize:11,fontWeight:on?900:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s",display:"inline-flex",alignItems:"center",gap:6}}><span style={{fontSize:13}}>{r.flag}</span>{r.label}</button>;})}
+      </div>
+    </Card>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
+      <KPI l="Frameworks applied" v={String(s.total)} c={AI_GOLD} sub={region==="global"?"full library":`govern ${regionLabel(region)}`}/>
+      <KPI l="Operational" v={String(s.operational)} c={T.green} sub="mapped to live controls"/>
+      <KPI l="Mapped" v={String(s.mapped)} c={T.blue} sub="control-mapped, demo-ready"/>
+      <KPI l="In library" v={String(s.library)} c={T.ink3} sub="ready to activate"/>
+    </div>
+
+    {FW_CATEGORIES.map(cat=>{const items=list.filter(f=>f.cat===cat.id);if(!items.length)return null;return <div key={cat.id} style={{marginBottom:18}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+        <span style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",whiteSpace:"nowrap"}}>{cat.label}</span>
+        <span style={{fontSize:10,color:T.ink4,fontFamily:F.b}}>· {cat.note}</span>
+        <span style={{flex:1,height:1,background:T.border}}/>
+        <span style={{fontSize:10,fontWeight:800,color:T.ink3,fontFamily:F.m}}>{items.length}</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:12,alignItems:"start"}}>
+        {items.map(f=>{const sm=STATUS_META[f.status]||{tone:"ink3"};const tone=statusTone(sm.tone);return <Card key={f.id} style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:6}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,lineHeight:1.3}}>{f.name}</div>
+              <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:2}}>{f.body} · {f.type}</div>
+            </div>
+            <span style={{flexShrink:0,fontSize:9,fontWeight:900,fontFamily:F.m,color:tone,background:tone+"18",border:`1px solid ${tone}40`,borderRadius:999,padding:"3px 9px",whiteSpace:"nowrap"}}>{f.status}</span>
+          </div>
+          <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>{f.focus}</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            <Tag label={f.obligation} color={/Binding|law|Certifiable/i.test(f.obligation)?T.amber:T.ink3} bg={(/Binding|law|Certifiable/i.test(f.obligation)?T.amber:T.ink3)+"14"}/>
+            {typeof f.score==="number"&&<span style={{fontSize:10,fontWeight:800,color:tone,fontFamily:F.m}}>{f.score}% posture</span>}
+          </div>
+          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}><b style={{color:T.ink3}}>Best for:</b> {f.bestFor}</div>
+        </Card>;})}
+      </div>
+    </div>;})}
+
+    <div style={{padding:"12px 14px",borderRadius:10,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}30`,fontSize:11.5,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}>
+      <b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> {region==="global"
+        ? <>The full landscape is hardcoded — {s.total} frameworks across foundational, national, security and lifecycle. No customer needs all of them at once; pick a jurisdiction and VerisZone narrows to the stack that governs them.</>
+        : <>For a customer operating in <b>{regionLabel(region)}</b>, VerisZone auto-applies <b>{s.total} frameworks</b>: the global foundational, security and lifecycle standards plus {s.regional} regional {s.regional===1?"instrument":"instruments"} — {s.binding} carrying binding force. {s.operational} are already operational against live controls; the rest activate from the library.</>}
+      <div style={{marginTop:11}}><button onClick={()=>showToast&&showToast(`Applied framework stack for ${regionLabel(region)} — ${s.total} frameworks activated for this tenant`)} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"9px 15px",color:"#241703",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Apply this jurisdiction stack</button></div>
+    </div>
+  </div>;
+}
+
 /* Section */
 /* ── Compliance & Standards: one surface for every framework, control,
    template, checklist and trust artifact. One control, many frameworks -
@@ -79,9 +143,9 @@ export function PageComplianceStandards({role,tab,setTab,setAiCentralView,showTo
   const LEGACY={compliance:"posture",impl:"frameworks",iso27001:"frameworks",scope:"frameworks",gapanalysis:"frameworks",aigov:"frameworks",controls:"controls",policies:"policies",trustcenter:"trust",knowledge:"search"};
   const FW_LEGACY={impl:"impl",iso27001:"iso27001",scope:"scope",gapanalysis:"gap",aigov:"cube"};
   const [cTab,setCTab]=useState(LEGACY[tab]||"posture");
-  const [fw,setFw]=useState(FW_LEGACY[tab]||"impl");
+  const [fw,setFw]=useState(FW_LEGACY[tab]||"library");
   const TABS=[["posture","Posture"],["search","Search"],["frameworks","Frameworks"],["controls","Control Library"],["policies","Policies"],["trust","Trust Center"]];
-  const FWS=[["impl","ISO 42001 Implementation"],["iso27001","ISO 27001 Workspace"],["scope","ISMS Scope"],["gap","Gap Analysis"],["cube","Framework Compare"]];
+  const FWS=[["library","Framework Library"],["impl","ISO 42001 Implementation"],["iso27001","ISO 27001 Workspace"],["scope","ISMS Scope"],["gap","Gap Analysis"],["cube","Framework Compare"]];
   const chip=(active,color)=>({background:active?color+"18":T.s2,border:`1px solid ${active?color+"50":T.border}`,color:active?color:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"});
   return <div style={{animation:"up .3s ease"}}>
     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
@@ -93,6 +157,7 @@ export function PageComplianceStandards({role,tab,setTab,setAiCentralView,showTo
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
         {FWS.map(([id,label])=><button key={id} onClick={()=>setFw(id)} style={chip(fw===id,AI_GOLD)}>{label}</button>)}
       </div>
+      {fw==="library"&&<PageFrameworkLibrary role={role} showToast={showToast}/>}
       {fw==="impl"&&<PageImpl role={role}/>}
       {fw==="iso27001"&&<PageISO27001 role={role} showToast={showToast}/>}
       {fw==="scope"&&<PageScope role={role}/>}
