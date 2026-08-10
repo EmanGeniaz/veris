@@ -8,6 +8,7 @@ import { AI_ASSETS, facetRollup } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { PORTFOLIO as CEO_PORTFOLIO, PF, FRAMEWORKS as CANON_FRAMEWORKS, COMPLIANCE_PCT, OPEN_INCIDENTS } from "@/lib/portfolio";
 import { WORLD_GEO } from "@/lib/world-geo";
+import { REPORT_TEMPLATES, SCHEDULED_REPORTS, templateById, reportingStats } from "@/lib/reporting";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
 
@@ -798,23 +799,89 @@ function Actions({role,showToast}){
 }
 
 /* ══════════════════ REPORTING ══════════════════ */
+const RPT_TONE={gold:AI_GOLD_INK,blue:T.blue,green:T.green,red:T.red};
 function Reporting({showToast}){
+  const [mode,setMode]=useState("library"); // library | custom
+  const [active,setActive]=useState(null);   // selected template id
   const [sel,setSel]=useState(new Set(["By region","By time","By risk"]));
   const [gen,setGen]=useState(false);
   const toggle=d=>setSel(s=>{const n=new Set(s);n.has(d)?n.delete(d):n.add(d);return n;});
+  const rs=reportingStats();
+  const tpl=active?templateById(active):null;
   return <div style={{animation:"up .3s ease"}}>
-    <PageHead title="Reporting" sub="Build an executive report by dimension — then export a board-ready pack."/>
-    <Card style={cardPad}><Eyebrow>Report builder</Eyebrow><H3 style={{marginBottom:12}}>Choose the dimensions to include</H3>
+    <PageHead title="Reporting" sub="A library of audience-shaped report packs — board, regulator, audit, risk, value, security and more — each on its own cadence and format, plus a custom builder and scheduled delivery."/>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
+      {[["Report packs",String(rs.templates),AI_GOLD,`${rs.audiences} audiences`],["Scheduled deliveries",String(rs.scheduled),T.blue,"recurring"],["Export formats",String(rs.formats),T.green,"PDF · PPTX · XLSX · JSON"],["On-demand",String(rs.onDemand),T.amber,"regulator & framework"]].map(([l,v,c,s])=>
+        <Card key={l} style={{padding:"13px 15px"}}><div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:26,fontWeight:900,color:c,fontFamily:F.m,margin:"5px 0 2px"}}>{v}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{s}</div></Card>)}
+    </div>
+
+    <div style={{display:"flex",gap:6,marginBottom:14}}>
+      {[["library","Report library"],["custom","Custom report"]].map(([id,label])=>
+        <button key={id} onClick={()=>{setMode(id);setActive(null);setGen(false);}} style={{padding:"8px 16px",borderRadius:9,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${mode===id?AI_GOLD:T.border}`,background:mode===id?AI_GOLD+"18":T.s2,color:mode===id?AI_GOLD_INK:T.ink3}}>{label}</button>)}
+    </div>
+
+    {mode==="library"&&<>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12,marginBottom:16}}>
+        {REPORT_TEMPLATES.map(t=>{const c=RPT_TONE[t.tone]||AI_GOLD_INK;const on=active===t.id;return <Card key={t.id} onClick={()=>setActive(t.id)} style={{padding:"15px 16px",cursor:"pointer",border:`1px solid ${on?AI_GOLD+"66":T.border}`,transition:"border-color .15s"}}>
+          <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:6}}>
+            <div style={{fontSize:13.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t.name}</div>
+            <Pill c={c}>{t.cadence}</Pill>
+          </div>
+          <div style={{fontSize:10,color:c,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:7}}>{t.audience}</div>
+          <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.5,marginBottom:9}}>{t.summary}</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{t.sections.slice(0,3).map(s=><span key={s} style={{fontSize:9,fontWeight:700,fontFamily:F.m,color:T.ink3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"2px 8px"}}>{s}</span>)}{t.sections.length>3&&<span style={{fontSize:9,fontWeight:700,fontFamily:F.m,color:T.ink4,padding:"2px 4px"}}>+{t.sections.length-3}</span>}</div>
+        </Card>;})}
+      </div>
+
+      {tpl&&<Card style={{...cardPad,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap",alignItems:"flex-start",marginBottom:10}}>
+          <div><Eyebrow style={{color:AI_GOLD_INK,marginBottom:4}}>Report pack · {tpl.audience}</Eyebrow><H3>{tpl.name} — draft</H3></div>
+          <Pill c={RPT_TONE[tpl.tone]||AI_GOLD_INK}>{tpl.cadence}</Pill>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
+          {[["Portfolio value",`$${PF.realized.toFixed(1)}M`,T.ink],["Overall risk",`${PF.criticalCount+PF.highCount+PF.mediumCount}/${PF.count}`,T.red],["Adoption",`${PF.adoption}%`,T.ink]].map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
+        </div>
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>Sections in this pack</div>
+        <div style={{display:"grid",gap:6,marginBottom:14}}>
+          {tpl.sections.map((s,i)=><div key={s} style={{display:"flex",alignItems:"center",gap:9,background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px"}}>
+            <span style={{minWidth:16,fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m}}>{i+1}</span>
+            <span style={{fontSize:11.5,fontWeight:700,color:T.ink,fontFamily:F.b}}>{s}</span>
+          </div>)}
+        </div>
+        {tpl.frameworks&&<div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:12}}>Frameworks: <b style={{color:T.ink2}}>{tpl.frameworks.join(", ")}</b></div>}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+          {tpl.formats.map(f=><button key={f} onClick={()=>showToast&&showToast(`${tpl.name} exported as ${f}`)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 14px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export {f}</button>)}
+          <button onClick={()=>showToast&&showToast(`${tpl.name} added to the ${tpl.cadence.toLowerCase()} delivery calendar`)} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"9px 15px",color:"#0b0e24",fontSize:11.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Schedule {tpl.cadence!=="On-demand"?tpl.cadence.toLowerCase():"delivery"}</button>
+        </div>
+      </Card>}
+
+      <Card style={{...cardPad,marginTop:16}}>
+        <Eyebrow>Scheduled delivery · recurring packs</Eyebrow><H3 style={{marginBottom:12}}>On the reporting calendar</H3>
+        <Table head={["Report","Audience","Cadence","Next run","Format","Owner"]}>
+          {SCHEDULED_REPORTS.map(r=>{const t=templateById(r.template);return <tr key={r.id}>
+            <Td style={{fontWeight:700,color:T.ink}}>{t?t.name:r.template}</Td>
+            <Td>{t?t.audience:"—"}</Td>
+            <Td><Pill c={T.blue}>{r.cadence}</Pill></Td>
+            <Td style={{fontFamily:F.m,color:T.ink3}}>{r.next}</Td>
+            <Td style={{fontFamily:F.m,color:T.ink3}}>{r.format}</Td>
+            <Td>{r.owner}</Td>
+          </tr>;})}
+        </Table>
+      </Card>
+    </>}
+
+    {mode==="custom"&&<><Card style={cardPad}><Eyebrow>Custom report builder</Eyebrow><H3 style={{marginBottom:12}}>Choose the dimensions to include</H3>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         {REPORT_DIMS.map(d=><button key={d} onClick={()=>toggle(d)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${sel.has(d)?AI_GOLD:T.border}`,background:sel.has(d)?AI_GOLD:T.s2,color:sel.has(d)?"#0b0e24":T.ink3}}>{d}</button>)}
       </div>
       <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}>
-        <button onClick={()=>{setGen(true);showToast&&showToast("Board pack generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button>
+        <button onClick={()=>{setGen(true);showToast&&showToast("Custom pack generated");}} style={{background:AI_GOLD,border:"none",borderRadius:11,padding:"10px 17px",color:"#0b0e24",fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>✦ Generate report</button>
         <button onClick={()=>showToast&&showToast("Weekly delivery scheduled — added to the reporting calendar")} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 17px",color:T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Schedule weekly</button>
       </div>
     </Card>
     {gen&&<Card style={{...cardPad,marginTop:14,border:`1px solid ${AI_GOLD}44`,animation:"up .2s ease"}}>
-      <Eyebrow style={{color:AI_GOLD_INK}}>Board pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>Executive AI Report — Q3 FY26</H3>
+      <Eyebrow style={{color:AI_GOLD_INK}}>Custom pack · generated draft</Eyebrow><H3 style={{marginBottom:10}}>Executive AI Report — Q3 FY26</H3>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
         {[["Portfolio value",`$${PF.realized.toFixed(1)}M`,T.ink],["Overall risk",`${PF.criticalCount+PF.highCount+PF.mediumCount}/${PF.count}`,T.red],["Adoption",`${PF.adoption}%`,T.ink]].map(([l,v,c])=><div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
       </div>
@@ -823,10 +890,9 @@ function Reporting({showToast}){
           <tr key={r[0]}><Td style={{fontWeight:700,color:T.ink,width:150}}>{r[0]}</Td><Td>{r[1]}</Td></tr>)}
       </Table>
       <div style={{display:"flex",gap:9,marginTop:14,flexWrap:"wrap"}}>
-        <button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export XLSX</button>
-        <button style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export board PDF</button>
+        {["Board PDF","PPTX","XLSX","CSV"].map(f=><button key={f} onClick={()=>showToast&&showToast(`Custom pack exported as ${f}`)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"8px 15px",color:T.ink2,fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Export {f}</button>)}
       </div>
-    </Card>}
+    </Card>}</>}
   </div>;
 }
 
