@@ -10,6 +10,7 @@ import { SmartSelect } from "./smartselect";
 import { walkBack, conformitySummary } from "@/lib/compliance-engine";
 import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats, regionLabel, STATUS_META } from "@/lib/frameworks";
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
+import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -127,15 +128,15 @@ export function PageFrameworkLibrary({role,showToast}){
       </div>
     </div>;})}
 
-    {region==="au"&&(()=>{const g=auGuardrailStats();return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
+    {(()=>{const MAP={au:{rows:AU_GUARDRAILS,stats:auGuardrailStats(),title:"Australia Voluntary AI Safety Standard · 10 guardrails",unit:"guardrail",col:"Guardrail"},sg:{rows:SG_DIMENSIONS,stats:sgDimensionStats(),title:"Singapore Model AI Governance · 9 dimensions",unit:"dimension",col:"Dimension"}};const M=MAP[region];if(!M)return null;const g=M.stats;return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap",marginBottom:4}}>
-        <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>Operational · guardrail mapping</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>Australia Voluntary AI Safety Standard · 10 guardrails</div></div>
+        <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>Operational · {M.unit} mapping</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>{M.title}</div></div>
         <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} Met · {g.score}% posture</span>
       </div>
-      <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>Each guardrail maps to a control VerisZone already runs — posture computed from live controls, not asserted.</div>
+      <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>Each {M.unit} maps to a control VerisZone already runs — posture computed from live controls, not asserted.</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
-        <thead><tr>{["#","Guardrail","VerisZone control","Evidenced in","Status"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
-        <tbody>{AU_GUARDRAILS.map(gd=>{const met=gd.status==="Met";const c=met?T.green:T.amber;return <tr key={gd.n}>
+        <thead><tr>{["#",M.col,"VerisZone control","Evidenced in","Status"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{M.rows.map(gd=>{const met=gd.status==="Met";const c=met?T.green:T.amber;return <tr key={gd.n}>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink4,fontFamily:F.m,fontWeight:800}}>{gd.n}</td>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{gd.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:500,marginTop:1}}>{gd.desc}</div></td>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{gd.control}</td>
