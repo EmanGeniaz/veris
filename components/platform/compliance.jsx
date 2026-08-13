@@ -11,6 +11,7 @@ import { walkBack, conformitySummary } from "@/lib/compliance-engine";
 import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats, regionLabel, STATUS_META } from "@/lib/frameworks";
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
 import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
+import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats } from "@/lib/regional-mappings";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -128,7 +129,7 @@ export function PageFrameworkLibrary({role,showToast}){
       </div>
     </div>;})}
 
-    {(()=>{const MAP={au:{rows:AU_GUARDRAILS,stats:auGuardrailStats(),title:"Australia Voluntary AI Safety Standard · 10 guardrails",unit:"guardrail",col:"Guardrail"},sg:{rows:SG_DIMENSIONS,stats:sgDimensionStats(),title:"Singapore Model AI Governance · 9 dimensions",unit:"dimension",col:"Dimension"}};const M=MAP[region];if(!M)return null;const g=M.stats;return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
+    {(()=>{const MAP={au:{rows:AU_GUARDRAILS,stats:auGuardrailStats(),title:"Australia Voluntary AI Safety Standard · 10 guardrails",unit:"guardrail",col:"Guardrail"},sg:{rows:SG_DIMENSIONS,stats:sgDimensionStats(),title:"Singapore Model AI Governance · 9 dimensions",unit:"dimension",col:"Dimension"},cn:{rows:CN_REQS,stats:cnStats(),title:"China AI Regulations · core requirements",unit:"requirement",col:"Requirement"},br:{rows:BR_REQS,stats:brStats(),title:"Brazil AI Regulatory Framework · core requirements",unit:"requirement",col:"Requirement"},kr:{rows:KR_REQS,stats:krStats(),title:"South Korea AI Basic Act · core requirements",unit:"requirement",col:"Requirement"}};const M=MAP[region];if(!M)return null;const g=M.stats;return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap",marginBottom:4}}>
         <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>Operational · {M.unit} mapping</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>{M.title}</div></div>
         <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} Met · {g.score}% posture</span>
