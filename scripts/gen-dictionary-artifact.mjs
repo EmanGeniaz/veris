@@ -13,6 +13,10 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const SHOT_DIR = process.env.SHOT_DIR || join(__dir, "dictionary-shots");
 const OUT = process.env.OUT || join(__dir, "..", "veriszone-dictionary.html");
 
+/* ── real VerisZone logo → data URI (blue+gold on transparent, for the dark header) ── */
+const LOGO_PATH = join(__dir, "..", "public", "brand", "veriszone-dark-transparent.png");
+const LOGO = existsSync(LOGO_PATH) ? `data:image/png;base64,${readFileSync(LOGO_PATH).toString("base64")}` : "";
+
 /* ── screenshots → data URIs ── */
 const shotData = {};
 for (const key of [...new Set(PLATFORM_DICTIONARY.filter(e => e.shot).map(e => e.shot))]) {
@@ -86,7 +90,8 @@ const chips = ["All", ...DICT_CATEGORIES].map(c =>
   `<button class="chip${c === "All" ? " on" : ""}" data-chip="${c === "All" ? "all" : esc(c)}">${c === "All" ? "All" : esc(c)}<span class="chip-n">${c === "All" ? PLATFORM_DICTIONARY.length : PLATFORM_DICTIONARY.filter(e => e.cat === c).length}</span></button>`
 ).join("");
 
-const html = `<title>VerisZone Dictionary</title>
+const html = `<meta charset="utf-8" />
+<title>VerisZone Dictionary</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root{
@@ -121,10 +126,10 @@ const html = `<title>VerisZone Dictionary</title>
   /* header */
   header.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#F4E9EE;border-bottom:1px solid rgba(255,255,255,.08)}
   .top-in{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
-  .brand .mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#2C5AA0,#D6A84F);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;color:#0B0E1A;font-size:18px}
-  .brand b{font-family:var(--serif);font-size:16px;font-weight:700;letter-spacing:.01em}
-  .brand span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:#D6A84F;margin-top:1px}
+  .brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .brand .logo{height:38px;width:auto;display:block}
+  .brand b{font-family:var(--serif);font-size:16px;font-weight:700;letter-spacing:.01em;color:#F4E9EE}
+  .brand-sub{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#D6A84F;padding-left:12px;border-left:1px solid rgba(255,255,255,.18)}
   .search{margin-left:auto;position:relative;flex:1;min-width:220px;max-width:420px}
   .search input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:9px 14px 9px 36px;color:#fff;font-size:14px;font-family:var(--sans);outline:none}
   .search input::placeholder{color:#9AA3B4}
@@ -202,8 +207,8 @@ const html = `<title>VerisZone Dictionary</title>
 <header class="top">
   <div class="top-in">
     <div class="brand">
-      <div class="mark">V</div>
-      <div><b>VerisZone</b><span>Governance Dictionary</span></div>
+      ${LOGO ? `<img class="logo" src="${LOGO}" alt="VerisZone" />` : `<b>VerisZone</b>`}
+      <span class="brand-sub">Governance Dictionary</span>
     </div>
     <div class="search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA3B4" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
