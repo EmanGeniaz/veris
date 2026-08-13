@@ -129,7 +129,11 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
   const TABS = [["orgs", "Organizations"], ["modules", "Module Access"], ["users", "Users & RBAC"], ["policies", "Policies"]];
   const stat = (l, v, c) => <div><div style={{ fontSize: 22, fontWeight: 900, fontFamily: F.m, color: c }}>{v}</div><div style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b, textTransform: "uppercase", letterSpacing: "0.06em" }}>{l}</div></div>;
 
-  return <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: F.b }}>
+  return <div className="sa-console" style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: F.b }}>
+    {/* Native <select> renders its value using the <option>'s color on some
+        platforms; options inherit the stale dark-default ink, so pin them to
+        the live light ink here (matches the field() fix for the control). */}
+    <style>{`.sa-console select, .sa-console select option { color: ${T.ink}; background: #fff; }`}</style>
     {/* top bar */}
     <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 24px", borderBottom: `1px solid ${T.border}`, background: "#0B0E1A", color: "#fff", position: "sticky", top: 0, zIndex: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
