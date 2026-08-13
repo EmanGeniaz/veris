@@ -4,7 +4,7 @@
      node scripts/gen-dictionary-artifact.mjs
    Output: scratchpad/veriszone-dictionary.html (publish via the Artifact tool). */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { PLATFORM_DICTIONARY, DICT_CATEGORIES } from "../lib/platform-dictionary.js";
@@ -17,12 +17,94 @@ const OUT = process.env.OUT || join(__dir, "..", "veriszone-dictionary.html");
 const LOGO_PATH = join(__dir, "..", "public", "brand", "veriszone-dark-transparent.png");
 const LOGO = existsSync(LOGO_PATH) ? `data:image/png;base64,${readFileSync(LOGO_PATH).toString("base64")}` : "";
 
-/* ── screenshots → data URIs ── */
-const shotData = {};
-for (const key of [...new Set(PLATFORM_DICTIONARY.filter(e => e.shot).map(e => e.shot))]) {
-  const path = `${SHOT_DIR}/${key}.jpg`;
-  if (existsSync(path)) shotData[key] = `data:image/jpeg;base64,${readFileSync(path).toString("base64")}`;
+const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+/* ── available surface screenshots (surf-<slug>.jpg from the capture walk) + legacy keyed shots ── */
+const surfFiles = readdirSync(SHOT_DIR).filter(f => f.startsWith("surf-") && f.endsWith(".jpg"));
+const surfSlugs = new Set(surfFiles.map(f => f.replace(/^surf-/, "").replace(/\.jpg$/, "")));
+
+/* alias: dictionary term slug → captured surface slug (for names that differ from nav labels) */
+const ALIAS = {
+  "hitl-gates": "human-in-the-loop-gates", "human-in-the-loop-hitl": "human-in-the-loop-gates",
+  "human-in-the-loop-queue": "human-in-the-loop-queue", "veris-enforce": "veris-enforce",
+  "my-ai-assistant": "my-ai-assistant", "ai-hub": "ai-hub", "governance-academy": "governance-academy",
+  "glossary-learning": "governance-academy", "model-registry": "model-registry", "ai-model-registry": "model-registry",
+  "compliance-standards": "compliance-standards", "policies-standards": "compliance-standards",
+  "global-framework-library": "global-framework-library", "control-library": "common-control-library",
+  "compliance-scorecard": "compliance-scorecard", "compliance-checklists": "compliance-checklists",
+  "gap-analysis-dashboard": "gap-analysis-dashboard", "isms-scope-builder": "isms-scope-builder",
+  "iso-27001-workspace": "iso-27001-workspace", "knowledge": "knowledge", "my-ai-ideas": "my-ai-ideas",
+  "ai-opportunity-intake": "ai-opportunity-intake", "ai-use-case-pipeline": "ai-use-case-pipeline",
+  "cxo-platform-strategy": "cxo-platform-strategy", "ai-governance-cube": "ai-governance-cube",
+  "governance-compliance-caio": "governance-compliance", "governance-library": "governance-library",
+  "reports": "reports", "decisions": "decisions", "playbook": "playbook", "ai-playbook": "ai-playbook",
+  "trust-center": "trust-center", "integrations": "integrations", "admin-portal": "admin-portal",
+  "risk-center": "risk-center", "risk-register": "risk-register", "risk-appetite": "risk-appetite",
+  "controls-kris": "controls-kris", "audit-readiness": "audit-readiness", "impact-assessment-aia": "impact-assessment-aia",
+  "dpia": "dpia-assessments", "enterprise-risk": "enterprise-risk", "regulatory-map": "regulatory-map",
+  "contracts-ip": "contracts-ip", "conformity": "conformity", "consent-rights": "consent-rights",
+  "data-map-residency": "data-map-residency", "platform-health": "platform-health",
+  "gateway-routing": "gateway-routing", "cost-performance": "cost-performance", "investment-portfolio": "investment-portfolio",
+  "budget-forecast": "budget-forecast", "financial-risk": "financial-risk", "value-roi": "value-roi",
+  "cost-run-rate": "cost-run-rate", "workforce-capacity": "workforce-capacity", "operational-risk": "operational-risk",
+  "process-automation": "process-automation", "performance-slas": "performance-slas",
+  "adoption-enablement": "adoption-enablement", "role-impact": "role-impact", "sentiment-feedback": "sentiment-feedback",
+  "skills-reskilling": "skills-reskilling", "my-action-items": "my-action-items", "governance-forum": "governance-forum",
+  "incident-playbook": "incident-playbook", "convergence-crosswalk": "convergence-crosswalk",
+  "prohibited-practices": "prohibited-practices", "gpai-exposure": "gpai-exposure", "gap-closure": "gap-closure",
+  "jurisdiction-atlas": "jurisdiction-atlas", "iso-42001-readiness": "iso-42001-readiness",
+  "evidence-freshness": "evidence-freshness", "governance-glossary": "governance-glossary", "drift-monitor": "drift-monitor",
+  "article-12-log": "article-12-log", "regulatory-posture": "regulatory-posture", "board-audit": "board-audit",
+  "agent-authority": "agent-authority", "tool-call-ledger": "tool-call-ledger", "mcp-registry": "mcp-registry",
+  "egress-policy": "egress-policy", "circuit-breaker": "circuit-breaker", "agent-chain-permissions": "agent-chain-permissions",
+  "threat-center": "threat-center", "red-team": "red-team", "guardrails-controls": "guardrails-controls",
+  "vulnerabilities": "vulnerabilities", "ai-incidents": "ai-incidents", "my-initiatives": "my-initiatives",
+  "my-tasks": "my-tasks", "how-i-m-doing": "how-i-m-doing", "my-requests": "my-requests",
+  "risk-compliance-employee": "risk-compliance", "approvals-manager": "approvals", "help": "help",
+  "onboarding": "onboard", "use-cases": "use-cases", "roadmap": "strategic-roadmap", "maturity-radar": "ai-governance-maturity",
+  "ceo-cockpit": "overview", "caio-governance": "governance-compliance",
+  // role homes → a signature surface for that role
+  "ciso-security": "veris-enforce", "cfo-value-office": "value-roi", "coo-operating-model": "process-automation",
+  "chro-workforce": "adoption-enablement", "cio-portfolio": "platform-health", "cdpo-privacy": "dpia-assessments",
+  "cro-risk": "risk-register", "legal-counsel": "regulatory-map", "manager-workspace": "approvals",
+  "team-ai-surfaces": "ai-hub", "ai-central-login": "ai-central",
+};
+
+/* Framework entries all live inside the Compliance & Standards library — show that surface. */
+const FRAMEWORK_FALLBACK = "compliance-standards";
+
+const STOP = new Set(["the","a","an","of","and","for","to","in","on","its","cfo","coo","cio","cdpo","cro","chro","ciso","cgo","ceo","caio","manager","employee","legal","surface","view"]);
+const usedFiles = new Set();
+
+/* resolve a screenshot file for an entry: alias → exact slug → token overlap → legacy `shot` key */
+function resolveShotFile(entry) {
+  const clean = entry.term.toLowerCase().replace(/\([^)]*\)/g, " ").trim();
+  const s = slugify(clean);
+  const cand = [ALIAS[s], s].filter(Boolean);
+  for (const c of cand) if (surfSlugs.has(c)) { const f = `surf-${c}.jpg`; usedFiles.add(f); return f; }
+  // token overlap
+  const toks = clean.split(/\s+/).map(slugify).filter(w => w && w.length > 2 && !STOP.has(w));
+  if (toks.length) {
+    let best = null, bestScore = 0;
+    for (const ss of surfSlugs) {
+      const st = new Set(ss.split("-"));
+      const score = toks.filter(t => st.has(t)).length;
+      if (score > bestScore) { bestScore = score; best = ss; }
+    }
+    if (best && bestScore >= Math.min(2, toks.length)) { const f = `surf-${best}.jpg`; usedFiles.add(f); return f; }
+  }
+  // legacy explicit shot key (ceo.jpg, caio.jpg, ...)
+  if (entry.shot && existsSync(`${SHOT_DIR}/${entry.shot}.jpg`)) { const f = `${entry.shot}.jpg`; usedFiles.add(f); return f; }
+  // frameworks all appear in the Compliance & Standards library
+  if (entry.cat === "Framework & regulation" && surfSlugs.has(FRAMEWORK_FALLBACK)) { const f = `surf-${FRAMEWORK_FALLBACK}.jpg`; usedFiles.add(f); return f; }
+  return null;
 }
+
+/* pre-resolve so we know which files are used, then embed only those */
+const entryShotFile = new Map();
+for (const e of PLATFORM_DICTIONARY) { const f = resolveShotFile(e); if (f) entryShotFile.set(e.term, f); }
+const shotURI = {};
+for (const f of usedFiles) shotURI[f] = `data:image/jpeg;base64,${readFileSync(`${SHOT_DIR}/${f}`).toString("base64")}`;
 
 /* ── category dot colors (legible on both grounds) ── */
 const CAT_DOT = {
@@ -46,9 +128,10 @@ const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g
 function card(e) {
   const dot = CAT_DOT[e.cat] || "#8A93A5";
   const searchBlob = esc(`${e.term} ${e.cat} ${e.meaning} ${e.usage} ${e.example} ${e.ql.what} ${e.ql.why} ${e.ql.how} ${e.ql.where}`.toLowerCase());
-  const shot = e.shot && shotData[e.shot] ? `
+  const sf = entryShotFile.get(e.term);
+  const shot = sf && shotURI[sf] ? `
         <figure class="shot">
-          <img loading="lazy" src="${shotData[e.shot]}" alt="Screenshot of ${esc(e.term)} in VerisZone" />
+          <img loading="lazy" src="${shotURI[sf]}" alt="Screenshot of ${esc(e.term)} in VerisZone" />
           <figcaption>Where “${esc(e.term)}” lives in the platform</figcaption>
         </figure>` : "";
   return `
@@ -285,4 +368,7 @@ const html = `<meta charset="utf-8" />
 </script>`;
 
 writeFileSync(OUT, html);
-console.log("wrote", OUT, (html.length/1024).toFixed(0)+"KB", "entries", PLATFORM_DICTIONARY.length, "shots", Object.keys(shotData).length);
+const withShot = PLATFORM_DICTIONARY.filter(e => entryShotFile.has(e.term)).length;
+console.log("wrote", OUT, (html.length/1024/1024).toFixed(1)+"MB", "| entries", PLATFORM_DICTIONARY.length, "| entries with screenshot", withShot, "| unique images embedded", usedFiles.size);
+const noShot = PLATFORM_DICTIONARY.filter(e => !entryShotFile.has(e.term)).map(e => `${e.term} [${e.cat}]`);
+console.log("no screenshot ("+noShot.length+"):\n  " + noShot.join("\n  "));
