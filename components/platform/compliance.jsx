@@ -12,6 +12,7 @@ import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
 import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
 import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats } from "@/lib/regional-mappings";
+import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -82,7 +83,19 @@ export function CompliancePosture({role,setTab,setAiCentralView}) {
 export function PageFrameworkLibrary({role,showToast}){
   const rc=RC(role);
   const [region,setRegion]=useState("global");
+  const [mapFw,setMapFw]=useState(null);
   const list=frameworksForRegion(region);
+  /* Frameworks with a live control mapping → shown as a clickable detail panel. */
+  const MAPPINGS={
+    "au-safety":{rows:AU_GUARDRAILS,stats:auGuardrailStats(),unit:"guardrail",col:"Guardrail"},
+    "sg-model":{rows:SG_DIMENSIONS,stats:sgDimensionStats(),unit:"dimension",col:"Dimension"},
+    "china-regs":{rows:CN_REQS,stats:cnStats(),unit:"requirement",col:"Requirement"},
+    "brazil-framework":{rows:BR_REQS,stats:brStats(),unit:"requirement",col:"Requirement"},
+    "korea-act":{rows:KR_REQS,stats:krStats(),unit:"requirement",col:"Requirement"},
+    "iso-38507":{rows:ISO38507_REQS,stats:iso38507Stats(),unit:"consideration",col:"Consideration"},
+    "iso-42005":{rows:ISO42005_REQS,stats:iso42005Stats(),unit:"requirement",col:"Requirement"},
+  };
+  const REGION_FW={au:"au-safety",sg:"sg-model",cn:"china-regs",br:"brazil-framework",kr:"korea-act"};
   const s=frameworkStats(region);
   const statusTone=t=>({good:T.green,info:T.blue,ink3:T.ink4}[t]||T.ink4);
   const KPI=({l,v,c,sub})=><Card style={{padding:"13px 15px"}}><div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:26,fontWeight:900,color:c,fontFamily:F.m,margin:"5px 0 2px"}}>{v}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{sub}</div></Card>;
@@ -92,7 +105,7 @@ export function PageFrameworkLibrary({role,showToast}){
     <Card style={{padding:16,marginBottom:14}}>
       <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,marginBottom:9}}>Customer jurisdiction</div>
       <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-        {REGIONS.map(r=>{const on=region===r.code;return <button key={r.code} onClick={()=>setRegion(r.code)} style={{background:on?rc+"18":T.s2,border:`1px solid ${on?rc+"55":T.border}`,color:on?rc:T.ink2,borderRadius:999,padding:"7px 13px",fontSize:11,fontWeight:on?900:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s",display:"inline-flex",alignItems:"center",gap:6}}><span style={{fontSize:13}}>{r.flag}</span>{r.label}</button>;})}
+        {REGIONS.map(r=>{const on=region===r.code;return <button key={r.code} onClick={()=>{setRegion(r.code);setMapFw(REGION_FW[r.code]||null);}} style={{background:on?rc+"18":T.s2,border:`1px solid ${on?rc+"55":T.border}`,color:on?rc:T.ink2,borderRadius:999,padding:"7px 13px",fontSize:11,fontWeight:on?900:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s",display:"inline-flex",alignItems:"center",gap:6}}><span style={{fontSize:13}}>{r.flag}</span>{r.label}</button>;})}
       </div>
     </Card>
 
@@ -111,7 +124,7 @@ export function PageFrameworkLibrary({role,showToast}){
         <span style={{fontSize:10,fontWeight:800,color:T.ink3,fontFamily:F.m}}>{items.length}</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:12,alignItems:"start"}}>
-        {items.map(f=>{const sm=STATUS_META[f.status]||{tone:"ink3"};const tone=statusTone(sm.tone);return <Card key={f.id} style={{padding:"14px 16px"}}>
+        {items.map(f=>{const sm=STATUS_META[f.status]||{tone:"ink3"};const tone=statusTone(sm.tone);const hasMap=!!MAPPINGS[f.id];const seld=mapFw===f.id;return <Card key={f.id} onClick={hasMap?()=>setMapFw(f.id):undefined} style={{padding:"14px 16px",cursor:hasMap?"pointer":"default",border:`1px solid ${seld?T.green+"66":T.border}`,transition:"border-color .15s"}}>
           <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:6}}>
             <div style={{minWidth:0}}>
               <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,lineHeight:1.3}}>{f.name}</div>
@@ -123,15 +136,16 @@ export function PageFrameworkLibrary({role,showToast}){
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
             <Tag label={f.obligation} color={/Binding|law|Certifiable/i.test(f.obligation)?T.amber:T.ink3} bg={(/Binding|law|Certifiable/i.test(f.obligation)?T.amber:T.ink3)+"14"}/>
             {typeof f.score==="number"&&<span style={{fontSize:10,fontWeight:800,color:tone,fontFamily:F.m}}>{f.score}% posture</span>}
+            {hasMap&&<span style={{fontSize:9.5,fontWeight:800,color:T.green,fontFamily:F.b,marginLeft:"auto"}}>{seld?"Mapping ↓":"View mapping →"}</span>}
           </div>
           <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}><b style={{color:T.ink3}}>Best for:</b> {f.bestFor}</div>
         </Card>;})}
       </div>
     </div>;})}
 
-    {(()=>{const MAP={au:{rows:AU_GUARDRAILS,stats:auGuardrailStats(),title:"Australia Voluntary AI Safety Standard · 10 guardrails",unit:"guardrail",col:"Guardrail"},sg:{rows:SG_DIMENSIONS,stats:sgDimensionStats(),title:"Singapore Model AI Governance · 9 dimensions",unit:"dimension",col:"Dimension"},cn:{rows:CN_REQS,stats:cnStats(),title:"China AI Regulations · core requirements",unit:"requirement",col:"Requirement"},br:{rows:BR_REQS,stats:brStats(),title:"Brazil AI Regulatory Framework · core requirements",unit:"requirement",col:"Requirement"},kr:{rows:KR_REQS,stats:krStats(),title:"South Korea AI Basic Act · core requirements",unit:"requirement",col:"Requirement"}};const M=MAP[region];if(!M)return null;const g=M.stats;return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
+    {(()=>{const M=mapFw&&MAPPINGS[mapFw];if(!M)return null;const fw=FRAMEWORKS.find(f=>f.id===mapFw);const g=M.stats;return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap",marginBottom:4}}>
-        <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>Operational · {M.unit} mapping</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>{M.title}</div></div>
+        <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>Operational · {M.unit} mapping</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>{fw?fw.name:mapFw} · {M.rows.length} {M.unit}s</div></div>
         <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} Met · {g.score}% posture</span>
       </div>
       <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>Each {M.unit} maps to a control VerisZone already runs — posture computed from live controls, not asserted.</div>
