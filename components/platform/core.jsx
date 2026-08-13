@@ -281,6 +281,7 @@ export const ROLES = {
   legal:{id:"legal",label:"Legal",title:"General Counsel & Compliance",name:"Thomas Beck",initials:"TB",frameworks:["EU AI Act","GDPR","Contract & IP","Regulatory Defense"]},
   employee:{id:"employee",label:"Employee",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
   manager:{id:"manager",label:"Manager",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
+  superadmin:{id:"superadmin",label:"Super Admin",title:"Platform Administrator",name:"Platform Operator",initials:"SA",frameworks:["Tenant Provisioning","RBAC","Module Enablement","Org Policy"]},
 };
 export const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
 export const USER_PROFILES = {
@@ -1724,7 +1725,8 @@ export const LOGIN_PROFILES = [
   {id:"legal",label:"Legal",role:"legal",target:"home",accent:"#8B6FE0",title:"Legal & Compliance",subtitle:"Regulatory obligations, EU AI Act conformity, AI vendor contracts, IP provenance and legal defensibility.",email:"thomas.beck@veriszone.ai",kpis:[["88%","Defensible"],["1","Conformity gap"],["5","Frameworks"]]},
   {id:"employee",label:"Employee",role:"employee",target:"myworkspace",accent:"#2BA88A",title:"My AI Workspace",subtitle:"One governed workbench for every AI interaction - approved models, enterprise knowledge and automatic compliance, faster than any public chat.",email:"jamie.park@veriszone.ai",kpis:[["84","Prompts governed"],["11.5h","Time saved"],["0","Data leaks"]]},
   {id:"manager",label:"Manager",role:"manager",target:"teamspace",accent:"#0EA5E9",title:"Team AI Workspace",subtitle:"Team adoption, value and compliance without reading private prompts - aggregates only, by policy.",email:"riley.chen@veriszone.ai",kpis:[["64%","Team adoption"],["92%","Compliance"],["3","Blocked events"]]},
-  {id:"aicentral",label:"AI Central",role:"caio",target:"aicentral",mode:"aicentral",accent:AI_GOLD,title:"AI Central Demo",subtitle:"The seeded Enterprise AI Command Center - initiative digital twins, AI PMO, model registry, governance, evidence, policies and the AI Gateway, without the CXO workspaces.",email:"ai.central@veriszone.ai",kpis:[["4","Initiatives"],["8","AI models"],["Live","Gateway"]]}
+  {id:"aicentral",label:"AI Central",role:"caio",target:"aicentral",mode:"aicentral",accent:AI_GOLD,title:"AI Central Demo",subtitle:"The seeded Enterprise AI Command Center - initiative digital twins, AI PMO, model registry, governance, evidence, policies and the AI Gateway, without the CXO workspaces.",email:"ai.central@veriszone.ai",kpis:[["4","Initiatives"],["8","AI models"],["Live","Gateway"]]},
+  {id:"superadmin",label:"Super Admin",role:"superadmin",target:"superadmin",mode:"superadmin",accent:"#D6A84F",title:"Platform Administration",subtitle:"The platform-operator console: provision organizations, enable modules per org and role, define users and RBAC, and set org-wide policies that cascade to every level. Enable & override, not author.",email:"root@veriszone.ai",kpis:[["3","Organizations"],["138","Surfaces"],["RBAC","Per-user"]]}
 ];
 
 export const WB_CLASSIFICATIONS=["Public","Internal","Confidential","Restricted"];
