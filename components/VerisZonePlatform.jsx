@@ -17,6 +17,7 @@ import { JurisdictionAtlas, StatementOfApplicability, EvidenceFreshness, Glossar
 import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/roadmap";
 import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
 import { McpRegistry } from "./platform/mcp";
+import { PageSuperAdmin } from "./platform/superadmin";
 import { EgressPolicy, HitlGates, CircuitBreaker } from "./platform/enforce";
 /* Employee/Manager command-center surfaces that delegate to a real,
    fully-built platform page rather than a config block — so the governed
@@ -289,8 +290,9 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   Object.assign(T, LIGHT_T);
   const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
   const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
+  const superAdminProfile=LOGIN_PROFILES.find(p=>p.id==="superadmin");
   const executiveProfiles=LOGIN_PROFILES.filter(p=>EXECUTIVE_ROLE_IDS.includes(p.role));
-  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral","employee","manager"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
+  const governanceProfiles=LOGIN_PROFILES.filter(p=>!["demo","aicentral","employee","manager","superadmin"].includes(p.id)&&!EXECUTIVE_ROLE_IDS.includes(p.role));
   const employeeProfiles=LOGIN_PROFILES.filter(p=>["employee","manager"].includes(p.id));
   /* All real-user identities behind "Employee Login". In production a single
      SSO sign-in resolves the user's role via RBAC and routes them to their
@@ -301,7 +303,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("govern-with-certainty");
   const [loginError,setLoginError]=useState("");
-  const selected=topChoice==="demo"?"demo":topChoice==="aicentral"?(aiCentralProfile?.id||"aicentral"):empRole;
+  const selected=topChoice==="demo"?"demo":topChoice==="aicentral"?(aiCentralProfile?.id||"aicentral"):topChoice==="superadmin"?(superAdminProfile?.id||"superadmin"):empRole;
   const profile=LOGIN_PROFILES.find(p=>p.id===selected)||LOGIN_PROFILES[0];
   useEffect(()=>{
     setEmail(profile.email);
@@ -391,6 +393,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
               <option value="demo">Demo Center — Full platform demo</option>
               <option value="employee">Employee Login — your role &amp; access via RBAC</option>
               {aiCentralProfile&&<option value="aicentral">AI Central — standalone command center</option>}
+              {superAdminProfile&&<option value="superadmin">Super Admin — platform administration</option>}
             </select>
           </label>
           {topChoice==="employee"&&<label style={{display:"grid",gap:6}}>
@@ -758,6 +761,10 @@ export default function VerisZone() {
   const showSeededData=seededSession||!SEEDED_DEMO_TABS.has(tab);
 
   if(!hasEntered)return <BrandEntryShell theme={theme} onEnter={enterApp}/>;
+
+  /* Super Admin is a self-contained platform-operator console — it does not use
+     the role sidebar / nav system, so render it full-page on its own. */
+  if(role==="superadmin")return <><PageSuperAdmin onSignOut={signOut} showToast={showToast}/>{toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}</>;
 
   return <div style={{display:"flex",minHeight:"100vh",background:T.bg}}>
     {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
