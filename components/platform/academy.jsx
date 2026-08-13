@@ -4,6 +4,8 @@ import { CheckCircle2, PlayCircle } from "lucide-react";
 import { acInitiatives } from "@/lib/platform-models";
 import { T, RC, ROLES, AI_GOLD, AI_GOLD_INK, GOVERNANCE_ACADEMY, ROLE_LEARNING_PATHS, academyEvidenceFor, F, Tag, Bar, Card, SHead } from "./core";
 import { pathProgress, quizAvg, stateOf, isComplete, enterpriseReadiness, evidenceFromLearning } from "@/lib/academy-engine";
+import { GlossaryLearning } from "./dictionary";
+import { useState } from "react";
 
 /* Employee learner hub - the Academy as a personal learning experience.
    Curriculum and certifications derive from role, initiative and phase;
@@ -81,7 +83,11 @@ function EmployeeLearnerHub({role,seeded,showToast,setTab}){
 export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
   const rc=RC(role), R=ROLES[role]||ROLES.caio;
   const seededHub=(sessionMode==="demo"||sessionMode==="aicentral");
-  if(role==="employee")return <EmployeeLearnerHub role={role} seeded={seededHub} showToast={showToast} setTab={setTab}/>;
+  const [view,setView]=useState("learning");
+  const seg=(id,label)=>{const on=view===id;return <button key={id} onClick={()=>setView(id)} style={{background:on?AI_GOLD:"transparent",border:"none",borderRadius:8,padding:"6px 14px",color:on?"#241703":T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>;};
+  const toggle=<div style={{display:"inline-flex",gap:3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:4,marginBottom:14}}>{seg("learning","Learning Path")}{seg("glossary","Glossary & Learning")}</div>;
+  if(view==="glossary")return <div style={{animation:"up .3s ease"}}>{toggle}<GlossaryLearning/></div>;
+  if(role==="employee")return <div>{toggle}<EmployeeLearnerHub role={role} seeded={seededHub} showToast={showToast} setTab={setTab}/></div>;
   const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
   const path=pathIds.map(id=>GOVERNANCE_ACADEMY.find(v=>v.id===id)).filter(Boolean);
   const seeded=(sessionMode==="demo"||sessionMode==="aicentral");
@@ -101,6 +107,7 @@ export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
     ["Avg. quiz score",seeded&&qAvg?qAvg+"%":"--",T.blue],
   ];
   return <div style={{animation:"up .3s ease"}}>
+    {toggle}
     <SHead title="Governance Academy" sub={`${R.label} learning path for AI governance, pilot readiness, approvals and audit evidence. The Academy measures maturity - completion updates the Governance Score.`}/>
     <Card style={{padding:16,marginBottom:14}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:10}}>
