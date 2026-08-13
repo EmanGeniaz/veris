@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card, BrandLogo } from "./core";
 import {
   SA_MODULE_GROUPS, SA_ALL_MODULE_IDS, SA_MODULE_COUNT, SA_AREAS, SA_CAPS, SA_CAP_META, SA_ROLES,
-  SA_ORGS, SA_USERS, SA_POLICIES, SA_REGIONS, SA_PLANS, SA_CLEAN_BASELINE, slugify,
+  SA_ORGS, SA_USERS, SA_POLICIES, SA_OPERATORS, SA_REGIONS, SA_PLANS, SA_CLEAN_BASELINE, slugify,
 } from "@/lib/superadmin";
 
 /* ── shared bits ── */
 const Pill = ({ c, children }) => <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 999, fontSize: 10, fontWeight: 800, fontFamily: F.b, color: c, background: c + "18", border: `1px solid ${c}40` }}>{children}</span>;
 const Eyebrow = ({ children, style }) => <div style={{ fontSize: 9, letterSpacing: "0.11em", textTransform: "uppercase", color: T.ink4, fontWeight: 900, fontFamily: F.m, ...style }}>{children}</div>;
 const btn = (primary) => ({ background: primary ? AI_GOLD : T.s2, border: primary ? "none" : `1px solid ${T.border}`, borderRadius: 9, padding: "9px 15px", color: primary ? "#241703" : T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" });
-const field = { background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.ink, fontSize: 12, fontFamily: F.b, width: "100%", outline: "none" };
+const field = { background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.ink, fontSize: 12.5, fontWeight: 700, fontFamily: F.b, width: "100%", outline: "none" };
 const Toggle = ({ on, onClick, disabled }) => <button onClick={disabled ? undefined : onClick} style={{ width: 38, height: 22, borderRadius: 999, border: "none", background: on ? T.green : T.ink4 + "66", position: "relative", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, transition: "background .15s", flexShrink: 0 }}><span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} /></button>;
 
 export function PageSuperAdmin({ onSignOut, showToast }) {
@@ -54,6 +54,17 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
   const setGroup = (mods, on) => setEnabled(v => { const s = new Set(v[org.id]); mods.forEach(m => { if (!lkSet.has(m.id)) { on ? s.add(m.id) : s.delete(m.id); } }); return { ...v, [org.id]: s }; });
 
   /* ── Users ── */
+  /* ── Platform operators (super-admin tier) ── */
+  const [ops, setOps] = useState(SA_OPERATORS);
+  const [of, setOf] = useState({ name: "", email: "" });
+  const appointOp = () => {
+    const name = of.name.trim(), email = of.email.trim(); if (!name || !email) { toast("Name and email required"); return; }
+    setOps(v => [...v, { id: `op-${Date.now()}`, name, email, scope: "All organizations", status: "Operator" }]);
+    setOf({ name: "", email: "" });
+    toast(`${name} appointed as platform operator — full super-admin access across all organizations`);
+  };
+  const revokeOp = id => { if (ops.find(o => o.id === id)?.status === "Owner") { toast("The owner operator can't be revoked"); return; } setOps(v => v.filter(o => o.id !== id)); toast("Operator access revoked"); };
+
   const [uf, setUf] = useState({ name: "", email: "", role: "employee", access: "view" });
   const addUser = () => {
     const name = uf.name.trim(), email = uf.email.trim(); if (!name || !email) { toast("Name and email required"); return; }
@@ -63,6 +74,50 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
     toast(`${name} added to ${org.name} as ${uf.role.toUpperCase()} · ${uf.access}`);
   };
   const setUser = (uid, patch) => setUsers(v => ({ ...v, [org.id]: v[org.id].map(u => u.id === uid ? { ...u, ...patch } : u) }));
+  const addBatch = (rows, sourceLabel) => {
+    if (!rows.length) { toast("No users found to import"); return; }
+    setUsers(v => ({ ...v, [org.id]: [...(v[org.id] || []), ...rows.map((r, i) => ({ id: `u-${org.id}-${Date.now()}-${i}`, ...r }))] }));
+    toast(`Imported ${rows.length} user${rows.length === 1 ? "" : "s"} into ${org.name} from ${sourceLabel}`);
+  };
+
+  /* ── Bulk provisioning: HRMS API or spreadsheet ── */
+  const [imp, setImp] = useState({ mode: "hrms", system: "Workday", endpoint: "", key: "", fileName: "" });
+  const HRMS_SYSTEMS = ["Workday", "SAP SuccessFactors", "BambooHR", "Oracle HCM", "ADP", "Microsoft Entra ID (SCIM)"];
+  const validRole = r => SA_ROLES.some(x => x.id === r) ? r : "employee";
+  const validCap = c => SA_CAPS.includes(c) ? c : "view";
+  const syncHrms = () => {
+    const batch = [
+      { name: "Priya Sharma", email: `priya.sharma@${org.slug}.com`, role: "manager", access: "contribute" },
+      { name: "Tom Becker", email: `tom.becker@${org.slug}.com`, role: "employee", access: "view" },
+      { name: "Lena Fischer", email: `lena.fischer@${org.slug}.com`, role: "cfo", access: "approve" },
+      { name: "Omar Haddad", email: `omar.haddad@${org.slug}.com`, role: "ciso", access: "admin" },
+    ];
+    addBatch(batch, `${imp.system} sync`);
+  };
+  const onFile = e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    setImp(v => ({ ...v, fileName: f.name }));
+    const isCsv = /\.csv$/i.test(f.name);
+    if (isCsv) {
+      const rd = new FileReader();
+      rd.onload = () => {
+        const lines = String(rd.result || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const start = /name/i.test(lines[0] || "") && /email/i.test(lines[0] || "") ? 1 : 0;
+        const rows = lines.slice(start).map(l => l.split(",").map(c => c.trim())).filter(c => c[0] && c[1])
+          .map(c => ({ name: c[0], email: c[1], role: validRole((c[2] || "").toLowerCase()), access: validCap((c[3] || "").toLowerCase()) }));
+        addBatch(rows, f.name);
+      };
+      rd.readAsText(f);
+    } else {
+      // .xlsx parsing needs a workbook lib; simulate a parsed import for the demo.
+      addBatch([
+        { name: "Grace Liu", email: `grace.liu@${org.slug}.com`, role: "chro", access: "approve" },
+        { name: "David Park", email: `david.park@${org.slug}.com`, role: "employee", access: "view" },
+        { name: "Sofia Marin", email: `sofia.marin@${org.slug}.com`, role: "manager", access: "contribute" },
+      ], f.name);
+    }
+    e.target.value = "";
+  };
 
   /* ── Policies ── */
   const togglePol = id => setPol(v => { const s = new Set(v[org.id]); const adding = !s.has(id); s.has(id) ? s.delete(id) : s.add(id); const p = SA_POLICIES.find(x => x.id === id); if (adding) toast(`${p.name} enabled — cascading to ${p.cascade.join(" · ")}`); return { ...v, [org.id]: s }; });
@@ -73,8 +128,8 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
   return <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: F.b }}>
     {/* top bar */}
     <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 24px", borderBottom: `1px solid ${T.border}`, background: "#0B0E1A", color: "#fff", position: "sticky", top: 0, zIndex: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontFamily: F.h, fontWeight: 900, fontSize: 16, letterSpacing: "-0.01em" }}>Veris<span style={{ color: AI_GOLD }}>Zone</span></span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <BrandLogo theme="dark" width={132} />
         <span style={{ fontSize: 9.5, fontWeight: 900, fontFamily: F.m, color: AI_GOLD, background: AI_GOLD + "1f", border: `1px solid ${AI_GOLD}55`, borderRadius: 999, padding: "3px 10px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Super Admin</span>
       </div>
       <div style={{ flex: 1 }} />
@@ -186,6 +241,60 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
 
       {/* ══ USERS & RBAC ══ */}
       {tab === "users" && <div>
+        {/* ── Platform operators (super-admin tier) ── */}
+        <Card style={{ padding: "16px 18px", marginBottom: 14, border: `1px solid ${AI_GOLD}55`, background: AI_GOLD + "0c" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 4 }}>
+            <Eyebrow style={{ color: AI_GOLD_INK }}>Platform operators · super-admin tier</Eyebrow>
+            <span style={{ fontSize: 10, color: T.ink4, fontFamily: F.m, fontWeight: 700 }}>{ops.length} appointed</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, maxWidth: 720, marginBottom: 12 }}>Operators hold this console — they enable modules, define users &amp; RBAC, provision organizations and cascade policies across <b style={{ color: T.ink2 }}>every</b> tenant. Appoint sparingly; access spans all organizations.</div>
+          <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+            {ops.map(o => <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", background: "#fff", border: `1px solid ${T.border}`, borderRadius: 9 }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: AI_GOLD + "22", border: `1px solid ${AI_GOLD}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.b, flexShrink: 0 }}>{o.name.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase()}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink }}>{o.name} <Pill c={o.status === "Owner" ? AI_GOLD_INK : T.green}>{o.status}</Pill></div>
+                <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.m, marginTop: 1 }}>{o.email} · {o.scope}</div>
+              </div>
+              {o.status === "Owner"
+                ? <span style={{ fontSize: 10, color: T.ink4, fontFamily: F.m, fontWeight: 700 }}>Cannot revoke</span>
+                : <button onClick={() => revokeOp(o.id)} style={{ ...btn(false), padding: "6px 11px", fontSize: 10.5, color: T.red, borderColor: T.red + "44" }}>Revoke</button>}
+            </div>)}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.6fr auto", gap: 10, alignItems: "end" }}>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Name</Eyebrow><input value={of.name} onChange={e => setOf({ ...of, name: e.target.value })} placeholder="Full name" style={field} /></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={of.email} onChange={e => setOf({ ...of, email: e.target.value })} placeholder="name@veriszone.ai" style={field} /></label>
+            <button onClick={appointOp} style={btn(true)}>+ Appoint operator</button>
+          </div>
+        </Card>
+
+        {/* ── Bulk provisioning: HRMS API or spreadsheet ── */}
+        <Card style={{ padding: "16px 18px", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+            <Eyebrow>Import users into {org.name}</Eyebrow>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[["hrms", "HRMS API"], ["file", "Spreadsheet"]].map(([m, l]) => <button key={m} onClick={() => setImp({ ...imp, mode: m })} style={{ ...btn(imp.mode === m), padding: "6px 12px", fontSize: 10.5 }}>{l}</button>)}
+            </div>
+          </div>
+          {imp.mode === "hrms" ? <div>
+            <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, maxWidth: 720, marginBottom: 12 }}>Connect your HRIS and sync the employee directory. Roles &amp; RBAC map from HR job families; provisioning stays in sync on the schedule you set.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1.2fr auto", gap: 10, alignItems: "end" }}>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>System</Eyebrow><select value={imp.system} onChange={e => setImp({ ...imp, system: e.target.value })} style={{ ...field, cursor: "pointer" }}>{HRMS_SYSTEMS.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>API endpoint</Eyebrow><input value={imp.endpoint} onChange={e => setImp({ ...imp, endpoint: e.target.value })} placeholder="https://api.hr.example.com/v2" style={field} /></label>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>API key</Eyebrow><input type="password" value={imp.key} onChange={e => setImp({ ...imp, key: e.target.value })} placeholder="••••••••" style={field} /></label>
+              <button onClick={syncHrms} style={btn(true)}>Connect &amp; sync</button>
+            </div>
+          </div> : <div>
+            <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, maxWidth: 720, marginBottom: 12 }}>Upload a CSV or Excel sheet with columns <b style={{ color: T.ink2 }}>name, email, role, access</b>. The header row is auto-detected; unknown roles default to Employee · View.</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <label style={{ ...btn(false), display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer" }}>
+                ⬆ Choose file
+                <input type="file" accept=".csv,.xlsx,.xls" onChange={onFile} style={{ display: "none" }} />
+              </label>
+              <span style={{ fontSize: 11, color: T.ink4, fontFamily: F.m }}>{imp.fileName || "No file selected — .csv or .xlsx"}</span>
+            </div>
+          </div>}
+        </Card>
+
         <Card style={{ padding: "16px 18px", marginBottom: 14, border: `1px solid ${AI_GOLD}40` }}>
           <Eyebrow style={{ color: AI_GOLD_INK, marginBottom: 10 }}>Define a user</Eyebrow>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.4fr .9fr .9fr auto", gap: 10, alignItems: "end" }}>
