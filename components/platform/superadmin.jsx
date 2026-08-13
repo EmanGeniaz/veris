@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import {
-  SA_MODULE_GROUPS, SA_ALL_MODULE_IDS, SA_MODULE_COUNT, SA_CAPS, SA_CAP_META, SA_ROLES,
+  SA_MODULE_GROUPS, SA_ALL_MODULE_IDS, SA_MODULE_COUNT, SA_AREAS, SA_CAPS, SA_CAP_META, SA_ROLES,
   SA_ORGS, SA_USERS, SA_POLICIES, SA_REGIONS, SA_PLANS, SA_CLEAN_BASELINE, slugify,
 } from "@/lib/superadmin";
 
@@ -22,6 +22,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
     const m = {}; SA_ORGS.forEach(o => { m[o.id] = new Set(SA_ALL_MODULE_IDS); }); return m;
   });
   const [locked, setLocked] = useState({});
+  const [exp, setExp] = useState(new Set(["aicentral"]));
   const [users, setUsers] = useState(() => { const m = {}; SA_ORGS.forEach(o => { m[o.id] = (SA_USERS[o.id] || []).slice(); }); return m; });
   const [pol, setPol] = useState(() => { const m = {}; SA_ORGS.forEach(o => { m[o.id] = new Set(o.seeded ? SA_POLICIES.map(p => p.id) : []); }); return m; });
   const toast = msg => showToast && showToast(msg);
@@ -139,32 +140,47 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
       {/* ══ MODULE ACCESS ══ */}
       {tab === "modules" && <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-          <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.5, maxWidth: 640 }}>Enable which surfaces <b style={{ color: T.ink2 }}>{org.name}</b> can see — AI Central modules, every CXO workspace, the employee & manager workspaces and the governance platform. Lock a module to <b style={{ color: T.ink2 }}>override</b> and prevent org-level changes.</div>
+          <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.5, maxWidth: 640 }}>Enable which surfaces <b style={{ color: T.ink2 }}>{org.name}</b> can see — every AI Central module, every CXO workspace surface, the employee & manager workspaces and the governance platform ({SA_MODULE_COUNT} surfaces). Lock a surface to <b style={{ color: T.ink2 }}>override</b> and prevent org-level changes.</div>
           <div style={{ display: "flex", gap: 7 }}>
+            <button onClick={() => setExp(new Set(SA_MODULE_GROUPS.map(g => g.id)))} style={btn(false)}>Expand all</button>
+            <button onClick={() => setExp(new Set())} style={btn(false)}>Collapse all</button>
             <button onClick={() => setEnabled(v => ({ ...v, [org.id]: new Set(SA_ALL_MODULE_IDS.filter(id => !lkSet.has(id) || enSet.has(id))) }))} style={btn(false)}>Enable all</button>
             <button onClick={() => setEnabled(v => ({ ...v, [org.id]: new Set(SA_ALL_MODULE_IDS.filter(id => lkSet.has(id) && enSet.has(id))) }))} style={btn(false)}>Disable all</button>
           </div>
         </div>
-        <div style={{ display: "grid", gap: 14 }}>
-          {SA_MODULE_GROUPS.map(g => { const on = g.modules.filter(m => enSet.has(m.id)).length; return <Card key={g.id} style={{ padding: "14px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 11 }}>
-              <div><div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{g.label}</div><div style={{ fontSize: 10, color: T.ink4, fontFamily: F.b }}>{g.note}</div></div>
-              <span style={{ flex: 1 }} />
-              <span style={{ fontSize: 10.5, fontWeight: 800, color: on ? T.green : T.ink4, fontFamily: F.m }}>{on}/{g.modules.length} enabled</span>
-              <button onClick={() => setGroup(g.modules, true)} style={{ ...btn(false), padding: "5px 10px", fontSize: 10 }}>All</button>
-              <button onClick={() => setGroup(g.modules, false)} style={{ ...btn(false), padding: "5px 10px", fontSize: 10 }}>None</button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 8 }}>
-              {g.modules.map(m => { const isOn = enSet.has(m.id); const isLk = lkSet.has(m.id); return <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", borderRadius: 9, background: T.s2, border: `1px solid ${isLk ? AI_GOLD + "55" : T.border}` }}>
-                <Toggle on={isOn} onClick={() => toggleMod(m.id)} disabled={isLk} />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</div>
-                  <div style={{ fontSize: 9, color: T.ink4, fontFamily: F.m }}>{isLk ? "Locked · operator override" : isOn ? "Enabled" : "Disabled"}</div>
-                </div>
-                <button title="Lock / override" onClick={() => toggleLock(m.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: isLk ? AI_GOLD_INK : T.ink4, padding: 0 }}>{isLk ? "🔒" : "🔓"}</button>
-              </div>; })}
-            </div>
-          </Card>; })}
+        <div style={{ display: "grid", gap: 10 }}>
+          {SA_AREAS.map(area => { const groups = SA_MODULE_GROUPS.filter(g => g.area === area); if (!groups.length) return null;
+            const aOn = groups.reduce((n, g) => n + g.modules.filter(m => enSet.has(m.id)).length, 0);
+            const aTot = groups.reduce((n, g) => n + g.modules.length, 0);
+            return <div key={area}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 2px 8px" }}>
+                <span style={{ fontSize: 9.5, fontWeight: 900, color: T.ink4, fontFamily: F.m, textTransform: "uppercase", letterSpacing: "0.12em" }}>{area}</span>
+                <span style={{ flex: 1, height: 1, background: T.border }} />
+                <span style={{ fontSize: 10, fontWeight: 800, color: aOn ? T.green : T.ink4, fontFamily: F.m }}>{aOn}/{aTot}</span>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {groups.map(g => { const on = g.modules.filter(m => enSet.has(m.id)).length; const isEx = exp.has(g.id); return <Card key={g.id} style={{ padding: "0" }}>
+                  <div onClick={() => setExp(v => { const s = new Set(v); s.has(g.id) ? s.delete(g.id) : s.add(g.id); return s; })} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 15px", cursor: "pointer" }}>
+                    <span style={{ fontSize: 11, color: T.ink4, width: 14, transition: "transform .15s", transform: isEx ? "rotate(90deg)" : "none" }}>▶</span>
+                    <div><div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{g.label}</div><div style={{ fontSize: 10, color: T.ink4, fontFamily: F.b }}>{g.note}</div></div>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: on ? T.green : T.ink4, fontFamily: F.m }}>{on}/{g.modules.length}</span>
+                    <button onClick={e => { e.stopPropagation(); setGroup(g.modules, true); }} style={{ ...btn(false), padding: "5px 10px", fontSize: 10 }}>All</button>
+                    <button onClick={e => { e.stopPropagation(); setGroup(g.modules, false); }} style={{ ...btn(false), padding: "5px 10px", fontSize: 10 }}>None</button>
+                  </div>
+                  {isEx && <div style={{ padding: "0 15px 14px", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 8 }}>
+                    {g.modules.map(m => { const isOn = enSet.has(m.id); const isLk = lkSet.has(m.id); return <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 11px", borderRadius: 9, background: T.s2, border: `1px solid ${isLk ? AI_GOLD + "55" : T.border}` }}>
+                      <Toggle on={isOn} onClick={() => toggleMod(m.id)} disabled={isLk} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.label}</div>
+                        <div style={{ fontSize: 9, color: T.ink4, fontFamily: F.m }}>{isLk ? "Locked · operator override" : isOn ? "Enabled" : "Disabled"}</div>
+                      </div>
+                      <button title="Lock / override" onClick={() => toggleLock(m.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: isLk ? AI_GOLD_INK : T.ink4, padding: 0 }}>{isLk ? "🔒" : "🔓"}</button>
+                    </div>; })}
+                  </div>}
+                </Card>; })}
+              </div>
+            </div>; })}
         </div>
       </div>}
 
