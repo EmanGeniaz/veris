@@ -15,6 +15,7 @@ import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats } from "@/lib/regi
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
 import { OECD_REQS, UNESCO_REQS, oecdStats, unescoStats } from "@/lib/principle-mappings";
+import { ISO37000_REQS, ISO38500_REQS, ISO38505_REQS, iso37000Stats, iso38500Stats, iso38505Stats, GOVERNANCE_LINEAGE } from "@/lib/governance-standards";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -100,6 +101,9 @@ export function PageFrameworkLibrary({role,showToast}){
     "nist-genai":{rows:NISTGENAI_REQS,stats:nistGenAIStats(),unit:"risk area",col:"Risk area"},
     "oecd":{rows:OECD_REQS,stats:oecdStats(),unit:"principle",col:"Principle"},
     "unesco":{rows:UNESCO_REQS,stats:unescoStats(),unit:"principle",col:"Principle"},
+    "iso-37000":{rows:ISO37000_REQS,stats:iso37000Stats(),unit:"consideration",col:"Consideration"},
+    "iso-38500":{rows:ISO38500_REQS,stats:iso38500Stats(),unit:"principle",col:"Principle"},
+    "iso-38505":{rows:ISO38505_REQS,stats:iso38505Stats(),unit:"consideration",col:"Consideration"},
   };
   const REGION_FW={au:"au-safety",sg:"sg-model",cn:"china-regs",br:"brazil-framework",kr:"korea-act"};
   const s=frameworkStats(region);
@@ -129,6 +133,21 @@ export function PageFrameworkLibrary({role,showToast}){
         <span style={{flex:1,height:1,background:T.border}}/>
         <span style={{fontSize:10,fontWeight:800,color:T.ink3,fontFamily:F.m}}>{items.length}</span>
       </div>
+      {cat.id==="governance"&&<Card style={{padding:"14px 16px",marginBottom:12,background:AI_GOLD+"08",border:`1px solid ${AI_GOLD}30`}}>
+        <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:11}}>AI governance isn't a bolt-on — it's the <b style={{color:T.ink2}}>top tier of a nested governance hierarchy</b> the board already runs. VerisZone operates the AI (and most of the data) tier; the enterprise owns the corporate and IT tiers, into which the AI layer plugs.</div>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${GOVERNANCE_LINEAGE.length},minmax(0,1fr))`,gap:8,alignItems:"stretch"}}>
+          {GOVERNANCE_LINEAGE.map((g,i)=>{const full=g.scope==="Full";const c=full?T.green:T.amber;const fw=FRAMEWORKS.find(f=>f.id===g.id);return <div key={g.id} onClick={()=>setMapFw(g.id)} style={{position:"relative",cursor:"pointer",background:T.card,border:`1px solid ${mapFw===g.id?c+"77":T.border}`,borderRadius:10,padding:"11px 12px"}}>
+            <div style={{fontSize:8.5,fontWeight:900,color:c,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em"}}>{g.tier}{i<GOVERNANCE_LINEAGE.length-1&&<span style={{position:"absolute",right:-7,top:"46%",color:T.ink4,fontSize:12,zIndex:1}}>→</span>}</div>
+            <div style={{fontSize:12.5,fontWeight:900,color:T.ink,fontFamily:F.b,marginTop:3}}>{g.label}</div>
+            <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:1,lineHeight:1.35}}>{g.sub}</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:7,flexWrap:"wrap"}}>
+              <span style={{fontSize:8.5,fontWeight:900,fontFamily:F.m,color:c,background:c+"18",border:`1px solid ${c}40`,borderRadius:999,padding:"2px 7px"}}>{g.scope}</span>
+              {fw&&typeof fw.score==="number"&&<span style={{fontSize:10,fontWeight:800,color:c,fontFamily:F.m}}>{fw.score}%</span>}
+            </div>
+            <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.b,marginTop:6}}>{g.owner}</div>
+          </div>;})}
+        </div>
+      </Card>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:12,alignItems:"start"}}>
         {items.map(f=>{const sm=STATUS_META[f.status]||{tone:"ink3"};const tone=statusTone(sm.tone);const hasMap=!!MAPPINGS[f.id];const seld=mapFw===f.id;return <Card key={f.id} onClick={hasMap?()=>setMapFw(f.id):undefined} style={{padding:"14px 16px",cursor:hasMap?"pointer":"default",border:`1px solid ${seld?T.green+"66":T.border}`,transition:"border-color .15s"}}>
           <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start",marginBottom:6}}>
@@ -136,7 +155,10 @@ export function PageFrameworkLibrary({role,showToast}){
               <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,lineHeight:1.3}}>{f.name}</div>
               <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:2}}>{f.body} · {f.type}</div>
             </div>
-            <span style={{flexShrink:0,fontSize:9,fontWeight:900,fontFamily:F.m,color:tone,background:tone+"18",border:`1px solid ${tone}40`,borderRadius:999,padding:"3px 9px",whiteSpace:"nowrap"}}>{f.status}</span>
+            <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+              <span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:tone,background:tone+"18",border:`1px solid ${tone}40`,borderRadius:999,padding:"3px 9px",whiteSpace:"nowrap"}}>{f.status}</span>
+              {f.scope==="AI-scoped"&&<span style={{fontSize:8,fontWeight:800,fontFamily:F.m,color:T.amber,whiteSpace:"nowrap"}}>AI-scoped</span>}
+            </div>
           </div>
           <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginBottom:8}}>{f.focus}</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
