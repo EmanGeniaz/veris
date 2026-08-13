@@ -11,7 +11,11 @@ import {
 const Pill = ({ c, children }) => <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 999, fontSize: 10, fontWeight: 800, fontFamily: F.b, color: c, background: c + "18", border: `1px solid ${c}40` }}>{children}</span>;
 const Eyebrow = ({ children, style }) => <div style={{ fontSize: 9, letterSpacing: "0.11em", textTransform: "uppercase", color: T.ink4, fontWeight: 900, fontFamily: F.m, ...style }}>{children}</div>;
 const btn = (primary) => ({ background: primary ? AI_GOLD : T.s2, border: primary ? "none" : `1px solid ${T.border}`, borderRadius: 9, padding: "9px 15px", color: primary ? "#241703" : T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" });
-const field = { background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.ink, fontSize: 12.5, fontWeight: 700, fontFamily: F.b, width: "100%", outline: "none" };
+// `field` MUST be a getter, not a static object. The exported `T` is the dark
+// default until `applyPalette()` mutates it to light AT RUNTIME; a module-level
+// object literal bakes the stale dark ink (invisible on white inputs), whereas a
+// function reads the live (light) `T` at render time — same pattern as `btn`.
+const field = () => ({ background: "#fff", border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.ink, fontSize: 12.5, fontWeight: 700, fontFamily: F.b, width: "100%", outline: "none" });
 const Toggle = ({ on, onClick, disabled }) => <button onClick={disabled ? undefined : onClick} style={{ width: 38, height: 22, borderRadius: 999, border: "none", background: on ? T.green : T.ink4 + "66", position: "relative", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, transition: "background .15s", flexShrink: 0 }}><span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} /></button>;
 
 export function PageSuperAdmin({ onSignOut, showToast }) {
@@ -152,7 +156,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
       {/* org context selector (all tabs except orgs list operate on a selected org) */}
       {tab !== "orgs" && <Card style={{ padding: "12px 15px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <Eyebrow>Organization</Eyebrow>
-        <select value={sel} onChange={e => setSel(e.target.value)} style={{ ...field, width: "auto", minWidth: 240, cursor: "pointer" }}>{orgs.map(o => <option key={o.id} value={o.id}>{o.name} · {o.region}</option>)}</select>
+        <select value={sel} onChange={e => setSel(e.target.value)} style={{ ...field(), width: "auto", minWidth: 240, cursor: "pointer" }}>{orgs.map(o => <option key={o.id} value={o.id}>{o.name} · {o.region}</option>)}</select>
         <Pill c={org.status === "Active" ? T.green : T.amber}>{org.status}</Pill>
         <Pill c={org.seeded ? T.blue : T.ink3}>{org.seeded ? "Seeded" : "Clean · no demo data"}</Pill>
         <span style={{ fontSize: 11, color: T.ink3, fontFamily: F.m }}>{org.plan} · {(enabled[org.id] || new Set()).size}/{SA_MODULE_COUNT} modules · {(users[org.id] || []).length} users</span>
@@ -180,10 +184,10 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
             <Eyebrow style={{ color: AI_GOLD_INK, marginBottom: 3 }}>Create organization</Eyebrow>
             <div style={{ fontSize: 11, color: T.ink3, lineHeight: 1.5, marginBottom: 12 }}>Provisions a <b style={{ color: T.ink2 }}>clean tenant with no demo data</b>. You then enable its modules, add users and set policies.</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <label style={{ display: "grid", gap: 4 }}><Eyebrow>Organization name</Eyebrow><input value={nf.name} onChange={e => setNf({ ...nf, name: e.target.value })} placeholder="e.g. Contoso Insurance" style={field} /></label>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>Organization name</Eyebrow><input value={nf.name} onChange={e => setNf({ ...nf, name: e.target.value })} placeholder="e.g. Contoso Insurance" style={field()} /></label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <label style={{ display: "grid", gap: 4 }}><Eyebrow>Region</Eyebrow><select value={nf.region} onChange={e => setNf({ ...nf, region: e.target.value })} style={{ ...field, cursor: "pointer" }}>{SA_REGIONS.map(r => <option key={r}>{r}</option>)}</select></label>
-                <label style={{ display: "grid", gap: 4 }}><Eyebrow>Plan</Eyebrow><select value={nf.plan} onChange={e => setNf({ ...nf, plan: e.target.value })} style={{ ...field, cursor: "pointer" }}>{SA_PLANS.map(p => <option key={p}>{p}</option>)}</select></label>
+                <label style={{ display: "grid", gap: 4 }}><Eyebrow>Region</Eyebrow><select value={nf.region} onChange={e => setNf({ ...nf, region: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{SA_REGIONS.map(r => <option key={r}>{r}</option>)}</select></label>
+                <label style={{ display: "grid", gap: 4 }}><Eyebrow>Plan</Eyebrow><select value={nf.plan} onChange={e => setNf({ ...nf, plan: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{SA_PLANS.map(p => <option key={p}>{p}</option>)}</select></label>
               </div>
               {nf.name.trim() && <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.m }}>Tenant: <b style={{ color: T.ink2 }}>{slugify(nf.name)}.veriszone.ai</b></div>}
               <button onClick={createOrg} style={btn(true)}>+ Provision clean organization</button>
@@ -261,8 +265,8 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
             </div>)}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.6fr auto", gap: 10, alignItems: "end" }}>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Name</Eyebrow><input value={of.name} onChange={e => setOf({ ...of, name: e.target.value })} placeholder="Full name" style={field} /></label>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={of.email} onChange={e => setOf({ ...of, email: e.target.value })} placeholder="name@veriszone.ai" style={field} /></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Name</Eyebrow><input value={of.name} onChange={e => setOf({ ...of, name: e.target.value })} placeholder="Full name" style={field()} /></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={of.email} onChange={e => setOf({ ...of, email: e.target.value })} placeholder="name@veriszone.ai" style={field()} /></label>
             <button onClick={appointOp} style={btn(true)}>+ Appoint operator</button>
           </div>
         </Card>
@@ -278,9 +282,9 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
           {imp.mode === "hrms" ? <div>
             <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, maxWidth: 720, marginBottom: 12 }}>Connect your HRIS and sync the employee directory. Roles &amp; RBAC map from HR job families; provisioning stays in sync on the schedule you set.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1.2fr auto", gap: 10, alignItems: "end" }}>
-              <label style={{ display: "grid", gap: 4 }}><Eyebrow>System</Eyebrow><select value={imp.system} onChange={e => setImp({ ...imp, system: e.target.value })} style={{ ...field, cursor: "pointer" }}>{HRMS_SYSTEMS.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
-              <label style={{ display: "grid", gap: 4 }}><Eyebrow>API endpoint</Eyebrow><input value={imp.endpoint} onChange={e => setImp({ ...imp, endpoint: e.target.value })} placeholder="https://api.hr.example.com/v2" style={field} /></label>
-              <label style={{ display: "grid", gap: 4 }}><Eyebrow>API key</Eyebrow><input type="password" value={imp.key} onChange={e => setImp({ ...imp, key: e.target.value })} placeholder="••••••••" style={field} /></label>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>System</Eyebrow><select value={imp.system} onChange={e => setImp({ ...imp, system: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{HRMS_SYSTEMS.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>API endpoint</Eyebrow><input value={imp.endpoint} onChange={e => setImp({ ...imp, endpoint: e.target.value })} placeholder="https://api.hr.example.com/v2" style={field()} /></label>
+              <label style={{ display: "grid", gap: 4 }}><Eyebrow>API key</Eyebrow><input type="password" value={imp.key} onChange={e => setImp({ ...imp, key: e.target.value })} placeholder="••••••••" style={field()} /></label>
               <button onClick={syncHrms} style={btn(true)}>Connect &amp; sync</button>
             </div>
           </div> : <div>
@@ -298,10 +302,10 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
         <Card style={{ padding: "16px 18px", marginBottom: 14, border: `1px solid ${AI_GOLD}40` }}>
           <Eyebrow style={{ color: AI_GOLD_INK, marginBottom: 10 }}>Define a user</Eyebrow>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.4fr .9fr .9fr auto", gap: 10, alignItems: "end" }}>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Name</Eyebrow><input value={uf.name} onChange={e => setUf({ ...uf, name: e.target.value })} placeholder="Full name" style={field} /></label>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={uf.email} onChange={e => setUf({ ...uf, email: e.target.value })} placeholder="name@org.com" style={field} /></label>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Role</Eyebrow><select value={uf.role} onChange={e => setUf({ ...uf, role: e.target.value })} style={{ ...field, cursor: "pointer" }}>{SA_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>RBAC access</Eyebrow><select value={uf.access} onChange={e => setUf({ ...uf, access: e.target.value })} style={{ ...field, cursor: "pointer" }}>{SA_CAPS.map(c => <option key={c} value={c}>{SA_CAP_META[c].label}</option>)}</select></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Name</Eyebrow><input value={uf.name} onChange={e => setUf({ ...uf, name: e.target.value })} placeholder="Full name" style={field()} /></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={uf.email} onChange={e => setUf({ ...uf, email: e.target.value })} placeholder="name@org.com" style={field()} /></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Role</Eyebrow><select value={uf.role} onChange={e => setUf({ ...uf, role: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{SA_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>RBAC access</Eyebrow><select value={uf.access} onChange={e => setUf({ ...uf, access: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{SA_CAPS.map(c => <option key={c} value={c}>{SA_CAP_META[c].label}</option>)}</select></label>
             <button onClick={addUser} style={btn(true)}>+ Add user</button>
           </div>
         </Card>
@@ -312,8 +316,8 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
             <tbody>{(users[org.id] || []).map(u => <tr key={u.id}>
               <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}`, color: T.ink, fontWeight: 700 }}>{u.name}</td>
               <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}`, color: T.ink3, fontFamily: F.m, fontSize: 11 }}>{u.email}</td>
-              <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}` }}><select value={u.role} onChange={e => setUser(u.id, { role: e.target.value })} style={{ ...field, width: "auto", padding: "5px 8px", fontSize: 11, cursor: "pointer" }}>{SA_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></td>
-              <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}` }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><Pill c={SA_CAP_META[u.access].color}>{SA_CAP_META[u.access].label}</Pill><select value={u.access} onChange={e => setUser(u.id, { access: e.target.value })} style={{ ...field, width: "auto", padding: "5px 8px", fontSize: 11, cursor: "pointer" }}>{SA_CAPS.map(c => <option key={c} value={c}>{SA_CAP_META[c].label}</option>)}</select></div></td>
+              <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}` }}><select value={u.role} onChange={e => setUser(u.id, { role: e.target.value })} style={{ ...field(), width: "auto", padding: "5px 8px", fontSize: 11, cursor: "pointer" }}>{SA_ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></td>
+              <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}` }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><Pill c={SA_CAP_META[u.access].color}>{SA_CAP_META[u.access].label}</Pill><select value={u.access} onChange={e => setUser(u.id, { access: e.target.value })} style={{ ...field(), width: "auto", padding: "5px 8px", fontSize: 11, cursor: "pointer" }}>{SA_CAPS.map(c => <option key={c} value={c}>{SA_CAP_META[c].label}</option>)}</select></div></td>
             </tr>)}{!(users[org.id] || []).length && <tr><td colSpan={4} style={{ padding: "16px 10px", color: T.ink4, fontSize: 12 }}>No users yet — define one above.</td></tr>}</tbody>
           </table></div>
         </Card>
