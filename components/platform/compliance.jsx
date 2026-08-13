@@ -14,6 +14,7 @@ import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
 import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats } from "@/lib/regional-mappings";
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
+import { OECD_REQS, UNESCO_REQS, oecdStats, unescoStats } from "@/lib/principle-mappings";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
@@ -97,6 +98,8 @@ export function PageFrameworkLibrary({role,showToast}){
     "iso-42005":{rows:ISO42005_REQS,stats:iso42005Stats(),unit:"requirement",col:"Requirement"},
     "iso-23894":{rows:ISO23894_REQS,stats:iso23894Stats(),unit:"requirement",col:"Requirement"},
     "nist-genai":{rows:NISTGENAI_REQS,stats:nistGenAIStats(),unit:"risk area",col:"Risk area"},
+    "oecd":{rows:OECD_REQS,stats:oecdStats(),unit:"principle",col:"Principle"},
+    "unesco":{rows:UNESCO_REQS,stats:unescoStats(),unit:"principle",col:"Principle"},
   };
   const REGION_FW={au:"au-safety",sg:"sg-model",cn:"china-regs",br:"brazil-framework",kr:"korea-act"};
   const s=frameworkStats(region);
