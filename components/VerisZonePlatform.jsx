@@ -12,6 +12,7 @@ import { hydrateBus } from "@/lib/bus";
 import { hydrateTaxonomy } from "@/lib/taxonomy";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 import { CommandPalette } from "./platform/palette";
+import { GuidedTour, TourButton } from "./platform/tour";
 import { GovernanceForum, IncidentPlaybook, ConvergenceCrosswalk, ProhibitedPractices, GpaiExposure, GapClosure } from "./platform/convergence";
 import { JurisdictionAtlas, StatementOfApplicability, EvidenceFreshness, Glossary } from "./platform/guidebook";
 import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/roadmap";
@@ -604,6 +605,7 @@ export default function VerisZone() {
      reachable from anywhere; selecting an initiative opens its workspace. */
   const [searchQ,setSearchQ]=useState("");
   const [paletteOpen,setPaletteOpen]=useState(false);
+  const [tourOpen,setTourOpen]=useState(false);
   const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
   /* Central navigation: every clickable business object resolves its
@@ -650,6 +652,14 @@ export default function VerisZone() {
     const nextPath=tab==="aicentral"?`/workspace/aicentral/${aiCentralView}`:tab==="profile"?"/profile":`/workspace/${workspace}/${tab}`;
     if(window.location.pathname!==nextPath)window.history.replaceState(null,"",nextPath);
   },[hasEntered,tab,aiCentralView,role,sessionMode]);
+
+  /* First-time entry into a seeded demo auto-launches the guided tour once. */
+  useEffect(()=>{
+    if(!hasEntered||sessionMode!=="demo"||typeof window==="undefined")return;
+    if(window.localStorage.getItem("veriszone.tourSeen"))return;
+    window.localStorage.setItem("veriszone.tourSeen","1");
+    setTourOpen(true);
+  },[hasEntered,sessionMode]);
 
   useEffect(()=>{
     const handler=()=>setIsMobile(window.innerWidth<768);
@@ -778,7 +788,7 @@ export default function VerisZone() {
         {isMobile&&<div style={{display:"flex",alignItems:"center",gap:7,flex:"0 0 auto"}}>
           <BrandLogo theme={theme} width={120}/>
         </div>}
-        {!isMobile&&sessionMode!=="aicentral"&&<div style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
+        {!isMobile&&sessionMode!=="aicentral"&&<div className="vz-role-switch" style={{display:"flex",gap:3,background:theme==="light"?T.s2:T.bg,borderRadius:12,padding:4,border:`1px solid ${T.border}`,boxShadow:theme==="light"?"0 1px 2px rgba(15,23,42,.04)":"none",maxWidth:`calc(100vw - ${SIDEBAR_W+196}px)`,overflowX:"auto",overflowY:"hidden"}}>
           {/* Role switching stays available inside AI Central: the initiative
               is constant, only the executive perspective changes. */}
           {sessionMode==="demo"&&Object.values(ROLES).map(r2=>{const active=role===r2.id;return <button key={r2.id} onClick={()=>switchRole(r2.id)} style={{background:active?RC(r2.id)+"18":"transparent",border:active?`1px solid ${RC(r2.id)}45`:"1px solid transparent",borderRadius:8,padding:"5px 14px",color:active?RC(r2.id):T.ink3,fontSize:11,fontWeight:800,fontFamily:F.b,transition:"all .2s"}}>{r2.label}</button>})}
@@ -792,6 +802,7 @@ export default function VerisZone() {
         </div>}
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          {!isMobile&&<TourButton onClick={()=>setTourOpen(true)} theme={theme}/>}
           {!isMobile&&showSeededData&&<div style={{position:"relative"}}>
             <input aria-label="Universal search" placeholder="Search everything..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 46px 6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
             <button type="button" onClick={()=>setPaletteOpen(true)} title="Command palette (⌘K)" aria-label="Open command palette" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:"2px 7px",color:T.ink4,fontSize:9.5,fontWeight:800,fontFamily:F.m,cursor:"pointer",lineHeight:1.4}}>⌘K</button>
@@ -887,6 +898,7 @@ export default function VerisZone() {
     </div>
     {<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
     <CommandPalette open={paletteOpen} onClose={()=>setPaletteOpen(false)} role={role} theme={theme} actions={{navigate,setTab,setAiCentralView,setInitToOpen}}/>
+    <GuidedTour open={tourOpen} onClose={()=>setTourOpen(false)} drive={{switchRole,setTab,setAiCentralView}}/>
   </div>;
 }
 
