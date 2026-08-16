@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>VerisZone AI Guard — Settings</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; margin: 24px; max-width: 460px; color: #1c2130; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p.sub { color: #667; margin: 0 0 18px; }
+    label { display: block; font-weight: 600; margin: 14px 0 4px; }
+    input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid #d5d8df; border-radius: 8px; box-sizing: border-box; }
+    .row { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+    button { margin-top: 18px; background: #0b4ea2; color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 700; cursor: pointer; }
+    .ok { color: #15803d; font-weight: 700; margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <h1>VerisZone AI Guard</h1>
+  <p class="sub">Point the extension at your tenant's policy-inspection endpoint.</p>
+
+  <label for="endpoint">Inspection endpoint</label>
+  <input id="endpoint" type="text" placeholder="https://acme.veriszone.ai/api/policy/inspect" />
+
+  <label for="key">Tenant key (x-veris-key)</label>
+  <input id="key" type="password" placeholder="leave blank in dev / open mode" />
+
+  <label for="actor">Actor (user email, for the audit trail)</label>
+  <input id="actor" type="text" placeholder="name@acme.com" />
+
+  <div class="row">
+    <input id="failClosed" type="checkbox" />
+    <label for="failClosed" style="margin:0;font-weight:600">Fail closed (block AI input if VerisZone is unreachable)</label>
+  </div>
+
+  <button id="save">Save</button><span id="ok" class="ok" style="display:none">Saved ✓</span>
+
+  <script src="options.js"></script>
+</body>
+</html>
