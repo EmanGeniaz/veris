@@ -26,6 +26,10 @@ own (often absent) evidence trail. VerisZone replaces that scatter with a single
   pipeline (classify → mask/block → human-in-the-loop → egress control → live
   model → validate → log), so the governance you author is the governance that
   actually executes.
+- **One enforcement plane — Veris Enforce.** Governance says what an agent *may*
+  do; Enforce decides, at call time, what it *does* — deny-by-default capability
+  tokens, egress control and human-in-the-loop — and signs every decision into a
+  tamper-evident ledger. Controls hold *around* the model, not inside it.
 
 The result is a workspace an executive, a governance officer, a risk lead and a
 front-line employee can all open and see *the same portfolio, framed for them*.
@@ -42,6 +46,9 @@ front-line employee can all open and see *the same portfolio, framed for them*.
 | **Role lens** | The same data re-framed per role (CEO, CFO, CISO, CAIO/CGO, manager, employee, …). No role sees a different truth — only a different emphasis. |
 | **AI Gateway** | The single egress point for model calls, wrapped in the policy pipeline. |
 | **Policy engine** | Deterministic rules (`lib/policy-rules.ts`) that classify text, mask or block sensitive data, and decide egress — reused by the gateway *and* by the shadow-AI inspection endpoint. |
+| **Veris Enforce** | The enforcement plane (`lib/enforce.js`). Turns policy into runtime decisions on every agent tool call — capability tokens, egress-deny, HITL escalation, circuit breaker — and records them, tamper-evidently. |
+| **Capability token** | A short-lived (90s), signed, per-tool-call grant scoped to exactly one tool for one agent. Agents hold no standing keys; issuance runs the least-privilege boundary first, so a denied call yields a refusal, never a token. |
+| **Tool-Call Ledger** | A hash-chained record of every tool call an agent attempted — what it was *authorised* to do vs what it *actually did* — where any tampered row breaks every later row. The Article 12 / ISO 42001 evidence artifact. |
 | **Evidence** | Auto-captured artifacts from completed phase gates, forming the audit trail behind every Governance Score. |
 | **Super Admin console** | The operator tier: provision tenants, enable modules, define users & RBAC, and cascade org-wide policy. Operators *enable and override* — they don't author initiatives. |
 
@@ -65,11 +72,61 @@ front-line employee can all open and see *the same portfolio, framed for them*.
 
 **AI**
 - **AI Gateway** (`app/api/gateway/chat/route.ts`) → live Claude (`claude-sonnet-5`) via the Anthropic Messages API, behind the full policy pipeline
+- **Veris Enforce** (`lib/enforce.js`, `components/platform/enforce.jsx`) — the agent-runtime enforcement plane: deny-by-default capability tokens, egress policy, HITL gates, circuit breaker, and the hash-chained Tool-Call Ledger
 - **Shadow-AI coverage**: `app/api/policy/inspect` + a reference MV3 browser extension (`integrations/browser-extension/`) let an external CASB/DLP client call the same policy engine before a user pastes sensitive data into a public AI tool
 
 ---
 
-## 4. Repository layout
+## 4. Veris Enforce — the enforcement plane
+
+Governance tools tell you what an agent is *supposed* to do. Veris Enforce decides,
+**at call time**, what it actually does — and proves it afterwards. It closes the
+loop that neither the guardrail vendors nor the GRC vendors close on their own:
+*enforcement without governance is a firewall nobody can explain to a board;
+governance without enforcement is a spreadsheet.*
+
+**One control set, three planes:** `policy → enforcement → evidence`.
+
+The design bet is that controls must hold **around** the model, not inside it — a
+more capable model is better at being argued out of its instructions, but no better
+at forging a capability token or reaching a destination the egress policy denies.
+
+**Two primitives** (`lib/enforce.js`):
+
+1. **Capability tokens** — short-lived (`TOKEN_TTL_SECONDS = 90`), signed,
+   per-tool-call, scoped grants. An agent never holds a standing key; to call a
+   tool it must be *issued* a token, and issuance runs the least-privilege boundary
+   (`capabilityCheck`) first. A denied call yields a refusal, never a token.
+
+2. **The Tool-Call Ledger** — a hash-chained record of every attempted tool call:
+   what the agent was *authorised* to do (the grant) vs what it *actually did* (the
+   call), the deterministic decision, the token, and a `prevHash`/`hash` pair so
+   tampering with any row breaks every later row (`ledgerIntact()` verifies the
+   chain). This is the audit artifact **EU AI Act Art. 12** and **ISO 42001** push
+   toward: prove what your agents were allowed to do, and prove what they did.
+
+**Enforcement decisions** (`ENFORCE_DECISION_META`):
+
+| Decision | Meaning | Contained? |
+| --- | --- | --- |
+| **Allowed** | Within grant; ran | no |
+| **Masked** | Ran, but sensitive data redacted at the boundary | no |
+| **Escalated** | High-stakes → routed to a human (e.g. adverse credit decision under Art. 22, SOX GL posting, account freeze) | yes |
+| **Blocked** | Out-of-scope / ungranted tool — denied by default (least privilege) | yes |
+| **Egress-deny** | Destination the egress policy refuses (SSRF class) | yes |
+
+A **Blocked** or **Egress-deny** call against an ungranted tool is a *prevented
+breach* — a prompt-injection or over-reach that never reached money, data, or the
+internet. `enforceStats()` surfaces the containment rate, prevented-breach count,
+least-privilege index and whether the chain is intact.
+
+**Surfaces** (`components/platform/enforce.jsx`, reachable by CISO / CGO roles):
+Enforcement Overview (the closed loop), Agent Authority, the Tool-Call Ledger,
+Egress Policy, HITL Gates and the Circuit Breaker.
+
+---
+
+## 5. Repository layout
 
 ```
 app/                 Next.js App Router — pages, layouts, and API route handlers
@@ -77,10 +134,11 @@ app/                 Next.js App Router — pages, layouts, and API route handle
 components/
   platform/          The product surfaces (30 modules): core design system, role
                      cockpits, AI Central, Risk Center, Compliance, Academy,
-                     Super Admin, dictionary, guided tour, …
-lib/                 The engines & data model — taxonomy, policy-rules, risk-engine,
+                     Super Admin, Veris Enforce, dictionary, guided tour, …
+lib/                 The engines & data model — taxonomy, policy-rules, enforce,
+                     agent-registry, egress, hitl, circuit-breaker, risk-engine,
                      compliance-engine, cost-engine, audit, rbac, role-centers,
-                     platform-models, egress, and the framework/standards libraries
+                     platform-models, and the framework/standards libraries
 prisma/              schema + seed
 integrations/
   browser-extension/ Reference shadow-AI DLP client for the policy engine
@@ -91,7 +149,7 @@ e2e/ · testing-agent/  End-to-end and agent-driven verification harnesses
 
 ---
 
-## 5. Getting started
+## 6. Getting started
 
 ### Prerequisites
 - Node.js 22+
@@ -130,7 +188,7 @@ npm run start
 
 ---
 
-## 6. Scripts
+## 7. Scripts
 
 | Script | Purpose |
 | --- | --- |
@@ -145,7 +203,7 @@ npm run start
 
 ---
 
-## 7. Entry points & demo logins
+## 8. Entry points & demo logins
 
 The entry page (`select[aria-label="Sign in to"]`) offers four ways in:
 
@@ -156,7 +214,7 @@ The entry page (`select[aria-label="Sign in to"]`) offers four ways in:
 
 ---
 
-## 8. Governance & compliance coverage
+## 9. Governance & compliance coverage
 
 VerisZone maps initiatives against the frameworks enterprises are actually
 audited on, including:
@@ -171,7 +229,7 @@ so posture updates as the portfolio does.
 
 ---
 
-## 9. Design
+## 10. Design
 
 The visual and interaction philosophy — the "govern with certainty" calm, the
 token system, the light-only palette strategy, accessibility rules and the
@@ -180,7 +238,7 @@ separately in **[`design_Philosophy.md`](./design_Philosophy.md)**.
 
 ---
 
-## 10. Learn the platform
+## 11. Learn the platform
 
 - **Guided Tour** — an in-app walkthrough (launches on first visit; re-openable any time)
 - **Governance Academy → Glossary & Learning** — every term in the platform with
