@@ -133,19 +133,30 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
     {/* Native <select> renders its value using the <option>'s color on some
         platforms; options inherit the stale dark-default ink, so pin them to
         the live light ink here (matches the field() fix for the control). */}
-    <style>{`.sa-console select, .sa-console select option { color: ${T.ink}; background: #fff; }`}</style>
+    <style>{`.sa-console select, .sa-console select option { color: ${T.ink}; background: #fff; }
+      @media (max-width: 680px){
+        .sa-console .sa-topbar{ padding:10px 13px !important; gap:8px !important; }
+        .sa-console .sa-op-email{ display:none !important; }
+        .sa-console .sa-wrap{ padding:16px 13px 56px !important; }
+        /* collapse every multi-column grid in the console to a single column */
+        .sa-console [style*="grid-template-columns"]{ grid-template-columns:1fr !important; }
+        /* let flex rows wrap instead of overflowing */
+        .sa-console .sa-row{ flex-wrap:wrap !important; }
+        /* belt-and-suspenders: no surface may scroll the page sideways */
+        .sa-console, .sa-console .sa-wrap{ overflow-x:hidden !important; }
+      }`}</style>
     {/* top bar */}
-    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 24px", borderBottom: `1px solid ${T.border}`, background: "#0B0E1A", color: "#fff", position: "sticky", top: 0, zIndex: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <div className="sa-topbar" style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 24px", borderBottom: `1px solid ${T.border}`, background: "#0B0E1A", color: "#fff", position: "sticky", top: 0, zIndex: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <BrandLogo theme="dark" width={132} />
-        <span style={{ fontSize: 9.5, fontWeight: 900, fontFamily: F.m, color: AI_GOLD, background: AI_GOLD + "1f", border: `1px solid ${AI_GOLD}55`, borderRadius: 999, padding: "3px 10px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Super Admin</span>
+        <span style={{ fontSize: 9.5, fontWeight: 900, fontFamily: F.m, color: AI_GOLD, background: AI_GOLD + "1f", border: `1px solid ${AI_GOLD}55`, borderRadius: 999, padding: "3px 10px", textTransform: "uppercase", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>Super Admin</span>
       </div>
       <div style={{ flex: 1 }} />
-      <span style={{ fontSize: 11, color: "#AEB6C6", fontFamily: F.b }}>Platform operator · root@veriszone.ai</span>
-      <button onClick={onSignOut} style={{ background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", borderRadius: 8, padding: "7px 13px", color: "#fff", fontSize: 11, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>Sign out</button>
+      <span className="sa-op-email" style={{ fontSize: 11, color: "#AEB6C6", fontFamily: F.b }}>Platform operator · root@veriszone.ai</span>
+      <button onClick={onSignOut} style={{ background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", borderRadius: 8, padding: "7px 13px", color: "#fff", fontSize: 11, fontWeight: 800, fontFamily: F.b, cursor: "pointer", flexShrink: 0 }}>Sign out</button>
     </div>
 
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "22px 24px 60px" }}>
+    <div className="sa-wrap" style={{ maxWidth: 1200, margin: "0 auto", padding: "22px 24px 60px" }}>
       {/* header + operator scope banner */}
       <div style={{ marginBottom: 6, fontFamily: F.h, fontSize: 25, fontWeight: 900, color: T.ink, letterSpacing: "-0.02em" }}>Platform Administration</div>
       <div style={{ marginBottom: 16, padding: "10px 13px", borderRadius: 10, background: AI_GOLD + "10", border: `1px solid ${AI_GOLD}30`, fontSize: 11.5, color: T.ink2, lineHeight: 1.55 }}>
@@ -172,7 +183,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
           <Card style={{ padding: "16px 18px" }}>
             <Eyebrow style={{ marginBottom: 10 }}>Organizations · {orgs.length}</Eyebrow>
             <div style={{ display: "grid", gap: 9 }}>
-              {orgs.map(o => <div key={o.id} onClick={() => { setSel(o.id); setTab("modules"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 13px", borderRadius: 10, background: T.s2, border: `1px solid ${sel === o.id ? AI_GOLD + "55" : T.border}` }}>
+              {orgs.map(o => <div key={o.id} className="sa-row" onClick={() => { setSel(o.id); setTab("modules"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 13px", borderRadius: 10, background: T.s2, border: `1px solid ${sel === o.id ? AI_GOLD + "55" : T.border}` }}>
                 <div style={{ width: 34, height: 34, borderRadius: 9, background: AI_GOLD + "1a", color: AI_GOLD_INK, display: "grid", placeItems: "center", fontWeight: 900, fontFamily: F.h, fontSize: 14 }}>{o.name[0]}</div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{o.name}</div>

@@ -761,10 +761,10 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         </div>)}
       </div>
     </Card>}
-    <div style={{display:"grid",gridTemplateColumns:"1.15fr .85fr",gap:14,marginBottom:14}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,280px),1fr))",gap:14,marginBottom:14}}>
       <Card style={{padding:18}}>
         <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 14px"}}>Risk heatmap</h3>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,120px),1fr))",gap:8}}>
           {items.map(i=><button key={i.id} onClick={()=>openInitiative(i.id)} style={{background:(i.risk==="Critical"?T.red:i.risk==="High"?T.amber:T.blue)+"18",border:"1px solid "+(i.risk==="Critical"?T.red:i.risk==="High"?T.amber:T.blue)+"35",borderRadius:10,padding:12,textAlign:"left",cursor:"pointer"}}>
             <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginBottom:6}}>{i.unit}</div>
             <div style={{fontSize:12,color:T.ink,fontWeight:700,lineHeight:1.35}}>{i.name}</div>
@@ -805,7 +805,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         })}
       </div>
     </Card>
-    {showValueSection&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+    {showValueSection&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,280px),1fr))",gap:14,marginBottom:14}}>
       <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business value tracking</h3>{items.map(i=><button key={i.id} onClick={()=>openInitiative(i.id)} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:0,marginBottom:14,cursor:"pointer"}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink2,marginBottom:6}}><span>{i.name}</span><span>{i.valueScore}%</span></div><Bar value={i.valueScore} color={i.valueScore>80?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:5}}>Expected {i.expected} - Actual {i.actual}</div></button>)}</Card>
       <Card style={{padding:18}}><h3 style={{fontSize:15,color:T.ink,margin:"0 0 14px"}}>Business unit comparison</h3>{items.map(i=><div key={i.id} style={{background:T.s2,border:"1px solid "+T.border,borderRadius:9,padding:12,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.ink,marginBottom:8}}><span>{i.unit}</span><Tag label={"Resistance: "+i.resistance} color={i.resistance==="High"?T.red:i.resistance==="Medium"?T.amber:T.green}/></div><Bar value={parseInt(i.training)||0} color={(parseInt(i.training)||0)>75?T.green:T.amber}/><div style={{fontSize:10,color:T.ink3,marginTop:7}}>Training {i.training} - Adoption {i.adoption}%</div></div>)}</Card>
     </div>}
