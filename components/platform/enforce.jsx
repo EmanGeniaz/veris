@@ -7,6 +7,7 @@ import { TOOLCALL_LEDGER, enforceStats, ENFORCE_DECISION_META, issueToken, TOKEN
 import { EGRESS_POLICY, EGRESS_EVENTS, EGRESS_DECISION_META, egressStats } from "@/lib/egress";
 import { HITL_GATES, hitlStats } from "@/lib/hitl";
 import { breakerSessions, breakerStats, BREAKER_STATES, SIGNALS, stateMeta } from "@/lib/circuit-breaker";
+import { PAAS_ENDPOINT, PAAS_CLIENTS, PAAS_KEYS, PAAS_SAMPLES, PAAS_DECISION_META, paasStats } from "@/lib/policy-service";
 
 /* ── shared local primitives (match roadmap/convergence) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -56,6 +57,148 @@ export function EnforcementOverview({ showToast }) {
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Enforcement posture exported — decisions reconciled to the Article 12 evidence chain")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export enforcement posture</button>
       </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ POLICY-AS-A-SERVICE — the engine as a callable service ══════════════ */
+export function PolicyAsAService({ showToast }) {
+  const s = paasStats();
+  const [text, setText] = useState(PAAS_SAMPLES[1].text);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState("");
+  const [keys, setKeys] = useState(PAAS_KEYS);
+  const [reveal, setReveal] = useState(null);
+
+  const inspect = async () => {
+    setBusy(true); setErr(""); setResult(null);
+    try {
+      const res = await fetch("/api/policy/inspect", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text, context: "paas-console", actor: "policy.console@veriszone.ai", channel: "paas-console" }),
+      });
+      if (!res.ok) throw new Error("inspect " + res.status);
+      const v = await res.json();
+      setResult(v);
+      const m = PAAS_DECISION_META[v.decision] || { label: v.decision };
+      showToast && showToast(`Verdict: ${m.label}${v.reason ? " · " + v.reason : ""} — signed into the Article 12 chain`);
+    } catch (e) {
+      setErr("Service unreachable — " + String(e.message || e));
+    } finally { setBusy(false); }
+  };
+
+  const issueKey = () => {
+    const n = keys.length + 1;
+    const id = "issued-" + n;
+    const full = "vz_live_nk_" + id.replace(/[^a-z0-9]/g, "") + "K7q2";
+    setKeys(k => [...k, { id, label: "New client " + n, scope: "inspect", status: "Active", masked: full.slice(0, 12) + "••••••" + full.slice(-4), created: "just now" }]);
+    setReveal({ id, full });
+    showToast && showToast("Inspection key issued — copy it now; it is shown only once");
+  };
+  const rotate = (id) => { setKeys(k => k.map(x => x.id === id ? { ...x, masked: x.masked.slice(0, 12) + "••••••" + "New1", created: "just now" } : x)); showToast && showToast("Key rotated — the previous secret is now void"); };
+
+  const rc = result ? tok(PAAS_DECISION_META[result.decision]?.tone || "ink3") : T.border;
+  const chan = [
+    ["Any client", "Gateway · extension · CASB · CI/CD", "One rulebook, whatever the channel — including shadow-AI traffic that never touches the app.", T.blue],
+    ["Inspect", "POST /api/policy/inspect", "Stateless verdict — classify, mask or block. No model is called; it only judges text.", AI_GOLD],
+    ["Evidence", "Article 12 chain", "Every verdict appends a hash of the text + what fired — never the raw sensitive content.", T.green],
+  ];
+
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Policy-as-a-Service" sub="The policy engine, exposed as a callable service. The same DLP + classification rulebook the AI Gateway enforces inline is available at one endpoint, so a browser extension, a CASB, a forward proxy or a CI pipeline can enforce it on AI traffic that never touches the in-app gateway. It returns allow · mask · block with the masked text to substitute — and signs every verdict into the same evidence chain." />
+    <div style={kpiGrid}>
+      <Kpi l="Inspections (window)" v={s.total.toLocaleString()} c={AI_GOLD} sub={`${s.clientsLive} of ${s.clientsTotal} channels live`} />
+      <Kpi l="Allow / Mask / Block" v={`${s.allow.toLocaleString()} · ${s.mask} · ${s.block}`} c={T.blue} sub={`${s.containmentRate}% contained at the edge`} />
+      <Kpi l="Prevented exfiltration" v={String(s.preventedExfil)} c={T.red} sub="block verdicts — data that never left" />
+      <Kpi l="Median verdict" v={`${s.p95ms}ms`} c={T.green} sub="no model call — pure judgement" />
+      <Kpi l="Active keys" v={String(s.keysActive)} c={T.blue} sub="x-veris-key, per channel" />
+    </div>
+
+    {/* One rulebook, every channel */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>The service · one rulebook, every channel</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Policy the whole enterprise can call</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+        {chan.map(([k, who, desc, c], i) => <div key={k} style={{ padding: "14px 15px", borderRadius: 11, background: c + "0e", border: `1px solid ${c}33` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 6, background: c + "22", color: c, fontFamily: F.m, fontWeight: 900, fontSize: 11, display: "grid", placeItems: "center" }}>{i + 1}</span>
+            <div><div style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.b }}>{k}</div><div style={{ fontSize: 9.5, color: c, fontWeight: 800, fontFamily: F.m, textTransform: "uppercase", letterSpacing: "0.06em" }}>{who}</div></div>
+          </div>
+          <p style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, margin: 0 }}>{desc}</p>
+        </div>)}
+      </div>
+      <div style={{ marginTop: 12, fontFamily: F.m, fontSize: 10.5, color: T.ink2, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 8, padding: "11px 13px", lineHeight: 1.7, overflowX: "auto" }}>
+        <div style={{ color: T.ink4 }}># request</div>
+        <div><b style={{ color: T.ink }}>{PAAS_ENDPOINT.method} {PAAS_ENDPOINT.path}</b> · auth: <b style={{ color: AI_GOLD_INK }}>{PAAS_ENDPOINT.auth}</b></div>
+        <div style={{ whiteSpace: "pre-wrap" }}>{PAAS_ENDPOINT.request}</div>
+        <div style={{ color: T.ink4, marginTop: 6 }}># response</div>
+        <div style={{ whiteSpace: "pre-wrap" }}>{PAAS_ENDPOINT.response}</div>
+      </div>
+    </Card>
+
+    {/* Live inspection — actually calls the endpoint */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Live inspection · calls the real endpoint</Eyebrow>
+      <H3 style={{ marginBottom: 10 }}>Send text through the service</H3>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 9 }}>
+        {PAAS_SAMPLES.map(sm => <button key={sm.id} onClick={() => { setText(sm.text); setResult(null); }} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 12px", color: T.ink2, fontSize: 10.5, fontWeight: 700, fontFamily: F.b, cursor: "pointer" }}>{sm.label}</button>)}
+      </div>
+      <textarea value={text} onChange={e => { setText(e.target.value); setResult(null); }} rows={3} style={{ width: "100%", background: T.s2, border: `1px solid ${T.border}`, borderRadius: 9, padding: "11px 13px", color: T.ink, fontSize: 12.5, fontFamily: F.b, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+      <div style={{ marginTop: 10 }}>
+        <button onClick={inspect} disabled={busy} style={{ background: AI_GOLD, border: "none", borderRadius: 9, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: busy ? "wait" : "pointer", opacity: busy ? 0.7 : 1 }}>{busy ? "Inspecting…" : "✦ Inspect"}</button>
+      </div>
+      {err && <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 9, background: T.redL, border: `1px solid ${T.red}40`, color: T.red, fontSize: 11.5, fontFamily: F.b }}>{err}</div>}
+      {result && <div style={{ marginTop: 13, padding: "13px 15px", borderRadius: 10, background: rc + "10", border: `1px solid ${rc}40` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8, flexWrap: "wrap" }}>
+          <Pill c={rc}>{(PAAS_DECISION_META[result.decision] || {}).label || result.decision}</Pill>
+          <span style={{ fontSize: 12, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{(PAAS_DECISION_META[result.decision] || {}).note || ""}</span>
+          {result.dataClass && <Pill c={T.blue}>{result.dataClass}</Pill>}
+          {(result.categories || []).map(c => <Pill key={c} c={T.violet}>{c}</Pill>)}
+        </div>
+        {result.reason && <p style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, margin: "0 0 8px" }}>Rule fired: <b style={{ color: T.ink2 }}>{result.reason}</b>{result.clauseRef ? ` · ${result.clauseRef}` : ""}</p>}
+        {result.decision === "mask" && result.redacted && <div style={{ fontSize: 11, fontFamily: F.m, color: T.ink2, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 7, padding: "9px 11px", lineHeight: 1.6 }}><div style={{ color: T.ink4, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Substitute text</div>{result.redacted}</div>}
+        {result.decision === "block" && <div style={{ fontSize: 11, color: T.red, fontFamily: F.b }}>Blocked — the client must not forward this content.</div>}
+      </div>}
+    </Card>
+
+    {/* Connected channels */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Connected channels · who calls the service</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Every channel, one policy</H3>
+      <Table head={["Channel", "Type", "Status", "Inspections", "Contained", "Coverage"]}>
+        {PAAS_CLIENTS.map(c => <tr key={c.id}>
+          <Td style={{ fontWeight: 700, color: T.ink }}>{c.name}<div style={{ fontSize: 10, color: T.ink4, fontWeight: 500 }}>{c.note}</div></Td>
+          <Td style={{ color: T.ink3 }}>{c.type}</Td>
+          <Td><Pill c={c.status === "Live" ? T.green : T.amber}>{c.status}</Pill></Td>
+          <Td>{c.calls.toLocaleString()}</Td>
+          <Td>{c.contained}</Td>
+          <Td><Pill c={T.blue}>{c.calls ? Math.round((c.contained / c.calls) * 100) : 0}%</Pill></Td>
+        </tr>)}
+      </Table>
+    </Card>
+
+    {/* Keys */}
+    <Card style={cardPad}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <div><Eyebrow>Inspection keys · x-veris-key</Eyebrow><H3 style={{ marginBottom: 0 }}>One key per channel, rotatable</H3></div>
+        <button onClick={issueKey} style={{ background: AI_GOLD, border: "none", borderRadius: 9, padding: "9px 15px", color: "#0b0e24", fontSize: 11.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>+ Issue key</button>
+      </div>
+      {reveal && <div style={{ margin: "12px 0", padding: "11px 13px", borderRadius: 9, background: T.greenL, border: `1px solid ${T.green}40`, fontFamily: F.m, fontSize: 11.5, color: T.ink }}><span style={{ color: T.ink4, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.07em" }}>New key — shown once</span><div style={{ fontWeight: 700, marginTop: 3 }}>{reveal.full}</div></div>}
+      <div style={{ marginTop: 12 }}>
+        <Table head={["Key", "Scope", "Secret", "Status", "Created", ""]}>
+          {keys.map(k => <tr key={k.id}>
+            <Td style={{ fontWeight: 700, color: T.ink }}>{k.label}</Td>
+            <Td style={{ color: T.ink3 }}>{k.scope}</Td>
+            <Td style={{ fontFamily: F.m, color: T.ink3 }}>{k.masked}</Td>
+            <Td><Pill c={k.status === "Active" ? T.green : T.amber}>{k.status}</Pill></Td>
+            <Td style={{ color: T.ink3 }}>{k.created}</Td>
+            <Td><button onClick={() => rotate(k.id)} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 7, padding: "5px 11px", color: T.ink2, fontSize: 10.5, fontWeight: 700, fontFamily: F.b, cursor: "pointer" }}>Rotate</button></Td>
+          </tr>)}
+        </Table>
+      </div>
+      {advisor(<>This is Policy-as-a-Service: the rulebook you author once is enforced everywhere an employee can reach an AI — not just inside the app. The browser fleet and CASB alone contained {PAAS_CLIENTS[1].contained + PAAS_CLIENTS[2].contained} shadow-AI inspections this window, each judged by the same rules and written to the same evidence chain the board reads.</>)}
     </Card>
   </div>;
 }
