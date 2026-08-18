@@ -49,6 +49,8 @@ front-line employee can all open and see *the same portfolio, framed for them*.
 | **Veris Enforce** | The enforcement plane (`lib/enforce.js`). Turns policy into runtime decisions on every agent tool call — capability tokens, egress-deny, HITL escalation, circuit breaker — and records them, tamper-evidently. |
 | **Capability token** | A short-lived (90s), signed, per-tool-call grant scoped to exactly one tool for one agent. Agents hold no standing keys; issuance runs the least-privilege boundary first, so a denied call yields a refusal, never a token. |
 | **Tool-Call Ledger** | A hash-chained record of every tool call an agent attempted — what it was *authorised* to do vs what it *actually did* — where any tampered row breaks every later row. The Article 12 / ISO 42001 evidence artifact. |
+| **Policy-as-a-Service** | The policy engine exposed as a callable verdict service (`/api/policy/inspect`): a browser extension, CASB, forward proxy or CI pipeline calls the *same* rulebook and gets allow · mask · block, so shadow-AI traffic is governed too. Every verdict is signed into the evidence chain. |
+| **Template Library** | A browsable repository of framework template packs (ISO 42001, ISO 27001, NIST AI RMF, EU AI Act). Each pack generates ready-to-fill artifacts — policy, Statement of Applicability, control checklist, impact assessment, RACI — pre-filled from the live control set, minting evidence on generation. |
 | **Evidence** | Auto-captured artifacts from completed phase gates, forming the audit trail behind every Governance Score. |
 | **Super Admin console** | The operator tier: provision tenants, enable modules, define users & RBAC, and cascade org-wide policy. Operators *enable and override* — they don't author initiatives. |
 
@@ -124,6 +126,19 @@ least-privilege index and whether the chain is intact.
 Enforcement Overview (the closed loop), Agent Authority, the Tool-Call Ledger,
 Egress Policy, HITL Gates and the Circuit Breaker.
 
+### Policy-as-a-Service — the outward-facing edge
+
+Sitting beside Veris Enforce is **Policy-as-a-Service** (`PolicyAsAService` in
+`enforce.jsx`, data in `lib/policy-service.js`). Where Enforce governs *agents at
+runtime*, PaaS exposes the *same DLP + classification rulebook* the Gateway
+enforces inline as a stateless verdict service at `POST /api/policy/inspect`
+(`allow · mask · block`). Any channel — a browser extension, a CASB, a forward
+proxy, a CI pipeline — calls one endpoint and enforces one policy, so the AI
+traffic that never touches the in-app gateway (the "shadow AI" path) is governed
+too. The surface presents the contract, the connected channels, per-channel
+`x-veris-key` management, and a **live inspector that calls the real endpoint** —
+and every verdict is signed into the same Article 12 evidence chain.
+
 ---
 
 ## 5. Repository layout
@@ -136,6 +151,7 @@ components/
                      cockpits, AI Central, Risk Center, Compliance, Academy,
                      Super Admin, Veris Enforce, dictionary, guided tour, …
 lib/                 The engines & data model — taxonomy, policy-rules, enforce,
+                     policy-service (Policy-as-a-Service), template-library,
                      agent-registry, egress, hitl, circuit-breaker, risk-engine,
                      compliance-engine, cost-engine, audit, rbac, role-centers,
                      platform-models, and the framework/standards libraries
@@ -226,6 +242,15 @@ audited on, including:
 These are computed engines (`lib/compliance-engine.js`, `lib/frameworks.js`,
 `lib/iso-standards.js`, `lib/governance-standards.js`, …), not static checklists —
 so posture updates as the portfolio does.
+
+To turn that posture into paperwork, the **Template Library**
+(`components/platform/template-library.jsx`, data in `lib/template-library.js`,
+CAIO / CGO roles) ships browsable framework packs — ISO 42001, ISO 27001, NIST AI
+RMF, EU AI Act — that generate ready-to-fill artifacts (policy, Statement of
+Applicability, control checklist, impact assessment, RACI). Each one generates
+**pre-filled from the live control set** (e.g. the ISO 42001 SoA pulls the actual
+Annex A controls and their status), downloads as a real Markdown file, and mints
+an evidence event — so authoring the artifact and evidencing it are one action.
 
 ---
 
