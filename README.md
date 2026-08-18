@@ -239,14 +239,24 @@ audited on, including:
 - **ISO/IEC 42001** (AI management system) and **ISO/IEC 27001** (ISMS)
 - **NIST AI RMF**, **COSO**, and regional/jurisdictional guardrails
 
+Regional packs are first-class, each mapping a jurisdiction's instruments to a
+live control with computed posture: Singapore (`lib/sg-dimensions.js`), Australia
+(`lib/au-guardrails.js`), and a deep **China (PRC)** pack (`lib/cn-measures.js`) —
+seven instruments (algorithm-recommendation filing, deep synthesis, the
+generative-AI interim measures, the 2025 content-labelling regime backed by
+GB 45438, science-&-technology ethics review, the PIPL/DSL/CSL data trio, and the
+TC260 security baseline) across fifteen mapped obligations, surfaced in the Global
+Framework Library and the Jurisdiction Atlas, with a matching **China (PRC) AI
+Compliance** template pack.
+
 These are computed engines (`lib/compliance-engine.js`, `lib/frameworks.js`,
-`lib/iso-standards.js`, `lib/governance-standards.js`, …), not static checklists —
-so posture updates as the portfolio does.
+`lib/iso-standards.js`, `lib/governance-standards.js`, `lib/cn-measures.js`, …),
+not static checklists — so posture updates as the portfolio does.
 
 To turn that posture into paperwork, the **Template Library**
 (`components/platform/template-library.jsx`, data in `lib/template-library.js`,
 CAIO / CGO roles) ships browsable framework packs — ISO 42001, ISO 27001, NIST AI
-RMF, EU AI Act — that generate ready-to-fill artifacts (policy, Statement of
+RMF, EU AI Act, China (PRC) — that generate ready-to-fill artifacts (policy, Statement of
 Applicability, control checklist, impact assessment, RACI). Each one generates
 **pre-filled from the live control set** (e.g. the ISO 42001 SoA pulls the actual
 Annex A controls and their status), downloads as a real Markdown file, and mints

@@ -11,7 +11,7 @@ import { walkBack, conformitySummary } from "@/lib/compliance-engine";
 import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats, regionLabel, STATUS_META } from "@/lib/frameworks";
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
 import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
-import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats } from "@/lib/regional-mappings";
+import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats, CN_INSTRUMENTS } from "@/lib/regional-mappings";
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
 import { OECD_REQS, UNESCO_REQS, oecdStats, unescoStats } from "@/lib/principle-mappings";
@@ -92,7 +92,7 @@ export function PageFrameworkLibrary({role,showToast}){
   const MAPPINGS={
     "au-safety":{rows:AU_GUARDRAILS,stats:auGuardrailStats(),unit:"guardrail",col:"Guardrail"},
     "sg-model":{rows:SG_DIMENSIONS,stats:sgDimensionStats(),unit:"dimension",col:"Dimension"},
-    "china-regs":{rows:CN_REQS,stats:cnStats(),unit:"requirement",col:"Requirement"},
+    "china-regs":{rows:CN_REQS,stats:cnStats(),unit:"requirement",col:"Requirement",instruments:CN_INSTRUMENTS},
     "brazil-framework":{rows:BR_REQS,stats:brStats(),unit:"requirement",col:"Requirement"},
     "korea-act":{rows:KR_REQS,stats:krStats(),unit:"requirement",col:"Requirement"},
     "iso-38507":{rows:ISO38507_REQS,stats:iso38507Stats(),unit:"consideration",col:"Consideration"},
@@ -177,6 +177,16 @@ export function PageFrameworkLibrary({role,showToast}){
         <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} Met · {g.score}% posture</span>
       </div>
       <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>Each {M.unit} maps to a control VerisZone already runs — posture computed from live controls, not asserted.</div>
+      {M.instruments&&<div style={{marginBottom:13}}>
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>The instruments · {M.instruments.length} in force</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,230px),1fr))",gap:8}}>
+          {M.instruments.map(inst=><div key={inst.id} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:6,alignItems:"baseline"}}><span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,lineHeight:1.3}}>{inst.short}</span><span style={{fontSize:9,fontWeight:800,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>{inst.eff}</span></div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,margin:"2px 0 5px"}}>{inst.cn} · {inst.reg}</div>
+            <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{inst.req}</div>
+          </div>)}
+        </div>
+      </div>}
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
         <thead><tr>{["#",M.col,"VerisZone control","Evidenced in","Status"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
         <tbody>{M.rows.map(gd=>{const met=gd.status==="Met";const c=met?T.green:T.amber;return <tr key={gd.n}>
