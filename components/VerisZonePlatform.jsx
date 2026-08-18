@@ -304,35 +304,46 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [topChoice,setTopChoice]=useState("demo");
   const [empRole,setEmpRole]=useState(roleProfiles[0]?.id||"ceo");
   const [email,setEmail]=useState("");
-  const [password,setPassword]=useState("govern-with-certainty");
+  const [password,setPassword]=useState("");        // no longer pre-filled with the secret
   const [loginError,setLoginError]=useState("");
+  const [checking,setChecking]=useState(false);      // disables the button while verifying
   const selected=topChoice==="demo"?"demo":topChoice==="aicentral"?(aiCentralProfile?.id||"aicentral"):topChoice==="superadmin"?(superAdminProfile?.id||"superadmin"):empRole;
   const profile=LOGIN_PROFILES.find(p=>p.id===selected)||LOGIN_PROFILES[0];
   useEffect(()=>{
     setEmail(profile.email);
-    setPassword("govern-with-certainty");
+    setPassword("");                                 // clear on profile switch — the secret is never seeded client-side
     setLoginError("");
   },[profile.email]);
-  const canEnter=()=>{
-    const valid=email.trim().toLowerCase()===profile.email.toLowerCase()&&password==="govern-with-certainty";
-    if(!valid)setLoginError(`Use ${profile.email} and the demo password for ${profile.label}.`);
-    return valid;
+  // Verifies the password on the SERVER (/api/demo-login). The secret is never in
+  // the client bundle. Returns true only on a server-confirmed match.
+  const canEnter=async()=>{
+    if(email.trim().toLowerCase()!==profile.email.toLowerCase()){setLoginError("Invalid credentials.");return false;}
+    let ok=false;
+    try{
+      const res=await fetch("/api/demo-login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({password})});
+      ok=res.ok&&(await res.json()).ok===true;
+    }catch{ok=false;}
+    // Generic message on failure — never echo a valid email/identifier back to the user.
+    if(!ok)setLoginError("Invalid credentials.");
+    return ok;
   };
-  const enterProfile=e=>{
+  const enterProfile=async e=>{
     e?.preventDefault?.();
-    if(!canEnter())return;
-    onEnter(profile);
+    if(checking)return;                              // guard against double-submit while the request is in flight
+    setChecking(true);
+    try{ if(await canEnter())onEnter(profile); }
+    finally{ setChecking(false); }
   };
   const enterDemoLink=()=>onEnter(demoProfile);
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
-  return <div style={{minHeight:"100vh",background:theme==="light"?`linear-gradient(135deg, #F7F8FA, #FFFFFF 54%, #F3F6FB)`:`radial-gradient(circle at 20% 10%, ${profile.accent}18, transparent 30%), linear-gradient(135deg, ${T.bg}, ${T.s1})`,color:T.ink,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,420px),1fr))",gap:0,position:"relative",overflow:"hidden"}}>
+  return <div className="vz-entry-root" style={{minHeight:"100vh",background:theme==="light"?`linear-gradient(135deg, #F7F8FA, #FFFFFF 54%, #F3F6FB)`:`radial-gradient(circle at 20% 10%, ${profile.accent}18, transparent 30%), linear-gradient(135deg, ${T.bg}, ${T.s1})`,color:T.ink,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,420px),1fr))",gap:0,position:"relative",overflow:"hidden"}}>
     <div style={{position:"absolute",inset:0,pointerEvents:"none",opacity:theme==="light"?.45:1}}>
       <div style={{position:"absolute",width:560,height:560,borderRadius:"50%",border:`1px solid ${profile.accent}22`,left:"8%",top:"10%",animation:"vzOrbit 38s linear infinite"}}/>
       <div style={{position:"absolute",width:370,height:370,borderRadius:"50%",border:`1px solid ${T.border}`,left:"15%",top:"20%",animation:"vzOrbit 26s linear infinite reverse"}}/>
       <div style={{position:"absolute",width:16,height:16,borderRadius:"50%",background:profile.accent,boxShadow:`0 0 44px ${profile.accent}`,left:"36%",top:"17%",animation:"vzDrift 6s ease-in-out infinite"}}/>
       {theme==="dark"&&<div style={{position:"absolute",width:"80%",height:180,background:`linear-gradient(90deg, transparent, ${profile.accent}18, transparent)`,left:"10%",top:"44%",filter:"blur(18px)",animation:"vzSweep 8s ease-in-out infinite"}}/>}
     </div>
-    <div style={{padding:"clamp(28px,5vh,52px) clamp(24px,5vw,72px) 28px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:"100vh",position:"relative",zIndex:1}}>
+    <div className="vz-entry-marketing" style={{padding:"clamp(28px,5vh,52px) clamp(24px,5vw,72px) 28px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:"100vh",position:"relative",zIndex:1}}>
       <div>
         <button type="button" onClick={enterProfile} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${T.border}`,background:T.s2,borderRadius:999,padding:"7px 11px",fontSize:11,fontWeight:800,fontFamily:F.b,color:T.ink3,marginBottom:10,cursor:"pointer"}}>
           <span style={{width:7,height:7,borderRadius:"50%",background:profile.accent,boxShadow:`0 0 18px ${profile.accent}`}}/>
@@ -380,7 +391,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
         <span>EU AI Act</span><span>ISO 42001</span><span>GDPR</span><span>NIST AI RMF</span><span>Evidence-ready audit trail</span>
       </div>
     </div>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"32px clamp(20px,4vw,60px)",borderLeft:`1px solid ${T.border}`,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg, ${T.s1}F2, ${T.bg}F8)`,position:"relative",zIndex:1}}>
+    <div className="vz-entry-signin" style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"32px clamp(20px,4vw,60px)",borderLeft:`1px solid ${T.border}`,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg, ${T.s1}F2, ${T.bg}F8)`,position:"relative",zIndex:1}}>
       <form onSubmit={enterProfile} style={{width:"100%",maxWidth:420,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"22px 24px",boxShadow:T.shadow,pointerEvents:"auto"}}>
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minHeight:theme==="light"?96:104,marginBottom:16}}>
           <div style={{animation:"loginBrandRise .8s cubic-bezier(.2,.8,.2,1) both, loginBrandFloat 6.4s ease-in-out 1.1s infinite, loginBrandBreathe 4.6s ease-in-out 1s infinite"}}>
@@ -417,7 +428,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
           <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");}} style={fieldStyle}/>
         </div>
         {loginError&&<div style={{fontSize:11,lineHeight:1.5,color:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{loginError}</div>}
-        <button type="submit" style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:"pointer"}}>Enter {profile.label} Workspace</button>
+        <button type="submit" disabled={checking} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:checking?"wait":"pointer",opacity:checking?0.7:1}}>{checking?"Signing in…":`Enter ${profile.label} Workspace`}</button>
         {selected!=="demo"&&<button type="button" onClick={enterDemoLink} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Demo Center</button>}
         <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"grid",gap:7,fontSize:11,color:T.ink3,fontFamily:F.b}}>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>SSO</span><strong style={{color:T.green}}>Ready</strong></div>
@@ -690,7 +701,8 @@ export default function VerisZone() {
     setTab("home");
     setAiCentralView("dashboard");
     setSessionMode("demo");
-    if(typeof window!=="undefined")window.history.replaceState(null,"","/");
+    // Clear the session-entry flag so deep links no longer auto-restore after sign-out.
+    if(typeof window!=="undefined"){window.sessionStorage.removeItem("veriszone.authed");window.history.replaceState(null,"","/");}
   },[]);
   const enterApp=useCallback((profile=LOGIN_PROFILES[0])=>{
     setRole(profile.role);
@@ -699,6 +711,10 @@ export default function VerisZone() {
     setTab(ROLE_CENTERS[profile.role]?"home":profile.target);
     setHitlCount(profile.mode==="demo"?(HITL[profile.role]||[]).length:0);
     setSessionMode(profile.mode||"role");
+    // Mark this browser session as authenticated. enterApp is only reached AFTER a
+    // real sign-in (the entry screen) — so this flag is what lets deep-link
+    // restoration below run without re-opening the login gate on every refresh.
+    if(typeof window!=="undefined")window.sessionStorage.setItem("veriszone.authed","1");
     setHasEntered(true);
   },[]);
   useEffect(()=>{
@@ -733,6 +749,11 @@ export default function VerisZone() {
       return false;
     };
     const enterFromHash=()=>{
+      // AUTH GATE: never grant entry from a URL/hash alone. A deep route is only
+      // *restored* if this browser session already signed in via the entry screen
+      // (enterApp sets the flag). A cold visitor typing /workspace/aicentral/ledger
+      // has no flag, so we fall through to the sign-in shell instead of the app.
+      if(typeof window==="undefined"||!window.sessionStorage.getItem("veriszone.authed"))return;
       if(enterFromRoute())return;
       if(window.location.hash==="#profile"){
         setHasEntered(true);
