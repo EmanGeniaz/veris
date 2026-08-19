@@ -36,6 +36,12 @@ export function ExecAssistant({role,goto,showToast,isMobile,tab}){
   const answer=text=>{
     const t=text.toLowerCase();
     const p0=priorities[0];
+    /* Scope guard: decline clearly off-topic questions (weather, sports, trivia)
+       rather than fall through to a governance nudge — Veris Intelligence advises
+       on the enterprise's AI governance only. */
+    const offTopic=/\b(weather|forecast|temperature|humidity|sports?|football|soccer|cricket|basketball|tennis|recipe|cook|restaurant|movie|film|song|lyrics|celebrit|joke|horoscope|lottery|capital of|who won|population of|translate|poem)\b/i;
+    const govSignal=/\b(ai|ml|model|agent|governance|govern|policy|risk|compliance|initiative|portfolio|audit|evidence|control|framework|iso|eu ai act|gdpr|nist|deploy|pilot|adoption|roi|budget|vendor|incident|drift|bias|guardrail|prompt|privacy|security|approval|regulat|academy)\b/i;
+    if(offTopic.test(t)&&!govSignal.test(t))return {text:"That's outside my governance scope. I'm Veris Intelligence — I focus on your AI initiatives, risk, compliance, policy and evidence. Ask me about your priorities, risks or governance posture.",src:"Internal",srcNote:"Scope guard"};
     if(/what is|explain|define/.test(t)){
       const topic=/iso\s*42001/.test(t)?"ISO 42001 is the international AI management system standard: it defines how an organization governs AI across lifecycle, risk, evidence and continuous improvement. Your posture against it lives in Compliance & Standards."
         :/eu ai act/.test(t)?"The EU AI Act is the European regulation classifying AI systems by risk tier. High-risk systems require conformity assessment, human oversight and technical documentation. Your affected systems are tracked in the Risk Center."
