@@ -290,6 +290,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [obOpen,setObOpen]=useState(false);
   const [ob,setOb]=useState({name:"",slug:"",mode:"clean",token:""});
   const [obMsg,setObMsg]=useState("");
+  const [creating,setCreating]=useState(false);   // in-flight guard so rapid clicks don't fire N POSTs
   Object.assign(T, LIGHT_T);
   const demoProfile=LOGIN_PROFILES.find(p=>p.id==="demo")||LOGIN_PROFILES[0];
   const aiCentralProfile=LOGIN_PROFILES.find(p=>p.id==="aicentral");
@@ -444,14 +445,17 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
             <option value="demo">Seeded demo workspace</option>
           </select>
           <input value={ob.token} onChange={e=>setOb({...ob,token:e.target.value})} placeholder="Onboarding token" type="password" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
-          <button type="button" onClick={async()=>{
+          <button type="button" disabled={creating} onClick={async()=>{
+            if(creating)return;                       // ignore repeat clicks while a request is in flight
+            setCreating(true);
             setObMsg("Creating...");
             try{
               const res=await fetch("/api/admin/tenants",{method:"POST",headers:{"Content-Type":"application/json","x-onboard-token":ob.token},body:JSON.stringify(ob)});
               const d=await res.json();
               setObMsg(d.ok?`Workspace "${d.slug}" created (${d.mode}). Sign in: ${d.signIn}`:`Could not create: ${d.error}`);
             }catch{setObMsg("Workspace creation needs the production database and onboarding token.");}
-          }} style={{background:T.blue,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Create workspace</button>
+            finally{setCreating(false);}              // re-enable whether it succeeded or failed
+          }} style={{background:T.blue,border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:creating?"wait":"pointer",opacity:creating?0.7:1}}>{creating?"Creating…":"Create workspace"}</button>
           {obMsg&&<div style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}>{obMsg}</div>}
         </div>}
       </form>
