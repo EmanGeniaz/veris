@@ -214,6 +214,14 @@ export const RCL = r => T[r+"L"]  || T.blueL;
 /* Section */
 export const CSS = `
 ${FONTS}
+/* Entry screen on phones: the sign-in card comes FIRST, the marketing panel drops
+   below it, and the marketing panel loses its full-screen min-height so there is no
+   sea of empty space between "land on the page" and "here's how to sign in". */
+@media (max-width: 640px){
+  .vz-entry-root{ grid-template-columns:1fr !important; }
+  .vz-entry-signin{ order:1 !important; border-left:none !important; padding-top:24px !important; }
+  .vz-entry-marketing{ order:2 !important; min-height:auto !important; }
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:15px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 body{background:${T.bg};color:${T.ink};font-family:'Manrope',sans-serif;letter-spacing:0em;}
@@ -285,7 +293,7 @@ export const ROLES = {
 };
 export const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
 export const USER_PROFILES = {
-  demo:{name:"Demo Center",email:"demo.center@veriszone.ai",password:"govern-with-certainty",role:"Demo Center",title:"Sales Demo Workspace",department:"Solution Engineering",organization:"VerisZone Demo Center",phone:"+1 415 555 0199",region:"Global",timezone:"UTC",manager:"Revenue and Product Leadership",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:30"},
+  demo:{name:"Demo Center",email:"demo.center@veriszone.ai",role:"Demo Center",title:"Sales Demo Workspace",department:"Solution Engineering",organization:"VerisZone Demo Center",phone:"+1 415 555 0199",region:"Global",timezone:"UTC",manager:"Revenue and Product Leadership",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:30"},
   ceo:{name:"Maya Chen",email:"maya.chen@veriszone.ai",password:"VerisZone-CEO-2026",role:"CEO",title:"Chief Executive Officer",department:"Executive Office",organization:"VerisZone Executive Committee",phone:"+1 415 555 0188",region:"Global",timezone:"America/New_York",manager:"Board of Directors",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 08:15"},
   coo:{name:"Priya Mehta",email:"priya.mehta@veriszone.ai",password:"VerisZone-COO-2026",role:"COO",title:"Chief Operating Officer",department:"Enterprise Operations",organization:"VerisZone Operating Office",phone:"+1 415 555 0144",region:"Global",timezone:"America/Los_Angeles",manager:"Executive Committee",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 08:31"},
   cfo:{name:"Elena Rossi",email:"elena.rossi@veriszone.ai",password:"VerisZone-CFO-2026",role:"CFO",title:"Chief Financial Officer",department:"Finance and Value Realization",organization:"VerisZone Finance Office",phone:"+39 02 555 0162",region:"EU / US",timezone:"Europe/Rome",manager:"Audit and Finance Committee",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 09:18"},
@@ -297,9 +305,9 @@ export const USER_PROFILES = {
   cgo:{name:"Rafael Torres",email:"rafael.torres@veriszone.ai",password:"VerisZone-CGO-2026",role:"CGO",title:"Chief Governance Officer",department:"Governance, Risk and Compliance",organization:"VerisZone Governance Office",phone:"+1 212 555 0176",region:"US / LATAM",timezone:"America/New_York",manager:"Audit and Risk Committee",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 07:38"},
   cro:{name:"Deepa Nair",email:"deepa.nair@veriszone.ai",password:"VerisZone-CRO-2026",role:"CRO",title:"Chief Risk Officer",department:"Enterprise Risk Management",organization:"VerisZone Risk Office",phone:"+1 617 555 0159",region:"US / EU",timezone:"America/New_York",manager:"Board Risk Committee",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 07:52"},
   legal:{name:"Thomas Beck",email:"thomas.beck@veriszone.ai",password:"VerisZone-LEGAL-2026",role:"Legal",title:"General Counsel & Compliance",department:"Legal, Regulatory and Compliance",organization:"VerisZone Office of General Counsel",phone:"+49 89 555 0133",region:"EU / US",timezone:"Europe/Berlin",manager:"Board Governance Committee",ssoStatus:"Ready",evidenceRetention:"10 years",lastLogin:"2026-06-19 08:04"},
-  aicentral:{name:"AI Central",email:"ai.central@veriszone.ai",password:"govern-with-certainty",role:"AI Central",title:"Execution and Assurance Workspace",department:"AI Central Operations",organization:"VerisZone AI Operating Center",phone:"+1 415 555 0150",region:"Global",timezone:"UTC",manager:"AI Transformation Office",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:40"},
-  employee:{name:"Jamie Park",email:"jamie.park@veriszone.ai",password:"govern-with-certainty",role:"Employee",title:"Product Engineer",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0171",region:"US",timezone:"America/Los_Angeles",manager:"Riley Chen",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 09:10"},
-  manager:{name:"Riley Chen",email:"riley.chen@veriszone.ai",password:"govern-with-certainty",role:"Manager",title:"Engineering Manager",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0164",region:"US",timezone:"America/Los_Angeles",manager:"Priya Mehta",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 08:45"},
+  aicentral:{name:"AI Central",email:"ai.central@veriszone.ai",role:"AI Central",title:"Execution and Assurance Workspace",department:"AI Central Operations",organization:"VerisZone AI Operating Center",phone:"+1 415 555 0150",region:"Global",timezone:"UTC",manager:"AI Transformation Office",ssoStatus:"Ready",evidenceRetention:"7 years",lastLogin:"2026-06-19 15:40"},
+  employee:{name:"Jamie Park",email:"jamie.park@veriszone.ai",role:"Employee",title:"Product Engineer",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0171",region:"US",timezone:"America/Los_Angeles",manager:"Riley Chen",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 09:10"},
+  manager:{name:"Riley Chen",email:"riley.chen@veriszone.ai",role:"Manager",title:"Engineering Manager",department:"Engineering",organization:"VerisZone Enterprise",phone:"+1 415 555 0164",region:"US",timezone:"America/Los_Angeles",manager:"Priya Mehta",ssoStatus:"Ready",evidenceRetention:"90 days",lastLogin:"2026-07-21 08:45"},
 };
 
 /* Section */
