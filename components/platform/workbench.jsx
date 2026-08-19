@@ -136,10 +136,19 @@ export function PageWorkbench({role,sessionMode,showToast}){
     setConvos(cs=>[withUser,...cs.filter(c=>c.id!==base.id)]);
     setSelId(base.id);
     setInput("");
-    const enriched=blocked?[]:wbEnrichFor(text);
-    const artifact=!blocked&&/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
+    /* Off-domain guard: Veris Intelligence is a governance advisor, not a general
+       chatbot. When the gateway is unreachable (no model key) the local reply must
+       still DECLINE off-topic questions rather than pretend it did enterprise work.
+       Only decline on a clear off-topic signal with no governance signal present. */
+    const enterpriseSignal=/\b(ai|ml|model|agent|governance|govern|policy|policies|risk|compliance|complian|initiative|portfolio|audit|evidence|control|framework|iso|eu ai act|gdpr|nist|deploy|pilot|adoption|roi|budget|vendor|incident|drift|bias|guardrail|prompt|dataset|privacy|security|approval|regulat|veriszone|workspace|academy)\b/i;
+    const offTopic=/\b(weather|forecast|temperature|humidity|sports?|football|soccer|cricket|basketball|tennis|recipe|cook|restaurant|movie|film|song|lyrics|celebrit|joke|horoscope|lottery|capital of|who won|population of|translate|poem)\b/i;
+    const offDomain=!blocked&&offTopic.test(text)&&!enterpriseSignal.test(text);
+    const enriched=(blocked||offDomain)?[]:wbEnrichFor(text);
+    const artifact=!blocked&&!offDomain&&/register|assessment|policy|charter|dpia|plan|report|minutes/i.test(text);
     const reply=blocked
       ?`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`
+      :offDomain
+      ?`That's outside my governance scope. I'm Veris Intelligence — I help with your AI initiatives, models and agents, risk, compliance, policy, evidence and how to operate VerisZone. Ask me one of those and I'll route it through the governed gateway.`
       :`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`;
     const commit=finalText=>{
       /* Egress control: validate the model's output before it lands in the
