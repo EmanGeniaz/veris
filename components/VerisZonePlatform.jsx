@@ -307,6 +307,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");        // no longer pre-filled with the secret
   const [loginError,setLoginError]=useState("");
+  const [fieldErr,setFieldErr]=useState({email:"",password:""});   // per-field inline errors (empty fields)
   const [checking,setChecking]=useState(false);      // disables the button while verifying
   const selected=topChoice==="demo"?"demo":topChoice==="aicentral"?(aiCentralProfile?.id||"aicentral"):topChoice==="superadmin"?(superAdminProfile?.id||"superadmin"):empRole;
   const profile=LOGIN_PROFILES.find(p=>p.id===selected)||LOGIN_PROFILES[0];
@@ -318,6 +319,15 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   // Verifies the password on the SERVER (/api/demo-login). The secret is never in
   // the client bundle. Returns true only on a server-confirmed match.
   const canEnter=async()=>{
+    // Per-field validation for EMPTY fields (reveals nothing — a blank field is
+    // not a valid identifier), so the user sees which field to fill. Wrong-but-
+    // filled credentials still fall through to the generic message below, so we
+    // never confirm whether an email exists.
+    const fe={email:"",password:""};
+    if(!email.trim())fe.email="Email required.";
+    if(!password)fe.password="Password required.";
+    if(fe.email||fe.password){setFieldErr(fe);setLoginError("");return false;}
+    setFieldErr({email:"",password:""});
     if(email.trim().toLowerCase()!==profile.email.toLowerCase()){setLoginError("Invalid credentials.");return false;}
     let ok=false;
     try{
@@ -425,8 +435,14 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
               </optgroup>
             </select>
           </label>}
-          <input aria-label="Email" value={email} onChange={e=>{setEmail(e.target.value);setLoginError("");}} style={fieldStyle}/>
-          <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");}} style={fieldStyle}/>
+          <div style={{display:"grid",gap:4}}>
+            <input aria-label="Email" value={email} onChange={e=>{setEmail(e.target.value);setLoginError("");setFieldErr(f=>({...f,email:""}));}} style={{...fieldStyle,border:`1px solid ${fieldErr.email?T.red:T.border}`}}/>
+            {fieldErr.email&&<span style={{fontSize:10.5,color:T.red,fontFamily:F.b}}>{fieldErr.email}</span>}
+          </div>
+          <div style={{display:"grid",gap:4}}>
+            <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");setFieldErr(f=>({...f,password:""}));}} style={{...fieldStyle,border:`1px solid ${fieldErr.password?T.red:T.border}`}}/>
+            {fieldErr.password&&<span style={{fontSize:10.5,color:T.red,fontFamily:F.b}}>{fieldErr.password}</span>}
+          </div>
         </div>
         {loginError&&<div style={{fontSize:11,lineHeight:1.5,color:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{loginError}</div>}
         <button type="submit" disabled={checking} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:checking?"wait":"pointer",opacity:checking?0.7:1}}>{checking?"Signing in…":`Enter ${profile.label} Workspace`}</button>
@@ -509,11 +525,21 @@ function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut,
   const profile=profiles[selected]||USER_PROFILES[selected];
   const profileOptions=[{id:"demo",label:"Demo Center",name:"Demo Center",title:"Sales Demo Workspace"},...Object.values(ROLES)];
   const selectedRole=profileOptions.find(item=>item.id===selected)||ROLES.caio;
-  const update=(field,value)=>setProfiles(prev=>({...prev,[selected]:{...(prev[selected]||USER_PROFILES[selected]),[field]:value}}));
+  const [dirty,setDirty]=useState(false);   // unsaved edits pending — warn before a refresh/navigation loses them
+  const update=(field,value)=>{setDirty(true);setProfiles(prev=>({...prev,[selected]:{...(prev[selected]||USER_PROFILES[selected]),[field]:value}}));};
   const saveProfiles=()=>{
     if(typeof window!=="undefined")window.localStorage.setItem("veriszone.userProfiles",JSON.stringify(profiles));
+    setDirty(false);
     showToast(`${selectedRole.label} profile saved`);
   };
+  /* Guard against losing unsaved edits: the browser shows its native
+     "leave site?" prompt on refresh/close while there are pending changes. */
+  useEffect(()=>{
+    if(!dirty||typeof window==="undefined")return;
+    const warn=e=>{e.preventDefault();e.returnValue="";};
+    window.addEventListener("beforeunload",warn);
+    return()=>window.removeEventListener("beforeunload",warn);
+  },[dirty]);
   const fields=[
     ["name","User name"],["email","Email address"],["password","Password","password"],["title","Title"],["department","Department"],["organization","Organization"],["phone","Phone"],["region","Region"],["timezone","Timezone"],["manager","Manager / committee"],["ssoStatus","SSO status"],["evidenceRetention","Evidence retention"],["lastLogin","Last login"]
   ];
@@ -866,8 +892,9 @@ export default function VerisZone() {
         </div>
       </div>
 
-      {/* Page content */}
-      <div style={{flex:1,padding:"20px 16px 60px",maxWidth:1140,width:"100%",margin:"0 auto"}}>
+      {/* Page content — centered, and widened so it breathes on large monitors
+          instead of stranding ~40% of an ultra-wide viewport as empty space. */}
+      <div style={{flex:1,padding:"20px 24px 60px",maxWidth:1320,width:"100%",margin:"0 auto"}}>
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
         {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
