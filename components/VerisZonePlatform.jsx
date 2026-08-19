@@ -309,6 +309,12 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
   const [loginError,setLoginError]=useState("");
   const [fieldErr,setFieldErr]=useState({email:"",password:""});   // per-field inline errors (empty fields)
   const [checking,setChecking]=useState(false);      // disables the button while verifying
+  const [authEnabled,setAuthEnabled]=useState(false); // real Auth.js (AUTH_SECRET + DB) available?
+  const [mode,setMode]=useState("signin");           // "signin" | "register"
+  const [reg,setReg]=useState({name:"",email:"",password:"",org:""});
+  const [regBusy,setRegBusy]=useState(false);
+  const [regMsg,setRegMsg]=useState("");
+  useEffect(()=>{fetch("/api/auth-status").then(r=>r.json()).then(d=>setAuthEnabled(!!d.enabled)).catch(()=>{});},[]);
   const selected=topChoice==="demo"?"demo":topChoice==="aicentral"?(aiCentralProfile?.id||"aicentral"):topChoice==="superadmin"?(superAdminProfile?.id||"superadmin"):empRole;
   const profile=LOGIN_PROFILES.find(p=>p.id===selected)||LOGIN_PROFILES[0];
   useEffect(()=>{
@@ -338,14 +344,58 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
     if(!ok)setLoginError("Invalid credentials.");
     return ok;
   };
+  /* Sign a real (registered) user in via Auth.js Credentials, then read the
+     session to learn their role. Returns a profile-like object or null. */
+  const realSignIn=async(em,pw)=>{
+    try{
+      const {signIn}=await import("next-auth/react");
+      const r=await signIn("credentials",{redirect:false,email:em,password:pw});
+      if(!r||r.error)return null;
+      const s=await fetch("/api/auth/session").then(x=>x.json()).catch(()=>null);
+      const u=s&&s.user;if(!u||!u.email)return null;
+      const role=u.role||"employee";
+      return {id:role,role,mode:"role",target:"home",email:u.email,name:u.name||u.email,label:ROLES[role]?.label||role};
+    }catch{return null;}
+  };
   const enterProfile=async e=>{
     e?.preventDefault?.();
     if(checking)return;                              // guard against double-submit while the request is in flight
+    if(topChoice==="demo"){onEnter(demoProfile);return;}   // Demo Center = public showcase, no login required
+    const fe={email:"",password:""};
+    if(!email.trim())fe.email="Email required.";
+    if(!password)fe.password="Password required.";
+    if(fe.email||fe.password){setFieldErr(fe);setLoginError("");return;}
+    setFieldErr({email:"",password:""});
     setChecking(true);
-    try{ if(await canEnter())onEnter(profile); }
-    finally{ setChecking(false); }
+    try{
+      if(authEnabled){
+        // Real auth: verify against the database via Auth.js Credentials.
+        const u=await realSignIn(email.trim().toLowerCase(),password);
+        if(!u){setLoginError("Invalid credentials.");return;}
+        onEnter(u);
+      }else{
+        // Demo/unconfigured: the seeded showcase identities (server-checked password).
+        if(await canEnter())onEnter(profile);
+      }
+    }finally{ setChecking(false); }
   };
   const enterDemoLink=()=>onEnter(demoProfile);
+  /* Self-serve registration → creates a real account, then signs it in. */
+  const register=async e=>{
+    e?.preventDefault?.();
+    if(regBusy)return;
+    setRegBusy(true);setRegMsg("");
+    try{
+      const res=await fetch("/api/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(reg)});
+      const d=await res.json().catch(()=>({ok:false,error:"Registration failed."}));
+      if(d.ok){
+        const u=await realSignIn(String(reg.email).trim().toLowerCase(),reg.password);
+        if(u){onEnter(u);return;}
+        setRegMsg("Account created — you can now sign in.");setMode("signin");setEmail(reg.email);
+      }else setRegMsg(d.error||"Could not create the account.");
+    }catch{setRegMsg("Could not reach the server.");}
+    finally{setRegBusy(false);}
+  };
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"11px 12px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
   return <div className="vz-entry-root" style={{minHeight:"100vh",background:theme==="light"?`linear-gradient(135deg, #F7F8FA, #FFFFFF 54%, #F3F6FB)`:`radial-gradient(circle at 20% 10%, ${profile.accent}18, transparent 30%), linear-gradient(135deg, ${T.bg}, ${T.s1})`,color:T.ink,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,420px),1fr))",gap:0,position:"relative",overflow:"hidden"}}>
     <div style={{position:"absolute",inset:0,pointerEvents:"none",opacity:theme==="light"?.45:1}}>
@@ -403,57 +453,70 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
       </div>
     </div>
     <div className="vz-entry-signin" style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"32px clamp(20px,4vw,60px)",borderLeft:`1px solid ${T.border}`,background:theme==="light"?"#FFFFFF":`linear-gradient(180deg, ${T.s1}F2, ${T.bg}F8)`,position:"relative",zIndex:1}}>
-      <form onSubmit={enterProfile} style={{width:"100%",maxWidth:420,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"22px 24px",boxShadow:T.shadow,pointerEvents:"auto"}}>
+      <form onSubmit={mode==="register"?register:enterProfile} style={{width:"100%",maxWidth:420,background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"22px 24px",boxShadow:T.shadow,pointerEvents:"auto"}}>
         <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minHeight:theme==="light"?96:104,marginBottom:16}}>
           <div style={{animation:"loginBrandRise .8s cubic-bezier(.2,.8,.2,1) both, loginBrandFloat 6.4s ease-in-out 1.1s infinite, loginBrandBreathe 4.6s ease-in-out 1s infinite"}}>
             <BrandLogo theme={theme} width={200} style={{width:"min(200px,62vw)",margin:"0 auto",animation:"loginMarkGlow 5.2s ease-in-out 1.2s infinite"}}/>
           </div>
         </div>
-        <div style={{fontSize:24,fontWeight:400,fontFamily:F.e,marginBottom:6}}>Secure control-plane sign in</div>
-        <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:13}}>Three ways in: <strong style={{color:T.ink2}}>Demo Center</strong> is the seeded sales showcase. <strong style={{color:T.ink2}}>Employee Login</strong> is how real users sign in — RBAC routes each person to their own command center. <strong style={{color:T.ink2}}>AI Central</strong> opens the standalone control plane.</div>
-        <div style={{display:"grid",gap:9,marginBottom:13}}>
-          <label style={{display:"grid",gap:6}}>
-            <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Sign in to</span>
-            <select aria-label="Sign in to" value={topChoice} onChange={e=>setTopChoice(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
-              <option value="demo">Demo Center — Full platform demo</option>
-              <option value="employee">Employee Login — your role &amp; access via RBAC</option>
-              {aiCentralProfile&&<option value="aicentral">AI Central — standalone command center</option>}
-              {superAdminProfile&&<option value="superadmin">Super Admin — platform administration</option>}
-            </select>
-          </label>
-          {topChoice==="employee"&&<label style={{display:"grid",gap:6}}>
-            <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Sign in as <span style={{color:T.ink3,fontWeight:700,textTransform:"none",letterSpacing:0}}>· demo picks your role (production uses SSO)</span></span>
-            <select aria-label="Sign in as" value={empRole} onChange={e=>setEmpRole(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
-              <optgroup label="Executives">
-                {executiveProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
-              </optgroup>
-              <optgroup label="Governance">
-                {governanceProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
-              </optgroup>
-              <optgroup label="Team">
-                {employeeProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}
-              </optgroup>
-            </select>
-          </label>}
-          <div style={{display:"grid",gap:4}}>
-            <input aria-label="Email" value={email} onChange={e=>{setEmail(e.target.value);setLoginError("");setFieldErr(f=>({...f,email:""}));}} style={{...fieldStyle,border:`1px solid ${fieldErr.email?T.red:T.border}`}}/>
-            {fieldErr.email&&<span style={{fontSize:10.5,color:T.red,fontFamily:F.b}}>{fieldErr.email}</span>}
+        <div style={{fontSize:24,fontWeight:400,fontFamily:F.e,marginBottom:6}}>{mode==="register"?"Create your account":"Secure control-plane sign in"}</div>
+        <div style={{fontSize:12,color:T.ink3,fontFamily:F.b,lineHeight:1.6,marginBottom:13}}>{mode==="register"
+          ?<>Register for your own governed workspace. The <strong style={{color:T.ink2}}>Demo Center</strong> stays open to explore with no account.</>
+          :<>The <strong style={{color:T.ink2}}>Demo Center</strong> is the public showcase — no login needed. <strong style={{color:T.ink2}}>Sign in</strong> or <strong style={{color:T.ink2}}>register</strong> for your own governed workspace.</>}</div>
+        {mode==="register"
+          ?<div style={{display:"grid",gap:9,marginBottom:13}}>
+            <input aria-label="Full name" value={reg.name} onChange={e=>{setReg(r=>({...r,name:e.target.value}));setRegMsg("");}} placeholder="Full name" style={fieldStyle}/>
+            <input aria-label="Work email" value={reg.email} onChange={e=>{setReg(r=>({...r,email:e.target.value}));setRegMsg("");}} placeholder="Work email" style={fieldStyle}/>
+            <input aria-label="Organization" value={reg.org} onChange={e=>{setReg(r=>({...r,org:e.target.value}));setRegMsg("");}} placeholder="Organization" style={fieldStyle}/>
+            <input aria-label="New password" type="password" value={reg.password} onChange={e=>{setReg(r=>({...r,password:e.target.value}));setRegMsg("");}} placeholder="Password (min 8 characters)" style={fieldStyle}/>
           </div>
-          <div style={{display:"grid",gap:4}}>
-            <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");setFieldErr(f=>({...f,password:""}));}} style={{...fieldStyle,border:`1px solid ${fieldErr.password?T.red:T.border}`}}/>
-            {fieldErr.password&&<span style={{fontSize:10.5,color:T.red,fontFamily:F.b}}>{fieldErr.password}</span>}
-          </div>
-        </div>
-        {loginError&&<div style={{fontSize:11,lineHeight:1.5,color:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{loginError}</div>}
-        <button type="submit" disabled={checking} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:checking?"wait":"pointer",opacity:checking?0.7:1}}>{checking?"Signing in…":`Enter ${profile.label} Workspace`}</button>
-        {selected!=="demo"&&<button type="button" onClick={enterDemoLink} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Demo Center</button>}
-        <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"grid",gap:7,fontSize:11,color:T.ink3,fontFamily:F.b}}>
+          :<div style={{display:"grid",gap:9,marginBottom:13}}>
+            <label style={{display:"grid",gap:6}}>
+              <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Sign in to</span>
+              <select aria-label="Sign in to" value={topChoice} onChange={e=>setTopChoice(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
+                <option value="demo">Demo Center — no login, full showcase</option>
+                <option value="employee">Employee Login — your role &amp; access via RBAC</option>
+                {aiCentralProfile&&<option value="aicentral">AI Central — standalone command center</option>}
+                {superAdminProfile&&<option value="superadmin">Super Admin — platform administration</option>}
+              </select>
+            </label>
+            {topChoice==="demo"
+              ?<div style={{fontSize:11.5,color:T.ink3,fontFamily:F.b,background:T.s2,border:`1px dashed ${T.borderB}`,borderRadius:8,padding:"11px 12px",lineHeight:1.5}}>No sign-in needed — the Demo Center is the public sales showcase. Enter and switch between every role inside.</div>
+              :<>
+                {topChoice==="employee"&&!authEnabled&&<label style={{display:"grid",gap:6}}>
+                  <span style={{fontSize:10,fontWeight:900,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ink4}}>Sign in as <span style={{color:T.ink3,fontWeight:700,textTransform:"none",letterSpacing:0}}>· demo picks your role (production uses SSO)</span></span>
+                  <select aria-label="Sign in as" value={empRole} onChange={e=>setEmpRole(e.target.value)} style={{...fieldStyle,appearance:"auto",cursor:"pointer"}}>
+                    <optgroup label="Executives">{executiveProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}</optgroup>
+                    <optgroup label="Governance">{governanceProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}</optgroup>
+                    <optgroup label="Team">{employeeProfiles.map(p=><option key={p.id} value={p.id}>{p.label} - {ROLES[p.role]?.title||p.title}</option>)}</optgroup>
+                  </select>
+                </label>}
+                <div style={{display:"grid",gap:4}}>
+                  <input aria-label="Email" value={email} onChange={e=>{setEmail(e.target.value);setLoginError("");setFieldErr(f=>({...f,email:""}));}} style={{...fieldStyle,border:`1px solid ${fieldErr.email?T.red:T.border}`}}/>
+                  {fieldErr.email&&<span style={{fontSize:10.5,color:T.red,fontFamily:F.b}}>{fieldErr.email}</span>}
+                </div>
+                <div style={{display:"grid",gap:4}}>
+                  <input aria-label="Password" type="password" value={password} onChange={e=>{setPassword(e.target.value);setLoginError("");setFieldErr(f=>({...f,password:""}));}} style={{...fieldStyle,border:`1px solid ${fieldErr.password?T.red:T.border}`}}/>
+                  {fieldErr.password&&<span style={{fontSize:10.5,color:T.red,fontFamily:F.b}}>{fieldErr.password}</span>}
+                </div>
+              </>}
+          </div>}
+        {mode!=="register"&&loginError&&<div style={{fontSize:11,lineHeight:1.5,color:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{loginError}</div>}
+        {mode==="register"&&regMsg&&<div style={{fontSize:11,lineHeight:1.5,color:/created/.test(regMsg)?T.green:T.red,fontFamily:F.b,margin:"-6px 0 12px"}}>{regMsg}</div>}
+        <button type="submit" disabled={mode==="register"?regBusy:checking} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:theme==="light"?T.blue:`linear-gradient(135deg,${profile.accent},${AI_GOLD})`,color:"#fff",border:"none",borderRadius:9,padding:"12px 14px",fontSize:13,fontWeight:900,fontFamily:F.b,boxShadow:theme==="light"?"0 10px 24px rgba(11,78,162,.18)":`0 18px 44px ${profile.accent}25`,marginBottom:10,cursor:(mode==="register"?regBusy:checking)?"wait":"pointer",opacity:(mode==="register"?regBusy:checking)?0.7:1}}>{mode==="register"?(regBusy?"Creating account…":"Create account"):topChoice==="demo"?"Enter Demo Center Workspace":checking?"Signing in…":`Enter ${profile.label} Workspace`}</button>
+        {mode==="register"
+          ?<button type="button" onClick={()=>{setMode("signin");setRegMsg("");}} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>← Back to sign in</button>
+          :<>
+            {topChoice!=="demo"&&<button type="button" onClick={enterDemoLink} style={{display:"block",textAlign:"center",width:"100%",boxSizing:"border-box",background:T.s2,color:theme==="light"?T.blue:AI_GOLD,border:`1px solid ${theme==="light"?T.blue+"45":AI_GOLD+"55"}`,borderRadius:9,padding:"11px 14px",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open Demo Center — no login</button>}
+            <button type="button" onClick={()=>{setMode("register");setLoginError("");setFieldErr({email:"",password:""});}} style={{display:"block",width:"100%",textAlign:"center",marginTop:2,background:"transparent",border:"none",color:T.blue,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:"6px 0"}}>New here? Create an account →</button>
+          </>}
+        {mode!=="register"&&<div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"grid",gap:7,fontSize:11,color:T.ink3,fontFamily:F.b}}>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>SSO</span><strong style={{color:T.green}}>Ready</strong></div>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Evidence retention</span><strong style={{color:T.ink}}>7 years</strong></div>
           <div style={{display:"flex",justifyContent:"space-between"}}><span>Region</span><strong style={{color:T.ink}}>EU / US</strong></div>
-        </div>
-        <button type="button" onClick={()=>setObOpen(!obOpen)} style={{marginTop:10,background:"transparent",border:"none",color:T.blue,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>{obOpen?"Hide workspace creation":"Create a new workspace →"}</button>
-        {obOpen&&<div style={{marginTop:10,display:"grid",gap:7,borderTop:`1px solid ${T.border}`,paddingTop:12}}>
+        </div>}
+        {mode!=="register"&&<button type="button" onClick={()=>setObOpen(!obOpen)} style={{marginTop:10,background:"transparent",border:"none",color:T.blue,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",padding:0}}>{obOpen?"Hide workspace creation":"Create a new workspace →"}</button>}
+        {mode!=="register"&&obOpen&&<div style={{marginTop:10,display:"grid",gap:7,borderTop:`1px solid ${T.border}`,paddingTop:12}}>
           <input value={ob.name} onChange={e=>setOb({...ob,name:e.target.value})} placeholder="Organization name" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
           <input value={ob.slug} onChange={e=>setOb({...ob,slug:e.target.value})} placeholder="Workspace slug (e.g. acme)" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}/>
           <select value={ob.mode} onChange={e=>setOb({...ob,mode:e.target.value})} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 12px",color:T.ink,fontSize:11,fontFamily:F.b,outline:"none"}}>
