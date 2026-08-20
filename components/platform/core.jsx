@@ -407,12 +407,13 @@ export const ROLE_NAV = Object.values(ROLE_CENTERS).flatMap(cfg =>
    signals, and learning/reference. Every id maps to an `employee` surface
    in lib/role-centers (Prompt Library + Knowledge Vault now live inside
    Governance Academy; My Requests replaced the mis-framed Approvals). */
+/* The employee sidebar is deliberately three surfaces — My AI Workspace, the
+   AI Assistant and the Governance Academy — and nothing else. The workspace is
+   the rich cockpit: its attention cards and KPIs deep-link into tasks, the AI
+   hub, usage, risk and reports, so those surfaces stay one click away without
+   crowding the rail. Simplicity is the promise here; the rail keeps it. */
 export const EMPLOYEE_NAV_GROUPS = [
-  { title: "My Workspace", items: ["home", "emp_assistant", "emp_hub"] },
-  { title: "My Work", items: ["emp_projects", "emp_tasks", "emp_requests"] },
-  { title: "Insights", items: ["emp_usage", "emp_risk", "emp_reports"] },
-  { title: "Learn", items: ["emp_learning"] },
-  { title: "Enterprise", items: ["aicentral"] },
+  { title: "Workspace", items: ["home", "emp_assistant", "emp_learning"] },
 ];
 /* Manager: the manager's OWN work is split from the TEAM's work. My
    Workspace = personal (assistant + the approvals that are the manager's
@@ -446,14 +447,12 @@ export const OWNER_SURFACE = {
   aigov:"compliance", knowledge:"compliance",
   aira:"riskcenter", airt:"riskcenter",
   hitl:"home", decisions:"home",
+  /* Employee sub-surfaces open from the workspace cockpit, not the rail — keep
+     "My AI Workspace" highlighted while the employee is inside any of them. */
+  emp_hub:"home", emp_projects:"home", emp_tasks:"home", emp_requests:"home",
+  emp_usage:"home", emp_risk:"home", emp_reports:"home",
 };
 
-export const EMPLOYEE_NAV_SECTIONS = [
-  {title:"Workspace", items:["myworkspace","workbench","academy"]},
-];
-export const MANAGER_NAV_SECTIONS = [
-  {title:"Team Workspace", items:["teamspace","workbench","aiusage","academy"]},
-];
 
 /* Mode 1 - Enterprise AI Central: portfolio-wide command views only.
    Mode 2 - the AI Initiative Workspace - opens from any initiative. */

@@ -381,8 +381,17 @@ function Overview({role,cfg,ctx,userName}){
         <div style={{textAlign:"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{cfg.hero[1]}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{cfg.hero[2]}</div></div>
       </div>
     </div>
-    {/* One home summary — navigation lives in the sidebar, so the old
-       lens chips (which just duplicated the sidebar) are gone. */}
+    {/* Navigation normally lives in the sidebar. The employee rail is
+       deliberately three items, so the workspace is the one place the rest of
+       the employee surfaces are reachable — this quick-nav keeps them one click
+       away without putting them back on the rail. */}
+    {role==="employee"&&(()=>{
+      const jump=(cfg.surfaces||[]).filter(s=>!["emp_assistant","emp_learning"].includes(s.id));
+      return jump.length?<div style={{marginTop:16,display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
+        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>Your workspace</span>
+        {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{s.label}</button>)}
+      </div>:null;
+    })()}
     <div style={{marginTop:18,animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>
   </div>;
 }
