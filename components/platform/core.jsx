@@ -1454,6 +1454,19 @@ export function SHead({title, sub}) {
   </div>;
 }
 
+/* AI-interaction disclosure — the visible "AI in use" notice + a plain-language
+   basis, shown on every AI output that reaches a user. This is the control that
+   makes the transparency obligations (EU AI Act Art.13/50, UK, Canada, Japan,
+   Korea, China content-labelling) genuinely Met, not asserted: the user is told
+   it is AI, which model, that it is governed, the basis for the answer, and that
+   the interaction is logged to the Article 12 chain. */
+export function AIDisclosure({ model = "the governed model", grounded = false, style = {} }) {
+  return <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 9, paddingTop: 9, borderTop: `1px solid ${T.border}`, ...style }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 8.5, fontWeight: 900, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", color: AI_GOLD_INK, background: AI_GOLD + "14", border: `1px solid ${AI_GOLD}38`, borderRadius: 999, padding: "2px 8px" }}>◆ AI-assisted</span>
+    <span style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.5 }}>{model} · via the governed Gateway · {grounded ? "grounded in your enterprise knowledge" : "general knowledge — no enterprise data used"} · logged to Article 12</span>
+  </div>;
+}
+
 export function Toast({msg,type}) {
   const prefix=type==="success"?"Saved: ":"Alert: ";
   return <div style={{position:"fixed",bottom:20,right:20,zIndex:9999,background:type==="success"?T.green:T.red,color:"#fff",borderRadius:8,padding:"10px 18px",fontSize:12,fontWeight:700,fontFamily:F.b,boxShadow:"0 8px 32px rgba(0,0,0,.32)",animation:"up .3s ease"}}>{prefix}{cleanText(msg)}</div>;

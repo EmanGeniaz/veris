@@ -4,7 +4,7 @@ import { readBus, pushBus } from "@/lib/bus";
 import { Library, Scale, Workflow } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { acInitiatives, acPmo, AC_PHASES, gatewayProviders, gatewayRouting, demoConversations, employeeUsageSeed, managerUsageSeed } from "@/lib/platform-models";
-import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
+import { T, USER_PROFILES, ROLES, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_GOLD_B, HITL, F, Tag, Bar, Card, SHead, AIDisclosure, IDEA_JOURNEY, DEMO_IDEAS, vzDownload } from "./core";
 import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
 import { inspectPrompt, classify, validateResponse } from "@/lib/policy-rules";
@@ -280,6 +280,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
           {sel&&sel.messages.map(m=><div key={m.id} style={{justifySelf:m.from==="user"?"end":"start",maxWidth:"78%"}}>
             <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:12,padding:"11px 14px"}}>
               <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{m.text}</div>
+              {m.from==="assistant"&&!m.guardrail&&<AIDisclosure model={provider.name} grounded={!!(m.enrichedWith&&m.enrichedWith.length)}/>}
               {m.guardrail&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
                 <span style={{width:6,height:6,borderRadius:"50%",background:gaColor(m.guardrail.action)}}/>
                 <span style={{fontSize:9,fontWeight:800,color:gaColor(m.guardrail.action),fontFamily:F.m}}>{m.guardrail.action} · {m.guardrail.detector}</span>
