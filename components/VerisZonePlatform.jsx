@@ -3,7 +3,7 @@
 import { Scale, Settings, UserCog, Shield, SlidersHorizontal, LogOut, LifeBuoy } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { T, LIGHT_T, PALETTES, DEFAULT_PALETTE, paletteById, applyPalette, railFor, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, EMPLOYEE_NAV_SECTIONS, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES, MANAGER_NAV_SECTIONS } from "./platform/core";
+import { T, LIGHT_T, PALETTES, DEFAULT_PALETTE, paletteById, applyPalette, railFor, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 
@@ -207,7 +207,13 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
       </div>
       <nav className="vz-side-nav" style={{flex:1,padding:"10px 9px",overflowY:"auto"}}>
         {!acOnly&&roleNavSections.map(section=>{
-          const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>(role==="ceo"||role==="caio"||ROLE_NAV_SECTIONS[role])&&it.id==="home"?{...it,label:"Overview"}:it);
+          const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>{
+            if(it.id==="home"){
+              if(role==="employee")return {...it,label:"My AI Workspace"};
+              if(role==="ceo"||role==="caio"||ROLE_NAV_SECTIONS[role])return {...it,label:"Overview"};
+            }
+            return it;
+          });
           return <div key={section.title} style={{marginBottom:4}}>
             {renderSectionHeader(section.title)}
             {items.map(renderNavButton)}
