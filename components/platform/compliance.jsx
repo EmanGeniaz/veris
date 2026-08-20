@@ -12,6 +12,7 @@ import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
 import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
 import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats, CN_INSTRUMENTS, IN_REQS, inStats, IN_INSTRUMENTS } from "@/lib/regional-mappings";
+import { NISTRMF_REQS, ISO42001_REQS, EUAIACT_REQS, GDPR_REQS, NISTSEC_REQS, OWASP_REQS, ATLAS_REQS, ISO27001_REQS, ISOTR20226_REQS, nistRmfStats, iso42001Stats, euAiActStats, gdprStats, nistSecStats, owaspStats, atlasStats, iso27001Stats, isoTr20226Stats } from "@/lib/computed-frameworks";
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
 import { OECD_REQS, UNESCO_REQS, oecdStats, unescoStats } from "@/lib/principle-mappings";
@@ -94,6 +95,15 @@ export function PageFrameworkLibrary({role,showToast}){
     "sg-model":{rows:SG_DIMENSIONS,stats:sgDimensionStats(),unit:"dimension",col:"Dimension"},
     "china-regs":{rows:CN_REQS,stats:cnStats(),unit:"requirement",col:"Requirement",instruments:CN_INSTRUMENTS},
     "india-rai":{rows:IN_REQS,stats:inStats(),unit:"requirement",col:"Requirement",instruments:IN_INSTRUMENTS},
+    "nist-rmf":{rows:NISTRMF_REQS,stats:nistRmfStats(),unit:"function",col:"Function"},
+    "iso-42001":{rows:ISO42001_REQS,stats:iso42001Stats(),unit:"control",col:"Annex A control"},
+    "eu-ai-act":{rows:EUAIACT_REQS,stats:euAiActStats(),unit:"obligation",col:"Obligation"},
+    "gdpr":{rows:GDPR_REQS,stats:gdprStats(),unit:"obligation",col:"Obligation"},
+    "nist-sec":{rows:NISTSEC_REQS,stats:nistSecStats(),unit:"control",col:"Threat / control"},
+    "owasp-llm":{rows:OWASP_REQS,stats:owaspStats(),unit:"risk",col:"Risk"},
+    "mitre-atlas":{rows:ATLAS_REQS,stats:atlasStats(),unit:"tactic",col:"Tactic"},
+    "iso-27001":{rows:ISO27001_REQS,stats:iso27001Stats(),unit:"control",col:"Control area"},
+    "iso-tr20226":{rows:ISOTR20226_REQS,stats:isoTr20226Stats(),unit:"consideration",col:"Consideration"},
     "brazil-framework":{rows:BR_REQS,stats:brStats(),unit:"requirement",col:"Requirement"},
     "korea-act":{rows:KR_REQS,stats:krStats(),unit:"requirement",col:"Requirement"},
     "iso-38507":{rows:ISO38507_REQS,stats:iso38507Stats(),unit:"consideration",col:"Consideration"},
@@ -190,7 +200,7 @@ export function PageFrameworkLibrary({role,showToast}){
       </div>}
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
         <thead><tr>{["#",M.col,"VerisZone control","Evidenced in","Status"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
-        <tbody>{M.rows.map(gd=>{const met=gd.status==="Met";const c=met?T.green:T.amber;return <tr key={gd.n}>
+        <tbody>{M.rows.map(gd=>{const c=gd.status==="Met"?T.green:gd.status==="Gap"?T.red:T.amber;return <tr key={gd.n}>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink4,fontFamily:F.m,fontWeight:800}}>{gd.n}</td>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{gd.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:500,marginTop:1}}>{gd.desc}</div></td>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{gd.control}</td>
