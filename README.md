@@ -241,17 +241,22 @@ audited on, including:
 
 Regional packs are first-class, each mapping a jurisdiction's instruments to a
 live control with computed posture: Singapore (`lib/sg-dimensions.js`), Australia
-(`lib/au-guardrails.js`), and a deep **China (PRC)** pack (`lib/cn-measures.js`) —
+(`lib/au-guardrails.js`), a deep **China (PRC)** pack (`lib/cn-measures.js`) —
 seven instruments (algorithm-recommendation filing, deep synthesis, the
 generative-AI interim measures, the 2025 content-labelling regime backed by
 GB 45438, science-&-technology ethics review, the PIPL/DSL/CSL data trio, and the
-TC260 security baseline) across fifteen mapped obligations, surfaced in the Global
-Framework Library and the Jurisdiction Atlas, with a matching **China (PRC) AI
-Compliance** template pack.
+TC260 security baseline) across fifteen mapped obligations — and a deep
+**India DPDPA** pack (`lib/in-dpdpa.js`): six instruments (the Digital Personal
+Data Protection Act 2023, the Draft DPDP Rules 2025, the Data Protection Board of
+India, the interim SPDI Rules under IT Act s.43A, the CERT-In incident directions,
+and sectoral data-localisation from RBI/SEBI/IRDAI) across fifteen mapped
+obligations. All surface in the Global Framework Library and the Jurisdiction
+Atlas, with a matching **China (PRC) AI Compliance** template pack.
 
 These are computed engines (`lib/compliance-engine.js`, `lib/frameworks.js`,
-`lib/iso-standards.js`, `lib/governance-standards.js`, `lib/cn-measures.js`, …),
-not static checklists — so posture updates as the portfolio does.
+`lib/iso-standards.js`, `lib/governance-standards.js`, `lib/cn-measures.js`,
+`lib/in-dpdpa.js`, …), not static checklists — so posture updates as the portfolio
+does.
 
 To turn that posture into paperwork, the **Template Library**
 (`components/platform/template-library.jsx`, data in `lib/template-library.js`,
