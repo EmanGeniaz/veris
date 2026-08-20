@@ -383,15 +383,13 @@ function Overview({role,cfg,ctx,userName}){
       </div>
     </div>
     {/* The employee and manager rails are deliberately minimal, so the cockpit
-       is where the rest of their surfaces are reachable. For the manager this
-       is the leader's "Your team" navigator — the team view kept as its own
-       labelled section, separate from their individual "My Workspace" rail. */}
+       is the one place their other personal surfaces are reachable. A manager
+       is an employee too, so this navigator is the same for both; the Team View
+       is a rail item, not part of it. */}
     {(role==="employee"||role==="manager")&&(()=>{
-      const railIds=role==="manager"?["mgr_assistant","mgr_learning"]:["emp_assistant","emp_learning"];
-      const label=role==="manager"?"Your team":"Your workspace";
-      const jump=(cfg.surfaces||[]).filter(s=>!railIds.includes(s.id));
+      const jump=(cfg.surfaces||[]).filter(s=>!["emp_assistant","emp_learning","mgr_team"].includes(s.id));
       return jump.length?<div style={{marginTop:16,display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
-        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>{label}</span>
+        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>Your workspace</span>
         {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{s.label}{s.badge?<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:"#fff",background:AI_GOLD_INK,borderRadius:999,padding:"0 6px",lineHeight:"15px"}}>{s.badge}</span>:null}</button>)}
       </div>:null;
     })()}

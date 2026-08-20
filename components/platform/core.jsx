@@ -418,16 +418,14 @@ export const EMPLOYEE_NAV_GROUPS = [
 /* Manager: the manager's OWN work is split from the TEAM's work. My
    Workspace = personal (assistant + the approvals that are the manager's
    to make); My Team = the aggregated team surfaces. */
-/* A manager is an employee who also leads, so the rail keeps the same calm
-   shape as the employee's but splits the two hats explicitly: "My Team" is the
-   leader's view (the team cockpit + a "Your team" navigator to each team
-   surface), shown separately from "My Workspace" — the manager's own AI use as
-   an individual (their assistant and the academy). The deep team surfaces —
-   approvals, hub, projects, tasks, usage, risk, reports — live in the team
-   cockpit's quick-nav, one click away without crowding the rail. */
+/* A people-manager IS an employee, so the rail is the employee's exactly — My
+   AI Workspace, My AI Assistant, Governance Academy (the manager reuses the
+   employee surfaces) — with one leadership addition: a Team View for the people
+   they lead. The personal sub-surfaces stay in the workspace's "Your workspace"
+   navigator, same as the employee. */
 export const MANAGER_NAV_GROUPS = [
-  { title: "My Team", items: ["home"] },
-  { title: "My Workspace", items: ["mgr_assistant", "mgr_learning"] },
+  { title: "Workspace", items: ["home", "emp_assistant", "emp_learning"] },
+  { title: "Leadership", items: ["mgr_team"] },
 ];
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
   if (role === "employee") return [role, EMPLOYEE_NAV_GROUPS];
@@ -457,10 +455,6 @@ export const OWNER_SURFACE = {
      "My AI Workspace" highlighted while the employee is inside any of them. */
   emp_hub:"home", emp_projects:"home", emp_tasks:"home", emp_requests:"home",
   emp_usage:"home", emp_risk:"home", emp_reports:"home",
-  /* Manager team surfaces open from the team cockpit's "Your team" navigator —
-     keep "My Team" (home) highlighted while the manager is inside any of them. */
-  mgr_approvals:"home", mgr_hub:"home", mgr_projects:"home", mgr_tasks:"home",
-  mgr_usage:"home", mgr_risk:"home", mgr_reports:"home", mgr_help:"home",
 };
 
 
