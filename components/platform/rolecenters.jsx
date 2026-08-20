@@ -372,6 +372,7 @@ function Overview({role,cfg,ctx,userName}){
     {lineage&&<LineageDrawer node={lineage} onAsset={id=>{setBrief(assetById(id));setLineage(null);}} onClose={()=>setLineage(null)}/>}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
+        {(ROLES[role]||{}).persona&&<span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.09em",textTransform:"uppercase",color:AI_GOLD_INK,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}38`,borderRadius:999,padding:"3px 10px",marginBottom:8}}>{ROLES[role].persona}{role==="manager"&&<span style={{color:T.ink4,fontWeight:700,textTransform:"none",letterSpacing:0}}>· your work + your team</span>}</span>}
         <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
         <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b,maxWidth:680}}>{cfg.greet} — {cfg.sub}</div>
         <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{cfg.thesis}</div>
@@ -381,15 +382,17 @@ function Overview({role,cfg,ctx,userName}){
         <div style={{textAlign:"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{cfg.hero[1]}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{cfg.hero[2]}</div></div>
       </div>
     </div>
-    {/* Navigation normally lives in the sidebar. The employee rail is
-       deliberately three items, so the workspace is the one place the rest of
-       the employee surfaces are reachable — this quick-nav keeps them one click
-       away without putting them back on the rail. */}
-    {role==="employee"&&(()=>{
-      const jump=(cfg.surfaces||[]).filter(s=>!["emp_assistant","emp_learning"].includes(s.id));
+    {/* The employee and manager rails are deliberately minimal, so the cockpit
+       is where the rest of their surfaces are reachable. For the manager this
+       is the leader's "Your team" navigator — the team view kept as its own
+       labelled section, separate from their individual "My Workspace" rail. */}
+    {(role==="employee"||role==="manager")&&(()=>{
+      const railIds=role==="manager"?["mgr_assistant","mgr_learning"]:["emp_assistant","emp_learning"];
+      const label=role==="manager"?"Your team":"Your workspace";
+      const jump=(cfg.surfaces||[]).filter(s=>!railIds.includes(s.id));
       return jump.length?<div style={{marginTop:16,display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
-        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>Your workspace</span>
-        {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{s.label}</button>)}
+        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>{label}</span>
+        {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{s.label}{s.badge?<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:"#fff",background:AI_GOLD_INK,borderRadius:999,padding:"0 6px",lineHeight:"15px"}}>{s.badge}</span>:null}</button>)}
       </div>:null;
     })()}
     <div style={{marginTop:18,animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>

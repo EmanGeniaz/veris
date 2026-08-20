@@ -287,8 +287,8 @@ export const ROLES = {
   cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
   cro: {id:"cro", label:"CRO", title:"Chief Risk Officer",name:"Deepa Nair",initials:"DN",frameworks:["COSO ERM","ISO 31000","NIST AI RMF","Operational Risk"]},
   legal:{id:"legal",label:"Legal",title:"General Counsel & Compliance",name:"Thomas Beck",initials:"TB",frameworks:["EU AI Act","GDPR","Contract & IP","Regulatory Defense"]},
-  employee:{id:"employee",label:"Employee",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
-  manager:{id:"manager",label:"Manager",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
+  employee:{id:"employee",label:"Employee",persona:"Individual contributor",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
+  manager:{id:"manager",label:"Manager",persona:"Team leader",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
   superadmin:{id:"superadmin",label:"Super Admin",title:"Platform Administrator",name:"Platform Operator",initials:"SA",frameworks:["Tenant Provisioning","RBAC","Module Enablement","Org Policy"]},
 };
 export const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
@@ -418,10 +418,16 @@ export const EMPLOYEE_NAV_GROUPS = [
 /* Manager: the manager's OWN work is split from the TEAM's work. My
    Workspace = personal (assistant + the approvals that are the manager's
    to make); My Team = the aggregated team surfaces. */
+/* A manager is an employee who also leads, so the rail keeps the same calm
+   shape as the employee's but splits the two hats explicitly: "My Team" is the
+   leader's view (the team cockpit + a "Your team" navigator to each team
+   surface), shown separately from "My Workspace" — the manager's own AI use as
+   an individual (their assistant and the academy). The deep team surfaces —
+   approvals, hub, projects, tasks, usage, risk, reports — live in the team
+   cockpit's quick-nav, one click away without crowding the rail. */
 export const MANAGER_NAV_GROUPS = [
-  { title: "My Workspace", items: ["home", "mgr_assistant", "mgr_approvals"] },
-  { title: "My Team", items: ["mgr_hub", "mgr_projects", "mgr_tasks", "mgr_usage", "mgr_risk", "mgr_learning", "mgr_reports"] },
-  { title: "Enterprise", items: ["aicentral"] },
+  { title: "My Team", items: ["home"] },
+  { title: "My Workspace", items: ["mgr_assistant", "mgr_learning"] },
 ];
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
   if (role === "employee") return [role, EMPLOYEE_NAV_GROUPS];
@@ -451,6 +457,10 @@ export const OWNER_SURFACE = {
      "My AI Workspace" highlighted while the employee is inside any of them. */
   emp_hub:"home", emp_projects:"home", emp_tasks:"home", emp_requests:"home",
   emp_usage:"home", emp_risk:"home", emp_reports:"home",
+  /* Manager team surfaces open from the team cockpit's "Your team" navigator —
+     keep "My Team" (home) highlighted while the manager is inside any of them. */
+  mgr_approvals:"home", mgr_hub:"home", mgr_projects:"home", mgr_tasks:"home",
+  mgr_usage:"home", mgr_risk:"home", mgr_reports:"home", mgr_help:"home",
 };
 
 

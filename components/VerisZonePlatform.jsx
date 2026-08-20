@@ -210,6 +210,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           const items=section.items.map(id=>navById[id]).filter(Boolean).map(it=>{
             if(it.id==="home"){
               if(role==="employee")return {...it,label:"My AI Workspace"};
+              if(role==="manager")return {...it,label:"Team Overview"};
               if(role==="ceo"||role==="caio"||ROLE_NAV_SECTIONS[role])return {...it,label:"Overview"};
             }
             return it;
