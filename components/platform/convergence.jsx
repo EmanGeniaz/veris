@@ -16,6 +16,10 @@ import {
 import { PROHIBITED_PRACTICES, PP_RESULT_META, prohibitedStats } from "@/lib/prohibited";
 import { GPAI_QUESTIONS, GPAI_REGISTER, EXPOSURE_META, gpaiExposure, gpaiStats } from "@/lib/gpai";
 import { gapClosureRows, gapClosureStats } from "@/lib/gap-closure";
+import {
+  ASSESSMENT_DIMENSIONS, AIA_REGIMES, AIA_REGISTER, ASSESSMENT_WORKFLOW,
+  aiaCompleteness, aiaStatus, aiaRegimesFor, aiaStats,
+} from "@/lib/impact-assessment";
 
 /* ── shared local primitives (match the platform's visual language) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -538,6 +542,114 @@ export function GapClosure({ showToast }) {
       <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={() => showToast && showToast("Gap-closure pack assembled — 5 evidence artifacts, owners and target dates")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Assemble closure pack</button>
         <button onClick={() => showToast && showToast("Closure plan exported to Trust & Evidence")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export closure plan</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ 7 · AI IMPACT ASSESSMENT (AIA · DPIA · FRIA) ══════════════ */
+export function AIAssessment({ showToast }) {
+  const s = aiaStats();
+  const [open, setOpen] = useState(null);
+  const kpis = [
+    ["High-risk FRIA coverage", `${s.friaCoverage}%`, s.friaCoverage >= 100 ? T.green : T.amber, `${s.friaComplete}/${s.highRisk} high-risk systems`],
+    ["DPIA coverage", `${s.dpiaCoverage}%`, s.dpiaCoverage >= 100 ? T.green : T.amber, `${s.dpiaComplete}/${s.dpia} with personal data`],
+    ["Assessments complete", `${s.complete}/${s.assessed}`, AI_GOLD, `of ${s.governed} governed systems`],
+    ["Residual risk retired", `−${s.residualCut}`, T.green, "across the assessed estate"],
+  ];
+  const dimStat = { Complete: T.green, "In review": T.amber, Gap: T.ink4 };
+  const tierTone = t => t === "High-risk" ? T.red : t === "Limited-risk" ? T.amber : T.blue;
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Impact Assessments" sub="One assessment per AI system, run once and mapped to every regime that demands one — so the same record discharges the EU AI Act fundamental-rights assessment (Art. 27) and risk file (Art. 9), the GDPR DPIA (Art. 35), ISO 42001's system impact assessment, the NIST RMF Map function, Brazil's algorithmic impact assessment and Korea's high-impact assessment at once." />
+
+    {/* charter */}
+    <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 640 }}>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>Assess once, satisfy seven</Eyebrow>
+          <H3 style={{ fontSize: 18 }}>One impact assessment, every regime that asks for one</H3>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>A fundamental-rights assessment, a DPIA and an algorithmic impact assessment are the same nine questions asked by four regulators. Answer them once per system, tie the mitigations to the Risk Center, and the FRIA, DPIA, ISO, NIST, Brazil and Korea obligations close together.</p>
+        </div>
+        <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 130 }}>
+          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{s.regimes}</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>REGIMES DISCHARGED</div>
+        </div>
+      </div>
+    </Card>
+
+    {/* KPIs */}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 }}>
+      {kpis.map(([l, v, c, sub]) => <Card key={l} style={{ padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </Card>)}
+    </div>
+
+    {/* the register */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>The register · one assessment per system</Eyebrow>
+      <H3 style={{ marginBottom: 6 }}>Screen → assess → mitigate → sign-off — click any row for the dimensions</H3>
+      <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, margin: "0 0 12px", lineHeight: 1.5 }}>High-risk systems carry a full fundamental-rights assessment; limited-risk systems a proportionate one. Completeness is scored from the nine dimensions.</p>
+      <Table head={["Ref", "System", "Tier", "Discharges", "Completeness", "Residual", "Status"]}>
+        {AIA_REGISTER.map(a => {
+          const c = aiaCompleteness(a);
+          const st = aiaStatus(a);
+          const isOpen = open === a.id;
+          return [
+            <tr key={a.id} onClick={() => setOpen(isOpen ? null : a.id)} style={{ cursor: "pointer" }}>
+              <Td style={{ fontFamily: F.m, fontWeight: 700, color: T.ink }}>{a.id}</Td>
+              <Td style={{ fontWeight: 700, color: T.ink, minWidth: 180 }}>{a.system}</Td>
+              <Td><Pill c={tierTone(a.tier)}>{a.tier}</Pill></Td>
+              <Td style={{ minWidth: 120 }}><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{aiaRegimesFor(a).slice(0, 4).map(r => <span key={r.id} style={{ fontSize: 9, fontWeight: 800, fontFamily: F.m, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 7px" }}>{r.basis}</span>)}{a.regimes.length > 4 && <span style={{ fontSize: 9, color: T.ink4, fontFamily: F.m }}>+{a.regimes.length - 4}</span>}</div></Td>
+              <Td style={{ minWidth: 120 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <div style={{ flex: 1, height: 6, borderRadius: 3, background: T.s2, overflow: "hidden", minWidth: 60 }}><div style={{ width: `${c}%`, height: "100%", background: c >= 100 ? T.green : c >= 55 ? AI_GOLD : T.red }} /></div>
+                  <span style={{ fontSize: 10.5, fontFamily: F.m, fontWeight: 700, color: T.ink2 }}>{c}%</span>
+                </div>
+              </Td>
+              <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{a.residualBefore} → <b style={{ color: T.green }}>{a.residualAfter}</b></Td>
+              <Td><Pill c={tok(st.tone)}>{st.label}</Pill></Td>
+            </tr>,
+            isOpen && <tr key={a.id + "-d"}><td colSpan={7} style={{ padding: "0 10px 12px" }}>
+              <div style={{ background: AI_GOLD + "10", border: `1px solid ${AI_GOLD}30`, borderRadius: 10, padding: "12px 13px" }}>
+                <div style={{ fontSize: 11, color: T.ink2, fontFamily: F.b, lineHeight: 1.6, marginBottom: 9 }}><b style={{ color: AI_GOLD_INK }}>{a.id} · classification:</b> {a.classification}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 9 }}>{a.triggers.map(t => <span key={t} style={{ fontSize: 10, fontFamily: F.b, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 9px" }}>{t}</span>)}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 6 }}>
+                  {ASSESSMENT_DIMENSIONS.map(d => <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 10px" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 999, background: dimStat[a.dims[d.id]] || T.ink4, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10.5, color: T.ink2, fontFamily: F.b, flex: 1 }}>{d.label}</span>
+                    <span style={{ fontSize: 9, fontFamily: F.m, fontWeight: 700, color: dimStat[a.dims[d.id]] || T.ink4 }}>{a.dims[d.id]}</span>
+                  </div>)}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 10, color: T.ink3, fontFamily: F.b }}>Owner: <b style={{ color: T.ink2 }}>{a.owner}</b> · discharges {aiaRegimesFor(a).map(r => `${r.regime} ${r.basis}`).join(" · ")}</div>
+              </div>
+            </td></tr>,
+          ];
+        })}
+      </Table>
+    </Card>
+
+    {/* the workflow */}
+    <Card style={cardPad}>
+      <Eyebrow>The lifecycle · one assessment, six stages</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Screen → Assess → Consult → Mitigate → Sign-off → Review</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10 }}>
+        {ASSESSMENT_WORKFLOW.map(st => <div key={st.n} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 13px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 7, background: AI_GOLD + "1c", border: `1px solid ${AI_GOLD}45`, color: AI_GOLD_INK, fontFamily: F.m, fontWeight: 900, fontSize: 11, display: "grid", placeItems: "center" }}>{st.n}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{st.stage}</span>
+          </div>
+          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, marginBottom: 6 }}>{st.crit}</div>
+          <Pill c={T.blue}>{st.owner}</Pill>
+        </div>)}
+      </div>
+      <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> Both high-risk systems carry a complete fundamental-rights assessment, so the FRIA, DPIA, ISO 42001, NIST RMF Map, Brazil and Korea impact-assessment obligations are met from one record each — and the mitigations they name are the same treatments the Risk Center already tracks. The limited-risk assessments stay in review until those systems change scope.
+      </div>
+      <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
+        <button onClick={() => showToast && showToast("New assessment screened — tier set, regimes in scope resolved")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Screen a new system</button>
+        <button onClick={() => showToast && showToast("Assessment pack exported — FRIA + DPIA + AIA in one record")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export assessment pack</button>
       </div>
     </Card>
   </div>;
