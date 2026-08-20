@@ -10,6 +10,7 @@ import { providerSpend, costSummary, costHeadline, costOf, fmtUSD, fmtTokens } f
 import { surfacesFor, initiativeById } from "@/lib/initiative-registry";
 import { PageAgentRegistry } from "./agents";
 import { PageAISpine } from "./spine";
+import { InitiativeTrace } from "./trace";
 import { RiskAssessmentCascade, PageRiskCenter } from "./riskcenter";
 import { PageGovernanceAcademy } from "./academy";
 import { PageTemplates } from "./templates";
@@ -2039,7 +2040,8 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         {renderExecHeader(!profileMode&&!!buildPerspective())}
         {!profileMode&&buildPerspective()?renderPerspective():<>
           {buildPerspective()&&<button onClick={()=>setProfileMode(false)} style={{background:"transparent",border:"none",padding:0,marginBottom:8,color:T.ink3,fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>← {(ROLES[role]||ROLES.caio).label} perspective</button>}
-          <SubTabs tabs={[["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
+          <SubTabs tabs={[["trace","Idea → Value"],["overview","Overview"],["journey","Journey"],["pmo","AI PMO"],["value","Value"],["governance","Governance"],["monitoring","Monitoring"]]} active={wsTab} onChange={setInitTab}/>
+          {wsTab==="trace"&&<InitiativeTrace initiative={selected}/>}
           {wsTab==="overview"&&<Overview/>}
           {wsTab==="journey"&&<InitJourney/>}
           {wsTab==="pmo"&&renderPmo()}
