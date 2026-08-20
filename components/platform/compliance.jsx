@@ -11,7 +11,7 @@ import { walkBack, conformitySummary } from "@/lib/compliance-engine";
 import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats, regionLabel, STATUS_META } from "@/lib/frameworks";
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
 import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
-import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats, CN_INSTRUMENTS, IN_REQS, inStats, IN_INSTRUMENTS } from "@/lib/regional-mappings";
+import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats, CN_INSTRUMENTS, IN_REQS, inStats, IN_INSTRUMENTS, UK_REQS, CA_REQS, JP_REQS, ukStats, caStats, jpStats } from "@/lib/regional-mappings";
 import { NISTRMF_REQS, ISO42001_REQS, EUAIACT_REQS, GDPR_REQS, NISTSEC_REQS, OWASP_REQS, ATLAS_REQS, ISO27001_REQS, ISOTR20226_REQS, nistRmfStats, iso42001Stats, euAiActStats, gdprStats, nistSecStats, owaspStats, atlasStats, iso27001Stats, isoTr20226Stats } from "@/lib/computed-frameworks";
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
@@ -106,6 +106,9 @@ export function PageFrameworkLibrary({role,showToast}){
     "iso-tr20226":{rows:ISOTR20226_REQS,stats:isoTr20226Stats(),unit:"consideration",col:"Consideration"},
     "brazil-framework":{rows:BR_REQS,stats:brStats(),unit:"requirement",col:"Requirement"},
     "korea-act":{rows:KR_REQS,stats:krStats(),unit:"requirement",col:"Requirement"},
+    "uk-assurance":{rows:UK_REQS,stats:ukStats(),unit:"principle",col:"Principle"},
+    "canada-aia":{rows:CA_REQS,stats:caStats(),unit:"requirement",col:"Requirement"},
+    "japan-guidelines":{rows:JP_REQS,stats:jpStats(),unit:"principle",col:"Principle"},
     "iso-38507":{rows:ISO38507_REQS,stats:iso38507Stats(),unit:"consideration",col:"Consideration"},
     "iso-42005":{rows:ISO42005_REQS,stats:iso42005Stats(),unit:"requirement",col:"Requirement"},
     "iso-23894":{rows:ISO23894_REQS,stats:iso23894Stats(),unit:"requirement",col:"Requirement"},
@@ -116,7 +119,7 @@ export function PageFrameworkLibrary({role,showToast}){
     "iso-38500":{rows:ISO38500_REQS,stats:iso38500Stats(),unit:"principle",col:"Principle"},
     "iso-38505":{rows:ISO38505_REQS,stats:iso38505Stats(),unit:"consideration",col:"Consideration"},
   };
-  const REGION_FW={au:"au-safety",sg:"sg-model",cn:"china-regs",in:"india-rai",br:"brazil-framework",kr:"korea-act"};
+  const REGION_FW={au:"au-safety",sg:"sg-model",cn:"china-regs",in:"india-rai",br:"brazil-framework",kr:"korea-act",uk:"uk-assurance",ca:"canada-aia",jp:"japan-guidelines"};
   const s=frameworkStats(region);
   const statusTone=t=>({good:T.green,info:T.blue,ink3:T.ink4}[t]||T.ink4);
   const KPI=({l,v,c,sub})=><Card style={{padding:"13px 15px"}}><div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:26,fontWeight:900,color:c,fontFamily:F.m,margin:"5px 0 2px"}}>{v}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{sub}</div></Card>;
