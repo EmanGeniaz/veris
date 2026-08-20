@@ -8,6 +8,7 @@ import { EGRESS_POLICY, EGRESS_EVENTS, EGRESS_DECISION_META, egressStats } from 
 import { HITL_GATES, hitlStats } from "@/lib/hitl";
 import { breakerSessions, breakerStats, BREAKER_STATES, SIGNALS, stateMeta } from "@/lib/circuit-breaker";
 import { PAAS_ENDPOINT, PAAS_CLIENTS, PAAS_KEYS, PAAS_SAMPLES, PAAS_DECISION_META, paasStats } from "@/lib/policy-service";
+import { PLANES, estateRows, coverageStats, COVERAGE_CHANNELS } from "@/lib/enforcement-coverage";
 
 /* ── shared local primitives (match roadmap/convergence) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -56,6 +57,105 @@ export function EnforcementOverview({ showToast }) {
       {advisor(<>This is the gap neither the guardrail vendors nor the GRC vendors close: enforcement without governance is a firewall nobody can explain to a board; governance without enforcement is a spreadsheet. Enforce blocked {s.preventedBreaches} ungranted tool call{s.preventedBreaches === 1 ? "" : "s"} in this window — each one an injection or over-reach that never reached money, data, or the internet, and each written to the same evidence chain the Article 12 log reads.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Enforcement posture exported — decisions reconciled to the Article 12 evidence chain")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export enforcement posture</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ ENFORCEMENT COVERAGE — where control actually reaches ══════════════ */
+export function EnforcementCoverage({ showToast }) {
+  const s = coverageStats();
+  const rows = estateRows();
+  const [plane, setPlane] = useState("all");
+  const shown = rows.filter(r => plane === "all" || r.plane === plane);
+  const planeTone = p => tok(PLANES[p].tone);
+  const kpis = [
+    ["Enforced inline", `${s.enforcedPct}%`, planeTone("enforced"), `${s.enforced} of ${s.total} systems · real-time control`, "enforced"],
+    ["Observed only", `${s.observedPct}%`, planeTone("observed"), `${s.observed} systems · edge DLP, no inline control`, "observed"],
+    ["Shadow", `${s.shadowPct}%`, planeTone("shadow"), `${s.shadow} systems · detected, ungoverned`, "shadow"],
+    ["At least visible", `${s.governedPct}%`, AI_GOLD, "enforced + observed — the rest is blind spot", "all"],
+  ];
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Enforcement Coverage" sub="Veris Enforce decides what an agent does only where the agent's traffic runs through the plane — enforcement is a chokepoint, not action at a distance. This is the honest split of the AI estate: what is enforced inline, what is observed out-of-band, and what is still shadow. Building the AI in VerisZone is not the requirement; routing its model, tool and egress traffic through the plane is." />
+
+    <div style={kpiGrid}>
+      {kpis.map(([l, v, c, sub, key]) => <button key={l} onClick={() => setPlane(key)} style={{ textAlign: "left", cursor: "pointer", background: plane === key ? c + "12" : T.card, border: `1px solid ${plane === key ? c + "66" : T.border}`, borderRadius: 12, padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </button>)}
+    </div>
+
+    {/* the three planes — what Veris can actually do at each */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>The three planes · what control reaches where</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Inline control · out-of-band observation · shadow</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12 }}>
+        {["enforced", "observed", "shadow"].map(p => { const m = PLANES[p]; const c = tok(m.tone); const n = p === "enforced" ? s.enforced : p === "observed" ? s.observed : s.shadow; return <div key={p} style={{ padding: "14px 15px", borderRadius: 11, background: c + "0e", border: `1px solid ${c}33` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 900, color: T.ink, fontFamily: F.b }}>{m.label}</span>
+            <Pill c={c}>{n} system{n === 1 ? "" : "s"}</Pill>
+          </div>
+          <div style={{ fontSize: 9.5, color: c, fontWeight: 800, fontFamily: F.m, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 7 }}>{m.short}</div>
+          <div style={{ fontSize: 11, color: T.ink2, fontFamily: F.b, lineHeight: 1.5, marginBottom: 6 }}><b style={{ color: T.ink }}>Veris can:</b> {m.can}</div>
+          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.5 }}>{m.how}</div>
+        </div>; })}
+      </div>
+    </Card>
+
+    {/* the estate, classified */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+        <div><Eyebrow>The tracked estate · {shown.length} of {s.total} systems</Eyebrow><H3>Every AI system, and the chokepoint that governs it</H3></div>
+        {plane !== "all" && <button onClick={() => setPlane("all")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 8, padding: "5px 11px", color: T.ink2, fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>Show all planes</button>}
+      </div>
+      <Table head={["System", "Unit", "Owner", "Kind", "Model", "Chokepoint / mechanism", "Plane"]}>
+        {shown.map(r => <tr key={r.id}>
+          <Td style={{ fontWeight: 700, color: T.ink, minWidth: 170 }}>{r.system}</Td>
+          <Td style={{ color: T.ink3 }}>{r.unit}</Td>
+          <Td style={{ color: r.owner.startsWith("—") ? T.red : T.ink3 }}>{r.owner}</Td>
+          <Td><Pill c={r.kind === "Shadow tool" ? T.red : r.kind === "SaaS feature" ? T.amber : T.blue}>{r.kind}</Pill></Td>
+          <Td style={{ color: T.ink3, fontFamily: F.m, fontSize: 10.5 }}>{r.model}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 250 }}>{r.mechanism}</Td>
+          <Td><Pill c={planeTone(r.plane)}>{r.planeMeta.label}</Pill></Td>
+        </tr>)}
+      </Table>
+    </Card>
+
+    {/* per-unit concentration + the channels providing coverage */}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 14, marginBottom: 14 }}>
+      <Card style={cardPad}>
+        <Eyebrow>Coverage by business unit · where the blind spots are</Eyebrow>
+        <H3 style={{ marginBottom: 10 }}>Shadow concentrates in the unit, not the platform</H3>
+        <Table head={["Unit", "Enforced", "Observed", "Shadow"]}>
+          {s.byUnit.map(u => <tr key={u.unit}>
+            <Td style={{ fontWeight: 700, color: T.ink }}>{u.unit}</Td>
+            <Td style={{ color: u.enforced ? T.green : T.ink4, fontWeight: 700 }}>{u.enforced || "—"}</Td>
+            <Td style={{ color: u.observed ? T.amber : T.ink4, fontWeight: 700 }}>{u.observed || "—"}</Td>
+            <Td style={{ color: u.shadow ? T.red : T.ink4, fontWeight: 700 }}>{u.shadow || "—"}</Td>
+          </tr>)}
+        </Table>
+      </Card>
+      <Card style={cardPad}>
+        <Eyebrow>The channels · what puts a system on each plane</Eyebrow>
+        <H3 style={{ marginBottom: 10 }}>One rulebook, every chokepoint</H3>
+        <div style={{ display: "grid", gap: 8 }}>
+          {COVERAGE_CHANNELS.map(c => <div key={c.id} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 9, padding: "9px 11px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{c.name}</span>
+              <Pill c={planeTone(c.plane)}>{PLANES[c.plane].label}</Pill>
+            </div>
+            <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b, marginTop: 3, lineHeight: 1.45 }}>{c.role}</div>
+          </div>)}
+        </div>
+      </Card>
+    </div>
+
+    <Card style={cardPad}>
+      {advisor(<>Enforcement reaches the <b style={{ color: T.ink }}>{s.enforced}</b> systems on the plane — there Veris blocks, masks, revokes and denies egress in real time. The <b style={{ color: T.ink }}>{s.observed}</b> observed systems are third-party AI Veris is not inline on: the extension and CASB contain risky paste at the edge, but the model action isn't Veris's to decide. The <b style={{ color: T.ink }}>{s.shadow}</b> shadow systems are detected only — nothing is enforced until they are routed onto the plane. The honest headline for a governance-only customer is not "we control everything" — it is <b style={{ color: T.ink }}>{s.enforcedPct}% enforced, {s.governedPct}% at least visible</b>, and a clear plan to move the rest onto the plane.</>)}
+      <div style={{ display: "flex", gap: 9, marginTop: 12, flexWrap: "wrap" }}>
+        <button onClick={() => showToast && showToast("Onboarding plan drafted — route observed & shadow systems through the Gateway / egress plane")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>Draft onboarding plan</button>
+        <button onClick={() => showToast && showToast("Coverage report exported — estate by plane, mechanism and unit")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: "10px 17px", color: T.ink2, fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>Export coverage report</button>
       </div>
     </Card>
   </div>;

@@ -15,6 +15,7 @@ import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats, CN_INSTRUMENTS, I
 import { NISTRMF_REQS, ISO42001_REQS, EUAIACT_REQS, GDPR_REQS, NISTSEC_REQS, OWASP_REQS, ATLAS_REQS, ISO27001_REQS, ISOTR20226_REQS, nistRmfStats, iso42001Stats, euAiActStats, gdprStats, nistSecStats, owaspStats, atlasStats, iso27001Stats, isoTr20226Stats } from "@/lib/computed-frameworks";
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
+import { ISO22989_REQS, ISO23053_REQS, ISO24027_REQS, ISO25059_REQS, ISO5338_REQS, iso22989Stats, iso23053Stats, iso24027Stats, iso25059Stats, iso5338Stats } from "@/lib/lifecycle-standards";
 import { OECD_REQS, UNESCO_REQS, oecdStats, unescoStats } from "@/lib/principle-mappings";
 import { ISO37000_REQS, ISO38500_REQS, ISO38505_REQS, iso37000Stats, iso38500Stats, iso38505Stats, GOVERNANCE_LINEAGE } from "@/lib/governance-standards";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
@@ -118,6 +119,11 @@ export function PageFrameworkLibrary({role,showToast}){
     "iso-37000":{rows:ISO37000_REQS,stats:iso37000Stats(),unit:"consideration",col:"Consideration"},
     "iso-38500":{rows:ISO38500_REQS,stats:iso38500Stats(),unit:"principle",col:"Principle"},
     "iso-38505":{rows:ISO38505_REQS,stats:iso38505Stats(),unit:"consideration",col:"Consideration"},
+    "iso-22989":{rows:ISO22989_REQS,stats:iso22989Stats(),unit:"concept",col:"Concept area"},
+    "iso-23053":{rows:ISO23053_REQS,stats:iso23053Stats(),unit:"element",col:"Framework element"},
+    "iso-24027":{rows:ISO24027_REQS,stats:iso24027Stats(),unit:"consideration",col:"Bias consideration"},
+    "iso-25059":{rows:ISO25059_REQS,stats:iso25059Stats(),unit:"characteristic",col:"Quality characteristic"},
+    "iso-5338":{rows:ISO5338_REQS,stats:iso5338Stats(),unit:"process",col:"Lifecycle process"},
   };
   const REGION_FW={au:"au-safety",sg:"sg-model",cn:"china-regs",in:"india-rai",br:"brazil-framework",kr:"korea-act",uk:"uk-assurance",ca:"canada-aia",jp:"japan-guidelines"};
   const s=frameworkStats(region);
