@@ -287,8 +287,8 @@ export const ROLES = {
   cgo: {id:"cgo", label:"CGO", title:"Chief Compliance & Governance Officer",name:"Rafael Torres",initials:"RT",frameworks:["COBIT 5","ISO 31000","COSO ERM","GRC Integrated"]},
   cro: {id:"cro", label:"CRO", title:"Chief Risk Officer",name:"Deepa Nair",initials:"DN",frameworks:["COSO ERM","ISO 31000","NIST AI RMF","Operational Risk"]},
   legal:{id:"legal",label:"Legal",title:"General Counsel & Compliance",name:"Thomas Beck",initials:"TB",frameworks:["EU AI Act","GDPR","Contract & IP","Regulatory Defense"]},
-  employee:{id:"employee",label:"Employee",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
-  manager:{id:"manager",label:"Manager",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
+  employee:{id:"employee",label:"Employee",persona:"Individual contributor",title:"My AI Workspace",name:"Jamie Park",initials:"JP",frameworks:["Responsible AI Use","Data Handling","Prompt Hygiene","Security Awareness"]},
+  manager:{id:"manager",label:"Manager",persona:"Team leader",title:"Team AI Workspace",name:"Riley Chen",initials:"RC",frameworks:["Team Adoption","Responsible AI Use","Value Tracking","Change Management"]},
   superadmin:{id:"superadmin",label:"Super Admin",title:"Platform Administrator",name:"Platform Operator",initials:"SA",frameworks:["Tenant Provisioning","RBAC","Module Enablement","Org Policy"]},
 };
 export const EXECUTIVE_ROLE_IDS = ["ceo","coo","cfo","chro"];
@@ -418,10 +418,14 @@ export const EMPLOYEE_NAV_GROUPS = [
 /* Manager: the manager's OWN work is split from the TEAM's work. My
    Workspace = personal (assistant + the approvals that are the manager's
    to make); My Team = the aggregated team surfaces. */
+/* A people-manager IS an employee, so the rail is the employee's exactly — My
+   AI Workspace, My AI Assistant, Governance Academy (the manager reuses the
+   employee surfaces) — with one leadership addition: a Team View for the people
+   they lead. The personal sub-surfaces stay in the workspace's "Your workspace"
+   navigator, same as the employee. */
 export const MANAGER_NAV_GROUPS = [
-  { title: "My Workspace", items: ["home", "mgr_assistant", "mgr_approvals"] },
-  { title: "My Team", items: ["mgr_hub", "mgr_projects", "mgr_tasks", "mgr_usage", "mgr_risk", "mgr_learning", "mgr_reports"] },
-  { title: "Enterprise", items: ["aicentral"] },
+  { title: "Workspace", items: ["home", "emp_assistant", "emp_learning"] },
+  { title: "Leadership", items: ["mgr_team"] },
 ];
 export const ROLE_NAV_SECTIONS = Object.fromEntries(Object.entries(ROLE_CENTERS).map(([role, cfg]) => {
   if (role === "employee") return [role, EMPLOYEE_NAV_GROUPS];
@@ -1451,6 +1455,19 @@ export function SHead({title, sub}) {
   return <div style={{marginBottom:20}}>
     <h2 style={{fontFamily:F.h,fontSize:22,fontWeight:800,color:T.ink,letterSpacing:0,marginBottom:4,lineHeight:1.2}}>{cleanText(title)}</h2>
     {sub&&<p style={{fontSize:12,color:T.ink3,fontFamily:F.b}}>{cleanText(sub)}</p>}
+  </div>;
+}
+
+/* AI-interaction disclosure — the visible "AI in use" notice + a plain-language
+   basis, shown on every AI output that reaches a user. This is the control that
+   makes the transparency obligations (EU AI Act Art.13/50, UK, Canada, Japan,
+   Korea, China content-labelling) genuinely Met, not asserted: the user is told
+   it is AI, which model, that it is governed, the basis for the answer, and that
+   the interaction is logged to the Article 12 chain. */
+export function AIDisclosure({ model = "the governed model", grounded = false, style = {} }) {
+  return <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 9, paddingTop: 9, borderTop: `1px solid ${T.border}`, ...style }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 8.5, fontWeight: 900, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", color: AI_GOLD_INK, background: AI_GOLD + "14", border: `1px solid ${AI_GOLD}38`, borderRadius: 999, padding: "2px 8px" }}>◆ AI-assisted</span>
+    <span style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.5 }}>{model} · via the governed Gateway · {grounded ? "grounded in your enterprise knowledge" : "general knowledge — no enterprise data used"} · logged to Article 12</span>
   </div>;
 }
 
