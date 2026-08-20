@@ -28,6 +28,11 @@ function verifyPassword(pw: string, stored: string): boolean {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET || "auth-disabled-placeholder",
+  /* Trust the deployment host. Auth.js only auto-trusts on Vercel (via the
+     VERCEL env var); on a custom domain or any self-managed host it otherwise
+     throws UntrustedHost and every sign-in 500s. AUTH_TRUST_HOST still overrides
+     if it is ever set. */
+  trustHost: true,
   session: { strategy: "jwt" },
   providers: [
     Credentials({
