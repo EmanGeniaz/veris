@@ -7,6 +7,10 @@ import {
   UNIFIED_INCIDENTS, INCIDENT_STAGES, INCIDENT_CLASSES, incidentStats,
 } from "@/lib/convergence";
 import {
+  NOTIFICATION_REGIMES, BREACH_REGISTER, NOTIFICATION_WORKFLOW,
+  breachClock, regimesFor, tightestDeadlineH, breachStats, breachCoverage,
+} from "@/lib/breach-notification";
+import {
   INSTRUMENTS, CROSSWALK, CROSSWALK_DOMAINS, STATUS_META, crosswalkStats,
 } from "@/lib/crosswalk";
 import { PROHIBITED_PRACTICES, PP_RESULT_META, prohibitedStats } from "@/lib/prohibited";
@@ -138,6 +142,121 @@ export function IncidentPlaybook({ showToast }) {
       <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
         <button onClick={() => showToast && showToast("Response run started — single owner assigned, regulatory clock tracked")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Start a response run</button>
         <button onClick={() => showToast && showToast("Evidence pack exported to Trust & Evidence")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export evidence pack</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ══════════════ 2b · BREACH-NOTIFICATION WORKFLOW ══════════════ */
+export function BreachNotification({ showToast }) {
+  const s = breachStats();
+  const cov = breachCoverage();
+  const [open, setOpen] = useState(null);
+  const clockLabel = s.tightestRemainingH == null ? "—" : `${s.tightestRemainingH}h`;
+  const kpis = [
+    ["Breaches assessed", String(s.total), AI_GOLD, `${cov.pct}% of in-scope incidents`],
+    ["Notifiable now", String(s.notifiable), s.notifiable ? T.red : T.green, "on the regulatory clock"],
+    ["Notified on time", `${s.onTimeRate}%`, T.green, `${s.notified} filed within the window`],
+    ["Tightest live clock", clockLabel, s.tightestRemainingH != null && s.tightestRemainingH <= 24 ? T.red : AI_GOLD, "to the binding deadline"],
+  ];
+  const regTone = { "EU / EEA": T.blue, "EU": T.blue, "India": AI_GOLD, "Brazil": T.green };
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Breach Notification" sub="The Notify stage of the incident playbook, made first-class. A confirmed personal-data breach or serious AI incident starts a regulatory clock — several regimes oblige notification to an authority, and sometimes to affected individuals, within a fixed window. This workspace runs that decision over the one incident register and keeps the evidence." />
+
+    {/* charter / clock headline */}
+    <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 640 }}>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>One clock, every regime</Eyebrow>
+          <H3 style={{ fontSize: 18 }}>Assess once — notify every authority whose window is running</H3>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>A single breach can run the GDPR 72-hour clock, India's DPDP and CERT-In 6-hour clocks and the EU AI Act serious-incident clock at once. The workflow resolves them together, notifies against the tightest, and files one evidence pack — never four separate scrambles.</p>
+        </div>
+        <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 130 }}>
+          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{s.regimes}</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>NOTIFICATION REGIMES</div>
+        </div>
+      </div>
+    </Card>
+
+    {/* KPIs */}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 }}>
+      {kpis.map(([l, v, c, sub]) => <Card key={l} style={{ padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 26, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </Card>)}
+    </div>
+
+    {/* the regimes and their clocks */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>The clocks · who must be told, by when</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Every notification duty the estate is exposed to</H3>
+      <Table head={["Regime", "Basis", "Region", "Who is notified", "Window", "Trigger"]}>
+        {NOTIFICATION_REGIMES.map(r => <tr key={r.id}>
+          <Td style={{ fontWeight: 800, color: T.ink }}>{r.regime}</Td>
+          <Td style={{ fontFamily: F.m, fontSize: 10.5, color: T.ink3, whiteSpace: "nowrap" }}>{r.basis}</Td>
+          <Td><Pill c={regTone[r.region] || T.ink3}>{r.region}</Pill></Td>
+          <Td style={{ fontWeight: 700, color: T.ink2 }}>{r.audience}</Td>
+          <Td style={{ color: r.deadlineH <= 24 ? T.red : T.ink2, fontWeight: 700, whiteSpace: "nowrap" }}>{r.deadline}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 260 }}>{r.trigger}</Td>
+        </tr>)}
+      </Table>
+    </Card>
+
+    {/* the breach register with computed clock */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>The register · every breach assessed for notifiability</Eyebrow>
+      <H3 style={{ marginBottom: 6 }}>Assess → decide → notify → log — click any row for the decision</H3>
+      <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, margin: "0 0 12px", lineHeight: 1.5 }}>Most breaches are assessed and found not notifiable — the workflow still records that decision. The clock shows only where a duty is live.</p>
+      <Table head={["Ref", "Breach", "System", "Personal data", "Regimes", "Clock", "Decision"]}>
+        {BREACH_REGISTER.map(b => {
+          const clk = breachClock(b);
+          const isOpen = open === b.id;
+          const decMeta = b.decision === "notified" ? { c: T.green, l: "Notified" } : b.decision === "notifiable" ? { c: T.red, l: "Notifiable" } : { c: T.ink3, l: "Assessed" };
+          return [
+            <tr key={b.id} onClick={() => setOpen(isOpen ? null : b.id)} style={{ cursor: "pointer" }}>
+              <Td style={{ fontFamily: F.m, fontWeight: 700, color: T.ink }}>{b.id}<div style={{ fontSize: 9, color: T.ink4, marginTop: 2 }}>{b.incidentId || "historical"}</div></Td>
+              <Td style={{ fontWeight: 700, color: T.ink, minWidth: 190 }}>{b.title}</Td>
+              <Td style={{ color: T.ink3 }}>{b.system}</Td>
+              <Td>{b.personalData ? <Pill c={AI_GOLD}>Yes</Pill> : <Pill c={T.ink3}>No</Pill>}</Td>
+              <Td style={{ minWidth: 130 }}><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{regimesFor(b).map(r => <span key={r.id} style={{ fontSize: 9, fontWeight: 800, fontFamily: F.m, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 7px" }}>{r.basis}</span>)}</div></Td>
+              <Td><Pill c={tok(clk.tone)}>{clk.label}</Pill></Td>
+              <Td><Pill c={decMeta.c}>{decMeta.l}</Pill></Td>
+            </tr>,
+            isOpen && <tr key={b.id + "-d"}><td colSpan={7} style={{ padding: "0 10px 12px" }}>
+              <div style={{ background: AI_GOLD + "10", border: `1px solid ${AI_GOLD}30`, borderRadius: 10, padding: "11px 13px", fontSize: 11, color: T.ink2, fontFamily: F.b, lineHeight: 1.6 }}>
+                <b style={{ color: AI_GOLD_INK }}>{b.id} · notification decision:</b> {b.rationale}
+                <div style={{ marginTop: 7, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {regimesFor(b).map(r => <span key={r.id} style={{ fontSize: 10, fontFamily: F.b, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 9px" }}><b style={{ color: T.ink2 }}>{r.regime} {r.basis}</b> · {r.who} · {r.deadline}</span>)}
+                  <span style={{ fontSize: 10, fontFamily: F.b, color: T.ink3 }}>Owner: <b style={{ color: T.ink2 }}>{b.owner}</b></span>
+                </div>
+              </div>
+            </td></tr>,
+          ];
+        })}
+      </Table>
+    </Card>
+
+    {/* the workflow */}
+    <Card style={cardPad}>
+      <Eyebrow>The decision · five stages that produce the evidence</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Assess → Scope → Decide → Notify → Log</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10 }}>
+        {NOTIFICATION_WORKFLOW.map(st => <div key={st.n} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 13px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 22, height: 22, borderRadius: 7, background: AI_GOLD + "1c", border: `1px solid ${AI_GOLD}45`, color: AI_GOLD_INK, fontFamily: F.m, fontWeight: 900, fontSize: 11, display: "grid", placeItems: "center" }}>{st.n}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{st.stage}</span>
+          </div>
+          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, marginBottom: 6 }}>{st.crit}</div>
+          <Pill c={T.blue}>{st.owner}</Pill>
+        </div>)}
+      </div>
+      <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.notifiable ? <>{s.notifiable} breach is on the clock — the tightest window is <b style={{ color: T.ink2 }}>{clockLabel}</b>. CERT-In's 6-hour clock is met; the DPA and DPB notices are drafted and the affected-principal notice is in review against the 72-hour window.</> : <>No breach is currently notifiable. Every assessment is recorded, so the not-notifiable decisions are as defensible as the notifications.</>} This workflow is the control that satisfies GDPR Art. 33/34, EU AI Act Art. 73, India DPDP s. 8(6) and CERT-In at once.
+      </div>
+      <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
+        <button onClick={() => showToast && showToast("Breach assessment started — regimes resolved, tightest clock running")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Start a breach assessment</button>
+        <button onClick={() => showToast && showToast("Notification pack exported — authority notices + Art.33(5) register entry")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export notification pack</button>
       </div>
     </Card>
   </div>;
