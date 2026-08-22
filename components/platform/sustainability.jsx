@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
+import {
+  sustainabilityStats, lifecycleAssessments, carbonDisclosure,
+} from "@/lib/sustainability";
+
+/* shared primitives — match the platform's visual language */
+const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3, gold: AI_GOLD }[k] || T.ink3);
+const cardPad = { padding: 18 };
+const Eyebrow = ({ children, style }) => <div style={{ fontSize: 9, letterSpacing: "0.09em", textTransform: "uppercase", color: T.ink4, fontWeight: 900, fontFamily: F.m, ...style }}>{children}</div>;
+const H3 = ({ children, style }) => <h3 style={{ fontFamily: F.h, fontSize: 16, fontWeight: 900, color: T.ink, margin: "4px 0 0", ...style }}>{children}</h3>;
+const Head = ({ title, sub }) => <div style={{ marginBottom: 16 }}><h2 style={{ fontFamily: F.h, fontSize: 24, fontWeight: 900, color: T.ink, margin: 0, letterSpacing: "-0.02em" }}>{title}</h2><p style={{ fontFamily: F.b, fontSize: 12.5, color: T.ink3, margin: "5px 0 0", maxWidth: 780, lineHeight: 1.6 }}>{sub}</p></div>;
+const Pill = ({ c, children }) => <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 999, fontSize: 10, fontWeight: 800, fontFamily: F.b, color: c, background: c + "18", border: `1px solid ${c}40` }}>{children}</span>;
+const Th = ({ children, style }) => <th style={{ textAlign: "left", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: T.ink4, fontWeight: 900, fontFamily: F.m, padding: "0 10px 9px", borderBottom: `1px solid ${T.border}`, ...style }}>{children}</th>;
+const Td = ({ children, style }) => <td style={{ padding: "10px", borderBottom: `1px solid ${T.border}`, color: T.ink2, fontSize: 11.5, fontFamily: F.b, verticalAlign: "middle", ...style }}>{children}</td>;
+const Table = ({ head, children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr>{head.map((h, i) => <Th key={i} style={i ? { textAlign: "right" } : null}>{h}</Th>)}</tr></thead><tbody>{children}</tbody></table></div>;
+const basisTone = b => b === "Metered" ? T.green : T.ink3;
+
+export function EnvironmentalFootprint({ showToast }) {
+  const S = sustainabilityStats();
+  const la = lifecycleAssessments();
+  const D = carbonDisclosure();
+  const [open, setOpen] = useState(null);
+  const totalLifecycle = +la.reduce((s, a) => s + a.lifecycleTyr, 0).toFixed(1);
+  const kpis = [
+    ["Whole-life carbon", `${totalLifecycle} tCO₂e`, AI_GOLD, "per year · full lifecycle"],
+    ["Net after offsets", `${D.netTyr} tCO₂e`, T.green, `${D.offsetPct}% renewable / offset`],
+    ["Carbon intensity", `${D.intensityPerValue}`, T.blue, "tCO₂e per $M value"],
+    ["Trend", `${D.trendPct}%`, D.trendPct < 0 ? T.green : T.amber, "MoM · routing + caching"],
+  ];
+  const sorted = [...la].sort((a, b) => b.lifecycleTyr - a.lifecycleTyr);
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Environmental Footprint" sub="Govern AI, and measure what running it costs the planet. Each system carries a whole-life carbon assessment — training, inference, storage and retirement — and the estate rolls up into a GHG-Protocol-shaped disclosure. Estimated from activity data × model-class energy × regional grid carbon × data-centre PUE; metered where gateway telemetry is wired, and clearly labelled either way." />
+
+    {/* charter */}
+    <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 640 }}>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>ISO/IEC TR 20226 · the Measure plane</Eyebrow>
+          <H3 style={{ fontSize: 18 }}>Whole-life carbon, assessed and disclosed</H3>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>Inference is only the running cost. This closes the two gaps TR 20226 named — a full-lifecycle impact assessment per system, and a carbon disclosure aligned to the GHG Protocol, ISO 14064-1 and CSRD ESRS E1 — with an honest assurance level, not a green tile.</p>
+        </div>
+        <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 130 }}>
+          <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{D.measuredPct}%</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>METERED VS ESTIMATED</div>
+        </div>
+      </div>
+    </Card>
+
+    {/* KPIs */}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 14 }}>
+      {kpis.map(([l, v, c, sub]) => <Card key={l} style={{ padding: "13px 15px" }}>
+        <Eyebrow>{l}</Eyebrow>
+        <div style={{ fontSize: 24, fontWeight: 900, color: c, fontFamily: F.m, margin: "5px 0 2px" }}>{v}</div>
+        <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b }}>{sub}</div>
+      </Card>)}
+    </div>
+
+    {/* lifecycle assessment register */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Lifecycle impact assessment · one per system</Eyebrow>
+      <H3 style={{ marginBottom: 6 }}>Training → inference → storage → retirement — click any row for the stages</H3>
+      <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, margin: "0 0 12px", lineHeight: 1.5 }}>Training and retirement are one-time footprints amortised over a 2-year service life. Each stage is labelled Metered or Estimated.</p>
+      <Table head={["System", "Class", "Region", "Lifecycle tCO₂e/yr", "Basis", "Status"]}>
+        {sorted.map(a => {
+          const isOpen = open === a.id;
+          const stMeta = a.status === "Assessed" ? { c: T.green } : { c: T.amber };
+          return [
+            <tr key={a.id} onClick={() => setOpen(isOpen ? null : a.id)} style={{ cursor: "pointer" }}>
+              <Td style={{ fontWeight: 700, color: T.ink, minWidth: 180, textAlign: "left" }}>{a.name}</Td>
+              <Td style={{ textAlign: "left" }}><Pill c={T.blue}>{a.cls}</Pill></Td>
+              <Td style={{ color: T.ink3, textAlign: "left" }}>{a.region}</Td>
+              <Td style={{ fontFamily: F.m, fontWeight: 800, color: T.ink, textAlign: "right" }}>{a.lifecycleTyr}</Td>
+              <Td style={{ textAlign: "right" }}><span style={{ fontSize: 10, fontWeight: 800, fontFamily: F.b, color: a.measured ? T.green : T.ink3 }}>{a.measured ? "Metered" : "Estimated"}</span></Td>
+              <Td style={{ textAlign: "right" }}><Pill c={stMeta.c}>{a.status}</Pill></Td>
+            </tr>,
+            isOpen && <tr key={a.id + "-d"}><td colSpan={6} style={{ padding: "0 10px 12px" }}>
+              <div style={{ background: AI_GOLD + "10", border: `1px solid ${AI_GOLD}30`, borderRadius: 10, padding: "11px 13px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8 }}>
+                  {a.stages.map(st => <div key={st.stage} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 9, padding: "9px 11px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 900, color: T.ink, fontFamily: F.b }}>{st.stage}</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, margin: "2px 0" }}>{st.tyr}<span style={{ fontSize: 9, color: T.ink3, marginLeft: 3 }}>tCO₂e/yr</span></div>
+                    <span style={{ fontSize: 9, fontWeight: 800, fontFamily: F.b, color: basisTone(st.basis) }}>{st.basis}</span>
+                  </div>)}
+                </div>
+              </div>
+            </td></tr>,
+          ];
+        })}
+      </Table>
+    </Card>
+
+    {/* carbon disclosure */}
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div><Eyebrow>Carbon disclosure · {D.period}</Eyebrow><H3 style={{ marginBottom: 0 }}>GHG-Protocol-shaped emissions disclosure</H3></div>
+        <button onClick={() => showToast && showToast("Carbon disclosure exported — Scope 2 & 3, methodology and assurance statement")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 13px", color: T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export disclosure</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10, marginBottom: 12 }}>
+        {D.byScope.map(s => <div key={s.scope} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 13px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={{ fontSize: 11, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{s.scope}</span><span style={{ fontSize: 18, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m }}>{s.tyr}<span style={{ fontSize: 9, color: T.ink3, marginLeft: 3 }}>tCO₂e/yr</span></span></div>
+          <div style={{ fontSize: 10.5, color: T.ink2, fontFamily: F.b, margin: "4px 0 3px", lineHeight: 1.4 }}>{s.label}</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b }}>{s.basis}</div>
+        </div>)}
+        <div style={{ background: `linear-gradient(135deg,${AI_GOLD}14,${T.s2})`, border: `1px solid ${AI_GOLD}40`, borderRadius: 11, padding: "12px 13px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={{ fontSize: 11, fontWeight: 900, color: T.ink, fontFamily: F.h }}>Total (gross)</span><span style={{ fontSize: 18, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m }}>{D.totalTyr}<span style={{ fontSize: 9, color: T.ink3, marginLeft: 3 }}>tCO₂e/yr</span></span></div>
+          <div style={{ fontSize: 10.5, color: T.ink2, fontFamily: F.b, margin: "4px 0 3px" }}>Net after offsets: <b style={{ color: T.green }}>{D.netTyr} tCO₂e/yr</b></div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b }}>{D.intensityPerMInf} kgCO₂e per 1M inferences</div>
+        </div>
+      </div>
+      <Table head={["Standard", "Scope", "Coverage"]}>
+        {D.standards.map(st => <tr key={st.name}>
+          <Td style={{ fontWeight: 800, color: T.ink, textAlign: "left" }}>{st.name}</Td>
+          <Td style={{ color: T.ink3, textAlign: "left" }}>{st.scope}</Td>
+          <Td style={{ textAlign: "right" }}><Pill c={st.coverage >= 80 ? T.green : st.coverage >= 60 ? AI_GOLD : T.amber}>{st.coverage}%</Pill></Td>
+        </tr>)}
+      </Table>
+      <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: T.s2, border: `1px solid ${T.border}`, fontSize: 10.5, color: T.ink3, lineHeight: 1.6, fontFamily: F.b }}>
+        <b style={{ color: T.ink2 }}>Methodology:</b> {D.methodology}<br />
+        <b style={{ color: T.ink2 }}>Assurance:</b> {D.assurance}
+      </div>
+    </Card>
+
+    {/* reductions */}
+    <Card style={cardPad}>
+      <Eyebrow>Reduction opportunities · tied to the biggest emitters</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Where routing, region and caching cut the most</H3>
+      <div style={{ display: "grid", gap: 8 }}>
+        {S.recs.map((r, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 13px" }}>
+          <span style={{ fontSize: 11.5, color: T.ink2, fontFamily: F.b, fontWeight: 600 }}>{r.label}</span>
+          <span style={{ fontSize: 12, fontWeight: 900, color: T.green, fontFamily: F.m, whiteSpace: "nowrap" }}>−{r.saveTyr} tCO₂e/yr</span>
+        </div>)}
+      </div>
+      <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
+        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> The identified reductions total <b>{S.reductionTyr} tCO₂e/yr</b> — {Math.round(S.reductionTyr / Math.max(1, totalLifecycle) * 100)}% of the whole-life footprint — and every one of them (model routing, region shift, caching) is a change the Gateway can make without touching the use case. Metering is at {D.measuredPct}%; wiring the remaining systems through the gateway moves the estimate to measured.
+      </div>
+      <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
+        <button onClick={() => showToast && showToast("Reduction plan assembled — routing, region and caching changes queued")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Assemble reduction plan</button>
+        <button onClick={() => showToast && showToast("Lifecycle assessment pack exported to Trust & Evidence")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export assessment pack</button>
+      </div>
+    </Card>
+  </div>;
+}
