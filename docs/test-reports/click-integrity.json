@@ -1,0 +1,1615 @@
+{
+  "base": "http://localhost:3950",
+  "roles": [
+    "CEO",
+    "COO",
+    "CFO",
+    "CHRO",
+    "CISO",
+    "CAIO",
+    "CIO",
+    "CDPO",
+    "CGO",
+    "CRO",
+    "Legal",
+    "Employee",
+    "Manager"
+  ],
+  "rolesWalked": [
+    {
+      "role": "CEO",
+      "surfaces": 10,
+      "errors": 0
+    },
+    {
+      "role": "COO",
+      "surfaces": 9,
+      "errors": 0
+    },
+    {
+      "role": "CFO",
+      "surfaces": 9,
+      "errors": 0
+    },
+    {
+      "role": "CHRO",
+      "surfaces": 9,
+      "errors": 0
+    },
+    {
+      "role": "CISO",
+      "surfaces": 20,
+      "errors": 0
+    },
+    {
+      "role": "CAIO",
+      "surfaces": 15,
+      "errors": 0
+    },
+    {
+      "role": "CIO",
+      "surfaces": 10,
+      "errors": 0
+    },
+    {
+      "role": "CDPO",
+      "surfaces": 9,
+      "errors": 0
+    },
+    {
+      "role": "CGO",
+      "surfaces": 35,
+      "errors": 0
+    },
+    {
+      "role": "CRO",
+      "surfaces": 8,
+      "errors": 0
+    },
+    {
+      "role": "Legal",
+      "surfaces": 11,
+      "errors": 0
+    },
+    {
+      "role": "Employee",
+      "surfaces": 3,
+      "errors": 0
+    },
+    {
+      "role": "Manager",
+      "surfaces": 4,
+      "errors": 0
+    }
+  ],
+  "totals": {
+    "surfaces": 152,
+    "blankSurfaces": 0,
+    "buttonsTested": 0,
+    "consoleMessages": 2,
+    "hardFailures": 0
+  },
+  "failures": [],
+  "surfaces": [
+    {
+      "role": "CEO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Maya.",
+      "contentLen": 2920,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "AI Playbook",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "Portfolio",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "Budget",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "Risk Center",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "My Action Items",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "Reporting",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "Compliance & Standards",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CEO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "The AI Playbook The complete, living portfolio of enterprise",
+      "contentLen": 3056,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Operations Playbook",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Process Automation",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Performance & SLAs",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Workforce Capacity",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Operational Risk",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "COO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Priya.",
+      "contentLen": 1228,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Investment Portfolio",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Value & ROI",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Cost & Run-rate",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Budget & Forecast",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Financial Risk",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CFO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Elena.",
+      "contentLen": 1605,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Workforce Playbook",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Adoption & Enablement",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Skills & Reskilling",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Role Impact",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Sentiment & Feedback",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CHRO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Hannah.",
+      "contentLen": 1729,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Veris Enforce",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Enforcement Coverage",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Policy-as-a-Service",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Agent Authority",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Tool-Call Ledger",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "MCP Registry",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Egress Policy",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "HITL Gates",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Circuit Breaker",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Threat Center",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Agent Chain Permissions",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "AI Incidents",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Vulnerabilities",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Guardrails & Controls",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Red-Team",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CISO",
+      "surface": "Admin Portal",
+      "rendered": true,
+      "heading": "Good afternoon, Jordan.",
+      "contentLen": 1955,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Aisha.",
+      "contentLen": 2225,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "My Playbook",
+      "rendered": true,
+      "heading": "My Playbook Choose a project or create a new one — strategy,",
+      "contentLen": 1568,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Governance & Compliance",
+      "rendered": true,
+      "heading": "Governance & Compliance Governance metrics, the policies app",
+      "contentLen": 923,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Reports Build a governance report by dimension, then export ",
+      "contentLen": 305,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "AI Incidents",
+      "rendered": true,
+      "heading": "AI Incidents Tickets synced from ServiceNow / CRM — ranked b",
+      "contentLen": 645,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Impact Assessment (AIA)",
+      "rendered": true,
+      "heading": "Impact Assessment (AIA) Select a project or create one, then",
+      "contentLen": 893,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Risk Center",
+      "rendered": true,
+      "heading": "Risk Center Select a project, define or create a risk, and g",
+      "contentLen": 1034,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Governance Library",
+      "rendered": true,
+      "heading": "Governance Library Central repository — ISO standards, check",
+      "contentLen": 616,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Convergence Crosswalk",
+      "rendered": true,
+      "heading": "Convergence Crosswalk",
+      "contentLen": 6215,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "ISO 42001 Readiness",
+      "rendered": true,
+      "heading": "ISO 42001 Readiness",
+      "contentLen": 2817,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Template Library",
+      "rendered": true,
+      "heading": "Template Library",
+      "contentLen": 2435,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Drift Monitor",
+      "rendered": true,
+      "heading": "Drift Monitor",
+      "contentLen": 1404,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Executive Dashboard",
+      "contentLen": 5277,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Governance Academy",
+      "contentLen": 4420,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CAIO",
+      "surface": "Admin Portal",
+      "rendered": true,
+      "heading": "Admin Portal",
+      "contentLen": 839,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Platform Health",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Model Registry",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Gateway & Routing",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Integrations",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Cost & Performance",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CIO",
+      "surface": "Admin Portal",
+      "rendered": true,
+      "heading": "Good afternoon, Marcus.",
+      "contentLen": 1567,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Privacy Playbook",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "DPIA & Assessments",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Data Map & Residency",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Consent & Rights",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Privacy Incidents",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CDPO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Niamh.",
+      "contentLen": 1720,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Governance Forum",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Incident Playbook",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Breach Notification",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Data Provenance",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Impact Assessments",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Environmental Footprint",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Convergence Crosswalk",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Prohibited Practices",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "GPAI Exposure",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Gap Closure",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Jurisdiction Atlas",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Template Library",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "ISO 42001 Readiness",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Evidence Freshness",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Governance Glossary",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Drift Monitor",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Agent Chain Permissions",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Article 12 Log",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Policy-as-a-Service",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Veris Enforce",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Enforcement Coverage",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Tool-Call Ledger",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "MCP Registry",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "HITL Gates",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Circuit Breaker",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Governance Playbook",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Policies & Controls",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Regulatory Posture",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Board & Audit",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Enterprise Risk",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CGO",
+      "surface": "Admin Portal",
+      "rendered": true,
+      "heading": "Good afternoon, Rafael.",
+      "contentLen": 1282,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Risk Appetite",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Risk Register",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Controls & KRIs",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Audit Readiness",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "CRO",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Deepa.",
+      "contentLen": 1768,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Overview",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Regulatory Map",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Convergence Crosswalk",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Jurisdiction Atlas",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Contracts & IP",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Conformity",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Article 12 Log",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Legal Evidence",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Reports",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "AI Central",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Legal",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Thomas.",
+      "contentLen": 1630,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Employee",
+      "surface": "My AI Workspace",
+      "rendered": true,
+      "heading": "Good afternoon, Jamie.",
+      "contentLen": 1421,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Employee",
+      "surface": "My AI Assistant",
+      "rendered": true,
+      "heading": "Good afternoon, Jamie.",
+      "contentLen": 1421,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Employee",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Jamie.",
+      "contentLen": 1421,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Manager",
+      "surface": "My AI Workspace",
+      "rendered": true,
+      "heading": "Good afternoon, Riley.",
+      "contentLen": 1444,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Manager",
+      "surface": "My AI Assistant",
+      "rendered": true,
+      "heading": "Good afternoon, Riley.",
+      "contentLen": 1444,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Manager",
+      "surface": "Governance Academy",
+      "rendered": true,
+      "heading": "Good afternoon, Riley.",
+      "contentLen": 1444,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    },
+    {
+      "role": "Manager",
+      "surface": "Team View",
+      "rendered": true,
+      "heading": "Good afternoon, Riley.",
+      "contentLen": 1444,
+      "buttonsTested": 0,
+      "deadButtons": 0,
+      "errorsHere": 0
+    }
+  ]
+}

@@ -965,7 +965,7 @@ export default function VerisZone() {
 
       {/* Page content — centered, and widened so it breathes on large monitors
           instead of stranding ~40% of an ultra-wide viewport as empty space. */}
-      <div style={{flex:1,padding:"20px 24px 60px",maxWidth:1320,width:"100%",margin:"0 auto"}}>
+      <div data-testid="vz-main" style={{flex:1,padding:"20px 24px 60px",maxWidth:1320,width:"100%",margin:"0 auto"}}>
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
         {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
