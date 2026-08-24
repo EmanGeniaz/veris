@@ -5,7 +5,8 @@ import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
 import { REGIMES, REGIME_STATUS_META, jurisdictionStats, OPERATING_REGIONS } from "@/lib/jurisdictions";
 import { SOA_CONTROLS, SOA_STATUS_META, CERT_CLAUSES, soaStats } from "@/lib/soa";
 import { EVIDENCE_ARTIFACTS, FRESHNESS_META, freshnessStats } from "@/lib/evidence-freshness";
-import { GLOSSARY, GLOSSARY_CATEGORIES } from "@/lib/glossary";
+import { GLOSSARY, GLOSSARY_CATEGORIES, GLOSSARY_CAT_AR } from "@/lib/glossary";
+import { useLang } from "@/lib/i18n";
 
 /* ── shared local primitives (match the platform's visual language) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -151,27 +152,33 @@ export function EvidenceFreshness({ showToast }) {
 
 /* ══════════════ GLOSSARY ══════════════ */
 export function Glossary() {
+  const lang = useLang();
+  const ar = lang === "ar";
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const ql = q.trim().toLowerCase();
-  const rows = GLOSSARY.filter(g => (cat === "all" || g.cat === cat) && (!ql || g.term.toLowerCase().includes(ql) || g.def.toLowerCase().includes(ql)));
+  // search spans both languages so an Arabic or English query both hit
+  const rows = GLOSSARY.filter(g => (cat === "all" || g.cat === cat) && (!ql || [g.term, g.def, g.termAr, g.defAr].some(s => (s || "").toLowerCase().includes(ql))));
   const cats = ["all", ...GLOSSARY_CATEGORIES].filter(c => c === "all" || rows.some(r => r.cat === c) || cat !== "all");
   const shown = GLOSSARY_CATEGORIES.filter(c => rows.some(r => r.cat === c));
+  const catLabel = c => c === "all" ? (ar ? GLOSSARY_CAT_AR.all : "All") : (ar ? (GLOSSARY_CAT_AR[c] || c) : c);
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Governance Glossary" sub={`${GLOSSARY.length} terms of art — every acronym and concept an executive, auditor or engineer will hit on a governance surface, in plain language. So the platform stands alone.`} />
+    <Head title={ar ? "مسرد الحوكمة" : "Governance Glossary"} sub={ar
+      ? `${GLOSSARY.length} مصطلحاً تخصصياً — كل اختصار ومفهوم سيصادفه مسؤول تنفيذي أو مدقّق أو مهندس على أي واجهة حوكمة، بالعربية والإنجليزية معاً.`
+      : `${GLOSSARY.length} terms of art — every acronym and concept an executive, auditor or engineer will hit on a governance surface, in plain language (Arabic + English). So the platform stands alone.`} />
     <Card style={{ ...cardPad, marginBottom: 14 }}>
-      <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search terms and definitions…" style={{ width: "100%", boxSizing: "border-box", padding: "10px 13px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.s2, color: T.ink, fontSize: 12.5, fontFamily: F.b, outline: "none", marginBottom: 12 }} />
+      <input value={q} onChange={e => setQ(e.target.value)} placeholder={ar ? "ابحث في المصطلحات والتعريفات…" : "Search terms and definitions…"} style={{ width: "100%", boxSizing: "border-box", padding: "10px 13px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.s2, color: T.ink, fontSize: 12.5, fontFamily: F.b, outline: "none", marginBottom: 12, textAlign: ar ? "right" : "left" }} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {cats.map(c => <button key={c} onClick={() => setCat(c)} style={{ fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", color: cat === c ? "#241703" : T.ink2, background: cat === c ? AI_GOLD : T.s2, border: `1px solid ${cat === c ? AI_GOLD : T.border}`, borderRadius: 999, padding: "5px 12px" }}>{c === "all" ? "All" : c}</button>)}
+        {cats.map(c => <button key={c} onClick={() => setCat(c)} style={{ fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", color: cat === c ? "#241703" : T.ink2, background: cat === c ? AI_GOLD : T.s2, border: `1px solid ${cat === c ? AI_GOLD : T.border}`, borderRadius: 999, padding: "5px 12px" }}>{catLabel(c)}</button>)}
       </div>
     </Card>
-    {rows.length === 0 ? <Card style={cardPad}><div style={{ fontSize: 12, color: T.ink3, fontFamily: F.b }}>No terms match “{q}”.</div></Card> :
+    {rows.length === 0 ? <Card style={cardPad}><div style={{ fontSize: 12, color: T.ink3, fontFamily: F.b }}>{ar ? `لا مصطلحات تطابق «${q}».` : `No terms match “${q}”.`}</div></Card> :
       shown.map(c => <Card key={c} style={{ ...cardPad, marginBottom: 12 }}>
-        <Eyebrow style={{ color: AI_GOLD_INK, marginBottom: 10 }}>{c}</Eyebrow>
+        <Eyebrow style={{ color: AI_GOLD_INK, marginBottom: 10 }}>{catLabel(c)}</Eyebrow>
         <div style={{ display: "grid", gap: 10 }}>
-          {rows.filter(r => r.cat === c).map(r => <div key={r.term} style={{ borderLeft: `2px solid ${T.border}`, paddingLeft: 12 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{r.term}</div>
-            <div style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, marginTop: 2 }}>{r.def}</div>
+          {rows.filter(r => r.cat === c).map(r => <div key={r.term} style={{ borderInlineStart: `2px solid ${T.border}`, paddingInlineStart: 12, textAlign: ar ? "right" : "left" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{r.term}{r.termAr && <span style={{ color: AI_GOLD_INK, fontWeight: 800 }}> · {r.termAr}</span>}</div>
+            <div style={{ fontSize: 11, color: T.ink3, fontFamily: F.b, lineHeight: 1.6, marginTop: 2 }}>{(ar && r.defAr) ? r.defAr : r.def}</div>
           </div>)}
         </div>
       </Card>)}
