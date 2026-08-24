@@ -60,6 +60,21 @@ Grandma-readable **and** sophisticated. Hard rules, checked each cycle:
 > standard is real rework across most surfaces and **will** change the dense
 > executive look. Tracked as milestone **M-UX**.
 
+## G. Product-line, localisation & regional (locked C1)
+| Feature | Status | Notes |
+|---|---|---|
+| Veris Enforce entitlement gate (`enforceLicensed` per tenant) + locked/live surface states | TODO | D7 · MS 365 / Visio model |
+| Veris Enforce shared core + data contract (`enforceProvider`) | TODO | one implementation, no drift |
+| Veris Enforce **standalone** product (own repo/deploy, real inline enforcement) | TODO | ❌ not completable here — separate repo + integration |
+| Arabic + RTL i18n scaffolding | TODO | D8 · pilot-first |
+| Arabic pilot surfaces (1–2 full surfaces) | TODO | proves the pattern before rollout |
+| UAE / Dubai regulatory pack (PDPL · DIFC · ADGM · DESC + residency/cloud) | TODO | D9 · computed pack |
+
+## H. Test tooling (locked C1)
+| Feature | Status | Notes |
+|---|---|---|
+| Click-integrity harness — role × surface walk, clickability, **location + console logs + errors**, report | TODO | D10 · milestone M-TEST · gates every later feature |
+
 ## F. Definition of Done (every feature)
 1. In this SPEC. 2. Deterministic engine (D4) + computed posture where relevant (D3).
 3. `npm run build` passes. 4. Live Playwright test + screenshot, 0 console errors.

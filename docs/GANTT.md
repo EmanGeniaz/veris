@@ -11,6 +11,10 @@
 |----|-----------|--------|-------|-----------|---------------|
 | **M0** | Foundation & spine (object model, lifecycle, role lenses, computed posture, 32/32 frameworks) | ✅ DONE | ✅ | — | done |
 | **M1** | Governance workflows (breach · AIA/DPIA/FRIA · data provenance · carbon disclosure) | ✅ DONE | ✅ | M0 | done |
+| **M-TEST** | Click-integrity harness — walk every role × surface, test clickability, capture **location + console logs + errors**, emit a report (the D10 gate) | ◐ NEXT | ✅ | M0 | 1–2 |
+| **M-UAE** | UAE / Dubai regulatory pack — PDPL · DIFC · ADGM · DESC + data-residency/cloud, computed posture | ⬜ TODO | ✅ | M0 | 1 |
+| **M-AR** | Arabic + RTL — i18n scaffolding + 1–2 pilot surfaces, then rollout | ⬜ TODO | ✅ | M0 | 2 + rollout |
+| **M-ENF** | Veris Enforce product-line — shared core + data contract + per-tenant entitlement gate + locked/live surface states | ⬜ TODO | ⚠️ | M0 (live enf. → M6) | 2 |
 | **M2** | Data-subject-rights lifecycle (consent capture/withdraw · DSAR access/correction · retention/erasure) | ⬜ TODO | ✅ | M0 | 1–2 |
 | **M-UX** | Readability & type lock — enforce SPEC §E across every surface | ⬜ TODO | ✅ | M0 | 2–3 |
 | **M3** | Governance depth — retire remaining honest Partials via real controls (not relabels) | ◐ ONGOING | ✅ | M0 | rolling |
@@ -50,11 +54,12 @@ gantt
     M8 Hardening & assurance     :m8, 20, 4
 ```
 
-## This cycle (C0)
-- **Done:** Charter + Spec + Gantt established and locked with the owner.
-- **Decisions locked:** D1 full enforcement · D2 SaaS→self-host.
-- **Next candidate (owner to confirm):** **M2 — Data-subject-rights lifecycle** (fully buildable & testable here), or **M-UX — Readability lock** if type/readability is the priority.
+## This cycle (C1)
+- **Done:** Charter/Spec/Gantt + `docs/ROADMAP.md`; locked D7 (Veris Enforce product-line), D8 (Arabic pilot-first), D9 (UAE/Dubai), D10 (test gate).
+- **Owner priorities (this message):** M-TEST → M-UAE → M-AR (in that order), Arabic pilot-first.
+- **Building next:** **M-TEST** — the click-integrity harness, first, so every later cycle is gated by it.
 - **Owner action outstanding (unblocks M4):** provision `AUTH_SECRET`, `DATABASE_URL`, `DIRECT_URL`; run `npm run db:push`.
 
 ## Changelog
+- **C1** — Added M-TEST, M-UAE, M-AR, M-ENF; locked Veris Enforce product-line, Arabic, UAE/Dubai, test-gate decisions; added ROADMAP.
 - **C0** — Charter/Spec/Gantt created; ambition = full enforcement platform; deployment = SaaS→self-host.
