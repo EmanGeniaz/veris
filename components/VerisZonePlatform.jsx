@@ -15,6 +15,7 @@ import { CommandPalette } from "./platform/palette";
 import { GuidedTour, TourButton } from "./platform/tour";
 import { GovernanceForum, IncidentPlaybook, BreachNotification, ConvergenceCrosswalk, ProhibitedPractices, GpaiExposure, GapClosure, AIAssessment } from "./platform/convergence";
 import { EnvironmentalFootprint } from "./platform/sustainability";
+import { DataProvenance } from "./platform/data-provenance";
 import { JurisdictionAtlas, StatementOfApplicability, EvidenceFreshness, Glossary } from "./platform/guidebook";
 import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/roadmap";
 import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
@@ -28,7 +29,7 @@ import { TemplateLibrary } from "./platform/template-library";
    their working depth inside the new command center. */
 const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",emp_usage:"aiusage",mgr_usage:"aiusage",emp_learning:"academy",
   coo_reports:"reports",cfo_reports:"reports",chro_reports:"reports",ciso_reports:"reports",cio_reports:"reports",cdpo_reports:"reports",cgo_reports:"reports",cro_reports:"reports",
-  cgo_forum:"govforum",cgo_incidents:"incidents",cgo_breach:"breach",cgo_aia:"aia",cgo_carbon:"carbon",cgo_crosswalk:"crosswalk",cgo_redlines:"redlines",cgo_gpai:"gpai",
+  cgo_forum:"govforum",cgo_incidents:"incidents",cgo_breach:"breach",cgo_aia:"aia",cgo_dataprov:"dataprov",cgo_carbon:"carbon",cgo_crosswalk:"crosswalk",cgo_redlines:"redlines",cgo_gpai:"gpai",
   caio_crosswalk:"crosswalk",legal_crosswalk:"crosswalk",cgo_gapclosure:"gapclosure",
   cgo_jurisdictions:"jurisdictions",legal_jurisdictions:"jurisdictions",cgo_soa:"soa",caio_soa:"soa",cgo_freshness:"freshness",cgo_glossary:"glossary",
   cgo_drift:"drift",caio_drift:"drift",cgo_workflows:"workflows",ciso_workflows:"workflows",cgo_art12:"art12",legal_art12:"art12",
@@ -977,6 +978,7 @@ export default function VerisZone() {
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="govforum"&&<GovernanceForum role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="incidents"&&<IncidentPlaybook role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="breach"&&<BreachNotification role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="dataprov"&&<DataProvenance role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="aia"&&<AIAssessment role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="carbon"&&<EnvironmentalFootprint role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="crosswalk"&&<ConvergenceCrosswalk role={role} showToast={showToast}/>}
