@@ -2,11 +2,37 @@
 
 import { useState } from "react";
 import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
-import { REGIMES, REGIME_STATUS_META, jurisdictionStats, OPERATING_REGIONS } from "@/lib/jurisdictions";
+import { REGIMES, REGIME_STATUS_META, jurisdictionStats, OPERATING_REGIONS, REGION_AR } from "@/lib/jurisdictions";
 import { SOA_CONTROLS, SOA_STATUS_META, CERT_CLAUSES, soaStats } from "@/lib/soa";
 import { EVIDENCE_ARTIFACTS, FRESHNESS_META, freshnessStats } from "@/lib/evidence-freshness";
 import { GLOSSARY, GLOSSARY_CATEGORIES, GLOSSARY_CAT_AR } from "@/lib/glossary";
-import { useLang } from "@/lib/i18n";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic chrome for the Jurisdiction Atlas (surface-by-surface content localisation). */
+registerContent({
+  "Jurisdiction Atlas": "أطلس الولايات القضائية",
+  "Regimes tracked": "الأنظمة المتابَعة",
+  "Applies now": "ينطبق الآن",
+  "Monitor": "مراقبة",
+  "Out of scope": "خارج النطاق",
+  "All": "الكل",
+  "Applies": "ينطبق",
+  "binding obligations": "التزامات مُلزِمة",
+  "emerging / pending": "ناشئة / معلّقة",
+  "tracked, not binding": "متابَعة، غير مُلزِمة",
+  "The regime register": "سجل الأنظمة",
+  "Applies · effective date · penalty exposure": "الانطباق · تاريخ السريان · التعرّض للعقوبات",
+  "Export Atlas": "تصدير الأطلس",
+  "Regime": "النظام",
+  "Jurisdiction": "الولاية القضائية",
+  "Type": "النوع",
+  "Status": "الحالة",
+  "Effective": "السريان",
+  "Penalty exposure": "التعرّض للعقوبات",
+  "Veris Intelligence:": "استخبارات فيريس:",
+  "Jurisdiction Atlas exported — regimes, status, effective dates and penalties":
+    "تم تصدير أطلس الاختصاصات — الأنظمة والحالة وتواريخ السريان والعقوبات",
+});
 
 /* ── shared local primitives (match the platform's visual language) ── */
 const tok = k => ({ crit: T.red, warn: T.amber, info: T.blue, good: T.green, ink3: T.ink3 }[k] || T.ink3);
@@ -23,38 +49,47 @@ const kpiGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(
 
 /* ══════════════ JURISDICTION ATLAS ══════════════ */
 export function JurisdictionAtlas({ showToast }) {
+  const lang = useLang();
+  const ar = lang === "ar";
+  const T_ = en => ts(lang, en);
   const s = jurisdictionStats();
   const [f, setF] = useState("all");
   const rows = REGIMES.filter(r => f === "all" || r.status === f);
   const chips = [["all", "All"], ["applies", "Applies"], ["monitor", "Monitor"], ["out", "Out of scope"]];
+  const regionsLabel = OPERATING_REGIONS.map(r => ar ? (REGION_AR[r] || r) : r).join(ar ? "، " : ", ");
+  const sub = ar
+    ? `أي الأنظمة تُلزِم المؤسسة، وأين يقف كلٌّ منها. يُصنّف كل نظام نفسه ينطبق / مراقبة / خارج النطاق انطلاقاً من الأسواق التي تعمل فيها المنشأة فعلاً — ${regionsLabel}. أنظمة كثيرة، ومجموعة ضوابط واحدة: تنهار الالتزامات في مصفوفة التقارب.`
+    : `Which regimes bind the enterprise, and where each stands. Each regime self-flags Applies / Monitor / Out of scope from the markets the estate actually operates in — ${regionsLabel}. Many regimes, one control set: obligations collapse into the convergence crosswalk.`;
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Jurisdiction Atlas" sub={`Which regimes bind the enterprise, and where each stands. Each regime self-flags Applies / Monitor / Out of scope from the markets the estate actually operates in — ${OPERATING_REGIONS.join(", ")}. Many regimes, one control set: obligations collapse into the convergence crosswalk.`} />
+    <Head title={T_("Jurisdiction Atlas")} sub={sub} />
     <div style={kpiGrid}>
-      <Kpi l="Regimes tracked" v={String(s.total)} c={AI_GOLD} sub={`across ${s.regions} operating regions`} />
-      <Kpi l="Applies now" v={String(s.applies)} c={T.red} sub="binding obligations" />
-      <Kpi l="Monitor" v={String(s.monitor)} c={T.amber} sub="emerging / pending" />
-      <Kpi l="Out of scope" v={String(s.out)} c={T.ink3} sub="tracked, not binding" />
+      <Kpi l={T_("Regimes tracked")} v={String(s.total)} c={AI_GOLD} sub={ar ? `عبر ${s.regions} مناطق تشغيل` : `across ${s.regions} operating regions`} />
+      <Kpi l={T_("Applies now")} v={String(s.applies)} c={T.red} sub={T_("binding obligations")} />
+      <Kpi l={T_("Monitor")} v={String(s.monitor)} c={T.amber} sub={T_("emerging / pending")} />
+      <Kpi l={T_("Out of scope")} v={String(s.out)} c={T.ink3} sub={T_("tracked, not binding")} />
     </div>
     <Card style={cardPad}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <div><Eyebrow>The regime register · {rows.length} of {s.total}</Eyebrow><H3>Applies · effective date · penalty exposure</H3></div>
-        <button onClick={() => showToast && showToast("Jurisdiction Atlas exported — regimes, status, effective dates and penalties")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 13px", color: T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export Atlas</button>
+        <div><Eyebrow>{T_("The regime register")} · {rows.length} {ar ? "من" : "of"} {s.total}</Eyebrow><H3>{T_("Applies · effective date · penalty exposure")}</H3></div>
+        <button onClick={() => showToast && showToast(T_("Jurisdiction Atlas exported — regimes, status, effective dates and penalties"))} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 13px", color: T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{T_("Export Atlas")}</button>
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {chips.map(([k, l]) => <button key={k} onClick={() => setF(k)} style={{ fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", color: f === k ? "#241703" : T.ink2, background: f === k ? AI_GOLD : T.s2, border: `1px solid ${f === k ? AI_GOLD : T.border}`, borderRadius: 999, padding: "5px 12px" }}>{l}</button>)}
+        {chips.map(([k, l]) => <button key={k} onClick={() => setF(k)} style={{ fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", color: f === k ? "#241703" : T.ink2, background: f === k ? AI_GOLD : T.s2, border: `1px solid ${f === k ? AI_GOLD : T.border}`, borderRadius: 999, padding: "5px 12px" }}>{T_(l)}</button>)}
       </div>
-      <Table head={["Regime", "Jurisdiction", "Type", "Status", "Effective", "Penalty exposure"]}>
+      <Table head={[T_("Regime"), T_("Jurisdiction"), T_("Type"), T_("Status"), T_("Effective"), T_("Penalty exposure")]}>
         {rows.map(r => { const m = REGIME_STATUS_META[r.status]; return <tr key={r.id}>
-          <Td style={{ fontWeight: 700, color: T.ink, minWidth: 160 }}>{r.regime}<div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 500, marginTop: 3, maxWidth: 300, lineHeight: 1.45 }}>{r.note}</div></Td>
-          <Td>{r.geo}</Td>
-          <Td style={{ color: T.ink3 }}>{r.instrument}</Td>
-          <Td><Pill c={tok(m.tone)}>{m.label}</Pill></Td>
-          <Td style={{ color: T.ink3, whiteSpace: "nowrap" }}>{r.effective}</Td>
-          <Td style={{ color: T.ink3, maxWidth: 200 }}>{r.penalty}</Td>
+          <Td style={{ fontWeight: 700, color: T.ink, minWidth: 160 }}>{ar && r.regimeAr ? r.regimeAr : r.regime}<div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 500, marginTop: 3, maxWidth: 300, lineHeight: 1.45 }}>{ar && r.noteAr ? r.noteAr : r.note}</div></Td>
+          <Td>{ar && r.geoAr ? r.geoAr : r.geo}</Td>
+          <Td style={{ color: T.ink3 }}>{ar && r.instrumentAr ? r.instrumentAr : r.instrument}</Td>
+          <Td><Pill c={tok(m.tone)}>{ar && m.labelAr ? m.labelAr : m.label}</Pill></Td>
+          <Td style={{ color: T.ink3, whiteSpace: "nowrap" }}>{ar && r.effectiveAr ? r.effectiveAr : r.effective}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 200 }}>{ar && r.penaltyAr ? r.penaltyAr : r.penalty}</Td>
         </tr>; })}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.applies} regimes bind the estate today across {s.regions} regions. Rather than run one programme per regime, each maps to the shared 32-capability control set — one artifact satisfies the matching clause in every regime that cites it.
+        <b style={{ color: AI_GOLD_INK }}>{T_("Veris Intelligence:")}</b> {ar
+          ? ` ${s.applies} أنظمة تُلزِم المنشأة اليوم عبر ${s.regions} مناطق. وبدلاً من تشغيل برنامج لكل نظام، يرتبط كلٌّ منها بمجموعة الضوابط المشتركة المكوّنة من 32 قدرة — قطعة دليل واحدة تستوفي البند المطابق في كل نظام يستشهد بها.`
+          : ` ${s.applies} regimes bind the estate today across ${s.regions} regions. Rather than run one programme per regime, each maps to the shared 32-capability control set — one artifact satisfies the matching clause in every regime that cites it.`}
       </div>
     </Card>
   </div>;
