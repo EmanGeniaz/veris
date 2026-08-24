@@ -10,6 +10,84 @@ import {
   NOTIFICATION_REGIMES, BREACH_REGISTER, NOTIFICATION_WORKFLOW,
   breachClock, regimesFor, tightestDeadlineH, breachStats, breachCoverage,
 } from "@/lib/breach-notification";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic content for the Breach Notification surface (content cycle 1). Keyed
+   by the English string; missing strings fall back to English. */
+registerContent({
+  // headings / chrome
+  "Breach Notification": "الإبلاغ عن خرق البيانات",
+  "The Notify stage of the incident playbook, made first-class. A confirmed personal-data breach or serious AI incident starts a regulatory clock — several regimes oblige notification to an authority, and sometimes to affected individuals, within a fixed window. This workspace runs that decision over the one incident register and keeps the evidence.": "مرحلة «الإبلاغ» من دليل الاستجابة للحوادث، بصفتها ركناً أساسياً. يؤدي خرق بيانات شخصية مؤكَّد أو حادث ذكاء اصطناعي جسيم إلى بدء ساعة تنظيمية — تُلزم عدة أنظمة بالإبلاغ إلى جهة رقابية، وأحياناً إلى الأفراد المتأثرين، خلال مهلة محددة. تُدير هذه المساحة ذلك القرار عبر سجل الحوادث الموحّد وتحتفظ بالأدلة.",
+  "One clock, every regime": "ساعة واحدة، وكل نظام",
+  "Assess once — notify every authority whose window is running": "قيّم مرة واحدة — وأبلغ كل جهة تسري مهلتها",
+  "A single breach can run the GDPR 72-hour clock, India's DPDP and CERT-In 6-hour clocks and the EU AI Act serious-incident clock at once. The workflow resolves them together, notifies against the tightest, and files one evidence pack — never four separate scrambles.": "قد يُشغّل خرق واحد ساعة الـ72 ساعة في GDPR، وساعتَي DPDP وCERT-In (6 ساعات) في الهند، وساعة الحادث الجسيم في قانون الذكاء الاصطناعي الأوروبي — كلها معاً. يحلّها سير العمل مجتمعةً، ويُبلغ وفق الأضيق مهلةً، ويودِع حزمة أدلة واحدة — لا أربع محاولات متفرقة.",
+  "NOTIFICATION REGIMES": "أنظمة الإبلاغ",
+  // KPIs
+  "Breaches assessed": "خروقات جرى تقييمها", "Notifiable now": "واجبة الإبلاغ الآن",
+  "Notified on time": "أُبلغت في الوقت", "Tightest live clock": "أضيق ساعة سارية",
+  "on the regulatory clock": "على الساعة التنظيمية", "to the binding deadline": "حتى المهلة المُلزِمة",
+  // regime table
+  "The clocks · who must be told, by when": "الساعات · من يجب إبلاغه، ومتى",
+  "Every notification duty the estate is exposed to": "كل واجب إبلاغ تتعرّض له المنشأة",
+  "Regime": "النظام", "Basis": "الأساس", "Region": "الإقليم", "Who is notified": "من يُبلَّغ", "Window": "المهلة", "Trigger": "المُحفِّز",
+  // regime data
+  "EU AI Act": "قانون الذكاء الاصطناعي الأوروبي", "India DPDP Act": "قانون DPDP الهندي",
+  "India CERT-In": "CERT-In الهندية", "Brazil LGPD": "قانون LGPD البرازيلي",
+  "EU / EEA": "الاتحاد الأوروبي / المنطقة الاقتصادية", "EU": "الاتحاد الأوروبي", "India": "الهند", "Brazil": "البرازيل",
+  "Supervisory authority": "الجهة الرقابية", "Affected data subjects": "أصحاب البيانات المتأثرون",
+  "Market-surveillance authority": "جهة مراقبة السوق", "Data Protection Board + principals": "مجلس حماية البيانات + الأفراد",
+  "CERT-In": "CERT-In", "ANPD + data subjects": "ANPD + أصحاب البيانات",
+  "72 hours from awareness": "72 ساعة من العِلم", "Without undue delay · high risk": "دون تأخير غير مبرَّر · خطورة عالية",
+  "15 days · 2d widespread · 10d on death": "15 يوماً · يومان للانتشار الواسع · 10 أيام عند الوفاة",
+  "Without delay · Rules-prescribed": "دون تأخير · وفق اللوائح", "6 hours from noticing": "6 ساعات من الملاحظة",
+  "~2 business days · reasonable term": "~يومَا عمل · مدة معقولة",
+  "Any personal-data breach likely to result in a risk to individuals.": "أي خرق لبيانات شخصية يُرجَّح أن يُنشئ خطراً على الأفراد.",
+  "A breach likely to result in a HIGH risk to individuals' rights.": "خرق يُرجَّح أن يُنشئ خطراً عالياً على حقوق الأفراد.",
+  "A serious incident of a high-risk AI system.": "حادث جسيم لنظام ذكاء اصطناعي عالي الخطورة.",
+  "Any personal-data breach — no materiality threshold.": "أي خرق لبيانات شخصية — دون حدّ جوهرية.",
+  "A specified cyber-security incident (AI systems included).": "حادث أمن سيبراني محدَّد (تشمل أنظمة الذكاء الاصطناعي).",
+  "A security incident that may create risk or relevant damage.": "حادث أمني قد يُنشئ خطراً أو ضرراً ذا صلة.",
+  // register
+  "The register · every breach assessed for notifiability": "السجل · كل خرق جرى تقييمه لوجوب الإبلاغ",
+  "Assess → decide → notify → log — click any row for the decision": "قيّم ← قرّر ← أبلغ ← وثّق — انقر أي صف لعرض القرار",
+  "Most breaches are assessed and found not notifiable — the workflow still records that decision. The clock shows only where a duty is live.": "معظم الخروقات تُقيَّم ويتبيّن أنها غير واجبة الإبلاغ — ويسجّل سير العمل ذلك القرار مع ذلك. ولا تظهر الساعة إلا حيث يكون الواجب سارياً.",
+  "Ref": "المرجع", "Breach": "الخرق", "System": "النظام", "Personal data": "بيانات شخصية", "Regimes": "الأنظمة", "Clock": "الساعة", "Decision": "القرار",
+  "Yes": "نعم", "No": "لا", "historical": "سابق",
+  "Notified": "أُبلغ", "Notifiable": "واجب الإبلاغ", "Assessed": "مُقيَّم",
+  "Assessed · not notifiable": "مُقيَّم · غير واجب الإبلاغ", "No clock": "لا ساعة",
+  "notification decision:": "قرار الإبلاغ:", "Owner:": "المسؤول:",
+  // breach register data
+  "Prompt-injection attempt on Resolution Copilot": "محاولة حقن تعليمات على مساعد الحلول",
+  "PII near-miss in prompt logs": "شبه تسريب لبيانات شخصية في سجلات الإدخالات",
+  "Sub-processor mis-config exposed export bucket": "خطأ إعداد لدى معالج فرعي كشف حاوية تصدير",
+  "Cross-border data flow without transfer mapping (APAC)": "تدفّق بيانات عابر للحدود دون خريطة نقل (آسيا-الهادئ)",
+  "Vendor model API leaked truncated records in error payload": "واجهة نموذج مورّد سرّبت سجلات مقتطعة في حمولة خطأ",
+  "Attack blocked at the gateway; no personal data left the boundary — assessed under Art. 33, no notification, decision logged.": "صُدّ الهجوم عند البوابة؛ ولم تغادر أي بيانات شخصية الحدود — قُيّم بموجب المادة 33، دون إبلاغ، وسُجّل القرار.",
+  "Masked before egress; contained in-boundary — assessed as a near-miss, not notifiable, retained under Art. 33(5) internal record.": "أُخفيت قبل الإخراج؛ واحتُويت داخل الحدود — قُيّم كشبه تسريب، غير واجب الإبلاغ، واحتُفظ به بموجب سجل المادة 33(5) الداخلي.",
+  "Confirmed personal-data breach via a vendor — notified the lead DPA at 61h (within 72h) and affected principals; evidence pack filed.": "خرق بيانات شخصية مؤكَّد عبر مورّد — أُبلغت الجهة الرقابية الرئيسية عند 61 ساعة (ضمن 72) والأفراد المتأثرون؛ وأُودعت حزمة الأدلة.",
+  "A transfer-governance gap, not a confided-data breach — transfer impact assessment completed, mapping in place, no notification duty.": "فجوة في حوكمة النقل، لا خرق بيانات مُودَعة — اكتمل تقييم أثر النقل، والخريطة قائمة، ولا واجب إبلاغ.",
+  "Confirmed personal-data breach — notifiable. CERT-In 6h window met; DPA + DPB notification drafted, principal notice in review against the 72h clock.": "خرق بيانات شخصية مؤكَّد — واجب الإبلاغ. استُوفيت مهلة CERT-In (6 ساعات)؛ وصيغت إشعارات الجهة الرقابية والمجلس، وإشعار الأفراد قيد المراجعة مقابل ساعة الـ72.",
+  // workflow
+  "The decision · five stages that produce the evidence": "القرار · خمس مراحل تُنتج الأدلة",
+  "Assess": "التقييم", "Scope": "التحديد", "Decide": "القرار", "Notify": "الإبلاغ", "Log": "التوثيق",
+  "Is this a personal-data breach or a serious AI incident? Confirm what data / harm actually occurred.": "هل هذا خرق بيانات شخصية أم حادث ذكاء اصطناعي جسيم؟ أكّد البيانات / الضرر الذي وقع فعلاً.",
+  "Whose data, which jurisdictions, which authorities — resolve every regime whose clock now runs.": "بيانات مَن، وأي ولايات قضائية، وأي جهات — حدّد كل نظام تسري ساعته الآن.",
+  "Notifiable? Test each regime's threshold against the facts and start the tightest clock.": "واجب الإبلاغ؟ اختبر حدّ كل نظام مقابل الوقائع وابدأ الساعة الأضيق.",
+  "Notify the authority within the window; notify affected individuals without undue delay where the risk is high.": "أبلغ الجهة ضمن المهلة؛ وأبلغ الأفراد المتأثرين دون تأخير غير مبرَّر حيث تكون الخطورة عالية.",
+  "File the notification record + evidence pack — the Art. 33(5) internal register and the Article 12 log.": "وثّق سجل الإبلاغ + حزمة الأدلة — سجل المادة 33(5) الداخلي وسجل المادة 12.",
+  "CDPO + CISO": "مسؤول حماية البيانات + مسؤول الأمن", "CDPO + Legal": "مسؤول حماية البيانات + الشؤون القانونية",
+  "CDPO + CGO": "مسؤول حماية البيانات + مسؤول الحوكمة", "CDPO + Legal + Comms": "مسؤول حماية البيانات + القانونية + الاتصال",
+  "Governance Office": "مكتب الحوكمة",
+  // owners (people)
+  "Omar Khan · CISO": "عمر خان · مسؤول الأمن", "Priya Mehta · CDPO": "بريا ميهتا · مسؤول حماية البيانات",
+  "Customer Resolution Copilot": "مساعد حلول العملاء", "Analytics data pipeline": "خط بيانات التحليلات",
+  "Predictive Maintenance": "الصيانة التنبؤية", "Skills Navigator (vendor LLM)": "مُوجّه المهارات (نموذج مورّد)",
+  // who (authority short names)
+  "Lead DPA": "الجهة الرقابية الرئيسية", "Data subjects": "أصحاب البيانات", "MSA": "جهة مراقبة السوق",
+  "DPB + principals": "المجلس + الأفراد", "ANPD": "الهيئة الوطنية (ANPD)",
+  // buttons
+  "Start a breach assessment": "ابدأ تقييم خرق", "Export notification pack": "تصدير حزمة الإبلاغ",
+});
 import {
   INSTRUMENTS, CROSSWALK, CROSSWALK_DOMAINS, STATUS_META, crosswalkStats,
 } from "@/lib/crosswalk";
@@ -153,31 +231,45 @@ export function IncidentPlaybook({ showToast }) {
 
 /* ══════════════ 2b · BREACH-NOTIFICATION WORKFLOW ══════════════ */
 export function BreachNotification({ showToast }) {
+  const lang = useLang();
+  const ar = lang === "ar";
+  const T_ = en => ts(lang, en);
+  const hrs = n => ar ? `${n}س` : `${n}h`;   // hour unit
+  /* translate a dynamic clock label (numbers preserved) */
+  const clockAr = label => {
+    if (!ar || !label) return label;
+    let m;
+    if ((m = /^(\d+)h to notify$/.exec(label))) return `متبقٍ ${m[1]}س للإبلاغ`;
+    if ((m = /^Notified in (\d+)h$/.exec(label))) return `أُبلغ خلال ${m[1]}س`;
+    if ((m = /^Notified late \((\d+)h\)$/.exec(label))) return `أُبلغ متأخراً (${m[1]}س)`;
+    if ((m = /^Overdue by (\d+)h$/.exec(label))) return `متأخر بـ ${m[1]}س`;
+    return ts(lang, label);
+  };
   const s = breachStats();
   const cov = breachCoverage();
   const [open, setOpen] = useState(null);
-  const clockLabel = s.tightestRemainingH == null ? "—" : `${s.tightestRemainingH}h`;
+  const clockLabel = s.tightestRemainingH == null ? "—" : hrs(s.tightestRemainingH);
   const kpis = [
-    ["Breaches assessed", String(s.total), AI_GOLD, `${cov.pct}% of in-scope incidents`],
-    ["Notifiable now", String(s.notifiable), s.notifiable ? T.red : T.green, "on the regulatory clock"],
-    ["Notified on time", `${s.onTimeRate}%`, T.green, `${s.notified} filed within the window`],
-    ["Tightest live clock", clockLabel, s.tightestRemainingH != null && s.tightestRemainingH <= 24 ? T.red : AI_GOLD, "to the binding deadline"],
+    [T_("Breaches assessed"), String(s.total), AI_GOLD, ar ? `${cov.pct}% من الحوادث ضمن النطاق` : `${cov.pct}% of in-scope incidents`],
+    [T_("Notifiable now"), String(s.notifiable), s.notifiable ? T.red : T.green, T_("on the regulatory clock")],
+    [T_("Notified on time"), `${s.onTimeRate}%`, T.green, ar ? `${s.notified} أُبلغت ضمن المهلة` : `${s.notified} filed within the window`],
+    [T_("Tightest live clock"), clockLabel, s.tightestRemainingH != null && s.tightestRemainingH <= 24 ? T.red : AI_GOLD, T_("to the binding deadline")],
   ];
   const regTone = { "EU / EEA": T.blue, "EU": T.blue, "India": AI_GOLD, "Brazil": T.green };
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Breach Notification" sub="The Notify stage of the incident playbook, made first-class. A confirmed personal-data breach or serious AI incident starts a regulatory clock — several regimes oblige notification to an authority, and sometimes to affected individuals, within a fixed window. This workspace runs that decision over the one incident register and keeps the evidence." />
+    <Head title={T_("Breach Notification")} sub={T_("The Notify stage of the incident playbook, made first-class. A confirmed personal-data breach or serious AI incident starts a regulatory clock — several regimes oblige notification to an authority, and sometimes to affected individuals, within a fixed window. This workspace runs that decision over the one incident register and keeps the evidence.")} />
 
     {/* charter / clock headline */}
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ maxWidth: 640 }}>
-          <Eyebrow style={{ color: AI_GOLD_INK }}>One clock, every regime</Eyebrow>
-          <H3 style={{ fontSize: 18 }}>Assess once — notify every authority whose window is running</H3>
-          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>A single breach can run the GDPR 72-hour clock, India's DPDP and CERT-In 6-hour clocks and the EU AI Act serious-incident clock at once. The workflow resolves them together, notifies against the tightest, and files one evidence pack — never four separate scrambles.</p>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>{T_("One clock, every regime")}</Eyebrow>
+          <H3 style={{ fontSize: 18 }}>{T_("Assess once — notify every authority whose window is running")}</H3>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{T_("A single breach can run the GDPR 72-hour clock, India's DPDP and CERT-In 6-hour clocks and the EU AI Act serious-incident clock at once. The workflow resolves them together, notifies against the tightest, and files one evidence pack — never four separate scrambles.")}</p>
         </div>
         <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 130 }}>
           <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{s.regimes}</div>
-          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>NOTIFICATION REGIMES</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>{T_("NOTIFICATION REGIMES")}</div>
         </div>
       </div>
     </Card>
@@ -193,46 +285,46 @@ export function BreachNotification({ showToast }) {
 
     {/* the regimes and their clocks */}
     <Card style={{ ...cardPad, marginBottom: 14 }}>
-      <Eyebrow>The clocks · who must be told, by when</Eyebrow>
-      <H3 style={{ marginBottom: 12 }}>Every notification duty the estate is exposed to</H3>
-      <Table head={["Regime", "Basis", "Region", "Who is notified", "Window", "Trigger"]}>
+      <Eyebrow>{T_("The clocks · who must be told, by when")}</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>{T_("Every notification duty the estate is exposed to")}</H3>
+      <Table head={["Regime", "Basis", "Region", "Who is notified", "Window", "Trigger"].map(T_)}>
         {NOTIFICATION_REGIMES.map(r => <tr key={r.id}>
-          <Td style={{ fontWeight: 800, color: T.ink }}>{r.regime}</Td>
+          <Td style={{ fontWeight: 800, color: T.ink }}>{T_(r.regime)}</Td>
           <Td style={{ fontFamily: F.m, fontSize: 10.5, color: T.ink3, whiteSpace: "nowrap" }}>{r.basis}</Td>
-          <Td><Pill c={regTone[r.region] || T.ink3}>{r.region}</Pill></Td>
-          <Td style={{ fontWeight: 700, color: T.ink2 }}>{r.audience}</Td>
-          <Td style={{ color: r.deadlineH <= 24 ? T.red : T.ink2, fontWeight: 700, whiteSpace: "nowrap" }}>{r.deadline}</Td>
-          <Td style={{ color: T.ink3, maxWidth: 260 }}>{r.trigger}</Td>
+          <Td><Pill c={regTone[r.region] || T.ink3}>{T_(r.region)}</Pill></Td>
+          <Td style={{ fontWeight: 700, color: T.ink2 }}>{T_(r.audience)}</Td>
+          <Td style={{ color: r.deadlineH <= 24 ? T.red : T.ink2, fontWeight: 700, whiteSpace: ar ? "normal" : "nowrap" }}>{T_(r.deadline)}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 260 }}>{T_(r.trigger)}</Td>
         </tr>)}
       </Table>
     </Card>
 
     {/* the breach register with computed clock */}
     <Card style={{ ...cardPad, marginBottom: 14 }}>
-      <Eyebrow>The register · every breach assessed for notifiability</Eyebrow>
-      <H3 style={{ marginBottom: 6 }}>Assess → decide → notify → log — click any row for the decision</H3>
-      <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, margin: "0 0 12px", lineHeight: 1.5 }}>Most breaches are assessed and found not notifiable — the workflow still records that decision. The clock shows only where a duty is live.</p>
-      <Table head={["Ref", "Breach", "System", "Personal data", "Regimes", "Clock", "Decision"]}>
+      <Eyebrow>{T_("The register · every breach assessed for notifiability")}</Eyebrow>
+      <H3 style={{ marginBottom: 6 }}>{T_("Assess → decide → notify → log — click any row for the decision")}</H3>
+      <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, margin: "0 0 12px", lineHeight: 1.5 }}>{T_("Most breaches are assessed and found not notifiable — the workflow still records that decision. The clock shows only where a duty is live.")}</p>
+      <Table head={["Ref", "Breach", "System", "Personal data", "Regimes", "Clock", "Decision"].map(T_)}>
         {BREACH_REGISTER.map(b => {
           const clk = breachClock(b);
           const isOpen = open === b.id;
-          const decMeta = b.decision === "notified" ? { c: T.green, l: "Notified" } : b.decision === "notifiable" ? { c: T.red, l: "Notifiable" } : { c: T.ink3, l: "Assessed" };
+          const decMeta = b.decision === "notified" ? { c: T.green, l: T_("Notified") } : b.decision === "notifiable" ? { c: T.red, l: T_("Notifiable") } : { c: T.ink3, l: T_("Assessed") };
           return [
             <tr key={b.id} onClick={() => setOpen(isOpen ? null : b.id)} style={{ cursor: "pointer" }}>
-              <Td style={{ fontFamily: F.m, fontWeight: 700, color: T.ink }}>{b.id}<div style={{ fontSize: 9, color: T.ink4, marginTop: 2 }}>{b.incidentId || "historical"}</div></Td>
-              <Td style={{ fontWeight: 700, color: T.ink, minWidth: 190 }}>{b.title}</Td>
-              <Td style={{ color: T.ink3 }}>{b.system}</Td>
-              <Td>{b.personalData ? <Pill c={AI_GOLD}>Yes</Pill> : <Pill c={T.ink3}>No</Pill>}</Td>
+              <Td style={{ fontFamily: F.m, fontWeight: 700, color: T.ink }}>{b.id}<div style={{ fontSize: 9, color: T.ink4, marginTop: 2 }}>{b.incidentId || T_("historical")}</div></Td>
+              <Td style={{ fontWeight: 700, color: T.ink, minWidth: 190 }}>{T_(b.title)}</Td>
+              <Td style={{ color: T.ink3 }}>{T_(b.system)}</Td>
+              <Td>{b.personalData ? <Pill c={AI_GOLD}>{T_("Yes")}</Pill> : <Pill c={T.ink3}>{T_("No")}</Pill>}</Td>
               <Td style={{ minWidth: 130 }}><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{regimesFor(b).map(r => <span key={r.id} style={{ fontSize: 9, fontWeight: 800, fontFamily: F.m, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 7px" }}>{r.basis}</span>)}</div></Td>
-              <Td><Pill c={tok(clk.tone)}>{clk.label}</Pill></Td>
+              <Td><Pill c={tok(clk.tone)}>{clockAr(clk.label)}</Pill></Td>
               <Td><Pill c={decMeta.c}>{decMeta.l}</Pill></Td>
             </tr>,
             isOpen && <tr key={b.id + "-d"}><td colSpan={7} style={{ padding: "0 10px 12px" }}>
               <div style={{ background: AI_GOLD + "10", border: `1px solid ${AI_GOLD}30`, borderRadius: 10, padding: "11px 13px", fontSize: 11, color: T.ink2, fontFamily: F.b, lineHeight: 1.6 }}>
-                <b style={{ color: AI_GOLD_INK }}>{b.id} · notification decision:</b> {b.rationale}
+                <b style={{ color: AI_GOLD_INK }}>{b.id} · {T_("notification decision:")}</b> {T_(b.rationale)}
                 <div style={{ marginTop: 7, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {regimesFor(b).map(r => <span key={r.id} style={{ fontSize: 10, fontFamily: F.b, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 9px" }}><b style={{ color: T.ink2 }}>{r.regime} {r.basis}</b> · {r.who} · {r.deadline}</span>)}
-                  <span style={{ fontSize: 10, fontFamily: F.b, color: T.ink3 }}>Owner: <b style={{ color: T.ink2 }}>{b.owner}</b></span>
+                  {regimesFor(b).map(r => <span key={r.id} style={{ fontSize: 10, fontFamily: F.b, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 8, padding: "3px 9px" }}><b style={{ color: T.ink2 }}>{T_(r.regime)} {r.basis}</b> · {T_(r.who)} · {T_(r.deadline)}</span>)}
+                  <span style={{ fontSize: 10, fontFamily: F.b, color: T.ink3 }}>{T_("Owner:")} <b style={{ color: T.ink2 }}>{T_(b.owner)}</b></span>
                 </div>
               </div>
             </td></tr>,
@@ -243,24 +335,27 @@ export function BreachNotification({ showToast }) {
 
     {/* the workflow */}
     <Card style={cardPad}>
-      <Eyebrow>The decision · five stages that produce the evidence</Eyebrow>
-      <H3 style={{ marginBottom: 12 }}>Assess → Scope → Decide → Notify → Log</H3>
+      <Eyebrow>{T_("The decision · five stages that produce the evidence")}</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>{[T_("Assess"), T_("Scope"), T_("Decide"), T_("Notify"), T_("Log")].join(" → ")}</H3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10 }}>
         {NOTIFICATION_WORKFLOW.map(st => <div key={st.n} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 13px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <span style={{ width: 22, height: 22, borderRadius: 7, background: AI_GOLD + "1c", border: `1px solid ${AI_GOLD}45`, color: AI_GOLD_INK, fontFamily: F.m, fontWeight: 900, fontSize: 11, display: "grid", placeItems: "center" }}>{st.n}</span>
-            <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{st.stage}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{T_(st.stage)}</span>
           </div>
-          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, marginBottom: 6 }}>{st.crit}</div>
-          <Pill c={T.blue}>{st.owner}</Pill>
+          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, marginBottom: 6 }}>{T_(st.crit)}</div>
+          <Pill c={T.blue}>{T_(st.owner)}</Pill>
         </div>)}
       </div>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.notifiable ? <>{s.notifiable} breach is on the clock — the tightest window is <b style={{ color: T.ink2 }}>{clockLabel}</b>. CERT-In's 6-hour clock is met; the DPA and DPB notices are drafted and the affected-principal notice is in review against the 72-hour window.</> : <>No breach is currently notifiable. Every assessment is recorded, so the not-notifiable decisions are as defensible as the notifications.</>} This workflow is the control that satisfies GDPR Art. 33/34, EU AI Act Art. 73, India DPDP s. 8(6) and CERT-In at once.
+        <b style={{ color: AI_GOLD_INK }}>{ar ? "فيرِس إنتليجنس:" : "Veris Intelligence:"}</b> {ar
+          ? (s.notifiable ? <>{s.notifiable} خرق على الساعة — أضيق مهلة هي <b style={{ color: T.ink2 }}>{clockLabel}</b>. استُوفيت ساعة CERT-In (6 ساعات)؛ وصيغت إشعارات الجهة الرقابية والمجلس، وإشعار الأفراد قيد المراجعة مقابل مهلة الـ72 ساعة. </> : <>لا يوجد خرق واجب الإبلاغ حالياً. كل تقييم مسجَّل، فقرارات عدم الإبلاغ قابلة للدفاع عنها كالإبلاغات تماماً. </>)
+          : (s.notifiable ? <>{s.notifiable} breach is on the clock — the tightest window is <b style={{ color: T.ink2 }}>{clockLabel}</b>. CERT-In's 6-hour clock is met; the DPA and DPB notices are drafted and the affected-principal notice is in review against the 72-hour window. </> : <>No breach is currently notifiable. Every assessment is recorded, so the not-notifiable decisions are as defensible as the notifications. </>)}
+        {ar ? "هذا السير هو الضابط الذي يستوفي GDPR (المادة 33/34) وقانون الذكاء الاصطناعي الأوروبي (المادة 73) وقانون DPDP الهندي (المادة 8(6)) وCERT-In دفعة واحدة." : "This workflow is the control that satisfies GDPR Art. 33/34, EU AI Act Art. 73, India DPDP s. 8(6) and CERT-In at once."}
       </div>
       <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
-        <button onClick={() => showToast && showToast("Breach assessment started — regimes resolved, tightest clock running")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Start a breach assessment</button>
-        <button onClick={() => showToast && showToast("Notification pack exported — authority notices + Art.33(5) register entry")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Export notification pack</button>
+        <button onClick={() => showToast && showToast(ar ? "بدأ تقييم الخرق — حُدّدت الأنظمة، والساعة الأضيق تعمل" : "Breach assessment started — regimes resolved, tightest clock running")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{T_("Start a breach assessment")}</button>
+        <button onClick={() => showToast && showToast(ar ? "صُدّرت حزمة الإبلاغ — إشعارات الجهات + قيد سجل المادة 33(5)" : "Notification pack exported — authority notices + Art.33(5) register entry")} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 15px", color: T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{T_("Export notification pack")}</button>
       </div>
     </Card>
   </div>;

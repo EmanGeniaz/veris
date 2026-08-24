@@ -17,7 +17,7 @@ import { GovernanceForum, IncidentPlaybook, BreachNotification, ConvergenceCross
 import { EnvironmentalFootprint } from "./platform/sustainability";
 import { DataProvenance } from "./platform/data-provenance";
 import { ArabicGovernanceBriefing } from "./platform/arabic-pilot";
-import { LANGS, dirFor, tn } from "@/lib/i18n";
+import { LANGS, dirFor, tn, LangContext } from "@/lib/i18n";
 import { JurisdictionAtlas, StatementOfApplicability, EvidenceFreshness, Glossary } from "./platform/guidebook";
 import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/roadmap";
 import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
@@ -910,7 +910,7 @@ export default function VerisZone() {
      the role sidebar / nav system, so render it full-page on its own. */
   if(role==="superadmin")return <><PageSuperAdmin onSignOut={signOut} showToast={showToast}/>{toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}</>;
 
-  return <div dir={rtl?"rtl":"ltr"} lang={lang} style={{display:"flex",minHeight:"100vh",background:T.bg}}>
+  return <LangContext.Provider value={lang}><div dir={rtl?"rtl":"ltr"} lang={lang} style={{display:"flex",minHeight:"100vh",background:T.bg}}>
     {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
     <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} paletteId={paletteId} onSignOut={signOut} sessionMode={sessionMode} profiles={userProfiles} lang={lang}/>
 
@@ -1045,6 +1045,6 @@ export default function VerisZone() {
     {<ExecAssistant role={role} isMobile={isMobile} showToast={showToast} tab={tab} goto={link=>{if(!link)return;if(link.ac){setAiCentralView(link.ac);setTab("aicentral");}else if(link.tab){setTab(link.tab);}}}/>}
     <CommandPalette open={paletteOpen} onClose={()=>setPaletteOpen(false)} role={role} theme={theme} actions={{navigate,setTab,setAiCentralView,setInitToOpen}}/>
     <GuidedTour open={tourOpen} onClose={()=>setTourOpen(false)} drive={{switchRole,setTab,setAiCentralView}}/>
-  </div>;
+  </div></LangContext.Provider>;
 }
 
