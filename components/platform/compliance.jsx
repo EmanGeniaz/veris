@@ -12,7 +12,7 @@ import { REGIONS, FW_CATEGORIES, FRAMEWORKS, frameworksForRegion, frameworkStats
 import { AU_GUARDRAILS, auGuardrailStats } from "@/lib/au-guardrails";
 import { SG_DIMENSIONS, sgDimensionStats } from "@/lib/sg-dimensions";
 import { CN_REQS, BR_REQS, KR_REQS, cnStats, brStats, krStats, CN_INSTRUMENTS, IN_REQS, inStats, IN_INSTRUMENTS, UK_REQS, CA_REQS, JP_REQS, ukStats, caStats, jpStats } from "@/lib/regional-mappings";
-import { UAE_REQS, uaeStats, UAE_INSTRUMENTS } from "@/lib/uae-mappings";
+import { UAE_REQS, uaeStats, UAE_INSTRUMENTS, UAE_STATUS_AR } from "@/lib/uae-mappings";
 import { NISTRMF_REQS, ISO42001_REQS, EUAIACT_REQS, GDPR_REQS, NISTSEC_REQS, OWASP_REQS, ATLAS_REQS, ISO27001_REQS, ISOTR20226_REQS, nistRmfStats, iso42001Stats, euAiActStats, gdprStats, nistSecStats, owaspStats, atlasStats, iso27001Stats, isoTr20226Stats } from "@/lib/computed-frameworks";
 import { ISO38507_REQS, ISO42005_REQS, iso38507Stats, iso42005Stats } from "@/lib/iso-standards";
 import { ISO23894_REQS, NISTGENAI_REQS, iso23894Stats, nistGenAIStats } from "@/lib/foundational-mappings";
@@ -20,6 +20,32 @@ import { ISO22989_REQS, ISO23053_REQS, ISO24027_REQS, ISO25059_REQS, ISO5338_REQ
 import { OECD_REQS, UNESCO_REQS, oecdStats, unescoStats } from "@/lib/principle-mappings";
 import { ISO37000_REQS, ISO38500_REQS, ISO38505_REQS, iso37000Stats, iso38500Stats, iso38505Stats, GOVERNANCE_LINEAGE } from "@/lib/governance-standards";
 import { T, RC, RCL, ROLES, AI_GOLD, AI_GOLD_INK, ISO42001_CHECKLIST, CHECKLISTS_MAP, HITL, KPI, ROLE_KPIS, STANDARDS_MAP, TEMPLATES, KIT_TEMPLATE_SOURCES, F, vzDownload, Glyph, IconBox, Tag, statusColor, Spinner, Bar, Ring, Card, SHead, KpiInsightPanel, COMMON_CONTROLS, SCOPE_DATA, TRUST_CENTER_DATA, ANNEX_A_CONTROLS, ISO27001_POLICIES, EVIDENCE_LIBRARY, AUDIT_PLAN, CORRECTIVE_ACTIONS, GAP_DATA } from "./core";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic chrome for the Framework Library + the UAE/Dubai mapping detail
+   (surface-by-surface content localisation). Framework-card data stays English
+   with fallback; the UAE PDPL mapping renders fully in Arabic from its data. */
+registerContent({
+  "Global Framework Library": "مكتبة الأطر العالمية",
+  "Customer jurisdiction": "الولاية القضائية للعميل",
+  "Frameworks applied": "الأطر المُطبَّقة",
+  "full library": "المكتبة الكاملة",
+  "Operational": "قيد التشغيل",
+  "mapped to live controls": "مرتبطة بضوابط حيّة",
+  "Mapped": "مُرتبطة",
+  "control-mapped, demo-ready": "مرتبطة بالضوابط، جاهزة للعرض",
+  "In library": "في المكتبة",
+  "ready to activate": "جاهزة للتفعيل",
+  "VerisZone control": "ضابط VerisZone",
+  "Evidenced in": "المُثبَت في",
+  "Status": "الحالة",
+  "Requirement": "المتطلب",
+  "The instruments": "الأدوات",
+  "in force": "سارية",
+  "Apply this jurisdiction stack": "طبّق حزمة هذه الولاية القضائية",
+  "Veris Intelligence:": "استخبارات فيريس:",
+  "Best for:": "الأنسب لـ:",
+});
 
 export function CompliancePosture({role,setTab,setAiCentralView}) {
   const [openStd,setOpenStd]=useState(null);
@@ -88,6 +114,7 @@ export function CompliancePosture({role,setTab,setAiCentralView}) {
    apply everywhere, plus that country's own national law or standard. */
 export function PageFrameworkLibrary({role,showToast}){
   const rc=RC(role);
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const [region,setRegion]=useState("global");
   const [mapFw,setMapFw]=useState(null);
   const list=frameworksForRegion(region);
@@ -132,20 +159,22 @@ export function PageFrameworkLibrary({role,showToast}){
   const statusTone=t=>({good:T.green,info:T.blue,ink3:T.ink4}[t]||T.ink4);
   const KPI=({l,v,c,sub})=><Card style={{padding:"13px 15px"}}><div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:26,fontWeight:900,color:c,fontFamily:F.m,margin:"5px 0 2px"}}>{v}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{sub}</div></Card>;
   return <div>
-    <SHead title="Global Framework Library" sub="No single framework covers everything — VerisZone ships the whole landscape hardcoded. Select the customer's jurisdiction and the applicable stack surfaces automatically: the global foundational, security and lifecycle standards that apply everywhere, plus that country's own national law or standard."/>
+    <SHead title={T_("Global Framework Library")} sub={ar
+      ? "لا يغطي أيّ إطار وحده كل شيء — تشحن VerisZone المشهد الكامل مُضمَّناً. اختر الولاية القضائية للعميل فتظهر الحزمة المنطبقة تلقائياً: المعايير الأساسية والأمنية ومعايير دورة الحياة العالمية التي تنطبق في كل مكان، إضافةً إلى القانون أو المعيار الوطني لتلك الدولة."
+      : "No single framework covers everything — VerisZone ships the whole landscape hardcoded. Select the customer's jurisdiction and the applicable stack surfaces automatically: the global foundational, security and lifecycle standards that apply everywhere, plus that country's own national law or standard."}/>
 
     <Card style={{padding:16,marginBottom:14}}>
-      <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,marginBottom:9}}>Customer jurisdiction</div>
+      <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,marginBottom:9}}>{T_("Customer jurisdiction")}</div>
       <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
         {REGIONS.map(r=>{const on=region===r.code;return <button key={r.code} onClick={()=>{setRegion(r.code);setMapFw(REGION_FW[r.code]||null);}} style={{background:on?rc+"18":T.s2,border:`1px solid ${on?rc+"55":T.border}`,color:on?rc:T.ink2,borderRadius:999,padding:"7px 13px",fontSize:11,fontWeight:on?900:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s",display:"inline-flex",alignItems:"center",gap:6}}><span style={{fontSize:13}}>{r.flag}</span>{r.label}</button>;})}
       </div>
     </Card>
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
-      <KPI l="Frameworks applied" v={String(s.total)} c={AI_GOLD} sub={region==="global"?"full library":`govern ${regionLabel(region)}`}/>
-      <KPI l="Operational" v={String(s.operational)} c={T.green} sub="mapped to live controls"/>
-      <KPI l="Mapped" v={String(s.mapped)} c={T.blue} sub="control-mapped, demo-ready"/>
-      <KPI l="In library" v={String(s.library)} c={T.ink3} sub="ready to activate"/>
+      <KPI l={T_("Frameworks applied")} v={String(s.total)} c={AI_GOLD} sub={region==="global"?T_("full library"):(ar?`تحكُم ${regionLabel(region)}`:`govern ${regionLabel(region)}`)}/>
+      <KPI l={T_("Operational")} v={String(s.operational)} c={T.green} sub={T_("mapped to live controls")}/>
+      <KPI l={T_("Mapped")} v={String(s.mapped)} c={T.blue} sub={T_("control-mapped, demo-ready")}/>
+      <KPI l={T_("In library")} v={String(s.library)} c={T.ink3} sub={T_("ready to activate")}/>
     </div>
 
     {FW_CATEGORIES.map(cat=>{const items=list.filter(f=>f.cat===cat.id);if(!items.length)return null;return <div key={cat.id} style={{marginBottom:18}}>
@@ -186,46 +215,52 @@ export function PageFrameworkLibrary({role,showToast}){
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
             <Tag label={f.obligation} color={/Binding|law|Certifiable/i.test(f.obligation)?T.amber:T.ink3} bg={(/Binding|law|Certifiable/i.test(f.obligation)?T.amber:T.ink3)+"14"}/>
             {typeof f.score==="number"&&<span style={{fontSize:10,fontWeight:800,color:tone,fontFamily:F.m}}>{f.score}% posture</span>}
-            {hasMap&&<span style={{fontSize:9.5,fontWeight:800,color:T.green,fontFamily:F.b,marginLeft:"auto"}}>{seld?"Mapping ↓":"View mapping →"}</span>}
+            {hasMap&&<span style={{fontSize:9.5,fontWeight:800,color:T.green,fontFamily:F.b,marginLeft:"auto"}}>{seld?(ar?"الربط ↓":"Mapping ↓"):(ar?"عرض الربط ←":"View mapping →")}</span>}
           </div>
-          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}><b style={{color:T.ink3}}>Best for:</b> {f.bestFor}</div>
+          <div style={{fontSize:10,color:T.ink4,fontFamily:F.b,marginTop:8,lineHeight:1.5}}><b style={{color:T.ink3}}>{T_("Best for:")}</b> {f.bestFor}</div>
         </Card>;})}
       </div>
     </div>;})}
 
     {(()=>{const M=mapFw&&MAPPINGS[mapFw];if(!M)return null;const fw=FRAMEWORKS.find(f=>f.id===mapFw);const g=M.stats;return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${T.green}40`}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap",marginBottom:4}}>
-        <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>Operational · {M.unit} mapping</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>{fw?fw.name:mapFw} · {M.rows.length} {M.unit}s</div></div>
-        <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} Met · {g.score}% posture</span>
+        <div><div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m}}>{T_("Operational")} · {ar?`ربط ${T_(M.unit)}`:`${M.unit} mapping`}</div><div style={{fontSize:15,fontWeight:800,color:T.ink,fontFamily:F.b,marginTop:3}}>{fw?fw.name:mapFw} · {M.rows.length} {ar?T_(M.unit):M.unit+"s"}</div></div>
+        <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} {ar?"مُستوفى":"Met"} · {g.score}% {ar?"وضعية":"posture"}</span>
       </div>
-      <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>Each {M.unit} maps to a control VerisZone already runs — posture computed from live controls, not asserted.</div>
+      <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>{ar
+        ? `يرتبط كل ${T_(M.unit)} بضابط تُشغّله VerisZone فعلاً — الوضعية محسوبة من الضوابط الحيّة، لا مُدّعاة.`
+        : `Each ${M.unit} maps to a control VerisZone already runs — posture computed from live controls, not asserted.`}</div>
       {M.instruments&&<div style={{marginBottom:13}}>
-        <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>The instruments · {M.instruments.length} in force</div>
+        <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>{T_("The instruments")} · {M.instruments.length} {T_("in force")}</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,230px),1fr))",gap:8}}>
           {M.instruments.map(inst=><div key={inst.id} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"9px 11px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",gap:6,alignItems:"baseline"}}><span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,lineHeight:1.3}}>{inst.short}</span><span style={{fontSize:9,fontWeight:800,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>{inst.eff}</span></div>
-            <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,margin:"2px 0 5px"}}>{inst.cite||inst.cn} · {inst.reg}</div>
-            <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{inst.req}</div>
+            <div style={{display:"flex",justifyContent:"space-between",gap:6,alignItems:"baseline"}}><span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b,lineHeight:1.3}}>{ar&&inst.shortAr?inst.shortAr:inst.short}</span><span style={{fontSize:9,fontWeight:800,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>{ar&&inst.effAr?inst.effAr:inst.eff}</span></div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.m,margin:"2px 0 5px"}}>{inst.cite||inst.cn} · {ar&&inst.regAr?inst.regAr:inst.reg}</div>
+            <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{ar&&inst.reqAr?inst.reqAr:inst.req}</div>
           </div>)}
         </div>
       </div>}
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
-        <thead><tr>{["#",M.col,"VerisZone control","Evidenced in","Status"].map(h=><th key={h} style={{textAlign:"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
-        <tbody>{M.rows.map(gd=>{const c=gd.status==="Met"?T.green:gd.status==="Gap"?T.red:T.amber;return <tr key={gd.n}>
+        <thead><tr>{["#",T_(M.col),T_("VerisZone control"),T_("Evidenced in"),T_("Status")].map(h=><th key={h} style={{textAlign:ar?"right":"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <tbody>{M.rows.map(gd=>{const c=gd.status==="Met"?T.green:gd.status==="Gap"?T.red:T.amber;const stLabel=ar?(UAE_STATUS_AR[gd.status]||gd.status):gd.status;return <tr key={gd.n}>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink4,fontFamily:F.m,fontWeight:800}}>{gd.n}</td>
-          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{gd.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:500,marginTop:1}}>{gd.desc}</div></td>
-          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{gd.control}</td>
-          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink3,fontFamily:F.m,fontSize:10}}>{gd.surface}</td>
-          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`}}><span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:c,background:c+"18",border:`1px solid ${c}40`,borderRadius:999,padding:"3px 9px"}}>{gd.status}</span></td>
+          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{ar&&gd.nameAr?gd.nameAr:gd.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:500,marginTop:1}}>{ar&&gd.descAr?gd.descAr:gd.desc}</div></td>
+          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink2}}>{ar&&gd.controlAr?gd.controlAr:gd.control}</td>
+          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink3,fontFamily:F.m,fontSize:10}}>{ar&&gd.surfaceAr?gd.surfaceAr:gd.surface}</td>
+          <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`}}><span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:c,background:c+"18",border:`1px solid ${c}40`,borderRadius:999,padding:"3px 9px"}}>{stLabel}</span></td>
         </tr>;})}</tbody>
       </table></div>
     </Card>;})()}
 
     <div style={{padding:"12px 14px",borderRadius:10,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}30`,fontSize:11.5,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}>
-      <b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> {region==="global"
-        ? <>The full landscape is hardcoded — {s.total} frameworks across foundational, national, security and lifecycle. No customer needs all of them at once; pick a jurisdiction and VerisZone narrows to the stack that governs them.</>
-        : <>For a customer operating in <b>{regionLabel(region)}</b>, VerisZone auto-applies <b>{s.total} frameworks</b>: the global foundational, security and lifecycle standards plus {s.regional} regional {s.regional===1?"instrument":"instruments"} — {s.binding} carrying binding force. {s.operational} are already operational against live controls; the rest activate from the library.</>}
-      <div style={{marginTop:11}}><button onClick={()=>showToast&&showToast(`Applied framework stack for ${regionLabel(region)} — ${s.total} frameworks activated for this tenant`)} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"9px 15px",color:"#241703",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Apply this jurisdiction stack</button></div>
+      <b style={{color:AI_GOLD_INK}}>{T_("Veris Intelligence:")}</b> {region==="global"
+        ? (ar
+          ? <>المشهد الكامل مُضمَّن — {s.total} إطاراً عبر الأساسية والوطنية والأمنية ودورة الحياة. لا يحتاج أيّ عميل إليها كلّها دفعةً واحدة؛ اختر ولاية قضائية فتُضيّق VerisZone إلى الحزمة التي تحكُمها.</>
+          : <>The full landscape is hardcoded — {s.total} frameworks across foundational, national, security and lifecycle. No customer needs all of them at once; pick a jurisdiction and VerisZone narrows to the stack that governs them.</>)
+        : (ar
+          ? <>لعميلٍ يعمل في <b>{regionLabel(region)}</b>، تُطبّق VerisZone تلقائياً <b>{s.total} إطاراً</b>: المعايير الأساسية والأمنية ومعايير دورة الحياة العالمية إضافةً إلى {s.regional} {s.regional===1?"أداة إقليمية":"أدوات إقليمية"} — منها {s.binding} ذات قوة مُلزِمة. {s.operational} منها قيد التشغيل فعلاً مقابل ضوابط حيّة؛ والباقي يُفعَّل من المكتبة.</>
+          : <>For a customer operating in <b>{regionLabel(region)}</b>, VerisZone auto-applies <b>{s.total} frameworks</b>: the global foundational, security and lifecycle standards plus {s.regional} regional {s.regional===1?"instrument":"instruments"} — {s.binding} carrying binding force. {s.operational} are already operational against live controls; the rest activate from the library.</>)}
+      <div style={{marginTop:11}}><button onClick={()=>showToast&&showToast(ar?`تم تطبيق حزمة الأطر لـ ${regionLabel(region)} — تفعيل ${s.total} إطاراً لهذا المستأجر`:`Applied framework stack for ${regionLabel(region)} — ${s.total} frameworks activated for this tenant`)} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"9px 15px",color:"#241703",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{T_("Apply this jurisdiction stack")}</button></div>
     </div>
   </div>;
 }
