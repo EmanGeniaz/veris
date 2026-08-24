@@ -13,6 +13,7 @@
      BASE_URL=http://localhost:3950 node scripts/click-integrity.mjs      # every role × surface: nav clickability + render + console (the gate)
      ROLES=cgo,ciso node scripts/click-integrity.mjs                       # scope to roles
      MAX_BTNS=3 node scripts/click-integrity.mjs                           # also sample content buttons (slower: derailing clicks force a cockpit reset)
+     UI_LANG=ar node scripts/click-integrity.mjs                           # run the whole walk in Arabic / RTL (regression-tests the RTL shell)
    Default is the nav+render walk (MAX_BTNS=0): fast, deterministic, and it
    already exercises every sidebar surface and catches blank surfaces + console
    errors. Exit code is non-zero if any hard failure is found. */
@@ -161,6 +162,15 @@ await sleep(700);
 const enter = page.locator("button", { hasText: /Enter Demo Center/i }).first();
 if (await enter.count()) { await enter.click(); await sleep(1200); }
 await killTour(); await sleep(300); await killTour();
+
+// optional: run the whole walk in Arabic / RTL (UI_LANG=ar) — the language toggle
+// persists to localStorage, so it survives role switches. Regression-tests RTL.
+// (UI_LANG, not LANG: LANG is the reserved POSIX locale var and gets normalised.)
+if ((process.env.UI_LANG || "").toLowerCase() === "ar") {
+  const arBtn = page.locator('button[aria-label="Language: Arabic"]').first();
+  if (await arBtn.count()) { await arBtn.click().catch(() => {}); await sleep(500); console.log(`language: Arabic (RTL)`); }
+  else console.log(`WARN: Arabic toggle not found — walking in English`);
+}
 
 for (const role of ROLES) { await walkRole(role); }
 await browser.close();

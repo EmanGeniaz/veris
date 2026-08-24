@@ -16,6 +16,8 @@ import { GuidedTour, TourButton } from "./platform/tour";
 import { GovernanceForum, IncidentPlaybook, BreachNotification, ConvergenceCrosswalk, ProhibitedPractices, GpaiExposure, GapClosure, AIAssessment } from "./platform/convergence";
 import { EnvironmentalFootprint } from "./platform/sustainability";
 import { DataProvenance } from "./platform/data-provenance";
+import { ArabicGovernanceBriefing } from "./platform/arabic-pilot";
+import { LANGS, dirFor, tn } from "@/lib/i18n";
 import { JurisdictionAtlas, StatementOfApplicability, EvidenceFreshness, Glossary } from "./platform/guidebook";
 import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/roadmap";
 import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
@@ -29,7 +31,7 @@ import { TemplateLibrary } from "./platform/template-library";
    their working depth inside the new command center. */
 const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",emp_usage:"aiusage",mgr_usage:"aiusage",emp_learning:"academy",
   coo_reports:"reports",cfo_reports:"reports",chro_reports:"reports",ciso_reports:"reports",cio_reports:"reports",cdpo_reports:"reports",cgo_reports:"reports",cro_reports:"reports",
-  cgo_forum:"govforum",cgo_incidents:"incidents",cgo_breach:"breach",cgo_aia:"aia",cgo_dataprov:"dataprov",cgo_carbon:"carbon",cgo_crosswalk:"crosswalk",cgo_redlines:"redlines",cgo_gpai:"gpai",
+  cgo_forum:"govforum",cgo_incidents:"incidents",cgo_breach:"breach",cgo_aia:"aia",cgo_dataprov:"dataprov",cgo_carbon:"carbon",cgo_arabic:"arabicpilot",cgo_crosswalk:"crosswalk",cgo_redlines:"redlines",cgo_gpai:"gpai",
   caio_crosswalk:"crosswalk",legal_crosswalk:"crosswalk",cgo_gapclosure:"gapclosure",
   cgo_jurisdictions:"jurisdictions",legal_jurisdictions:"jurisdictions",cgo_soa:"soa",caio_soa:"soa",cgo_freshness:"freshness",cgo_glossary:"glossary",
   cgo_drift:"drift",caio_drift:"drift",cgo_workflows:"workflows",ciso_workflows:"workflows",cgo_art12:"art12",legal_art12:"art12",
@@ -135,8 +137,9 @@ function LoginAICentralBrand({theme,width=104,style={}}) {
   </div>;
 }
 
-function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,onAcNav,theme,paletteId,onSignOut,profiles,sessionMode}) {
+function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCentralView,onAcNav,theme,paletteId,onSignOut,profiles,sessionMode,lang}) {
   const rc=RC(role), R=ROLES[role];
+  const rtl=lang==="ar";
   const [menuOpen,setMenuOpen]=useState(false);
   const menuRef=useRef(null);
   useEffect(()=>{
@@ -168,12 +171,12 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
     const isA=tab===item.id||OWNER_SURFACE[tab]===item.id;
     const badge=(item.id==="home"&&hitlCount>0)?hitlCount:item.badge||null;
     const delay=Math.min(navIdx++*0.018,0.28);
-    const btn=<button key="btn" aria-label={item.label} aria-current={isA?"page":undefined} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?"#fff":RAIL.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
+    const btn=<button key="btn" aria-label={item.label} aria-current={isA?"page":undefined} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab(item.id);if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:isA?"#fff":RAIL.ink2,fontSize:11,fontWeight:isA?800:600,fontFamily:F.b,textAlign:rtl?"right":"left",position:"relative",cursor:"pointer",animation:"vzNavIn .3s ease both",animationDelay:`${delay}s`}}>
       {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${rc}2e,${rc}12 62%,transparent)`,border:`1px solid ${rc}55`,boxShadow:`inset 0 0 20px ${rc}12`}}/>}
-      {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
+      {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",[rtl?"right":"left"]:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
       <span className="vz-nav-ico" style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:isA?1:.72,flexShrink:0,position:"relative",zIndex:1,transition:"opacity .18s ease"}}><Glyph name={item.label} color={isA?"#fff":RAIL.ink3} size={14}/></span>
-      <span style={{position:"relative",zIndex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span>
-      {badge&&<span style={{position:"absolute",right:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{badge}</span>}
+      <span style={{position:"relative",zIndex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tn(lang,item.label)}</span>
+      {badge&&<span style={{position:"absolute",[rtl?"left":"right"]:8,zIndex:1,background:T.amber,color:"#000",fontSize:8,fontWeight:800,borderRadius:8,padding:"1px 4px",fontFamily:F.m,animation:"vzBadgePulse 2.4s ease-in-out infinite"}}>{badge}</span>}
     </button>;
     if(!(item.id==="aicentral"&&isAICentral&&!acOnly))return <div key={item.id}>{btn}</div>;
     /* AI Central modules nest under their owning surface - one sidebar, contextual depth. */
@@ -184,8 +187,8 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           const on=aiCentralView===m.id;
           const locked=!acAccessFor(role).modules.includes(m.id);
           return <button key={m.id} disabled={locked} aria-label={m.id==="dashboard"?"Overview":m.label} onClick={()=>{if(locked)return;if(m.id==="approvals"){setTab("decisions");}else{setAiCentralView(m.id);}onAcNav?.();if(isMobile)onClose();}} title={locked?"Not available for your role":undefined} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 9px",borderRadius:8,marginBottom:1,background:on?AI_GOLD+"1f":"transparent",border:`1px solid ${on?AI_GOLD+"55":"transparent"}`,color:on?AI_GOLD:RAIL.ink3,fontSize:10.5,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1}}>
-            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.id==="dashboard"?"Overview":m.label}</span>
-            {locked&&<span style={{marginLeft:"auto",fontSize:9,opacity:.8}}>🔒</span>}
+            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tn(lang,m.id==="dashboard"?"Overview":m.label)}</span>
+            {locked&&<span style={{marginInlineStart:"auto",fontSize:9,opacity:.8}}>🔒</span>}
           </button>;
         })}
       </div>
@@ -193,14 +196,14 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
   };
   const renderSectionHeader=(title)=>(
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"14px 10px 7px"}}>
-      <span style={{fontSize:9,fontWeight:900,color:RAIL.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,whiteSpace:"nowrap"}}>{title}</span>
-      <span aria-hidden style={{flex:1,height:1,background:`linear-gradient(90deg,${RAIL.line},transparent)`}}/>
+      <span style={{fontSize:9,fontWeight:900,color:RAIL.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,whiteSpace:"nowrap"}}>{tn(lang,title)}</span>
+      <span aria-hidden style={{flex:1,height:1,background:`linear-gradient(${rtl?270:90}deg,${RAIL.line},transparent)`}}/>
     </div>
   );
   return <>
     {/* Overlay on mobile */}
     {open&&isMobile&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:199,backdropFilter:"blur(2px)"}}/>}
-    <div style={{width:SIDEBAR_W,background:RAIL.bg,borderRight:`1px solid ${RAIL.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":"translateX(-100%)"):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:"14px 0 40px rgba(10,3,8,.4)"}}>
+    <div style={{width:SIDEBAR_W,background:RAIL.bg,[rtl?"borderLeft":"borderRight"]:`1px solid ${RAIL.border}`,display:"flex",flexDirection:"column",position:"fixed",top:0,[rtl?"right":"left"]:0,height:"100vh",zIndex:200,transform:isMobile?(open?"translateX(0)":`translateX(${rtl?"100%":"-100%"})`):"translateX(0)",transition:"transform .25s ease",overflowX:"hidden",boxShadow:`${rtl?"-14px":"14px"} 0 40px rgba(10,3,8,.4)`}}>
       <div style={{padding:"14px 14px",borderBottom:`1px solid ${RAIL.border}`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",minHeight:64}}>
         <BrandLogo theme="dark" width={168} style={{objectPosition:"center"}}/>
         {isMobile&&<button aria-label="Close navigation" onClick={onClose} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:RAIL.ink3,padding:6,cursor:"pointer",display:"flex"}}>
@@ -227,7 +230,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {renderSectionHeader("Administration")}
             <button aria-label="Admin Portal" aria-current={on?"page":undefined} className={`vz-nav-btn ${themeClass}`} onClick={()=>{setTab("admin");if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:2,background:"transparent",border:"1px solid transparent",color:on?"#fff":RAIL.ink2,fontSize:11,fontWeight:on?800:600,fontFamily:F.b,textAlign:"left",position:"relative",cursor:"pointer"}}>
               {on&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${rc}2e,${rc}12 62%,transparent)`,border:`1px solid ${rc}55`}}/>}
-              {on&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
+              {on&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",[rtl?"right":"left"]:0,top:7,bottom:7,width:3,borderRadius:4,background:`linear-gradient(180deg,${rc},${AI_GOLD})`,boxShadow:`0 0 12px ${rc}66`}}/>}
               <span style={{width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",opacity:on?1:.72,flexShrink:0,position:"relative",zIndex:1,color:on?"#fff":RAIL.ink3}}><Shield size={14}/></span>
               <span style={{position:"relative",zIndex:1}}>Admin Portal</span>
             </button>
@@ -243,7 +246,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
           return <button key={item.id} disabled={locked} aria-label={item.label} aria-current={isA?"page":undefined} className={`vz-nav-btn ${themeClass}`} title={locked?"Not available for your role":undefined} onClick={()=>{if(locked)return;if(item.id==="approvals"){setTab("decisions");}else{setAiCentralView(item.id);setTab("aicentral");}onAcNav?.();if(isMobile)onClose();}} style={{width:"100%",display:"flex",alignItems:"flex-start",gap:9,padding:"9px 10px",borderRadius:9,marginBottom:3,background:"transparent",border:"1px solid transparent",color:isA?AI_GOLD:RAIL.ink3,fontSize:11,fontWeight:isA?700:500,fontFamily:F.b,textAlign:"left",position:"relative",cursor:locked?"not-allowed":"pointer",opacity:locked?.4:1,animation:"vzNavIn .3s ease both",animationDelay:`${Math.min(idx*0.025,0.28)}s`}}>
             {locked&&<span style={{position:"absolute",right:9,top:10,fontSize:9,zIndex:2,opacity:.8}}>🔒</span>}
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
-            {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",left:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
+            {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",[rtl?"right":"left"]:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":RAIL.chip,color:isA?AI_GOLD:RAIL.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
             <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:RAIL.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
           </button>;
@@ -720,6 +723,13 @@ export default function VerisZone() {
   const [searchQ,setSearchQ]=useState("");
   const [paletteOpen,setPaletteOpen]=useState(false);
   const [tourOpen,setTourOpen]=useState(false);
+  /* Shell language (en/ar). RTL is applied on the app wrapper + sidebar, so the
+     whole shell mirrors when Arabic. Persisted per browser; loaded post-mount
+     to stay SSR-safe (no localStorage read during render). */
+  const [lang,setLangState]=useState("en");
+  const setLang=l=>{ setLangState(l); if(typeof window!=="undefined") window.localStorage.setItem("veriszone.lang",l); };
+  useEffect(()=>{ if(typeof window==="undefined")return; const saved=window.localStorage.getItem("veriszone.lang"); if(saved==="ar"||saved==="en") setLangState(saved); },[]);
+  const rtl=lang==="ar";
   const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
   /* Central navigation: every clickable business object resolves its
@@ -900,12 +910,12 @@ export default function VerisZone() {
      the role sidebar / nav system, so render it full-page on its own. */
   if(role==="superadmin")return <><PageSuperAdmin onSignOut={signOut} showToast={showToast}/>{toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}</>;
 
-  return <div style={{display:"flex",minHeight:"100vh",background:T.bg}}>
+  return <div dir={rtl?"rtl":"ltr"} lang={lang} style={{display:"flex",minHeight:"100vh",background:T.bg}}>
     {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
-    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} paletteId={paletteId} onSignOut={signOut} sessionMode={sessionMode} profiles={userProfiles}/>
+    <Sidebar tab={tab} setTab={setTab} role={role} hitlCount={hitlCount} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} aiCentralView={aiCentralView} setAiCentralView={setAiCentralView} onAcNav={()=>setAcNavNonce(n=>n+1)} theme={theme} paletteId={paletteId} onSignOut={signOut} sessionMode={sessionMode} profiles={userProfiles} lang={lang}/>
 
     {/* Main */}
-    <div style={{marginLeft:isMobile?0:SIDEBAR_W,flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+    <div style={{marginLeft:isMobile?0:(rtl?0:SIDEBAR_W),marginRight:isMobile?0:(rtl?SIDEBAR_W:0),flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
       {/* Top bar */}
       <div style={{background:theme==="light"?T.s2:T.s1,borderBottom:`1px solid ${T.border}`,height:56,display:"flex",alignItems:"center",padding:"0 16px",position:"sticky",top:0,zIndex:100,gap:12,boxShadow:theme==="light"?"0 1px 0 rgba(148,163,184,.22), 0 10px 24px rgba(17,24,39,.035)":"none"}}>
         {isMobile&&<button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",color:T.ink3,fontSize:11,fontWeight:800,padding:"4px 6px",flexShrink:0}}>Menu</button>}
@@ -925,10 +935,13 @@ export default function VerisZone() {
             :<button type="button" onClick={()=>setTab(roleHome)} style={{flex:1,background:tab!=="aicentral"?rc+"20":"transparent",border:`1px solid ${tab!=="aicentral"?rc+"40":T.border}`,borderRadius:5,padding:"3px 6px",color:tab!=="aicentral"?rc:T.ink3,fontSize:9,fontWeight:800,fontFamily:F.b}}>{R.label}</button>}
         </div>}
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
-        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+        <div style={{marginInlineStart:"auto",display:"flex",alignItems:"center",gap:10}}>
+          {!isMobile&&<div style={{display:"flex",gap:2,background:theme==="light"?T.s2:T.bg,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
+            {LANGS.map(l=>{const on=lang===l.code;return <button key={l.code} type="button" aria-label={`Language: ${l.label}`} onClick={()=>setLang(l.code)} style={{background:on?AI_GOLD:"transparent",border:"none",borderRadius:6,padding:"4px 9px",color:on?"#241703":T.ink3,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{l.code==="ar"?"ع":"EN"}</button>;})}
+          </div>}
           {!isMobile&&<TourButton onClick={()=>setTourOpen(true)} theme={theme}/>}
           {!isMobile&&showSeededData&&<div style={{position:"relative"}}>
-            <input aria-label="Universal search" placeholder="Search everything..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 46px 6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
+            <input aria-label="Universal search" placeholder={tn(lang,"Search everything...")} value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setSearchQ("");}} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"6px 46px 6px 14px",color:T.ink,fontSize:11,fontFamily:F.b,width:210,outline:"none"}}/>
             <button type="button" onClick={()=>setPaletteOpen(true)} title="Command palette (⌘K)" aria-label="Open command palette" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,padding:"2px 7px",color:T.ink4,fontSize:9.5,fontWeight:800,fontFamily:F.m,cursor:"pointer",lineHeight:1.4}}>⌘K</button>
             {searchQ.trim().length>1&&(()=>{
               const q=searchQ.trim().toLowerCase();
@@ -979,6 +992,7 @@ export default function VerisZone() {
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="incidents"&&<IncidentPlaybook role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="breach"&&<BreachNotification role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="dataprov"&&<DataProvenance role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="arabicpilot"&&<ArabicGovernanceBriefing role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="aia"&&<AIAssessment role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="carbon"&&<EnvironmentalFootprint role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="crosswalk"&&<ConvergenceCrosswalk role={role} showToast={showToast}/>}
