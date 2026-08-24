@@ -12,7 +12,7 @@
 | **M0** | Foundation & spine (object model, lifecycle, role lenses, computed posture, 32/32 frameworks) | ✅ DONE | ✅ | — | done |
 | **M1** | Governance workflows (breach · AIA/DPIA/FRIA · data provenance · carbon disclosure) | ✅ DONE | ✅ | M0 | done |
 | **M-TEST** | Click-integrity harness — walk every role × surface, test clickability, capture **location + console logs + errors**, emit a report (the D10 gate) | ✅ DONE | ✅ | M0 | done |
-| **M-UAE** | UAE / Dubai regulatory pack — PDPL · DIFC · ADGM · DESC + data-residency/cloud, computed posture | ⬜ TODO | ✅ | M0 | 1 |
+| **M-UAE** | UAE / Dubai regulatory pack — PDPL · DIFC · ADGM · DESC + data-residency/cloud, computed posture | ✅ DONE | ✅ | M0 | done |
 | **M-AR** | Arabic + RTL — i18n scaffolding + 1–2 pilot surfaces, then rollout | ⬜ TODO | ✅ | M0 | 2 + rollout |
 | **M-ENF** | Veris Enforce product-line — shared core + data contract + per-tenant entitlement gate + locked/live surface states | ⬜ TODO | ⚠️ | M0 (live enf. → M6) | 2 |
 | **M2** | Data-subject-rights lifecycle (consent capture/withdraw · DSAR access/correction · retention/erasure) | ⬜ TODO | ✅ | M0 | 1–2 |
@@ -61,6 +61,7 @@ gantt
 - **Owner action outstanding (unblocks M4):** provision `AUTH_SECRET`, `DATABASE_URL`, `DIRECT_URL`; run `npm run db:push`.
 
 ## Changelog
-- **C2** — M-TEST **done**: click-integrity harness (`scripts/click-integrity.mjs`) + report. Full 13-role walk: 152 surfaces, 0 blank, 0 hard failures. Added `data-testid="vz-main"` so the content pane is measurable. Next: M-UAE.
+- **C3** — M-UAE **done**: UAE/Dubai pack (`lib/uae-mappings.js`) — 6 instruments, 14 obligations, computed posture 77. Registered in the framework library (now 33/33 Operational), the compliance panel + jurisdiction chip (🇦🇪), and the Jurisdiction Atlas. Gate re-run (CGO/CEO/Legal): 56 surfaces, 0 failures. Next: M-AR (Arabic pilot).
+- **C2** — M-TEST **done**: click-integrity harness (`scripts/click-integrity.mjs`) + report. Full 13-role walk: 152 surfaces, 0 blank, 0 hard failures. Added `data-testid="vz-main"` so the content pane is measurable.
 - **C1** — Added M-TEST, M-UAE, M-AR, M-ENF; locked Veris Enforce product-line, Arabic, UAE/Dubai, test-gate decisions; added ROADMAP.
 - **C0** — Charter/Spec/Gantt created; ambition = full enforcement platform; deployment = SaaS→self-host.
