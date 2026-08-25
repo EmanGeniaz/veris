@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import { T, LIGHT_T, PALETTES, DEFAULT_PALETTE, paletteById, applyPalette, railFor, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
+import { FRAMEWORKS as SEARCH_FRAMEWORKS } from "@/lib/frameworks";
+import { GLOSSARY as SEARCH_GLOSSARY } from "@/lib/glossary";
+import { REGIMES as SEARCH_REGIMES } from "@/lib/jurisdictions";
 
 import dynamic from "next/dynamic";
 import { hydrateBus } from "@/lib/bus";
@@ -956,7 +959,15 @@ export default function VerisZone() {
                 ...knowledgeAssets.map(k=>({type:"Knowledge",label:k.title,sub:k.kind,go:()=>navigate("knowledge",{id:k.id})})),
                 ...TEMPLATES.map(t2=>({type:"Template",label:t2.name,sub:t2.cat,go:()=>navigate("template",{id:t2.id})})),
                 {type:"Approvals",label:"Executive decision queue",sub:"Approvals, HITL and gates",go:()=>navigate("approval",{})},
-              ].filter(e=>`${e.label} ${e.sub} ${e.type}`.toLowerCase().includes(q)).slice(0,9);
+                /* Reference content — the platform's own frameworks, glossary and
+                   regimes are searchable too (Arabic keywords included), each
+                   routed to a role-agnostic surface. */
+                ...SEARCH_FRAMEWORKS.map(f=>({type:"Framework",label:f.name,sub:`${f.body||f.type||"Framework"} · framework`,kw:f.focus||"",go:()=>setTab("compliance")})),
+                ...SEARCH_GLOSSARY.map(g=>({type:"Glossary",label:g.term,sub:g.cat,kw:`${g.termAr||""} ${g.def||""}`,go:()=>setTab("knowledge")})),
+                ...SEARCH_REGIMES.map(r=>({type:"Regime",label:r.regime,sub:`${r.geo} · jurisdiction`,kw:`${r.regimeAr||""} ${r.geoAr||""} ${r.note||""}`,go:()=>setTab("compliance")})),
+                /* Key surfaces — jump straight to a page by name. */
+                ...[["Compliance & Standards","compliance","الامتثال والمعايير"],["Framework Library","compliance","مكتبة الأطر"],["Control Library","controls","مكتبة الضوابط"],["Policies","policies","السياسات"],["Trust Center","trustcenter","مركز الثقة"],["Gap Analysis","gapanalysis","تحليل الفجوات"],["Knowledge Base","knowledge","قاعدة المعرفة"],["Risk Center","riskcenter","مركز المخاطر"],["Reports","reports","التقارير"],["AI Central","aicentral","AI Central"]].map(([label,id,kw])=>({type:"Page",label,sub:"Surface",kw,go:()=>setTab(id)})),
+              ].filter(e=>`${e.label} ${e.sub} ${e.type} ${e.kw||""}`.toLowerCase().includes(q)).slice(0,9);
               return <div style={{position:"absolute",top:38,right:0,width:340,maxHeight:420,overflowY:"auto",background:T.card,border:`1px solid ${AI_GOLD}35`,borderRadius:12,boxShadow:"0 24px 60px rgba(0,0,0,.5)",zIndex:300,padding:6}}>
                 {idx.length===0&&<div style={{padding:"12px 14px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No matching enterprise objects.</div>}
                 {idx.map((e,i2)=><button key={i2} onClick={()=>{setSearchQ("");e.go();}} style={{width:"100%",display:"flex",gap:9,alignItems:"center",background:"transparent",border:"none",borderRadius:8,padding:"8px 10px",cursor:"pointer",textAlign:"left"}}>
