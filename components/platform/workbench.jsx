@@ -492,7 +492,34 @@ const BENCH_COHORTS=[
 const BENCH_GAP={reuse:{title:"Your one gap: knowledge & prompt reuse",
   body:"You save more time than most, but you lean on your own prompts more than the shared, governed ones — so you're re-solving problems your team already solved.",
   cta:"See 2 approved prompts your peers rely on"}};
+/* Arabic for the employee "How I'm doing" benchmark surface. */
+registerContent({
+  "How I'm doing": "كيف أدائي",
+  "Your standing": "ترتيبك",
+  "median": "الوسيط",
+  "You're ahead of this cohort on every measure": "أنت متقدّم على هذه الفئة في كل مقياس",
+  "Nice — consider sharing your best prompts so your team can catch up.": "أحسنت — فكّر في مشاركة أفضل مطالباتك ليلحق بك فريقك.",
+  "Hours saved / week": "ساعات مُوفَّرة / أسبوع",
+  "time AI gave back": "الوقت الذي أعاده الذكاء الاصطناعي",
+  "Active AI use": "الاستخدام النشط للذكاء الاصطناعي",
+  "share of workdays you used AI": "نسبة أيام العمل التي استخدمت فيها الذكاء الاصطناعي",
+  "Knowledge & prompt reuse": "إعادة استخدام المعرفة والمطالبات",
+  "answers grounded in shared prompts/knowledge": "إجابات مُسنَدة إلى مطالبات/معرفة مشتركة",
+  "Safe-use rate": "معدّل الاستخدام الآمن",
+  "prompts that passed guardrails first time": "مطالبات اجتازت الحواجز من أول مرة",
+  "My peers": "أقراني", "Support agents · 340": "وكلاء الدعم · 340", "340 support agents": "340 وكيل دعم",
+  "a strong AI adopter": "مُتبنٍّ قوي للذكاء الاصطناعي",
+  "My business unit": "وحدة أعمالي", "Customer Operations · 1,240": "عمليات العملاء · 1,240", "1,240 in Customer Operations": "1,240 في عمليات العملاء",
+  "ahead of your unit on most measures": "متقدّم على وحدتك في معظم المقاييس",
+  "The whole org": "المؤسسة كاملة", "All staff · 2,790": "كل الموظفين · 2,790", "2,790 across the org": "2,790 عبر المؤسسة",
+  "a confident, safe AI user": "مستخدم واثق وآمن للذكاء الاصطناعي",
+  "Your one gap: knowledge & prompt reuse": "فجوتك الوحيدة: إعادة استخدام المعرفة والمطالبات",
+  "You save more time than most, but you lean on your own prompts more than the shared, governed ones — so you're re-solving problems your team already solved.": "توفّر وقتاً أكثر من معظم الناس، لكنك تعتمد على مطالباتك الخاصة أكثر من المشتركة المُحوكَمة — فتُعيد حلّ مشكلات حلّها فريقك من قبل.",
+  "See 2 approved prompts your peers rely on": "اطّلع على مطالبتين معتمدتين يعتمد عليهما أقرانك",
+});
+
 function EmployeeBenchmark({showToast}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const [cohort,setCohort]=useState("peers");
   const [lin,setLin]=useState(null);
   const meta=BENCH_COHORTS.find(c=>c[0]===cohort);
@@ -502,34 +529,34 @@ function EmployeeBenchmark({showToast}){
      and band, your delta and how it's measured. The employee's "drill to
      the last part" without ever exposing a named leaderboard. */
   const metricLineage=m=>{const cd=m.c[cohort],delta=m.you-cd.med,ahead=delta>=0;return {
-    label:m.name, value:`${fmt(m,m.you)} · you`,
-    formula:`${m.what} · benchmarked against ${meta[3]} (median + interquartile band)`,
+    label:T_(m.name), value:`${fmt(m,m.you)} · ${ar?"أنت":"you"}`,
+    formula:ar?`${T_(m.what)} · مقيساً مقابل ${T_(meta[3])} (الوسيط + النطاق الرُّبيعي)`:`${m.what} · benchmarked against ${meta[3]} (median + interquartile band)`,
     rows:[
-      {name:"Your value",v:fmt(m,m.you),unit:"measured this period"},
-      {name:"Cohort median",v:fmt(m,cd.med),unit:meta[1]},
-      {name:"Cohort band (IQR)",v:`${fmt(m,cd.lo)}–${fmt(m,cd.hi)}`,unit:"25th–75th percentile"},
-      {name:"Your delta vs median",v:`${ahead?"+":"−"}${fmt(m,Math.abs(delta))}`,unit:ahead?"ahead of median":"behind median"},
-      {name:"Cohort",v:meta[2],unit:meta[3]},
+      {name:ar?"قيمتك":"Your value",v:fmt(m,m.you),unit:ar?"مقيسة هذه الفترة":"measured this period"},
+      {name:ar?"وسيط الفئة":"Cohort median",v:fmt(m,cd.med),unit:T_(meta[1])},
+      {name:ar?"نطاق الفئة (الرُّبيعي)":"Cohort band (IQR)",v:`${fmt(m,cd.lo)}–${fmt(m,cd.hi)}`,unit:ar?"المئين 25–75":"25th–75th percentile"},
+      {name:ar?"فارقك عن الوسيط":"Your delta vs median",v:`${ahead?"+":"−"}${fmt(m,Math.abs(delta))}`,unit:ahead?(ar?"متقدّم على الوسيط":"ahead of median"):(ar?"خلف الوسيط":"behind median")},
+      {name:ar?"الفئة":"Cohort",v:T_(meta[2]),unit:T_(meta[3])},
     ],
-    note:"Aggregated from your governed AI sessions this period, compared to a cohort median and interquartile band — never a named leaderboard. No one sees your individual sessions.",
+    note:ar?"مُجمَّعة من جلسات الذكاء الاصطناعي المُحوكَمة لديك هذه الفترة، ومقارنة بوسيط الفئة ونطاقها الرُّبيعي — لا لوحة صدارة بالأسماء أبداً. لا أحد يرى جلساتك الفردية.":"Aggregated from your governed AI sessions this period, compared to a cohort median and interquartile band — never a named leaderboard. No one sees your individual sessions.",
   };};
   let worst=null;
   BENCH_METRICS.forEach(m=>{const d=m.you-m.c[cohort].med;if(d<0&&(worst===null||d<worst.d))worst={key:m.key,d};});
   const gap=worst&&BENCH_GAP[worst.key]?BENCH_GAP[worst.key]:null;
   return <div style={{animation:"up .3s ease"}}>
     {lin&&<LineageDrawer node={lin} onClose={()=>setLin(null)}/>}
-    <SHead title="How I'm doing" sub="Where you stand on the things that matter — measured against a cohort, not in a vacuum. Click any metric to see how it's measured."/>
+    <SHead title={T_("How I'm doing")} sub={ar?"أين تقف في الأمور المهمة — مقيساً مقابل فئة، لا في فراغ. انقر أي مقياس لترى كيف يُحتسب.":"Where you stand on the things that matter — measured against a cohort, not in a vacuum. Click any metric to see how it's measured."}/>
     {/* cohort selector */}
     <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
-      {BENCH_COHORTS.map(([id,t,n])=><button key={id} onClick={()=>setCohort(id)} style={{display:"flex",flexDirection:"column",gap:2,padding:"9px 15px",borderRadius:12,border:`1px solid ${cohort===id?AI_GOLD:T.border}`,background:cohort===id?AI_GOLD:T.s2,cursor:"pointer",textAlign:"left"}}>
-        <span style={{fontSize:12.5,fontWeight:800,color:cohort===id?"#241703":T.ink2,fontFamily:F.b}}>{t}</span>
-        <span style={{fontSize:9.5,color:cohort===id?"#4b3608":T.ink4,fontFamily:F.m}}>{n}</span>
+      {BENCH_COHORTS.map(([id,t,n])=><button key={id} onClick={()=>setCohort(id)} style={{display:"flex",flexDirection:"column",gap:2,padding:"9px 15px",borderRadius:12,border:`1px solid ${cohort===id?AI_GOLD:T.border}`,background:cohort===id?AI_GOLD:T.s2,cursor:"pointer",textAlign:ar?"right":"left"}}>
+        <span style={{fontSize:12.5,fontWeight:800,color:cohort===id?"#241703":T.ink2,fontFamily:F.b}}>{T_(t)}</span>
+        <span style={{fontSize:9.5,color:cohort===id?"#4b3608":T.ink4,fontFamily:F.m}}>{T_(n)}</span>
       </button>)}
     </div>
     {/* standing hero */}
     <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14,padding:"15px 18px",borderRadius:14,background:"linear-gradient(135deg,#7a1a3c,#a5254c 62%,#7c1f42)",border:"1px solid #c25878",boxShadow:"0 12px 30px rgba(138,26,60,.28)"}}>
       <div style={{fontFamily:F.h,fontSize:32,fontWeight:800,color:"#ffe9ef",lineHeight:.9,letterSpacing:"-.02em"}}>{meta[4]}</div>
-      <div><div style={{fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",color:"#f3c9d4",fontWeight:900,fontFamily:F.m}}>Your standing</div><div style={{fontSize:11.5,color:"#e7b3c1",marginTop:3,fontFamily:F.b}}>vs {meta[3]} · you're {meta[5]}</div></div>
+      <div><div style={{fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",color:"#f3c9d4",fontWeight:900,fontFamily:F.m}}>{T_("Your standing")}</div><div style={{fontSize:11.5,color:"#e7b3c1",marginTop:3,fontFamily:F.b}}>{ar?`مقابل ${T_(meta[3])} · أنت ${T_(meta[5])}`:`vs ${meta[3]} · you're ${meta[5]}`}</div></div>
     </div>
     {/* benchmark bars */}
     <div style={{display:"grid",gap:12,marginBottom:14}}>
@@ -538,15 +565,15 @@ function EmployeeBenchmark({showToast}){
         const dc=ahead?T.green:T.amber;
         return <Card key={m.key} onClick={()=>setLin(metricLineage(m))} style={{padding:"14px 16px 12px",cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10}}>
-            <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{m.name}</div><div style={{fontSize:10,color:T.ink4,fontFamily:F.m,marginTop:1}}>{m.what}</div></div>
-            <span style={{fontSize:11,fontWeight:800,fontFamily:F.m,padding:"3px 9px",borderRadius:20,background:dc+"22",color:dc,whiteSpace:"nowrap"}}>{ahead?"+":"−"}{fmt(m,Math.abs(delta))} vs median</span>
+            <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(m.name)}</div><div style={{fontSize:10,color:T.ink4,fontFamily:F.m,marginTop:1}}>{T_(m.what)}</div></div>
+            <span style={{fontSize:11,fontWeight:800,fontFamily:F.m,padding:"3px 9px",borderRadius:20,background:dc+"22",color:dc,whiteSpace:"nowrap"}}>{ahead?"+":"−"}{fmt(m,Math.abs(delta))} {ar?"مقابل الوسيط":"vs median"}</span>
           </div>
           <div style={{position:"relative",height:46,marginTop:16}}>
             <div style={{position:"absolute",left:0,right:0,top:26,height:8,borderRadius:6,background:T.s3||T.border}}/>
             <div style={{position:"absolute",top:24,height:12,borderRadius:6,left:pos(m,cd.lo)+"%",width:(pos(m,cd.hi)-pos(m,cd.lo))+"%",background:T.blue+"33",border:`1px solid ${T.blue}55`}}/>
-            <div style={{position:"absolute",top:19,width:2,height:22,background:T.ink3,left:pos(m,cd.med)+"%",transform:"translateX(-50%)"}}><span style={{position:"absolute",top:24,left:"50%",transform:"translateX(-50%)",fontSize:8.5,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>median {fmt(m,cd.med)}</span></div>
+            <div style={{position:"absolute",top:19,width:2,height:22,background:T.ink3,left:pos(m,cd.med)+"%",transform:"translateX(-50%)"}}><span style={{position:"absolute",top:24,left:"50%",transform:"translateX(-50%)",fontSize:8.5,color:T.ink4,fontFamily:F.m,whiteSpace:"nowrap"}}>{T_("median")} {fmt(m,cd.med)}</span></div>
             <div style={{position:"absolute",top:14,left:pos(m,m.you)+"%",transform:"translateX(-50%)",transition:"left .45s cubic-bezier(.2,.7,.2,1)"}}>
-              <div style={{position:"absolute",bottom:26,left:"50%",transform:"translateX(-50%)",background:AI_GOLD,color:"#241703",fontSize:10.5,fontWeight:900,fontFamily:F.m,padding:"2px 8px",borderRadius:7,whiteSpace:"nowrap"}}>{fmt(m,m.you)} · you</div>
+              <div style={{position:"absolute",bottom:26,left:"50%",transform:"translateX(-50%)",background:AI_GOLD,color:"#241703",fontSize:10.5,fontWeight:900,fontFamily:F.m,padding:"2px 8px",borderRadius:7,whiteSpace:"nowrap"}}>{fmt(m,m.you)} · {ar?"أنت":"you"}</div>
               <div style={{width:3,height:26,borderRadius:3,margin:"0 auto",background:`linear-gradient(180deg,${AI_GOLD},#c25878)`,boxShadow:`0 0 10px ${AI_GOLD}88`}}/>
             </div>
           </div>
@@ -557,14 +584,14 @@ function EmployeeBenchmark({showToast}){
     {/* gap → next step */}
     {gap?<Card style={{padding:"13px 15px",display:"flex",gap:12,alignItems:"flex-start",border:`1px solid ${T.amber}55`,background:T.amber+"14"}}>
       <span style={{fontSize:15,color:T.amber}}>↗</span>
-      <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{gap.title}</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>{gap.body}</div>
-        <button onClick={()=>showToast&&showToast("Opening your Assistant's prompt library")} style={{marginTop:9,background:T.s1||T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{gap.cta} →</button></div>
+      <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(gap.title)}</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>{T_(gap.body)}</div>
+        <button onClick={()=>showToast&&showToast(ar?"فتح مكتبة مطالبات مساعدك":"Opening your Assistant's prompt library")} style={{marginTop:9,background:T.s1||T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{T_(gap.cta)} {ar?"←":"→"}</button></div>
     </Card>:<Card style={{padding:"13px 15px",display:"flex",gap:12,alignItems:"flex-start",border:`1px solid ${T.green}55`,background:T.green+"14"}}>
       <span style={{fontSize:15,color:T.green}}>✓</span>
-      <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>You're ahead of this cohort on every measure</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>Nice — consider sharing your best prompts so your team can catch up.</div></div>
+      <div><div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_("You're ahead of this cohort on every measure")}</div><div style={{fontSize:11.5,color:T.ink2,fontFamily:F.b,lineHeight:1.5,marginTop:4}}>{T_("Nice — consider sharing your best prompts so your team can catch up.")}</div></div>
     </Card>}
     <div style={{display:"flex",gap:8,alignItems:"flex-start",marginTop:12,fontSize:10.5,color:T.ink4,fontFamily:F.b,lineHeight:1.6}}>
-      <span>🔒</span><span><b style={{color:T.ink3}}>Fair by design:</b> comparison is always against a cohort median and quartiles — never a named leaderboard. Peers = people who do your job. Numbers are aggregates; no one sees your individual sessions.</span>
+      <span>🔒</span><span>{ar?<><b style={{color:T.ink3}}>عادل بالتصميم:</b> المقارنة دائماً مقابل وسيط الفئة وأرباعها — لا لوحة صدارة بالأسماء أبداً. الأقران = من يؤدّون عملك. الأرقام تجميعية؛ لا أحد يرى جلساتك الفردية.</>:<><b style={{color:T.ink3}}>Fair by design:</b> comparison is always against a cohort median and quartiles — never a named leaderboard. Peers = people who do your job. Numbers are aggregates; no one sees your individual sessions.</>}</span>
     </div>
   </div>;
 }
