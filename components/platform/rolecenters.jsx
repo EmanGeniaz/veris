@@ -8,6 +8,44 @@ import { initiativesForRole, ROLE_FACET } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic for the command-center chrome + the employee Overview's top-level text
+   (bounded slice). Deep drill-down rows and activity-table data stay English via
+   fallback; other roles' config localises in later cycles. */
+registerContent({
+  // generic chrome
+  "Your workspace": "مساحة عملك",
+  "Individual contributor": "مساهم فردي",
+  // employee hero + narrative
+  "You saved 6.2 hours this week": "وفّرت 6.2 ساعة هذا الأسبوع",
+  "3 tasks due, 2 sessions in progress and 1 prompt pending approval — your AI productivity score is up 8 points.": "3 مهام مستحقة، وجلستان قيد التنفيذ، ومطالبة واحدة بانتظار الموافقة — ارتفعت درجة إنتاجيتك في الذكاء الاصطناعي 8 نقاط.",
+  "Your cockpit: what AI you can use, how you use it, the value you create, the risk you avoid, and how to improve.": "مقصورتك: أيّ ذكاء اصطناعي يمكنك استخدامه، وكيف تستخدمه، والقيمة التي تصنعها، والمخاطر التي تتجنّبها، وكيف تتحسّن.",
+  "AI productivity": "إنتاجية الذكاء الاصطناعي",
+  "6.2h saved this week · +8": "6.2 ساعة مُوفَّرة هذا الأسبوع · +8",
+  // attention cards
+  "2 tasks due today": "مهمتان مستحقتان اليوم",
+  "Validate an AI output and acknowledge the updated Data Handling policy.": "تحقّق من مُخرَج ذكاء اصطناعي وأقِرّ بسياسة معالجة البيانات المُحدَّثة.",
+  "Open tasks": "افتح المهام",
+  "1 prompt pending approval": "مطالبة واحدة بانتظار الموافقة",
+  "Your 'Customer email draft' prompt needs manager sign-off before reuse.": "تحتاج مطالبتك «مسودة بريد العميل» موافقة المدير قبل إعادة الاستخدام.",
+  "Review": "راجع",
+  "Training due Friday": "تدريب مستحق يوم الجمعة",
+  "Secure AI Use refresher — 12 min — keeps your tool access active.": "دورة تنشيطية للاستخدام الآمن للذكاء الاصطناعي — 12 دقيقة — تُبقي وصولك للأدوات فعّالاً.",
+  "Start": "ابدأ",
+  "A guardrail saved you": "حاجز حماية أنقذك",
+  "PII auto-redacted from a support draft this week — nothing left your workspace.": "جرى تنقيح البيانات الشخصية تلقائياً من مسودة دعم هذا الأسبوع — لم يغادر شيء مساحة عملك.",
+  "See event": "اعرض الحدث",
+  // KPI labels
+  "Hours saved": "ساعات مُوفَّرة", "Approved tools": "أدوات معتمدة", "Sessions": "جلسات",
+  "Guardrail saves": "تدخّلات الحماية", "Compliance": "الامتثال",
+  // KPI subs / values
+  "+8 this month": "+8 هذا الشهر", "this week": "هذا الأسبوع", "available to you": "متاحة لك",
+  "this month": "هذا الشهر", "1 action open": "إجراء واحد مفتوح", "On track": "على المسار",
+  // employee surface labels (jump chips + PageHead)
+  "AI Hub": "مركز الذكاء الاصطناعي", "My Initiatives": "مبادراتي", "My Tasks": "مهامي",
+  "How I'm doing": "كيف أدائي", "Risk & Compliance": "المخاطر والامتثال", "My Requests": "طلباتي",
+});
 
 /* ── Role Command Center engine ─────────────────────────────────────
    Renders any role's command center from its config in lib/role-centers.
@@ -28,23 +66,25 @@ const Pill = ({children,c=T.ink3}) => <span style={{display:"inline-flex",alignI
 
 /* ── block renderers ── */
 function Kpis({items,ctx}){
+  const lang=useLang(); const T_=en=>ts(lang,en);
   const clickable=ctx&&ctx.onLineage;
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
     {items.map((k,i)=><div key={i} onClick={()=>clickable&&ctx.onLineage(k[4]?{label:k[0],value:k[1],...k[4]}:k[0],k[4]?undefined:k[1])} className={clickable?"vz-lin":""} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:"13px 14px",cursor:clickable?"pointer":"default",transition:"border-color .15s"}}>
-      <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{k[0]}</div>
-      <div style={{fontSize:22,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:col(k[2])}}>{k[1]}</div>
-      <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{k[3]}</div>
+      <div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{T_(k[0])}</div>
+      <div style={{fontSize:22,fontWeight:800,marginTop:7,letterSpacing:"-0.02em",fontFamily:F.m,color:col(k[2])}}>{T_(k[1])}</div>
+      <div style={{fontSize:9.5,color:T.ink3,marginTop:3,fontFamily:F.b}}>{T_(k[3])}</div>
     </div>)}
     {clickable&&<style>{`.vz-lin:hover{border-color:${AI_GOLD}66}`}</style>}
   </div>;
 }
 function Attn({items,ctx}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const go=a=>a[4]&&ctx&&ctx.setTab&&ctx.setTab(a[4]);
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:18}}>
-    {items.map((a,i)=>{const live=!!(a[4]&&ctx&&ctx.setTab);return <Card key={i} onClick={()=>go(a)} className={live?"vz-attn":""} style={{padding:"13px 15px",borderLeft:`3px solid ${col(a[3])}`,cursor:live?"pointer":"default"}}>
-      <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a[0]}</div>
-      <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a[1]}</div>
-      <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a[2]} →</div>
+    {items.map((a,i)=>{const live=!!(a[4]&&ctx&&ctx.setTab);return <Card key={i} onClick={()=>go(a)} className={live?"vz-attn":""} style={{padding:"13px 15px",borderInlineStart:`3px solid ${col(a[3])}`,cursor:live?"pointer":"default"}}>
+      <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(a[0])}</div>
+      <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{T_(a[1])}</div>
+      <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{T_(a[2])} {ar?"←":"→"}</div>
     </Card>;})}
     <style>{`.vz-attn{transition:background .15s}.vz-attn:hover{background:${T.s2}}`}</style>
   </div>;
@@ -334,9 +374,10 @@ function Blocks({blocks, ctx}){
 }
 
 function PageHead({title,sub}){
+  const lang=useLang(); const T_=en=>ts(lang,en);
   return <div style={{marginBottom:16}}>
-    <div style={{fontFamily:F.e,fontWeight:400,fontSize:26,lineHeight:1.1,color:T.ink,margin:"0 0 4px"}}>{title}</div>
-    <div style={{color:T.ink3,fontSize:12,fontFamily:F.b}}>{sub}</div>
+    <div style={{fontFamily:F.e,fontWeight:400,fontSize:26,lineHeight:1.1,color:T.ink,margin:"0 0 4px"}}>{T_(title)}</div>
+    <div style={{color:T.ink3,fontSize:12,fontFamily:F.b}}>{T_(sub)}</div>
   </div>;
 }
 
@@ -344,6 +385,7 @@ function PageHead({title,sub}){
    playbook, reports and assistant, which are pages rather than lenses).
    Mirrors the CEO/CAIO in-surface tabs so every role is consistent. */
 function Overview({role,cfg,ctx,userName}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const name=(userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
@@ -372,14 +414,14 @@ function Overview({role,cfg,ctx,userName}){
     {lineage&&<LineageDrawer node={lineage} onAsset={id=>{setBrief(assetById(id));setLineage(null);}} onClose={()=>setLineage(null)}/>}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
-        {(ROLES[role]||{}).persona&&<span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.09em",textTransform:"uppercase",color:AI_GOLD_INK,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}38`,borderRadius:999,padding:"3px 10px",marginBottom:8}}>{ROLES[role].persona}{role==="manager"&&<span style={{color:T.ink4,fontWeight:700,textTransform:"none",letterSpacing:0}}>· your work + your team</span>}</span>}
-        <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
-        <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b,maxWidth:680}}>{cfg.greet} — {cfg.sub}</div>
-        <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{cfg.thesis}</div>
+        {(ROLES[role]||{}).persona&&<span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.09em",textTransform:"uppercase",color:AI_GOLD_INK,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}38`,borderRadius:999,padding:"3px 10px",marginBottom:8}}>{T_(ROLES[role].persona)}{role==="manager"&&<span style={{color:T.ink4,fontWeight:700,textTransform:"none",letterSpacing:0}}>{ar?"· عملك + فريقك":"· your work + your team"}</span>}</span>}
+        <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{T_(greet)}{ar?"، ":", "}<span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
+        <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b,maxWidth:680}}>{T_(cfg.greet)} — {T_(cfg.sub)}</div>
+        <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{T_(cfg.thesis)}</div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"12px 20px",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
         <div style={{fontSize:36,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{cfg.hero[0]}</div>
-        <div style={{textAlign:"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{cfg.hero[1]}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{cfg.hero[2]}</div></div>
+        <div style={{textAlign:ar?"right":"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{T_(cfg.hero[1])}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{T_(cfg.hero[2])}</div></div>
       </div>
     </div>
     {/* The employee and manager rails are deliberately minimal, so the cockpit
@@ -389,8 +431,8 @@ function Overview({role,cfg,ctx,userName}){
     {(role==="employee"||role==="manager")&&(()=>{
       const jump=(cfg.surfaces||[]).filter(s=>!["emp_assistant","emp_learning","mgr_team"].includes(s.id));
       return jump.length?<div style={{marginTop:16,display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
-        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>Your workspace</span>
-        {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{s.label}{s.badge?<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:"#fff",background:AI_GOLD_INK,borderRadius:999,padding:"0 6px",lineHeight:"15px"}}>{s.badge}</span>:null}</button>)}
+        <span style={{fontSize:9.5,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m}}>{T_("Your workspace")}</span>
+        {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{T_(s.label)}{s.badge?<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:"#fff",background:AI_GOLD_INK,borderRadius:999,padding:"0 6px",lineHeight:"15px"}}>{s.badge}</span>:null}</button>)}
       </div>:null;
     })()}
     <div style={{marginTop:18,animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>
