@@ -188,6 +188,61 @@ registerContent({
   "net · 1,140 responses": "صافٍ · 1,140 استجابة", "ethics + displacement": "الأخلاقيات + الإحلال",
 });
 
+/* Arabic for the CIO / CDPO / Legal command-center Overviews (dictionary-only).
+   Completes the executive set. Panels + deep drill-downs stay English. */
+registerContent({
+  // ── CIO ──
+  "The CIO's lens: is the AI platform reliable, fast, affordable and well-integrated.": "عدسة مدير المعلومات: هل منصة الذكاء الاصطناعي موثوقة وسريعة وميسورة ومتكاملة جيداً.",
+  "The platform is stable": "المنصة مستقرّة",
+  "AI services 99.94% uptime, 14 models in production, but inference cost per call is up 14% and one integration is degraded.": "خدمات الذكاء الاصطناعي بجاهزية 99.94%، و14 نموذجاً في الإنتاج، لكن تكلفة الاستدلال لكل استدعاء ارتفعت 14% وتكامل واحد متدهور.",
+  "AI service uptime": "جاهزية خدمة الذكاء الاصطناعي", "30d · SLO 99.9%": "30 يوماً · هدف الخدمة 99.9%",
+  "Integration degraded — core banking": "تكامل متدهور — الأنظمة المصرفية الأساسية",
+  "Latency on the payments connector up 3×; retries climbing.": "زمن الاستجابة على موصل المدفوعات ارتفع 3 أضعاف؛ وإعادات المحاولة تتصاعد.",
+  "Investigate": "حقّق",
+  "Inference cost spike": "قفزة في تكلفة الاستدلال",
+  "Cost/call +14% MoM as Copilot traffic grows — routing review.": "التكلفة/الاستدعاء +14% شهرياً مع نمو حركة المساعد — مراجعة التوجيه.",
+  "Optimise routing": "حسّن التوجيه",
+  "Model deprecation — 30d": "إيقاف نموذج — 30 يوماً",
+  "Two models on an end-of-life provider version; migration due.": "نموذجان على إصدار مزوّد منتهي العمر؛ الترحيل مستحق.",
+  "Plan migration": "خطّط للترحيل",
+  "Service uptime": "جاهزية الخدمة", "Inference latency": "زمن الاستدلال", "Cost / 1k calls": "التكلفة / 1000 استدعاء",
+  "Models in prod": "نماذج في الإنتاج", "Integrations": "التكاملات", "Platform incidents": "حوادث المنصة",
+  "30d rolling": "30 يوماً متجدّدة", "p95 · SLO 600ms": "p95 · هدف الخدمة 600 مللي ثانية",
+  "of 21 registered": "من 21 مُسجّلاً", "1 degraded · 22 healthy": "1 متدهور · 22 سليم", "30d · 0 SEV1": "30 يوماً · 0 خطورة1",
+  // ── CDPO ──
+  "The CDPO's lens: where personal data flows through AI, and whether every use is lawful, consented and contained.": "عدسة مسؤول حماية البيانات: أين تتدفّق البيانات الشخصية عبر الذكاء الاصطناعي، وهل كل استخدام قانوني وبموافقة ومُحتوى.",
+  "Privacy is compliant, watch two items": "الخصوصية ممتثلة، راقِب بندين",
+  "92% privacy compliance across 11 personal-data systems, but a DPIA is overdue and 3 subject-rights requests approach SLA.": "امتثال خصوصية 92% عبر 11 نظام بيانات شخصية، لكن تقييم أثر متأخر و3 طلبات حقوق أصحاب بيانات تقترب من اتفاقية الخدمة.",
+  "Privacy compliance": "امتثال الخصوصية", "DPIA coverage 9/11 systems": "تغطية تقييم الأثر 9/11 أنظمة",
+  "DPIA overdue — Skills Navigator": "تقييم الأثر متأخر — مُوجّه المهارات",
+  "Processes employee data with profiling; DPIA past due.": "يعالج بيانات الموظفين بالتنميط؛ تقييم الأثر تجاوز موعده.",
+  "Complete DPIA": "أكمل تقييم الأثر",
+  "Subject-rights SLA — 3 requests": "اتفاقية حقوق الأصحاب — 3 طلبات",
+  "Two erasure + one access request near the 30-day limit.": "طلبا محو + طلب وصول قرب حدّ 30 يوماً.",
+  "Action requests": "نفّذ الطلبات",
+  "Data residency — APAC": "إقامة البيانات — آسيا والمحيط الهادئ",
+  "Predictive Maintenance logs routed outside region; review.": "سجلّات الصيانة التنبؤية موجَّهة خارج المنطقة؛ راجِع.",
+  "Review transfer": "راجِع النقل",
+  "DPIA coverage": "تغطية تقييم الأثر", "Art.22 systems": "أنظمة المادة 22", "Consent / lawful basis": "الموافقة / الأساس القانوني",
+  "Subject-rights (open)": "حقوق الأصحاب (مفتوحة)", "Privacy incidents": "حوادث الخصوصية",
+  "GDPR + local": "GDPR + محلي", "systems assessed": "أنظمة مُقيَّمة", "automated decisions": "قرارات آلية",
+  "documented": "موثّقة", "SLA 30d · 0 breached": "اتفاقية 30 يوماً · 0 مُخترقة", "30d · 1 near-miss": "30 يوماً · 1 وشيك",
+  // ── Legal ──
+  "The General Counsel's lens: can each AI system legally operate, and is the evidence defensible.": "عدسة المستشار العام: هل يمكن لكل نظام ذكاء اصطناعي العمل قانونياً، وهل الأدلة قابلة للدفاع.",
+  "Regulatory posture is solid — one conformity gap open": "الوضع التنظيمي متين — فجوة مطابقة واحدة مفتوحة",
+  "88% of controls effective and consent documented, but an EU AI Act conformity assessment and two contract clauses need attention before scale.": "88% من الضوابط فعّالة والموافقة موثّقة، لكن تقييم مطابقة القانون الأوروبي وبندين تعاقديين يحتاجان انتباهاً قبل التوسّع.",
+  "Legally defensible": "قابل للدفاع قانونياً", "controls effective · 1 gap open": "ضوابط فعّالة · فجوة واحدة مفتوحة",
+  "EU AI Act conformity gap": "فجوة مطابقة القانون الأوروبي",
+  "Credit Decision needs Art.43 conformity assessment before scale.": "قرار الائتمان يحتاج تقييم مطابقة المادة 43 قبل التوسّع.",
+  "Contract clause — vendor liability": "بند تعاقدي — مسؤولية المورّد",
+  "Two AI vendor contracts lack model-liability terms.": "عقدا مورّدي ذكاء اصطناعي يفتقران لبنود مسؤولية النماذج.",
+  "IP provenance — training data": "مصدر الملكية الفكرية — بيانات التدريب",
+  "One model's training-data provenance is unclassified.": "مصدر بيانات تدريب أحد النماذج غير مصنّف.",
+  "Conformity gaps": "فجوات المطابقة", "Consent documented": "الموافقة الموثّقة", "Contracts flagged": "العقود المُعلَّمة",
+  "Frameworks aligned": "الأطر المتوائمة", "Regulatory changes": "التغييرات التنظيمية",
+  "of scope": "من النطاق", "liability terms": "بنود المسؤولية", "regulatory": "تنظيمي", "tracked this Q": "مُتابَعة هذا الربع",
+});
+
 /* ── block renderers ── */
 function Kpis({items,ctx}){
   const lang=useLang(); const T_=en=>ts(lang,en);
