@@ -3,6 +3,16 @@
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_RBAC, acInitiatives, KPI_INSIGHTS, AC_FRAMEWORK_POSTURE } from "@/lib/platform-models";
 import { ROLE_CENTERS } from "@/lib/role-centers";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic strings for shared design-system chrome (AI-interaction disclosure). */
+registerContent({
+  "◆ AI-assisted": "◆ بمساعدة الذكاء الاصطناعي",
+  "via the governed Gateway": "عبر البوابة المُحوكَمة",
+  "grounded in your enterprise knowledge": "مُسنَد إلى معرفة مؤسستك",
+  "general knowledge — no enterprise data used": "معرفة عامة — دون استخدام بيانات المؤسسة",
+  "logged to Article 12": "مُسجَّل في المادة 12",
+});
 
 export const FEEDBACK_DIMS = [
   ["user","User feedback"],["business","Business owner"],["executive","Executive"],
@@ -1465,9 +1475,10 @@ export function SHead({title, sub}) {
    it is AI, which model, that it is governed, the basis for the answer, and that
    the interaction is logged to the Article 12 chain. */
 export function AIDisclosure({ model = "the governed model", grounded = false, style = {} }) {
+  const lang = useLang(); const T_ = en => ts(lang, en);
   return <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 9, paddingTop: 9, borderTop: `1px solid ${T.border}`, ...style }}>
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 8.5, fontWeight: 900, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", color: AI_GOLD_INK, background: AI_GOLD + "14", border: `1px solid ${AI_GOLD}38`, borderRadius: 999, padding: "2px 8px" }}>◆ AI-assisted</span>
-    <span style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.5 }}>{model} · via the governed Gateway · {grounded ? "grounded in your enterprise knowledge" : "general knowledge — no enterprise data used"} · logged to Article 12</span>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 8.5, fontWeight: 900, fontFamily: F.m, letterSpacing: "0.06em", textTransform: "uppercase", color: AI_GOLD_INK, background: AI_GOLD + "14", border: `1px solid ${AI_GOLD}38`, borderRadius: 999, padding: "2px 8px" }}>{T_("◆ AI-assisted")}</span>
+    <span style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.5 }}>{model} · {T_("via the governed Gateway")} · {grounded ? T_("grounded in your enterprise knowledge") : T_("general knowledge — no enterprise data used")} · {T_("logged to Article 12")}</span>
   </div>;
 }
 
