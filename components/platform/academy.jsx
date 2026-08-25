@@ -6,6 +6,54 @@ import { T, RC, ROLES, AI_GOLD, AI_GOLD_INK, GOVERNANCE_ACADEMY, ROLE_LEARNING_P
 import { pathProgress, quizAvg, stateOf, isComplete, enterpriseReadiness, evidenceFromLearning } from "@/lib/academy-engine";
 import { GlossaryLearning } from "./dictionary";
 import { useState } from "react";
+import { useLang, ts } from "@/lib/i18n";
+import { USE_CASES, USE_CASE_CATS, USE_CASE_CAT_AR } from "@/lib/use-cases";
+
+/* ── Use Cases (Help / Guides) ──────────────────────────────────────
+   A problem an organisation faces, and the step-by-step way VerisZone
+   solves it. Bilingual; content lives in lib/use-cases.js. */
+function UseCases() {
+  const lang = useLang(); const ar = lang === "ar"; const T_ = en => ts(lang, en);
+  const [cat, setCat] = useState("all");
+  const list = USE_CASES.filter(u => cat === "all" || u.cat === cat);
+  const catLabel = c => ar ? (USE_CASE_CAT_AR[c] || c) : c;
+  const chips = ["all", ...USE_CASE_CATS];
+  return <div style={{ animation: "up .3s ease" }}>
+    <SHead title={ar ? "حالات الاستخدام" : "Use Cases"} sub={ar
+      ? "مشكلة تواجهها مؤسستك، والطريقة خطوة بخطوة التي تحلّها بها VerisZone — كل خطوة تشير إلى السطح الذي ينجزها."
+      : "A problem your organisation faces, and the step-by-step way VerisZone solves it — each step points to the surface that does the work."} />
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+      {chips.map(c => { const on = cat === c; return <button key={c} onClick={() => setCat(c)} style={{ fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", color: on ? "#241703" : T.ink2, background: on ? AI_GOLD : T.s2, border: `1px solid ${on ? AI_GOLD : T.border}`, borderRadius: 999, padding: "5px 12px" }}>{c === "all" ? (ar ? "الكل" : "All") : catLabel(c)}</button>; })}
+    </div>
+    <div style={{ display: "grid", gap: 14 }}>
+      {list.map(u => <Card key={u.id} style={{ padding: "18px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+          <div style={{ fontSize: 9, fontWeight: 900, fontFamily: F.m, color: AI_GOLD_INK, textTransform: "uppercase", letterSpacing: "0.1em" }}>{ar ? "المشكلة" : "The problem"}</div>
+          <Tag label={catLabel(u.cat)} color={AI_GOLD} bg={AI_GOLD + "16"} />
+        </div>
+        <h3 style={{ fontFamily: F.h, fontSize: 17, fontWeight: 900, color: T.ink, margin: "0 0 6px", textAlign: ar ? "right" : "left" }}>{ar && u.titleAr ? u.titleAr : u.title}</h3>
+        <p style={{ fontSize: 12, color: T.ink2, fontFamily: F.b, lineHeight: 1.6, margin: "0 0 14px", textAlign: ar ? "right" : "left" }}>{ar && u.problemAr ? u.problemAr : u.problem}</p>
+        <div style={{ fontSize: 9, fontWeight: 900, fontFamily: F.m, color: T.ink4, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 9 }}>{ar ? "الحل خطوة بخطوة" : "Step-by-step solution"}</div>
+        <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+          {u.steps.map((st, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: ar ? "auto 1fr" : "auto 1fr", gap: 11, alignItems: "start" }}>
+            <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: "50%", background: AI_GOLD + "1f", color: AI_GOLD_INK, fontSize: 11, fontWeight: 900, fontFamily: F.m, display: "grid", placeItems: "center" }}>{i + 1}</span>
+            <div style={{ minWidth: 0, textAlign: ar ? "right" : "left" }}>
+              <span style={{ fontSize: 11.5, color: T.ink2, fontFamily: F.b, lineHeight: 1.55 }}>{ar && st.tAr ? st.tAr : st.t}</span>
+              {st.s && <span style={{ display: "inline-block", marginInlineStart: 8, fontSize: 9, fontWeight: 800, fontFamily: F.m, color: T.ink3, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap", verticalAlign: "middle" }}>{st.s}</span>}
+            </div>
+          </div>)}
+        </div>
+        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "10px 13px", borderRadius: 10, background: T.green + "12", border: `1px solid ${T.green}30`, textAlign: ar ? "right" : "left" }}>
+          <span style={{ color: T.green, fontWeight: 900, flexShrink: 0 }}>✓</span>
+          <div>
+            <span style={{ fontSize: 11.5, color: T.ink2, fontFamily: F.b, lineHeight: 1.55 }}><b style={{ color: T.ink }}>{ar ? "النتيجة: " : "Outcome: "}</b>{ar && u.outcomeAr ? u.outcomeAr : u.outcome}</span>
+            <div style={{ fontSize: 9.5, color: T.ink4, fontFamily: F.m, marginTop: 5 }}>{u.frameworks}</div>
+          </div>
+        </div>
+      </Card>)}
+    </div>
+  </div>;
+}
 
 /* Employee learner hub - the Academy as a personal learning experience.
    Curriculum and certifications derive from role, initiative and phase;
@@ -85,7 +133,9 @@ export function PageGovernanceAcademy({role,sessionMode,showToast,setTab}) {
   const seededHub=(sessionMode==="demo"||sessionMode==="aicentral");
   const [view,setView]=useState("learning");
   const seg=(id,label)=>{const on=view===id;return <button key={id} onClick={()=>setView(id)} style={{background:on?AI_GOLD:"transparent",border:"none",borderRadius:8,padding:"6px 14px",color:on?"#241703":T.ink2,fontSize:12,fontWeight:800,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>;};
-  const toggle=<div style={{display:"inline-flex",gap:3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:4,marginBottom:14}}>{seg("learning","Learning Path")}{seg("glossary","Glossary & Learning")}</div>;
+  const acLang=useLang(); const acAr=acLang==="ar";
+  const toggle=<div style={{display:"inline-flex",gap:3,background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:4,marginBottom:14,flexWrap:"wrap"}}>{seg("learning",acAr?"مسار التعلّم":"Learning Path")}{seg("glossary",acAr?"المسرد والتعلّم":"Glossary & Learning")}{seg("usecases",acAr?"حالات الاستخدام":"Use Cases")}</div>;
+  if(view==="usecases")return <div style={{animation:"up .3s ease"}}>{toggle}<UseCases/></div>;
   if(view==="glossary")return <div style={{animation:"up .3s ease"}}>{toggle}<GlossaryLearning/></div>;
   if(role==="employee")return <div>{toggle}<EmployeeLearnerHub role={role} seeded={seededHub} showToast={showToast} setTab={setTab}/></div>;
   const pathIds=ROLE_LEARNING_PATHS[role]||ROLE_LEARNING_PATHS.caio;
