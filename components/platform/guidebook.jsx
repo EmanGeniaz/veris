@@ -95,91 +95,224 @@ export function JurisdictionAtlas({ showToast }) {
   </div>;
 }
 
+/* Arabic chrome for the Statement of Applicability + certification-readiness surface. */
+registerContent({
+  "ISO 42001 Readiness": "جاهزية ISO 42001",
+  "The Statement of Applicability an auditor reads first — every Annex A control, whether it applies, and the evidence that proves it — plus certification readiness by management-system clause, built around what an auditor actually asks for.":
+    "بيان قابلية التطبيق الذي يقرأه المدقّق أولاً — كل ضابط في Annex A، وهل ينطبق، والأدلة التي تثبته — إضافةً إلى جاهزية الاعتماد حسب بند نظام الإدارة، مبنيّة على ما يطلبه المدقّق فعلاً.",
+  "Certification readiness": "جاهزية الاعتماد",
+  "READY": "جاهز",
+  "Annex A controls": "ضوابط Annex A",
+  "Implemented": "مُطبَّق",
+  "evidence in progress": "أدلة قيد الإعداد",
+  "Partial": "جزئي",
+  "Audit readiness": "جاهزية التدقيق",
+  "clauses 4–10": "البنود 4–10",
+  "Statement of Applicability · Annex A": "بيان قابلية التطبيق · Annex A",
+  "Control · applicable? · justification · evidence": "ضابط · قابل للتطبيق؟ · المبرر · الأدلة",
+  "Control": "ضابط",
+  "Applicable": "قابل للتطبيق",
+  "Evidence artifact": "أثر الأدلة",
+  "Xwalk": "التقارب",
+  "Yes": "نعم",
+  "Planned": "مُخطَّط",
+  "Not applicable": "غير قابل للتطبيق",
+  "Certification readiness · what the auditor asks": "جاهزية الاعتماد · ما يطلبه المدقّق",
+  "By management-system clause (4–10)": "حسب بند نظام الإدارة (4–10)",
+  "Assemble audit pack": "تجميع حزمة التدقيق",
+  "SoA + readiness pack assembled for the certification body": "تم تجميع حزمة بيان قابلية التطبيق والجاهزية لجهة الاعتماد",
+  "AI policy": "سياسة الذكاء الاصطناعي",
+  "Roles": "الأدوار",
+  "Resources": "الموارد",
+  "Impact assessment": "تقييم الأثر",
+  "Lifecycle": "دورة الحياة",
+  "Data": "البيانات",
+  "Information for users": "معلومات للمستخدمين",
+  "Use of AI systems": "استخدام أنظمة الذكاء الاصطناعي",
+  "Third parties": "الأطراف الثالثة",
+  "AI management policy": "سياسة إدارة الذكاء الاصطناعي",
+  "AI roles & responsibilities": "أدوار ومسؤوليات الذكاء الاصطناعي",
+  "Resourcing for the AI system": "توفير الموارد لنظام الذكاء الاصطناعي",
+  "AI system impact assessment process": "عملية تقييم أثر نظام الذكاء الاصطناعي",
+  "Assessing AI impact on individuals": "تقييم أثر الذكاء الاصطناعي على الأفراد",
+  "AI system lifecycle objectives": "أهداف دورة حياة نظام الذكاء الاصطناعي",
+  "AI system requirements & specification": "متطلبات ومواصفات نظام الذكاء الاصطناعي",
+  "AI system verification & validation": "التحقق والمصادقة على نظام الذكاء الاصطناعي",
+  "AI system operation & monitoring": "تشغيل ومراقبة نظام الذكاء الاصطناعي",
+  "Data for AI systems": "بيانات أنظمة الذكاء الاصطناعي",
+  "System documentation & transparency": "توثيق النظام والشفافية",
+  "Responsible use & human oversight": "الاستخدام المسؤول والإشراف البشري",
+  "Supplier & third-party AI management": "إدارة الموردين والأطراف الثالثة للذكاء الاصطناعي",
+  "Customers of the AI system": "عملاء نظام الذكاء الاصطناعي",
+  "AI policy library (15 policies)": "مكتبة سياسات الذكاء الاصطناعي (15 سياسة)",
+  "Governance charter & RACI": "ميثاق الحوكمة و RACI",
+  "AI platform + gateway": "منصة الذكاء الاصطناعي + البوابة",
+  "FRIA / DPIA report": "تقرير FRIA / DPIA",
+  "Risk classification record": "سجل تصنيف المخاطر",
+  "13-phase lifecycle model": "نموذج دورة حياة من 13 مرحلة",
+  "Model card + system register": "بطاقة النموذج + سجل النظام",
+  "Validation report + fairness workbook": "تقرير المصادقة + دفتر الإنصاف",
+  "Post-market monitoring plan": "خطة مراقبة ما بعد السوق",
+  "Data quality statement + lineage": "بيان جودة البيانات + سلسلة المنشأ",
+  "Transparency notice + explainability record": "إشعار الشفافية + سجل القابلية للتفسير",
+  "Human-oversight design record": "سجل تصميم الإشراف البشري",
+  "Vendor assessment + DPA": "تقييم المورّد + DPA",
+  "Not a downstream AI supplier": "ليست مورّداً لاحقاً للذكاء الاصطناعي",
+  "Context of the organization": "سياق المؤسسة",
+  "Leadership": "القيادة",
+  "Planning": "التخطيط",
+  "Support": "الدعم",
+  "Operation": "التشغيل",
+  "Performance evaluation": "تقييم الأداء",
+  "Improvement": "التحسين",
+  "Scope statement, interested parties, AI system boundaries.": "بيان النطاق، الأطراف المعنية، حدود نظام الذكاء الاصطناعي.",
+  "AI policy signed by top management; roles assigned.": "سياسة ذكاء اصطناعي موقّعة من الإدارة العليا؛ أدوار مُسندة.",
+  "AI risks & opportunities, impact assessment, objectives.": "مخاطر وفرص الذكاء الاصطناعي، تقييم الأثر، الأهداف.",
+  "Competence, awareness, documented information control.": "الكفاءة، الوعي، ضبط المعلومات الموثّقة.",
+  "Operational planning, impact assessment, controls in use.": "التخطيط التشغيلي، تقييم الأثر، الضوابط المستخدمة.",
+  "Monitoring, internal audit, management review records.": "المراقبة، التدقيق الداخلي، سجلات مراجعة الإدارة.",
+  "Nonconformity, corrective action, continual improvement.": "عدم المطابقة، الإجراء التصحيحي، التحسين المستمر.",
+});
+
 /* ══════════════ STATEMENT OF APPLICABILITY + CERT-READINESS ══════════════ */
 export function StatementOfApplicability({ showToast }) {
+  const lang = useLang();
+  const ar = lang === "ar";
+  const T_ = en => ts(lang, en);
   const s = soaStats();
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="ISO 42001 Readiness" sub="The Statement of Applicability an auditor reads first — every Annex A control, whether it applies, and the evidence that proves it — plus certification readiness by management-system clause, built around what an auditor actually asks for." />
+    <Head title={T_("ISO 42001 Readiness")} sub={T_("The Statement of Applicability an auditor reads first — every Annex A control, whether it applies, and the evidence that proves it — plus certification readiness by management-system clause, built around what an auditor actually asks for.")} />
     <Card style={{ ...cardPad, marginBottom: 14, background: `linear-gradient(135deg,${T.s2},${T.bg})`, border: `1px solid ${AI_GOLD}38` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div style={{ maxWidth: 620 }}>
-          <Eyebrow style={{ color: AI_GOLD_INK }}>Certification readiness</Eyebrow>
-          <H3 style={{ fontSize: 18 }}>{s.readiness}% ready for a Stage-2 ISO/IEC 42001 audit</H3>
-          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{s.applicable} of {s.total} Annex A controls applicable · {s.implemented} implemented · {s.partial} partial. Weakest clause: Performance evaluation (internal audit + management review).</p>
+          <Eyebrow style={{ color: AI_GOLD_INK }}>{T_("Certification readiness")}</Eyebrow>
+          <H3 style={{ fontSize: 18 }}>{ar ? <>{s.readiness}% جاهزية لتدقيق ISO/IEC 42001 من المرحلة الثانية</> : <>{s.readiness}% ready for a Stage-2 ISO/IEC 42001 audit</>}</H3>
+          <p style={{ fontSize: 11.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.65, margin: "6px 0 0" }}>{ar
+            ? <>{s.applicable} من {s.total} ضابط Annex A قابل للتطبيق · {s.implemented} مُطبَّق · {s.partial} جزئي. أضعف بند: تقييم الأداء (التدقيق الداخلي + مراجعة الإدارة).</>
+            : <>{s.applicable} of {s.total} Annex A controls applicable · {s.implemented} implemented · {s.partial} partial. Weakest clause: Performance evaluation (internal audit + management review).</>}</p>
         </div>
         <div style={{ textAlign: "center", background: T.s2, border: `1px solid ${AI_GOLD}45`, borderRadius: 12, padding: "12px 18px", minWidth: 120 }}>
           <div style={{ fontSize: 34, fontWeight: 900, color: AI_GOLD_INK, fontFamily: F.m, lineHeight: 1 }}>{s.readiness}%</div>
-          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>READY</div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontWeight: 800, fontFamily: F.b, marginTop: 4, letterSpacing: "0.04em" }}>{T_("READY")}</div>
         </div>
       </div>
     </Card>
     <div style={kpiGrid}>
-      <Kpi l="Annex A controls" v={String(s.total)} c={AI_GOLD} sub={`${s.applicable} applicable · ${s.notApplicable} N/A`} />
-      <Kpi l="Implemented" v={String(s.implemented)} c={T.green} sub={`${s.implementedPct}% of applicable`} />
-      <Kpi l="Partial" v={String(s.partial)} c={T.amber} sub="evidence in progress" />
-      <Kpi l="Audit readiness" v={`${s.readiness}%`} c={AI_GOLD} sub="clauses 4–10" />
+      <Kpi l={T_("Annex A controls")} v={String(s.total)} c={AI_GOLD} sub={ar ? `${s.applicable} قابل للتطبيق · ${s.notApplicable} N/A` : `${s.applicable} applicable · ${s.notApplicable} N/A`} />
+      <Kpi l={T_("Implemented")} v={String(s.implemented)} c={T.green} sub={ar ? `${s.implementedPct}% من القابل للتطبيق` : `${s.implementedPct}% of applicable`} />
+      <Kpi l={T_("Partial")} v={String(s.partial)} c={T.amber} sub={T_("evidence in progress")} />
+      <Kpi l={T_("Audit readiness")} v={`${s.readiness}%`} c={AI_GOLD} sub={T_("clauses 4–10")} />
     </div>
     <Card style={{ ...cardPad, marginBottom: 14 }}>
-      <Eyebrow>Statement of Applicability · Annex A</Eyebrow><H3 style={{ marginBottom: 12 }}>Control · applicable? · justification · evidence</H3>
-      <Table head={["Annex A", "Control", "Applicable", "Status", "Evidence artifact", "Xwalk"]}>
+      <Eyebrow>{T_("Statement of Applicability · Annex A")}</Eyebrow><H3 style={{ marginBottom: 12 }}>{T_("Control · applicable? · justification · evidence")}</H3>
+      <Table head={[T_("Annex A"), T_("Control"), T_("Applicable"), T_("Status"), T_("Evidence artifact"), T_("Xwalk")]}>
         {SOA_CONTROLS.map(c => { const m = SOA_STATUS_META[c.status]; return <tr key={c.id}>
           <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{c.id}</Td>
-          <Td style={{ fontWeight: 700, color: T.ink, minWidth: 170 }}>{c.control}<div style={{ fontSize: 9.5, color: T.ink4, fontWeight: 500, marginTop: 2 }}>{c.theme}</div></Td>
-          <Td>{c.applicable ? <Pill c={T.green}>Yes</Pill> : <Pill c={T.ink3}>N/A</Pill>}</Td>
-          <Td><Pill c={tok(m.tone)}>{m.label}</Pill></Td>
-          <Td style={{ color: T.ink2 }}>{c.evidence}</Td>
+          <Td style={{ fontWeight: 700, color: T.ink, minWidth: 170 }}>{T_(c.control)}<div style={{ fontSize: 9.5, color: T.ink4, fontWeight: 500, marginTop: 2 }}>{T_(c.theme)}</div></Td>
+          <Td>{c.applicable ? <Pill c={T.green}>{T_("Yes")}</Pill> : <Pill c={T.ink3}>N/A</Pill>}</Td>
+          <Td><Pill c={tok(m.tone)}>{T_(m.label)}</Pill></Td>
+          <Td style={{ color: T.ink2 }}>{T_(c.evidence)}</Td>
           <Td style={{ fontFamily: F.m, color: T.ink3 }}>{c.ref}</Td>
         </tr>; })}
       </Table>
     </Card>
     <Card style={cardPad}>
-      <Eyebrow>Certification readiness · what the auditor asks</Eyebrow><H3 style={{ marginBottom: 12 }}>By management-system clause (4–10)</H3>
+      <Eyebrow>{T_("Certification readiness · what the auditor asks")}</Eyebrow><H3 style={{ marginBottom: 12 }}>{T_("By management-system clause (4–10)")}</H3>
       <div style={{ display: "grid", gap: 9 }}>
         {CERT_CLAUSES.map(c => { const col = c.score >= 85 ? T.green : c.score >= 70 ? AI_GOLD : T.red; return <div key={c.clause}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}><span style={{ fontFamily: F.m, color: T.ink4 }}>Cl. {c.clause}</span> · {c.name}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: T.ink, fontFamily: F.b }}><span style={{ fontFamily: F.m, color: T.ink4 }}>{ar ? `البند ${c.clause}` : `Cl. ${c.clause}`}</span> · {T_(c.name)}</span>
             <span style={{ fontSize: 11, fontWeight: 900, color: col, fontFamily: F.m }}>{c.score}%</span>
           </div>
           <div style={{ height: 6, background: T.s2, borderRadius: 4, overflow: "hidden" }}><div style={{ width: `${c.score}%`, height: "100%", background: col }} /></div>
-          <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b, marginTop: 3 }}>{c.ask}</div>
+          <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.b, marginTop: 3 }}>{T_(c.ask)}</div>
         </div>; })}
       </div>
       <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
-        <button onClick={() => showToast && showToast("SoA + readiness pack assembled for the certification body")} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>Assemble audit pack</button>
+        <button onClick={() => showToast && showToast(T_("SoA + readiness pack assembled for the certification body"))} style={{ background: AI_GOLD, border: "none", borderRadius: 10, padding: "9px 15px", color: "#241703", fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{T_("Assemble audit pack")}</button>
       </div>
     </Card>
   </div>;
 }
 
+/* Arabic chrome for the Evidence Freshness surface. */
+registerContent({
+  "Evidence Freshness": "حداثة الأدلة",
+  "Governance that was true last year is not evidence today. Every evidence artifact carries a review cadence; anything past its review date is flagged Stale so it surfaces without being hunted for — the freshness index an auditor trusts.":
+    "الحوكمة التي كانت صحيحة العام الماضي ليست دليلاً اليوم. كل أثر دليل يحمل وتيرة مراجعة؛ وأي شيء تجاوز تاريخ مراجعته يُوسَم قديم ليظهر دون البحث عنه — مؤشّر الحداثة الذي يثق به المدقّق.",
+  "Artifacts tracked": "الآثار المتابَعة",
+  "with a review cadence": "بوتيرة مراجعة",
+  "Fresh": "حديث",
+  "Due soon": "مستحقة قريباً",
+  "review approaching": "تقترب المراجعة",
+  "Stale": "قديم",
+  "past review — act now": "تجاوزت المراجعة — تصرّف الآن",
+  "Evidence register · freshness": "سجل الأدلة · الحداثة",
+  "Artifact · owner · cadence · last reviewed · state": "الأثر · المالك · الوتيرة · آخر مراجعة · الحالة",
+  "All fresh": "كلها حديثة",
+  "Owner": "المالك",
+  "Cadence": "الوتيرة",
+  "Last reviewed": "آخر مراجعة",
+  "Next / due": "التالي / المستحق",
+  "State": "الحالة",
+  "Procurement": "المشتريات",
+  "Quarterly": "ربع سنوي",
+  "Monthly": "شهري",
+  "Per release": "لكل إصدار",
+  "Annual": "سنوي",
+  "Semi-annual": "نصف سنوي",
+  "On change": "عند التغيير",
+  "Per system": "لكل نظام",
+  "on next release": "عند الإصدار التالي",
+  "on next change": "عند التغيير التالي",
+  "before scale gate": "قبل بوابة التوسّع",
+  "overdue 12 days": "متأخر 12 يوماً",
+  "Risk register (inherent + residual)": "سجل المخاطر (المتأصلة + المتبقّية)",
+  "Model card — Resolution Copilot": "بطاقة النموذج — Resolution Copilot",
+  "Statement of Applicability": "بيان قابلية التطبيق",
+  "Data quality statement": "بيان جودة البيانات",
+  "Transfer impact assessment (APAC)": "تقييم أثر النقل (آسيا والمحيط الهادئ)",
+  "Red-team & security test report": "تقرير الفريق الأحمر واختبار الأمن",
+  "Conformity assessment — Credit": "تقييم المطابقة — الائتمان",
+  "Acceptable-use policy": "سياسة الاستخدام المقبول",
+  "Fairness workbook — eligibility": "دفتر الإنصاف — الأهلية",
+  "Vendor DPA — frontier model": "DPA المورّد — النموذج الرائد",
+});
+
 /* ══════════════ EVIDENCE FRESHNESS ══════════════ */
 export function EvidenceFreshness({ showToast }) {
+  const lang = useLang();
+  const ar = lang === "ar";
+  const T_ = en => ts(lang, en);
   const s = freshnessStats();
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Evidence Freshness" sub="Governance that was true last year is not evidence today. Every evidence artifact carries a review cadence; anything past its review date is flagged Stale so it surfaces without being hunted for — the freshness index an auditor trusts." />
+    <Head title={T_("Evidence Freshness")} sub={T_("Governance that was true last year is not evidence today. Every evidence artifact carries a review cadence; anything past its review date is flagged Stale so it surfaces without being hunted for — the freshness index an auditor trusts.")} />
     <div style={kpiGrid}>
-      <Kpi l="Artifacts tracked" v={String(s.total)} c={AI_GOLD} sub="with a review cadence" />
-      <Kpi l="Fresh" v={String(s.fresh)} c={T.green} sub={`${s.freshPct}% within cadence`} />
-      <Kpi l="Due soon" v={String(s.due)} c={T.amber} sub="review approaching" />
-      <Kpi l="Stale" v={String(s.stale)} c={T.red} sub="past review — act now" />
+      <Kpi l={T_("Artifacts tracked")} v={String(s.total)} c={AI_GOLD} sub={T_("with a review cadence")} />
+      <Kpi l={T_("Fresh")} v={String(s.fresh)} c={T.green} sub={ar ? `${s.freshPct}% ضمن الوتيرة` : `${s.freshPct}% within cadence`} />
+      <Kpi l={T_("Due soon")} v={String(s.due)} c={T.amber} sub={T_("review approaching")} />
+      <Kpi l={T_("Stale")} v={String(s.stale)} c={T.red} sub={T_("past review — act now")} />
     </div>
     <Card style={cardPad}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <div><Eyebrow>Evidence register · freshness</Eyebrow><H3>Artifact · owner · cadence · last reviewed · state</H3></div>
-        <button onClick={() => showToast && showToast(`${s.stale} stale artifacts routed to their owners for refresh`)} style={{ background: s.stale ? T.red : T.s2, border: `1px solid ${s.stale ? T.red : T.border}`, borderRadius: 10, padding: "8px 13px", color: s.stale ? "#fff" : T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{s.stale ? `Refresh ${s.stale} stale` : "All fresh"}</button>
+        <div><Eyebrow>{T_("Evidence register · freshness")}</Eyebrow><H3>{T_("Artifact · owner · cadence · last reviewed · state")}</H3></div>
+        <button onClick={() => showToast && showToast(ar ? `تم توجيه ${s.stale} أثراً قديماً إلى مالكيها للتحديث` : `${s.stale} stale artifacts routed to their owners for refresh`)} style={{ background: s.stale ? T.red : T.s2, border: `1px solid ${s.stale ? T.red : T.border}`, borderRadius: 10, padding: "8px 13px", color: s.stale ? "#fff" : T.ink2, fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{s.stale ? (ar ? `تحديث ${s.stale} قديمة` : `Refresh ${s.stale} stale`) : T_("All fresh")}</button>
       </div>
-      <Table head={["ID", "Evidence artifact", "Owner", "Cadence", "Last reviewed", "Next / due", "State"]}>
+      <Table head={[T_("ID"), T_("Evidence artifact"), T_("Owner"), T_("Cadence"), T_("Last reviewed"), T_("Next / due"), T_("State")]}>
         {EVIDENCE_ARTIFACTS.map(e => { const m = FRESHNESS_META[e.freshness]; return <tr key={e.id}>
           <Td style={{ fontFamily: F.m, color: T.ink3 }}>{e.id}</Td>
-          <Td style={{ fontWeight: 700, color: T.ink }}>{e.artifact}</Td>
-          <Td>{e.owner}</Td>
-          <Td style={{ color: T.ink3 }}>{e.cadence}</Td>
+          <Td style={{ fontWeight: 700, color: T.ink }}>{T_(e.artifact)}</Td>
+          <Td>{T_(e.owner)}</Td>
+          <Td style={{ color: T.ink3 }}>{T_(e.cadence)}</Td>
           <Td style={{ color: T.ink3, whiteSpace: "nowrap" }}>{e.lastReviewed}</Td>
-          <Td style={{ color: e.freshness === "stale" ? T.red : T.ink3, whiteSpace: "nowrap" }}>{e.due}</Td>
-          <Td><Pill c={tok(m.tone)}>{m.label}</Pill></Td>
+          <Td style={{ color: e.freshness === "stale" ? T.red : T.ink3, whiteSpace: "nowrap" }}>{T_(e.due)}</Td>
+          <Td><Pill c={tok(m.tone)}>{T_(m.label)}</Pill></Td>
         </tr>; })}
       </Table>
       <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 10, background: AI_GOLD + "12", border: `1px solid ${AI_GOLD}30`, fontSize: 11, color: T.ink2, lineHeight: 1.6, fontFamily: F.b }}>
-        <b style={{ color: AI_GOLD_INK }}>Veris Intelligence:</b> {s.stale} artifacts are stale — the APAC transfer assessment (INC-1048) and the acceptable-use policy are overdue and block their crosswalk capabilities. Fresh evidence is the difference between a governance file and a defensible audit.
+        <b style={{ color: AI_GOLD_INK }}>{T_("Veris Intelligence:")}</b> {ar
+          ? <>{s.stale} أثراً قديمة — تقييم أثر النقل لآسيا والمحيط الهادئ (INC-1048) وسياسة الاستخدام المقبول متأخران ويعوقان قدرات التقارب الخاصة بهما. الأدلة الحديثة هي الفرق بين ملف حوكمة وتدقيق قابل للدفاع عنه.</>
+          : <>{s.stale} artifacts are stale — the APAC transfer assessment (INC-1048) and the acceptable-use policy are overdue and block their crosswalk capabilities. Fresh evidence is the difference between a governance file and a defensible audit.</>}
       </div>
     </Card>
   </div>;
