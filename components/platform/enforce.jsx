@@ -236,6 +236,14 @@ registerContent({
   "Tool not in this agent's set — denied by default (least privilege)": "الأداة خارج مجموعة هذا الوكيل — تُرفض افتراضياً (أقل صلاحية)",
   "Least-privilege boundary": "حدّ أقل صلاحية",
   "Applications": "الطلبات", "Bureau data": "بيانات المكتب", "Open web": "الويب المفتوح", "Reconciliations": "التسويات", "Transaction stream": "دفق المعاملات",
+  // COVERAGE_CHANNELS role descriptions
+  "Inline chokepoint — the only place the model action itself is decided": "نقطة اختناق مباشرة — المكان الوحيد الذي يُقرَّر فيه فعل النموذج نفسه",
+  "Edge DLP on consumer AI — turns shadow into observed": "منع تسرّب على الحافة للذكاء الاصطناعي الاستهلاكي — يحوّل الظِّل إلى مُراقَب",
+  "Network egress inspection — observes third-party AI traffic": "فحص خروج الشبكة — يراقب حركة الذكاء الاصطناعي من طرف ثالث",
+  "Pipeline / partner inspection": "فحص المسار / الشريك",
+  // business units (estate + by-unit tables)
+  "Customer Operations": "عمليات العملاء", "Engineering": "الهندسة", "Enterprise": "المؤسسة",
+  "Marketing": "التسويق", "People": "الموارد البشرية", "Sales": "المبيعات",
 });
 
 /* ══════════════ ENFORCEMENT OVERVIEW — the closed loop ══════════════ */
