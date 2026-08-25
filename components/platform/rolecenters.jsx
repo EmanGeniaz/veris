@@ -127,6 +127,67 @@ const Eyebrow = ({children}) => <div style={{fontSize:9.5,letterSpacing:"0.14em"
 const H3 = ({children,style}) => <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,margin:"0 0 12px",...style}}>{children}</div>;
 const Pill = ({children,c=T.ink3}) => <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:9.5,fontWeight:800,fontFamily:F.m,padding:"2px 9px",borderRadius:20,whiteSpace:"nowrap",background:c+"1f",color:c}}>{children}</span>;
 
+/* Arabic for the COO / CFO / CHRO command-center Overviews (dictionary-only;
+   the generic chrome is wired). Deep KPI drill-downs + panels stay English. */
+registerContent({
+  // shared RAG values
+  "Watch": "مراقبة", "At risk": "معرّض للخطر",
+  "4 business units": "4 وحدات أعمال",
+  // ── COO ──
+  "The COO's lens: how much of the value chain runs itself, and where throughput breaks.": "عدسة مسؤول العمليات: كم من سلسلة القيمة يُدير نفسه، وأين ينكسر الإنتاج.",
+  "Operations are running hot": "العمليات تعمل بضغط عالٍ",
+  "18% efficiency lift YTD — 1 automation blocked, one SLA at risk, capacity tight in Retail Ops.": "ارتفاع الكفاءة 18% منذ بداية العام — أتمتة واحدة محجوبة، واتفاقية مستوى خدمة معرّضة للخطر، والسعة ضيّقة في عمليات التجزئة.",
+  "Value chain automated": "سلسلة القيمة المؤتمتة", "straight-through +12pts YTD": "المعالجة المباشرة +12 نقطة منذ بداية العام",
+  "Onboarding automation blocked": "أتمتة الإعداد محجوبة",
+  "KYC model awaiting bias sign-off — 3-day slip to go-live.": "نموذج اعرف عميلك بانتظار اعتماد التحيّز — انزلاق 3 أيام للإطلاق.",
+  "SLA at risk — Claims": "اتفاقية الخدمة معرّضة للخطر — المطالبات",
+  "Cycle-time drifting to 34h vs 24h target as volume spikes.": "زمن الدورة ينحرف إلى 34 ساعة مقابل هدف 24 ساعة مع تصاعد الحجم.",
+  "Rebalance capacity": "أعِد موازنة السعة",
+  "Capacity — Retail Ops": "السعة — عمليات التجزئة",
+  "Agent augmentation at 92% utilisation; hiring or automation needed.": "تعزيز الوكلاء عند استغلال 92%؛ يلزم توظيف أو أتمتة.",
+  "Open plan": "افتح الخطة",
+  "Automation coverage": "تغطية الأتمتة", "Straight-through": "المعالجة المباشرة", "Cost-to-serve": "تكلفة الخدمة",
+  "Avg cycle-time": "متوسط زمن الدورة", "Ops adoption": "تبنّي العمليات", "Operational incidents": "الحوادث التشغيلية",
+  "of eligible processes": "من العمليات المؤهّلة", "+12pts YTD": "+12 نقطة منذ بداية العام",
+  "vs FY25 baseline": "مقابل خط أساس 2025", "across 9 flows": "عبر 9 مسارات", "this month · 0 breach": "هذا الشهر · 0 خرق",
+  // ── CFO ──
+  "The CFO's lens: every dollar in, the value out, and where money leaks before it returns.": "عدسة المدير المالي: كل دولار داخل، والقيمة الخارجة، وأين يتسرّب المال قبل أن يعود.",
+  "The AI book is net-positive": "دفتر الذكاء الاصطناعي إيجابي صافٍ",
+  "$4.6M realized of $8.0M invested — ROI +22%, but $2.1M is consumed ahead of value and 2 programs need a reforecast.": "تحقّق 4.6 مليون دولار من 8.0 مليون مستثمرة — العائد +22%، لكن 2.1 مليون استُهلكت قبل القيمة وبرنامجان يحتاجان إعادة توقّع.",
+  "Portfolio ROI": "عائد المحفظة", "$4.6M realized · payback 14mo": "4.6 مليون مُحقّقة · الاسترداد 14 شهراً",
+  "Budget overrun — Resolution Copilot": "تجاوز ميزانية — مساعد الحلول",
+  "Consumed 83% of budget at 17% of value. Reforecast proposed.": "استُهلك 83% من الميزانية عند 17% من القيمة. اقتُرحت إعادة التوقّع.",
+  "Open reforecast": "افتح إعادة التوقّع",
+  "Value-at-risk — Q3": "القيمة المعرّضة للخطر — الربع الثالث",
+  "$1.9M allocated ahead of realized value across 2 programs.": "1.9 مليون دولار مخصّصة قبل القيمة المُحقّقة في برنامجين.",
+  "Reallocate": "أعِد التخصيص",
+  "Run-rate rising": "معدّل التشغيل يرتفع",
+  "Inference + licensing run-rate up 14% MoM as usage scales.": "معدّل الاستدلال والترخيص يرتفع 14% شهرياً مع توسّع الاستخدام.",
+  "Review cost": "راجع التكلفة",
+  "AI investment": "استثمار الذكاء الاصطناعي", "Value realized": "القيمة المُحقّقة", "Value leaked": "القيمة المتسرّبة",
+  "ROI": "العائد", "Run-rate cost": "تكلفة معدّل التشغيل", "Payback": "الاسترداد",
+  "FY26 allocated": "مخصّصة 2026", "57% to value": "57% نحو القيمة", "consumed, no value": "مُستهلَك دون قيمة",
+  "portfolio blended": "مزيج المحفظة", "compute+licences+people": "حوسبة+تراخيص+أشخاص", "avg · fastest 6mo": "متوسط · الأسرع 6 أشهر",
+  // ── CHRO ──
+  "The CHRO's lens: is AI augmenting people and lifting skills, or leaving teams behind.": "عدسة مسؤول الموارد البشرية: هل يعزّز الذكاء الاصطناعي الناس ويرفع المهارات، أم يترك الفرق خلفه.",
+  "The workforce is adopting — unevenly": "القوى العاملة تتبنّى — بتفاوت",
+  "61% adoption across 2,790 people, sentiment +64 net, but the People team is below threshold and 340 roles need reskilling plans.": "تبنٍّ 61% عبر 2,790 شخصاً، والمشاعر +64 صافٍ، لكن فريق الموارد البشرية دون العتبة و340 دوراً تحتاج خطط إعادة تأهيل.",
+  "Workforce AI adoption": "تبنّي القوى العاملة للذكاء الاصطناعي", "2,790 people · sentiment +64": "2,790 شخصاً · المشاعر +64",
+  "Reskilling gap — 340 roles": "فجوة إعادة تأهيل — 340 دوراً",
+  "Roles with >40% task automation lack an active reskilling path.": "أدوار بأتمتة مهام >40% تفتقر لمسار إعادة تأهيل نشط.",
+  "Open pipeline": "افتح خط الإعداد",
+  "Adoption below threshold — People": "التبنّي دون العتبة — الموارد البشرية",
+  "31% adoption; enablement program needed this quarter.": "تبنٍّ 31%؛ يلزم برنامج تمكين هذا الربع.",
+  "Launch enablement": "أطلِق التمكين",
+  "Role-impact assessment due": "تقييم أثر الأدوار مستحق",
+  "Skills Navigator expansion needs a workforce-impact review.": "توسّع مُوجّه المهارات يحتاج مراجعة أثر على القوى العاملة.",
+  "Start review": "ابدأ المراجعة",
+  "Adoption": "التبنّي", "Reskilled (YTD)": "مُعاد تأهيلهم (منذ بداية العام)", "Roles augmented": "الأدوار المُعزَّزة",
+  "Training completion": "إكمال التدريب", "Sentiment": "المشاعر", "People-risk": "مخاطر الأفراد",
+  "of 750 target": "من هدف 750", "vs 60 displaced": "مقابل 60 مُستغنى عنهم", "safe-use": "الاستخدام الآمن",
+  "net · 1,140 responses": "صافٍ · 1,140 استجابة", "ethics + displacement": "الأخلاقيات + الإحلال",
+});
+
 /* ── block renderers ── */
 function Kpis({items,ctx}){
   const lang=useLang(); const T_=en=>ts(lang,en);
