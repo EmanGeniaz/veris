@@ -11,6 +11,65 @@ import { WORLD_GEO } from "@/lib/world-geo";
 import { REPORT_TEMPLATES, SCHEDULED_REPORTS, templateById, reportingStats } from "@/lib/reporting";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic content for the CEO Overview landing (surface-by-surface localisation).
+   Program names, owners and other seeded data stay English (fallback); the
+   board-level chrome, tiles, tabs and narrative render Arabic under the toggle. */
+registerContent({
+  // greeting + headline tile
+  "Good morning": "صباح الخير", "Good afternoon": "طاب يومك", "Good evening": "مساء الخير",
+  "Total AI Projects": "إجمالي مشاريع الذكاء الاصطناعي",
+  "4 business units · 3 regions": "4 وحدات أعمال · 3 مناطق",
+  // horizontal tabs
+  "Overview": "نظرة عامة", "Risk": "المخاطر", "Value & ROI": "القيمة والعائد",
+  "Adoption": "التبنّي", "Deployment Map": "خريطة النشر", "Compliance": "الامتثال",
+  // cross-functional oversight band
+  "Cross-functional oversight": "إشراف متعدد الوظائف",
+  "Every initiative — where each CXO stands": "كل مبادرة — وأين يقف كل مسؤول تنفيذي منها",
+  "Blocked": "محجوب", "Needs review": "يحتاج مراجعة", "All facets cleared": "جميع الجوانب مُخلاة", "Open": "فتح",
+  // attention cards
+  "Credit Decision Assurance — decision required": "ضمان قرارات الائتمان — قرار مطلوب",
+  "Awaiting your scale-gate approval. EU AI Act Art.6 conformity assessment complete; $7.2M value at stake.": "بانتظار موافقتك على بوابة التوسّع. اكتمل تقييم المطابقة (المادة 6 من القانون الأوروبي)؛ 7.2 مليون دولار على المحك.",
+  "Review & approve": "راجع واعتمد",
+  "Customer Resolution Copilot — blocked": "مساعد حل مشكلات العملاء — محجوب",
+  "CISO prompt-injection evidence overdue by 4 days. Delivery slip of ~2 weeks predicted if unresolved this sprint.": "دليل حقن الإدخالات من CISO متأخر 4 أيام. يُتوقّع انزلاق التسليم نحو أسبوعين إن لم يُحلّ هذه الدورة.",
+  "Escalate to CISO": "صعّد إلى CISO",
+  "Q3 budget re-forecast": "إعادة توقّع ميزانية الربع الثالث",
+  "$1.9M of allocated budget is consumed ahead of realized value across 2 programs. Reallocation proposed.": "1.9 مليون دولار من الميزانية المخصّصة استُهلكت قبل تحقّق القيمة في برنامجين. اقتُرحت إعادة التخصيص.",
+  "Open budget review": "افتح مراجعة الميزانية",
+  // KPI strip
+  "Portfolio value": "قيمة المحفظة", "Enterprise health": "صحة المؤسسة",
+  "Overall AI risk": "إجمالي مخاطر الذكاء الاصطناعي", "Security incidents": "الحوادث الأمنية",
+  "EU AI Act · ISO 42001 · GDPR": "القانون الأوروبي · الأيزو 42001 · GDPR",
+  "across 4 business units": "عبر 4 وحدات أعمال",
+  "open this quarter · 0 breaches": "مفتوحة هذا الربع · 0 خروقات",
+  // lifecycle bands
+  "AI Projects": "مشاريع الذكاء الاصطناعي",
+  "By lifecycle status — click any program to drill in": "حسب حالة دورة الحياة — انقر أي برنامج للتفصيل",
+  "Scaling": "قيد التوسّع", "In Production": "في الإنتاج", "In Progress": "قيد التنفيذ", "Completed": "مكتمل", "Retired": "مُتقاعد",
+  // exposure + budget cards
+  "Deployment Exposure Map": "خريطة انتشار النشر",
+  "Where AI is live — by region & program count": "أين يعمل الذكاء الاصطناعي — حسب المنطقة وعدد البرامج",
+  "Budget → Value": "الميزانية ← القيمة",
+  "How much turned to value vs leaked": "كم تحوّل إلى قيمة مقابل ما تسرّب",
+  // adoption
+  "Adoption by Business Unit": "التبنّي حسب وحدة الأعمال",
+  "Who is building & adopting AI — with headcount": "من يبني ويتبنّى الذكاء الاصطناعي — مع عدد الموظفين",
+  "Customer Ops": "عمليات العملاء", "Finance": "المالية", "Retail Banking": "الخدمات المصرفية للأفراد", "People": "الموارد البشرية",
+  "On target": "على الهدف", "Enablement needed": "يحتاج تمكيناً", "Below threshold": "دون العتبة",
+  // region legend
+  "Node size = live programs · colour = highest risk exposure · arcs = enterprise network": "حجم العقدة = البرامج الحيّة · اللون = أعلى تعرّض للمخاطر · الأقواس = شبكة المؤسسة",
+  "Critical": "حرج", "High": "عالٍ", "Medium": "متوسط", "Low": "منخفض",
+  // budget → value
+  "Value realized": "القيمة المُحقّقة", "Consumed, no value yet": "مُستهلَك دون قيمة بعد",
+  "Unspent allocation": "مخصّصات غير مُنفقة", "Realized / invested": "المُحقّق / المُستثمَر",
+  "Avg time-to-value": "متوسط زمن تحقّق القيمة",
+  // highest-risk program
+  "Highest-Risk Program": "أعلى البرامج خطورة", "Residual risk": "الخطر المتبقي",
+  "Program health": "صحة البرنامج", "Owner": "المالك", "Mitigation": "التخفيف",
+  "Veris Intelligence:": "استخبارات فيريس:",
+});
 
 /* Lineage plumbing — any tile or row calls openLin() to trace a number to
    its source. The provider (at the command-center root) owns the drawer so
@@ -160,6 +219,7 @@ function PageHead({title,sub}){
 function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,userName}){
   const [tab,setTab]=useState("overview");
   const [brief,setBrief]=useState(null);
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const name=(userName||(ROLES[role]||ROLES.ceo).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
@@ -168,14 +228,14 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
      the same shared object, rolled up. Click opens the full brief. */
   const rag=(n,c)=>n>0?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,fontWeight:800,fontFamily:F.m,color:c}}><span style={{width:7,height:7,borderRadius:"50%",background:c}}/>{n}</span>:null;
   const CeoBand=()=><Card style={{padding:"14px 16px",marginBottom:16}}>
-    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:3}}>Cross-functional oversight</div>
-    <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:11}}>Every initiative — where each CXO stands</div>
+    <div style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:3}}>{T_("Cross-functional oversight")}</div>
+    <div style={{fontSize:14,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:11}}>{T_("Every initiative — where each CXO stands")}</div>
     <div style={{display:"grid",gap:7}}>
-      {AI_ASSETS.map(a=>{const r=facetRollup(a);const w=r.worst;return <button key={a.id} onClick={()=>setBrief(a)} style={{display:"grid",gridTemplateColumns:"1.5fr auto 1.5fr auto",gap:12,alignItems:"center",textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
+      {AI_ASSETS.map(a=>{const r=facetRollup(a);const w=r.worst;return <button key={a.id} onClick={()=>setBrief(a)} style={{display:"grid",gridTemplateColumns:"1.5fr auto 1.5fr auto",gap:12,alignItems:"center",textAlign:ar?"right":"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
         <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle}</div></div>
         <div style={{display:"flex",gap:11}}>{rag(r.cleared,T.green)}{rag(r.review,T.blue)}{rag(r.blocked,T.red)}</div>
-        <div style={{fontSize:10,fontWeight:700,fontFamily:F.b,color:w?(w.key==="blocked"?T.red:T.amber):T.green}}>{w?`${w.key==="blocked"?"Blocked":"Needs review"} · ${w.domain} (${w.owner})`:"All facets cleared"}</div>
-        <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:11}}>Open →</span>
+        <div style={{fontSize:10,fontWeight:700,fontFamily:F.b,color:w?(w.key==="blocked"?T.red:T.amber):T.green}}>{w?`${w.key==="blocked"?T_("Blocked"):T_("Needs review")} · ${w.domain} (${w.owner})`:T_("All facets cleared")}</div>
+        <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:11}}>{T_("Open")} {ar?"←":"→"}</span>
       </button>;})}
     </div>
   </Card>;
@@ -185,18 +245,20 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
     {/* greeting + gold total tile */}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
-        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{greet}, <span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
-        <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b}}>Enterprise AI is <b style={{color:AI_GOLD_INK}}>holding steady</b> — 3 items need your decision, and one program is at critical exposure.</div>
+        <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{T_(greet)}{ar?"، ":", "}<span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
+        <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b}}>{ar
+          ? <>الذكاء الاصطناعي المؤسسي <b style={{color:AI_GOLD_INK}}>مستقرّ</b> — 3 بنود تحتاج قرارك، وبرنامج واحد عند تعرّض حرج.</>
+          : <>Enterprise AI is <b style={{color:AI_GOLD_INK}}>holding steady</b> — 3 items need your decision, and one program is at critical exposure.</>}</div>
       </div>
       <button onClick={goPortfolio} title="Open Portfolio" style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"13px 22px",cursor:"pointer",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
         <div style={{fontSize:40,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{CEO_PORTFOLIO.length}</div>
-        <div style={{textAlign:"left"}}><div style={{fontSize:10.5,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>Total AI Projects</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>4 business units · 3 regions</div></div>
+        <div style={{textAlign:ar?"right":"left"}}><div style={{fontSize:10.5,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{T_("Total AI Projects")}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{T_("4 business units · 3 regions")}</div></div>
       </button>
     </div>
 
     {/* horizontal tabs */}
     <div style={{display:"flex",gap:6,margin:"18px 0",flexWrap:"wrap"}}>
-      {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{l}</button>)}
+      {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{T_(l)}</button>)}
     </div>
 
     {tab==="overview"&&<><CeoBand/><OverviewTab goPortfolio={goPortfolio} openFull={openFull} openCompliance={openCompliance} setTab={navTab}/></>}
@@ -210,36 +272,37 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
 
 function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
   const goto=t=>setTab&&setTab(t);
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   return <div style={{animation:"up .2s ease"}}>
     {/* attention */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:16}}>
-      {CEO_ATTENTION.map(a=><Card key={a.t} onClick={()=>goto(a.to)} style={{padding:"13px 15px",borderLeft:`3px solid ${a.c}`,cursor:"pointer"}}>
-        <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.t}</div>
-        <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{a.d}</div>
-        <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
+      {CEO_ATTENTION.map(a=><Card key={a.t} onClick={()=>goto(a.to)} style={{padding:"13px 15px",borderInlineStart:`3px solid ${a.c}`,cursor:"pointer"}}>
+        <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(a.t)}</div>
+        <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{T_(a.d)}</div>
+        <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{T_(a.go)} {ar?"←":"→"}</div>
       </Card>)}
     </div>
 
     {/* KPI strip — each tile drills into its home surface */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-      <Kpi l="Portfolio value" v={`$${PF.realized.toFixed(1)}M`} s={`realized of $${PF.budget.toFixed(1)}M allocated`} spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>} onClick={()=>goto("ceobudget")}/>
-      <Kpi l="Enterprise health" v={PF.avgHealth} vc={T.green} s={`weighted across ${PF.count} programs`} spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>} onClick={goPortfolio}/>
-      <Kpi l="Overall AI risk" v={<>{PF.criticalCount+PF.highCount+PF.mediumCount}<span style={{fontSize:13,color:T.ink4}}>/{PF.count}</span></>} vc={T.red} s={`${PF.criticalCount} critical · ${PF.highCount} high open`} spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
-      <Kpi l="Compliance" v={`${COMPLIANCE_PCT}%`} vc={T.blue} s="EU AI Act · ISO 42001 · GDPR" onClick={openCompliance}/>
-      <Kpi l="Adoption" v={`${PF.adoption}%`} s="across 4 business units" onClick={goPortfolio}/>
-      <Kpi l="Security incidents" v={OPEN_INCIDENTS} vc={AI_GOLD_INK} s="open this quarter · 0 breaches" onClick={openFull}/>
+      <Kpi l={T_("Portfolio value")} v={`$${PF.realized.toFixed(1)}M`} s={ar?`مُحقّقة من ${PF.budget.toFixed(1)} مليون مخصّصة`:`realized of $${PF.budget.toFixed(1)}M allocated`} spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>} onClick={()=>goto("ceobudget")}/>
+      <Kpi l={T_("Enterprise health")} v={PF.avgHealth} vc={T.green} s={ar?`مرجّحة عبر ${PF.count} برنامجاً`:`weighted across ${PF.count} programs`} spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>} onClick={goPortfolio}/>
+      <Kpi l={T_("Overall AI risk")} v={<>{PF.criticalCount+PF.highCount+PF.mediumCount}<span style={{fontSize:13,color:T.ink4}}>/{PF.count}</span></>} vc={T.red} s={ar?`${PF.criticalCount} حرجة · ${PF.highCount} عالية مفتوحة`:`${PF.criticalCount} critical · ${PF.highCount} high open`} spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
+      <Kpi l={T_("Compliance")} v={`${COMPLIANCE_PCT}%`} vc={T.blue} s={T_("EU AI Act · ISO 42001 · GDPR")} onClick={openCompliance}/>
+      <Kpi l={T_("Adoption")} v={`${PF.adoption}%`} s={T_("across 4 business units")} onClick={goPortfolio}/>
+      <Kpi l={T_("Security incidents")} v={OPEN_INCIDENTS} vc={AI_GOLD_INK} s={T_("open this quarter · 0 breaches")} onClick={openFull}/>
     </div>
 
     {/* lifecycle bands */}
     <Card style={{...cardPad,marginBottom:2}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-        <div><Eyebrow style={{margin:0}}>AI Projects</Eyebrow><H3>By lifecycle status — click any program to drill in</H3></div>
-        <Pill c={AI_GOLD}>{CEO_PORTFOLIO.length} total programs</Pill>
+        <div><Eyebrow style={{margin:0}}>{T_("AI Projects")}</Eyebrow><H3>{T_("By lifecycle status — click any program to drill in")}</H3></div>
+        <Pill c={AI_GOLD}>{ar?`${CEO_PORTFOLIO.length} برنامجاً إجمالاً`:`${CEO_PORTFOLIO.length} total programs`}</Pill>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10}}>
         {STAGES.map(s=><div key={s} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"12px 13px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:9}}>
-            <span style={{fontSize:10,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:800,color:stageColor(s),fontFamily:F.m}}>{s}</span>
+            <span style={{fontSize:10,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:800,color:stageColor(s),fontFamily:F.m}}>{T_(s)}</span>
             <span style={{fontSize:19,fontWeight:800,color:stageColor(s),fontFamily:F.m}}>{stageCount(s)}</span>
           </div>
           {CEO_PORTFOLIO.filter(p=>p.stage===s).map(p=><button key={p.name} onClick={goPortfolio} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:8,width:"100%",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
@@ -253,16 +316,16 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
 
     {/* exposure + budget */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginTop:16}}>
-      <Card style={cardPad}><Eyebrow>Deployment Exposure Map</Eyebrow><H3 style={{marginBottom:12}}>Where AI is live — by region &amp; program count</H3><ExposureMap/><RegionLegend/></Card>
-      <Card style={cardPad}><Eyebrow>Budget → Value</Eyebrow><H3 style={{marginBottom:14}}>How much turned to value vs leaked</H3><BudgetValue/></Card>
+      <Card style={cardPad}><Eyebrow>{T_("Deployment Exposure Map")}</Eyebrow><H3 style={{marginBottom:12}}>{T_("Where AI is live — by region & program count")}</H3><ExposureMap/><RegionLegend/></Card>
+      <Card style={cardPad}><Eyebrow>{T_("Budget → Value")}</Eyebrow><H3 style={{marginBottom:14}}>{T_("How much turned to value vs leaked")}</H3><BudgetValue/></Card>
     </div>
 
     {/* adoption + highest risk */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginTop:16}}>
-      <Card style={cardPad}><Eyebrow>Adoption by Business Unit</Eyebrow><H3 style={{marginBottom:12}}>Who is building &amp; adopting AI — with headcount</H3>
-        {CEO_BU.map(b=><BarRow key={b.bu} label={b.bu} sub={b.head.toLocaleString()} pct={b.adoption} color={b.band}/>)}
+      <Card style={cardPad}><Eyebrow>{T_("Adoption by Business Unit")}</Eyebrow><H3 style={{marginBottom:12}}>{T_("Who is building & adopting AI — with headcount")}</H3>
+        {CEO_BU.map(b=><BarRow key={b.bu} label={T_(b.bu)} sub={b.head.toLocaleString()} pct={b.adoption} color={b.band}/>)}
         <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:11}}>
-          {[["On target",T.green],["Enablement needed",AI_GOLD],["Below threshold",T.red]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:3,background:c}}/>{l}</span>)}
+          {[["On target",T.green],["Enablement needed",AI_GOLD],["Below threshold",T.red]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:3,background:c}}/>{T_(l)}</span>)}
         </div>
       </Card>
       <HighestRisk/>
@@ -345,42 +408,47 @@ function ExposureMap({big}){
   </div>;
 }
 function RegionLegend(){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   return <div style={{marginTop:11}}>
     <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
-      {[...CEO_REGIONS].sort((a,b)=>b.live-a.live).map((r,i)=>{const sev=regionSeverity(r.region);return <span key={r.region} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{fontFamily:F.m,fontWeight:900,color:T.ink4}}>{i+1}</span><span style={{width:9,height:9,borderRadius:"50%",background:sevColor(sev)}}/>{r.region} · {r.live} live · worst exposure {sev}</span>;})}
+      {[...CEO_REGIONS].sort((a,b)=>b.live-a.live).map((r,i)=>{const sev=regionSeverity(r.region);return <span key={r.region} style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:T.ink3,fontWeight:600,fontFamily:F.b}}><span style={{fontFamily:F.m,fontWeight:900,color:T.ink4}}>{i+1}</span><span style={{width:9,height:9,borderRadius:"50%",background:sevColor(sev)}}/>{ar?`${r.region} · ${r.live} حيّ · أسوأ تعرّض ${T_(sev)}`:`${r.region} · ${r.live} live · worst exposure ${sev}`}</span>;})}
     </div>
     <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:9,paddingTop:9,borderTop:`1px solid ${T.border}`,alignItems:"center"}}>
-      <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>Node size = live programs · colour = highest risk exposure · arcs = enterprise network</span>
-      {[["Critical",T.red],["High",AI_GOLD],["Medium",T.blue],["Low",T.green]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:9.5,color:T.ink3,fontWeight:700,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:c}}/>{l}</span>)}
+      <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{T_("Node size = live programs · colour = highest risk exposure · arcs = enterprise network")}</span>
+      {[["Critical",T.red],["High",AI_GOLD],["Medium",T.blue],["Low",T.green]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:9.5,color:T.ink3,fontWeight:700,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:"50%",background:c}}/>{T_(l)}</span>)}
     </div>
   </div>;
 }
 function BudgetValue({big}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   return <div>
     <div style={{display:"flex",alignItems:"center",gap:18,flexWrap:"wrap"}}>
       <Donut pct={PF.valueToBudgetPct} size={big?140:122}/>
       <div style={{display:"flex",flexDirection:"column",gap:9}}>
         {[["Value realized",`$${PF.realized.toFixed(1)}M`,T.green],["Consumed, no value yet",`$${PF.consumedNoValue.toFixed(1)}M`,AI_GOLD],["Unspent allocation",`$${PF.unspent.toFixed(1)}M`,T.border]].map(([l,v,c])=>
-          <div key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:T.ink2,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:3,background:c}}/>{l}<b style={{marginLeft:"auto",color:T.ink,fontFamily:F.m}}>{v}</b></div>)}
+          <div key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:T.ink2,fontFamily:F.b}}><span style={{width:9,height:9,borderRadius:3,background:c}}/>{T_(l)}<b style={{marginInlineStart:"auto",color:T.ink,fontFamily:F.m}}>{v}</b></div>)}
       </div>
     </div>
     <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>
-      {[["Realized / invested",`${PF.realizedRatio}%`,T.green],["Avg time-to-value",`${PF.avgTtv} mo`,T.ink]].map(([l,v,c])=>
-        <div key={l} style={{flex:1,minWidth:120,background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
+      {[["Realized / invested",`${PF.realizedRatio}%`,T.green],["Avg time-to-value",ar?`${PF.avgTtv} شهر`:`${PF.avgTtv} mo`,T.ink]].map(([l,v,c])=>
+        <div key={l} style={{flex:1,minWidth:120,background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{T_(l)}</div><div style={{fontSize:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
     </div>
   </div>;
 }
 function HighestRisk(){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   return <Card style={cardPad}>
-    <Eyebrow>Highest-Risk Program</Eyebrow>
+    <Eyebrow>{T_("Highest-Risk Program")}</Eyebrow>
     <H3>{HR_PROG.name}</H3>
     <div style={{fontSize:11,color:T.ink3,marginTop:4,fontFamily:F.b}}>{HR_PROG.unit} · {HR_PROG.approval} · {HR_PROG.stage}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:14}}>
       {[["Residual risk",`${HR_RISK.residual}/25`,T.red],["Program health",`${HR_PROG.health}%`,HR_PROG.health>=80?T.green:HR_PROG.health>=60?AI_GOLD:T.red],["Owner",HR_RISK.owner,T.ink],["Mitigation",HR_RISK.mit,mitStatusColor(HR_RISK.mit)]].map(([l,v,c])=>
-        <div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:l==="Owner"||l==="Mitigation"?13:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
+        <div key={l} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 12px"}}><div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{T_(l)}</div><div style={{fontSize:l==="Owner"||l==="Mitigation"?13:18,fontWeight:800,marginTop:5,color:c,fontFamily:F.m}}>{v}</div></div>)}
     </div>
     <div style={{marginTop:12,padding:"11px 13px",borderRadius:10,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.55,fontFamily:F.b}}>
-      <b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> {HR_RISK.title} is the top exposure on {HR_PROG.name}. Clearing the human-oversight design record unblocks the scale gate.
+      <b style={{color:AI_GOLD_INK}}>{T_("Veris Intelligence:")}</b> {ar
+        ? <>{HR_RISK.title} هو أعلى تعرّض في {HR_PROG.name}. إخلاء سجل تصميم الإشراف البشري يفتح بوابة التوسّع.</>
+        : <>{HR_RISK.title} is the top exposure on {HR_PROG.name}. Clearing the human-oversight design record unblocks the scale gate.</>}
     </div>
   </Card>;
 }
