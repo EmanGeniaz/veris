@@ -45,6 +45,69 @@ registerContent({
   // employee surface labels (jump chips + PageHead)
   "AI Hub": "مركز الذكاء الاصطناعي", "My Initiatives": "مبادراتي", "My Tasks": "مهامي",
   "How I'm doing": "كيف أدائي", "Risk & Compliance": "المخاطر والامتثال", "My Requests": "طلباتي",
+  // facet domains (FacetBand)
+  "Security": "الأمن", "Risk": "المخاطر", "Infrastructure": "البنية التحتية",
+  "Data & Privacy": "البيانات والخصوصية", "Finance": "المالية", "Readiness": "الجاهزية",
+  "Legal": "القانون", "Governance": "الحوكمة",
+  // shared RAG values
+  "Strong": "قوي", "Moderate": "متوسط", "Amber": "متوسط",
+  // ── CGO ──
+  "The CGO's lens: is the enterprise governed, defensible to regulators, and ready for the board.": "عدسة مسؤول الحوكمة: هل المؤسسة مُحوكَمة، ومدافَع عنها أمام المنظّمين، وجاهزة للمجلس.",
+  "Board-ready, two gaps to close": "جاهزة للمجلس، فجوتان للإغلاق",
+  "Governance maturity 74/100, 24 policies in force, but 3 controls are ineffective and the Q3 board pack is due in 6 days.": "نضج الحوكمة 74/100، و24 سياسة سارية، لكن 3 ضوابط غير فعّالة وحزمة مجلس الربع الثالث مستحقة خلال 6 أيام.",
+  "Governance maturity": "نضج الحوكمة", "/100 · board-ready 82%": "/100 · جاهزية المجلس 82%",
+  "Board pack due — 6 days": "حزمة المجلس مستحقة — 6 أيام",
+  "Q3 governance report consolidating risk, compliance & value.": "تقرير حوكمة الربع الثالث يوحّد المخاطر والامتثال والقيمة.",
+  "Assemble pack": "جمّع الحزمة",
+  "Control gap — 3 ineffective": "فجوة ضوابط — 3 غير فعّالة",
+  "Model-validation + access-review controls failing test.": "ضوابط التحقق من النماذج ومراجعة الوصول تُخفق في الاختبار.",
+  "Remediate": "عالِج",
+  "Policy review overdue": "مراجعة سياسة متأخرة",
+  "Acceptable-use policy past its review cycle by 12 days.": "سياسة الاستخدام المقبول تجاوزت دورة مراجعتها بـ 12 يوماً.",
+  "Review & ratify": "راجع وصادِق",
+  "Policies in force": "السياسات السارية", "Control effectiveness": "فعالية الضوابط",
+  "Open audit findings": "نتائج تدقيق مفتوحة", "Regulatory posture": "الوضع التنظيمي", "Enterprise risk": "مخاطر المؤسسة",
+  "/100 · +5 YoY": "/100 · +5 سنوياً", "3 overdue review": "3 متأخرة عن المراجعة",
+  "21 of 24 effective": "21 من 24 فعّالة", "2 high · closing": "2 عالية · قيد الإغلاق",
+  "5 frameworks": "5 أطر", "score 12/25": "الدرجة 12/25",
+  // ── CISO ──
+  "The CISO's lens: the AI attack surface — what's being thrown at it, what got through, what's exposed.": "عدسة مسؤول أمن المعلومات: سطح هجوم الذكاء الاصطناعي — ما يُلقى عليه، وما نفذ منه، وما هو مكشوف.",
+  "Posture is holding, one active P1": "الوضع صامد، وحادثة P1 واحدة نشطة",
+  "Security posture 79/100, 2,410 attacks blocked this quarter, but a prompt-injection P1 is open and 2 models have guardrail gaps.": "الوضع الأمني 79/100، و2,410 هجمة محجوبة هذا الربع، لكن حادثة حقن إدخالات P1 مفتوحة ونموذجان بهما فجوات في الحواجز.",
+  "AI security posture": "الوضع الأمني للذكاء الاصطناعي", "/100 · 2,410 attacks blocked": "/100 · 2,410 هجمة محجوبة",
+  "P1 — prompt-injection in progress": "P1 — حقن إدخالات قيد الحدوث",
+  "Injection attempt on Resolution Copilot blocked at gateway; forensics open.": "محاولة حقن على مساعد الحلول حُجبت عند البوابة؛ التحليل الجنائي مفتوح.",
+  "Open incident": "افتح الحادثة",
+  "Critical vuln — model endpoint": "ثغرة حرجة — نقطة نهاية نموذج",
+  "Unauthenticated inference path on a staging model. Patch pending.": "مسار استدلال غير موثّق على نموذج تجريبي. الترقيع معلّق.",
+  "Assign fix": "أسنِد الإصلاح",
+  "Guardrail gap — 2 models": "فجوة حواجز — نموذجان",
+  "Output filtering not enforced on Skills Navigator + Supplier Screener.": "تصفية المخرجات غير مُفعّلة على مُوجّه المهارات وفارز الموردين.",
+  "Enforce": "فعّل الإنفاذ",
+  "Security posture": "الوضع الأمني", "Threats blocked": "التهديدات المحجوبة",
+  "Open vulnerabilities": "الثغرات المفتوحة", "Data-leak events": "أحداث تسريب البيانات",
+  "Guardrail coverage": "تغطية الحواجز", "MTTR": "متوسط زمن الاستجابة",
+  "/100 · +3 QoQ": "/100 · +3 ربعياً", "prompt-inj · jailbreak": "حقن الإدخالات · كسر القيود",
+  "1 critical · 1 high": "1 حرجة · 1 عالية", "30d · monitors green": "30 يوماً · المراقبات خضراء",
+  "of production models": "من نماذج الإنتاج", "P1 mean-time-to-respond": "متوسط زمن الاستجابة لـ P1",
+  // ── CRO ──
+  "The CRO's lens: is AI risk inside appetite, are controls effective, and what needs treatment now.": "عدسة مسؤول المخاطر: هل مخاطر الذكاء الاصطناعي ضمن الحد المقبول، وهل الضوابط فعّالة، وما الذي يحتاج معالجة الآن.",
+  "AI risk is inside appetite — two exposures need treatment": "مخاطر الذكاء الاصطناعي ضمن الحد المقبول — تعرّضان يحتاجان معالجة",
+  "Residual risk trending down, 88% of controls effective, but one critical model risk and an overdue treatment need decisions this week.": "الخطر المتبقي في تراجع، و88% من الضوابط فعّالة، لكن خطر نموذج حرج واحد ومعالجة متأخرة يحتاجان قرارات هذا الأسبوع.",
+  "Enterprise AI risk": "مخاطر الذكاء الاصطناعي المؤسسية", "within appetite · 2 exposures open": "ضمن الحد المقبول · تعرّضان مفتوحان",
+  "Critical model risk — Credit Decision": "خطر نموذج حرج — قرار الائتمان",
+  "Residual High after treatment; Art.22 exposure needs board note.": "الخطر المتبقي عالٍ بعد المعالجة؛ تعرّض المادة 22 يحتاج مذكرة للمجلس.",
+  "Open risk": "افتح الخطر",
+  "Overdue treatment — data drift": "معالجة متأخرة — انحراف البيانات",
+  "Servicing model drift mitigation 6 days past due.": "تخفيف انحراف نموذج الخدمة متأخر 6 أيام.",
+  "Escalate": "صعّد",
+  "Control gap — guardrail coverage": "فجوة ضوابط — تغطية الحواجز",
+  "Two production models below guardrail threshold.": "نموذجا إنتاج دون عتبة الحواجز.",
+  "Assign": "أسنِد",
+  "Residual risk": "الخطر المتبقي", "Controls effective": "الضوابط الفعّالة", "Critical risks": "المخاطر الحرجة",
+  "Open treatments": "المعالجات المفتوحة", "KRIs breached": "مؤشرات مخاطر متجاوَزة", "Audit findings": "نتائج التدقيق",
+  "within appetite": "ضمن الحد المقبول", "21 of 24": "21 من 24", "1 overdue": "1 متأخرة",
+  "of 14 tracked": "من 14 مُتابَعاً", "2 high": "2 عالية",
 });
 
 /* ── Role Command Center engine ─────────────────────────────────────
@@ -397,16 +460,16 @@ function Overview({role,cfg,ctx,userName}){
   const queue=facetDomain?initiativesForRole(role):[];
   const FacetBand=()=>!facetDomain?null:<Card style={{padding:"14px 16px",marginBottom:16,border:`1px solid ${AI_GOLD}35`}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,marginBottom:queue.length?10:0}}>
-      <div><Eyebrow>Cross-functional · your gate</Eyebrow><H3 style={{margin:0}}>Initiatives needing your {facetDomain} review</H3></div>
+      <div><Eyebrow>{ar?"متعدد الوظائف · بوابتك":"Cross-functional · your gate"}</Eyebrow><H3 style={{margin:0}}>{ar?`مبادرات تحتاج مراجعتك (${T_(facetDomain)})`:`Initiatives needing your ${facetDomain} review`}</H3></div>
       <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:queue.length?AI_GOLD:T.green}}>{queue.length||"0"}</span>
     </div>
     {queue.length?<div style={{display:"grid",gap:7}}>
-      {queue.map(({a,facet})=><button key={a.id} onClick={()=>setBrief(a)} className="vz-reg-row" style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",textAlign:"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
+      {queue.map(({a,facet})=><button key={a.id} onClick={()=>setBrief(a)} className="vz-reg-row" style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",textAlign:ar?"right":"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer"}}>
         <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{a.name}</div><div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginTop:2}}>{a.unit} · {a.lifecycle} · {facet.note}</div></div>
         <Pill c={col(facet.color)}>{facet.label}</Pill>
-        <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:12}}>Open brief →</span>
+        <span style={{color:AI_GOLD_INK,fontWeight:900,fontFamily:F.b,fontSize:12}}>{ar?"افتح الملخص ←":"Open brief →"}</span>
       </button>)}
-    </div>:<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:6}}>Nothing needs your {facetDomain} review right now — every initiative's {facetDomain} facet is cleared.</div>}
+    </div>:<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginTop:6}}>{ar?`لا شيء يحتاج مراجعتك (${T_(facetDomain)}) الآن — كل جوانب المبادرات مُخلاة.`:`Nothing needs your ${facetDomain} review right now — every initiative's ${facetDomain} facet is cleared.`}</div>}
   </Card>;
   const lctx={...ctx,onLineage:(l,v)=>setLineage(l&&typeof l==="object"?l:{label:l,value:v})};
   return <div style={{animation:"up .3s ease"}}>
@@ -420,7 +483,7 @@ function Overview({role,cfg,ctx,userName}){
         <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{T_(cfg.thesis)}</div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"12px 20px",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
-        <div style={{fontSize:36,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{cfg.hero[0]}</div>
+        <div style={{fontSize:36,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{T_(cfg.hero[0])}</div>
         <div style={{textAlign:ar?"right":"left"}}><div style={{fontSize:10,letterSpacing:"0.09em",textTransform:"uppercase",color:"#2a1c02",fontWeight:900,fontFamily:F.m}}>{T_(cfg.hero[1])}</div><div style={{fontSize:10.5,color:"#4b3608",marginTop:3,fontWeight:600,fontFamily:F.b}}>{T_(cfg.hero[2])}</div></div>
       </div>
     </div>
