@@ -465,43 +465,43 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
       <button onClick={()=>setCreateOpen(o=>!o)} style={{flexShrink:0,background:createOpen?"transparent":T.red+"14",border:`1px solid ${T.red}${createOpen?"55":"45"}`,borderRadius:8,padding:"9px 15px",color:T.red,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{T_(createOpen?"Close":"+ New risk")}</button>
     </div>
     {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${T.red}45`,animation:"up .25s ease"}}>
-      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Register a risk</h3>
-      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Category, unit, owners and framework are governed vocabularies — pick, add or request a value inline. New risks land Open, awaiting assessment.</p>
+      <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>{T_("Register a risk")}</h3>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>{T_("Category, unit, owners and framework are governed vocabularies — pick, add or request a value inline. New risks land Open, awaiting assessment.")}</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:12}}>
-        <label style={{display:"grid",gap:5}}>{fLabel("Risk title")}<input value={rdraft.title} onChange={e=>setRdraft({...rdraft,title:e.target.value})} placeholder="e.g. Model drift on credit engine" style={fieldStyle}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Category")}<SmartSelect vocab="riskCategory" value={rdraft.category} onChange={setRK("category")} role={role} showToast={showToast} requestedBy={R.name}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Business unit")}<SmartSelect vocab="unit" value={rdraft.unit} onChange={setRK("unit")} role={role} showToast={showToast} requestedBy={R.name}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Executive owner")}<SmartSelect vocab="person" value={rdraft.execOwner} onChange={setRK("execOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Risk owner")}<SmartSelect vocab="person" value={rdraft.riskOwner} onChange={setRK("riskOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder="Choose or add an owner"/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Control framework")}<SmartSelect vocab="framework" value={rdraft.framework} onChange={setRK("framework")} role={role} showToast={showToast} requestedBy={R.name}/></label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Likelihood (1-5)")}
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Risk title"))}<input value={rdraft.title} onChange={e=>setRdraft({...rdraft,title:e.target.value})} placeholder={T_("e.g. Model drift on credit engine")} style={fieldStyle}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Category"))}<SmartSelect vocab="riskCategory" value={rdraft.category} onChange={setRK("category")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Business unit"))}<SmartSelect vocab="unit" value={rdraft.unit} onChange={setRK("unit")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Executive owner"))}<SmartSelect vocab="person" value={rdraft.execOwner} onChange={setRK("execOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder={ar?"اختر أو أضِف مالكاً":"Choose or add an owner"}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Risk owner"))}<SmartSelect vocab="person" value={rdraft.riskOwner} onChange={setRK("riskOwner")} role={role} showToast={showToast} requestedBy={R.name} placeholder={ar?"اختر أو أضِف مالكاً":"Choose or add an owner"}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Control framework"))}<SmartSelect vocab="framework" value={rdraft.framework} onChange={setRK("framework")} role={role} showToast={showToast} requestedBy={R.name}/></label>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Likelihood (1-5)"))}
           <select value={rdraft.likelihood} onChange={e=>setRdraft({...rdraft,likelihood:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["1","2","3","4","5"].map(s=><option key={s} value={s}>{s}</option>)}</select>
         </label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Impact (1-5)")}
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Impact (1-5)"))}
           <select value={rdraft.impact} onChange={e=>setRdraft({...rdraft,impact:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["1","2","3","4","5"].map(s=><option key={s} value={s}>{s}</option>)}</select>
         </label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Level")}
-          <select value={rdraft.level} onChange={e=>setRdraft({...rdraft,level:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Low","Medium","High","Critical"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Level"))}
+          <select value={rdraft.level} onChange={e=>setRdraft({...rdraft,level:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Low","Medium","High","Critical"].map(s=><option key={s} value={s}>{T_(s)}</option>)}</select>
         </label>
-        <label style={{display:"grid",gap:5}}>{fLabel("Treatment strategy")}
-          <select value={rdraft.strategy} onChange={e=>setRdraft({...rdraft,strategy:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Mitigate","Accept","Transfer","Avoid"].map(s=><option key={s} value={s}>{s}</option>)}</select>
+        <label style={{display:"grid",gap:5}}>{fLabel(T_("Treatment strategy"))}
+          <select value={rdraft.strategy} onChange={e=>setRdraft({...rdraft,strategy:e.target.value})} style={{...fieldStyle,cursor:"pointer"}}>{["Mitigate","Accept","Transfer","Avoid"].map(s=><option key={s} value={s}>{T_(s)}</option>)}</select>
         </label>
       </div>
-      <button onClick={createRisk} style={{background:T.red,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Register risk</button>
+      <button onClick={createRisk} style={{background:T.red,border:"none",borderRadius:8,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{T_("Register risk")}</button>
     </Card>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
       {kpis.map(([l,v,c,t])=><Card key={l} onClick={()=>setRcTab(t)} style={{padding:14,cursor:"pointer"}}>
-        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{l}</div>
+        <div style={{fontSize:9,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:900,fontFamily:F.m,marginBottom:8}}>{T_(l)}</div>
         <div style={{fontSize:22,fontWeight:900,fontFamily:F.m,color:c}}><CountUp value={v}/></div>
       </Card>)}
     </div>
     {myOwner&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,background:mineOnly?AI_GOLD+"12":T.s2,border:`1px solid ${mineOnly?AI_GOLD+"40":T.border}`,borderRadius:9,padding:"9px 13px",flexWrap:"wrap"}}>
-      <span style={{fontSize:11,fontWeight:800,color:mineOnly?AI_GOLD:T.ink3,fontFamily:F.b}}>{mineOnly?`Showing ${R.label}'s risks`:"Showing all enterprise risks"}</span>
-      <span style={{fontSize:10.5,color:T.ink3,fontFamily:F.b}}>{mineOnly?`${scopedRisks.length} risks you are accountable for as executive owner.`:"Every risk across the portfolio."}</span>
-      <button onClick={()=>setMineOnly(m=>!m)} style={{marginLeft:"auto",background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 12px",color:T.ink2,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{mineOnly?"View all risks →":`View only ${R.label}'s risks →`}</button>
+      <span style={{fontSize:11,fontWeight:800,color:mineOnly?AI_GOLD:T.ink3,fontFamily:F.b}}>{mineOnly?(ar?`عرض مخاطر ${R.label}`:`Showing ${R.label}'s risks`):(ar?"عرض جميع مخاطر المؤسسة":"Showing all enterprise risks")}</span>
+      <span style={{fontSize:10.5,color:T.ink3,fontFamily:F.b}}>{mineOnly?(ar?`${scopedRisks.length} مخاطر أنت مسؤول عنها كمالك تنفيذي.`:`${scopedRisks.length} risks you are accountable for as executive owner.`):(ar?"كل خطر عبر المحفظة.":"Every risk across the portfolio.")}</span>
+      <button onClick={()=>setMineOnly(m=>!m)} style={{marginLeft:"auto",background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"6px 12px",color:T.ink2,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{mineOnly?(ar?"عرض كل المخاطر ←":"View all risks →"):(ar?`عرض مخاطر ${R.label} فقط ←`:`View only ${R.label}'s risks →`)}</button>
     </div>}
     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-      {TABS.map(([id,label])=><button key={id} onClick={()=>setRcTab(id)} style={{background:rcTab===id?T.red+"18":T.s2,border:`1px solid ${rcTab===id?T.red+"50":T.border}`,color:rcTab===id?T.red:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{label}</button>)}
+      {TABS.map(([id,label])=><button key={id} onClick={()=>setRcTab(id)} style={{background:rcTab===id?T.red+"18":T.s2,border:`1px solid ${rcTab===id?T.red+"50":T.border}`,color:rcTab===id?T.red:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{T_(label)}</button>)}
     </div>
     {(rcTab==="register"||rcTab==="heatmap")&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>View by</span>
