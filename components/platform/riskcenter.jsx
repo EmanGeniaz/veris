@@ -200,7 +200,7 @@ registerContent({
   "Summaries can be confidently wrong; decisions made on fabricated content in legal or financial contexts are the exposure.": "قد تكون الملخّصات خاطئة بثقة؛ والتعرّض هو القرارات المبنية على محتوى مُلفَّق في السياقات القانونية أو المالية.",
   "An incorrect prediction could contribute to equipment failure and physical harm; potential High-Risk classification.": "قد يسهم تنبؤ خاطئ في تعطّل المعدّات وضرر مادي؛ تصنيف محتمل عالي الخطورة.",
   // ── treatment actions (riskRegister.treatment.action) ──
-  "Gateway prompt-shield detectors, output filtering and red-team evidence pack before pilot exit. CISO evidence due.": "كواشف درع المطالبات في البوابة، وتصفية المخرجات، وحزمة أدلة الفريق الأحمر قبل الخروج من التجربة. أدلة CISO مستحقة.",
+  "Gateway prompt-shield detectors, output filtering and red-team evidence pack before pilot exit. CISO evidence due.": "كواشف درع الإدخالات في البوابة، وتصفية المخرجات، وحزمة أدلة الفريق الأحمر قبل الخروج من التجربة. أدلة CISO مستحقة.",
   "Gateway masking for PII and card patterns; retention limited to 30 days; DLP audit weekly.": "إخفاء البيانات الشخصية وأنماط البطاقات في البوابة؛ الاحتفاظ محدود بـ 30 يوماً؛ تدقيق منع تسريب البيانات أسبوعياً.",
   "Continuous bias monitoring with automated alerts; retrain on balanced dataset; fairness guardrails pre-go-live.": "مراقبة تحيّز مستمرة مع تنبيهات آلية؛ إعادة تدريب على مجموعة بيانات متوازنة؛ حواجز إنصاف قبل الإطلاق.",
   "HITL review for all adverse decisions; oversight design record to be approved; quarterly outcome audit.": "مراجعة الإنسان في الحلقة لكل القرارات السلبية؛ اعتماد سجل تصميم الإشراف؛ تدقيق نتائج ربع سنوي.",
@@ -241,10 +241,10 @@ registerContent({
   "worsening": "يسوء",
   "stable": "مستقر",
   // ── related security events (SECURITY_EVENTS.title / severity) ──
-  "Prompt-injection attempt blocked at gateway": "محاولة حقن مطالبات محجوبة عند البوابة",
+  "Prompt-injection attempt blocked at gateway": "محاولة حقن إدخالات محجوبة عند البوابة",
   "Model drift → integrity risk on fraud signals": "انحراف النموذج ← خطر سلامة على إشارات الاحتيال",
   "Unauthenticated inference endpoint on staging model": "نقطة نهاية استدلال غير موثّقة على نموذج تجريبي",
-  "Verbose error messages leak schema hints": "رسائل خطأ مطوَّلة تسرّب تلميحات المخطّط",
+  "Verbose error messages leak schema hints": "رسائل أخطاء مُطوَّلة تُسرِّب تلميحات المخطّط",
   "P1 · Critical": "P1 · حرج",
   "P2 · High": "P2 · عالٍ",
 });
