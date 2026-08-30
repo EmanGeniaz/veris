@@ -23,7 +23,7 @@
 | Environmental footprint + carbon disclosure | DONE | `lib/sustainability.js` |
 | Converged incident playbook + crosswalk + gap-closure | MODELLED | seeded registers |
 | Enforcement Coverage (enforced/observed/shadow) | MODELLED | honest 3-plane split |
-| **Data-subject-rights lifecycle** (consent · DSAR · retention/erasure) | TODO | next candidate; closes GDPR/DPDP Partials |
+| **Data-subject-rights lifecycle** (consent · DSAR · retention/erasure) | DONE | `lib/data-subject-rights.js` — 4 rights per system + live request queue; statutory clock **modelled** (elapsedD vs regime deadlineD, SSR-safe); EN/AR |
 
 ## C. Gateway & enforcement (the "full enforcement" core — D1)
 | Feature | Status | Notes |
