@@ -79,7 +79,6 @@ registerContent({
   "How far treatment has driven each initiative's exposure down. Click a row to open its risks.": "إلى أي مدى خفّضت المعالجة تعرّض كل مبادرة. انقر صفاً لفتح مخاطره.",
   "Control effectiveness": "فعالية الضوابط",
   "Breaching": "متجاوِز",
-  "Within": "ضمن الحد",
   "Within appetite": "ضمن الحد المقبول",
   "Enterprise-level": "على مستوى المؤسسة",
   "Treatment complete": "المعالجة مكتملة",
@@ -108,7 +107,6 @@ registerContent({
   "RSK-002 treatment": "معالجة RSK-002",
   "RSK-005 treatment": "معالجة RSK-005",
   "RSK-008 treatment": "معالجة RSK-008",
-  "Framework posture": "جاهزية الإطار",
   "Governance module": "وحدة الحوكمة",
   "Treatments tab": "علامة المعالجات",
   "Impact drives RSK-004/005": "الأثر يقود RSK-004/005",
@@ -124,7 +122,7 @@ registerContent({
   "Qualified: high-volume support workload, $4.8M value hypothesis validated.": "مؤهّل: عبء عمل دعم كبير الحجم، وفرضية قيمة 4.8 مليون دولار مُثبَتة.",
   "Customer-facing GenAI; affects customers and agents; human handoff required.": "ذكاء توليدي موجّه للعملاء؛ يؤثّر في العملاء والوكلاء؛ يلزم تسليم بشري.",
   "3 risks registered (1 Critical bias, 2 High). Inherent 20/25 max.": "3 مخاطر مُسجَّلة (1 تحيّز حرج، 2 عالية). المتأصّل 20/25 كحد أقصى.",
-  "Prompt-shield live; red-team evidence pack outstanding (CISO).": "درع المطالبات فعّال؛ حزمة أدلة الفريق الأحمر معلّقة (CISO).",
+  "Prompt-shield live; red-team evidence pack outstanding (CISO).": "درع الإدخالات فعّال؛ حزمة أدلة الفريق الأحمر معلّقة (CISO).",
   "PII masking at gateway verified; 30-day retention set.": "إخفاء البيانات الشخصية عند البوابة مُتحقَّق منه؛ ضُبِط الاحتفاظ لـ 30 يوماً.",
   "ISO 42001 + EU AI Act mapping complete; Art.9 documentation current.": "اكتمل ربط الأيزو 42001 وقانون الذكاء الاصطناعي الأوروبي؛ توثيق المادة 9 محدَّث.",
   "Owners assigned, HITL configured, evidence flowing. Guardrail 82%.": "المُلّاك مُعيَّنون، وبوابة الإنسان في الحلقة مُهيَّأة، والأدلة متدفّقة. الحاجز 82%.",
@@ -154,12 +152,12 @@ registerContent({
   "Guardrail 67%; fairness assessment blocks the Governance gate.": "الحاجز 67%؛ تقييم الإنصاف يحجب بوابة الحوكمة.",
   "Treatment plan drafted; starts once fairness workbook lands.": "خطة المعالجة مُصاغة؛ تبدأ فور وصول مصنّف الإنصاف.",
   // ── initiative cascade blockers (acInitiatives.blockedBy) ──
-  "CISO prompt-injection evidence due": "أدلة حقن المطالبات من CISO مستحقة",
+  "CISO prompt-injection evidence due": "أدلة حقن الإدخالات من CISO مستحقة",
   "Human oversight design record awaiting approval": "سجل تصميم الإشراف البشري بانتظار الاعتماد",
   "Fairness assessment workbook incomplete": "مصنّف تقييم الإنصاف غير مكتمل",
   // ── risk titles (riskRegister.title) ──
-  "Prompt injection": "حقن المطالبات",
-  "Data leakage via prompts": "تسريب البيانات عبر المطالبات",
+  "Prompt injection": "حقن الإدخالات",
+  "Data leakage via prompts": "تسريب البيانات عبر الإدخالات",
   "Bias and fairness - differential response quality": "التحيّز والإنصاف - جودة استجابة تفاضلية",
   "Adverse decision harm": "ضرر القرار السلبي",
   "Explainability gap": "فجوة القابلية للتفسير",
@@ -183,14 +181,14 @@ registerContent({
   "Operational": "تشغيلي",
   // ── business units (riskRegister.unit) ──
   "Customer Operations": "عمليات العملاء",
-  "Retail Banking": "الخدمات المصرفية للأفراد",
+  "Retail Banking": "المصرفية للأفراد",
   "Finance": "المالية",
   "People": "الموارد البشرية",
   "Security": "الأمن",
   "Operations": "العمليات",
   // ── risk descriptions (riskRegister.desc) ──
-  "Adversarial prompts could override system instructions and exfiltrate data or trigger unapproved actions in the copilot.": "قد تتجاوز المطالبات العدائية تعليمات النظام وتسرّب البيانات أو تُطلق إجراءات غير معتمدة في المساعد.",
-  "Agents may paste customer PII into prompts; unmasked data could reach an external model provider.": "قد يلصق الوكلاء بيانات العملاء الشخصية في المطالبات؛ وقد تصل البيانات غير المُخفاة إلى مزوّد نموذج خارجي.",
+  "Adversarial prompts could override system instructions and exfiltrate data or trigger unapproved actions in the copilot.": "قد تتجاوز الإدخالات العدائية تعليمات النظام وتسرّب البيانات أو تُطلق إجراءات غير معتمدة في المساعد.",
+  "Agents may paste customer PII into prompts; unmasked data could reach an external model provider.": "قد يلصق الوكلاء بيانات العملاء الشخصية في الإدخالات؛ وقد تصل البيانات غير المُخفاة إلى مزوّد نموذج خارجي.",
   "Bias testing found disproportionate response quality for non-native English speakers. Art.9 risk management must document this.": "وجد اختبار التحيّز جودة استجابة غير متكافئة لغير الناطقين بالإنجليزية كلغة أم. يجب أن توثّق إدارة مخاطر المادة 9 هذا.",
   "An incorrect automated credit decision has direct legal effect on a customer. Human oversight design is still awaiting approval.": "لقرار ائتماني آلي خاطئ أثر قانوني مباشر على العميل. لا يزال تصميم الإشراف البشري بانتظار الاعتماد.",
   "Decision logic is opaque to affected individuals; Art.22 requires a meaningful explanation for automated decisions with legal effect.": "منطق القرار غير شفّاف للأفراد المتأثّرين؛ تتطلّب المادة 22 تفسيراً ذا معنى للقرارات الآلية ذات الأثر القانوني.",
@@ -504,17 +502,17 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
       {TABS.map(([id,label])=><button key={id} onClick={()=>setRcTab(id)} style={{background:rcTab===id?T.red+"18":T.s2,border:`1px solid ${rcTab===id?T.red+"50":T.border}`,color:rcTab===id?T.red:T.ink2,borderRadius:8,padding:"7px 12px",fontSize:11,fontWeight:700,fontFamily:F.b,cursor:"pointer",transition:"all .15s"}}>{T_(label)}</button>)}
     </div>
     {(rcTab==="register"||rcTab==="heatmap")&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>View by</span>
-      {["Enterprise","Business Unit","Project","Executive","Model","Framework"].map(d=><button key={d} onClick={()=>{setDimBy(d);setDimVal("All");}} style={{background:dimBy===d?T.blue+"18":T.s2,border:`1px solid ${dimBy===d?T.blue+"50":T.border}`,color:dimBy===d?T.blue:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{d}</button>)}
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>{T_("View by")}</span>
+      {["Enterprise","Business Unit","Project","Executive","Model","Framework"].map(d=><button key={d} onClick={()=>{setDimBy(d);setDimVal("All");}} style={{background:dimBy===d?T.blue+"18":T.s2,border:`1px solid ${dimBy===d?T.blue+"50":T.border}`,color:dimBy===d?T.blue:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{d==="Enterprise"?(ar?"المؤسسة":"Enterprise"):T_(d)}</button>)}
       {dimValues.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",borderLeft:`1px solid ${T.border}`,paddingLeft:10}}>
-        {["All",...dimValues].map(v=><button key={v} onClick={()=>setDimVal(v)} style={{background:dimVal===v?AI_GOLD+"20":T.s2,border:`1px solid ${dimVal===v?AI_GOLD+"55":T.border}`,color:dimVal===v?AI_GOLD:T.ink3,borderRadius:7,padding:"4px 9px",fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{v}</button>)}
+        {["All",...dimValues].map(v=><button key={v} onClick={()=>setDimVal(v)} style={{background:dimVal===v?AI_GOLD+"20":T.s2,border:`1px solid ${dimVal===v?AI_GOLD+"55":T.border}`,color:dimVal===v?AI_GOLD:T.ink3,borderRadius:7,padding:"4px 9px",fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{T_(v)}</button>)}
       </div>}
-      <Tag label={`${rows.length} risks`} color={T.red} bg={T.red+"14"}/>
+      <Tag label={ar?`${rows.length} خطر`:`${rows.length} risks`} color={T.red} bg={T.red+"14"}/>
     </Card>}
     {rcTab==="register"&&<div style={{display:"grid",gridTemplateColumns:"1fr minmax(0,340px)",gap:14}}>
       <div>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-          {["Risk","Initiative / Unit","L","I","Residual"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+          {["Risk","Initiative / Unit","L","I","Residual"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h==="Risk"?(ar?"الخطر":"Risk"):T_(h)}</span>)}
         </div>
         <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
           {rows.map((r,i)=>{
@@ -522,18 +520,18 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
             const c=lvColor(rLvl);const ini=initOf(r);
             return <div key={r.id} onClick={()=>setSel(r)} style={{display:"grid",gridTemplateColumns:"2fr 1.1fr 60px 60px 90px",padding:"11px 12px",alignItems:"center",cursor:"pointer",borderBottom:i<rows.length-1?`1px solid ${T.border}`:"none",background:sel&&sel.id===r.id?T.s3:i%2===0?T.s1:T.bg,borderLeft:sel&&sel.id===r.id?`3px solid ${c}`:"3px solid transparent",transition:"all .15s"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
+                <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{T_(r.title)}</div>
                 <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.id} · {r.riskOwner}</span>
               </div>
               <div>
-                <div style={{fontSize:10,color:ini?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:ini?800:500}}>{ini?ini.name:r.unit}</div>
-                <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{ini?"Initiative":"Enterprise"} · Exec: {r.execOwner}</span>
+                <div style={{fontSize:10,color:ini?AI_GOLD:T.ink2,fontFamily:F.b,fontWeight:ini?800:500}}>{ini?ini.name:T_(r.unit)}</div>
+                <span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{ini?T_("Initiative"):(ar?"المؤسسة":"Enterprise")} · {ar?"تنفيذي":"Exec"}: {r.execOwner}</span>
               </div>
               <Dots n={r.likelihood} color={T.amber}/>
               <Dots n={r.impact} color={c}/>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:c}} title={moved?`Assessed ${r.residual} → live ${rRes} after treatment progress`:undefined}>{rRes}{moved&&<span style={{fontSize:9,color:T.green,marginLeft:2}}>▼</span>}</span>
-                <Tag label={rLvl} color={c} bg={c+"18"}/>
+                <span style={{fontSize:16,fontWeight:800,fontFamily:F.m,color:c}} title={moved?(ar?`المُقيَّم ${r.residual} ← الحالي ${rRes} بعد تقدّم المعالجة`:`Assessed ${r.residual} → live ${rRes} after treatment progress`):undefined}>{rRes}{moved&&<span style={{fontSize:9,color:T.green,marginLeft:2}}>▼</span>}</span>
+                <Tag label={T_(rLvl)} color={c} bg={c+"18"}/>
               </div>
             </div>;
           })}
@@ -543,8 +541,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     </div>}
     {rcTab==="heatmap"&&<div style={{display:"grid",gridTemplateColumns:"minmax(0,420px) 1fr",gap:14}}>
       <Card style={{padding:16}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>Inherent risk heat map</h3>
-        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>Click a cell to see the risks behind it. Rows are impact, columns likelihood.</p>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>{T_("Inherent risk heat map")}</h3>
+        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>{T_("Click a cell to see the risks behind it. Rows are impact, columns likelihood.")}</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
           {[5,4,3,2,1].map(imp=>[1,2,3,4,5].map(lik=>{
             const cellRisks=rows.filter(r=>r.likelihood===lik&&r.impact===imp);
@@ -555,42 +553,42 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
           }))}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
-          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>← lower likelihood</span>
-          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>higher likelihood →</span>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{ar?"→":"←"} {T_("lower likelihood")}</span>
+          <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{T_("higher likelihood")} {ar?"←":"→"}</span>
         </div>
       </Card>
       <Card style={{padding:16}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>{cell?`Risks at likelihood ${cell.l} × impact ${cell.i}`:"All risks in view"}</h3>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>{cell?(ar?`المخاطر عند احتمالية ${cell.l} × أثر ${cell.i}`:`Risks at likelihood ${cell.l} × impact ${cell.i}`):T_("All risks in view")}</h3>
         <div style={{display:"grid",gap:8}}>
           {(cell?rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i):rows).map(r=>{
             const c=lvColor(r.level);const ini=initOf(r);
             return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
-              <div><div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{r.title}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{ini?ini.name:r.unit} · {r.category}</div></div>
-              <Tag label={r.level} color={c} bg={c+"16"}/>
-              <button onClick={()=>{setSel(r);setRcTab("register");}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 10px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>Open →</button>
+              <div><div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(r.title)}</div><div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginTop:2}}>{ini?ini.name:T_(r.unit)} · {T_(r.category)}</div></div>
+              <Tag label={T_(r.level)} color={c} bg={c+"16"}/>
+              <button onClick={()=>{setSel(r);setRcTab("register");}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 10px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{ar?"افتح ←":"Open →"}</button>
             </div>;
           })}
-          {cell&&rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i).length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>No risks sit in this cell - the register has nothing at this likelihood and impact.</div>}
+          {cell&&rows.filter(r=>r.likelihood===cell.l&&r.impact===cell.i).length===0&&<div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{T_("No risks sit in this cell - the register has nothing at this likelihood and impact.")}</div>}
         </div>
       </Card>
     </div>}
     {rcTab==="treatments"&&<div>
       <div style={{display:"grid",gridTemplateColumns:"1.6fr 90px 1fr 90px 110px 150px",padding:"8px 12px",background:T.s3,borderRadius:"8px 8px 0 0",border:`1px solid ${T.border}`,borderBottom:"none"}}>
-        {["Risk","Strategy","Owner / deadline","Priority","Status","Action"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h}</span>)}
+        {["Risk","Strategy","Owner / deadline","Priority","Status","Action"].map(h=><span key={h} style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m}}>{h==="Risk"?(ar?"الخطر":"Risk"):T_(h)}</span>)}
       </div>
       <div style={{border:`1px solid ${T.border}`,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
         {riskRegister.map((r,i)=>{
           const st=effT(r);
           return <div key={r.id} style={{display:"grid",gridTemplateColumns:"1.6fr 90px 1fr 90px 110px 150px",padding:"10px 12px",alignItems:"center",borderBottom:i<riskRegister.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg}}>
             <div>
-              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{r.title}</div>
+              <div style={{fontSize:11,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{T_(r.title)}</div>
               <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.id} · {r.system}</span>
             </div>
             <STag s={r.treatment.strategy}/>
-            <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.treatment.owner}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>due {r.treatment.deadline}</span></div>
+            <div><div style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{r.treatment.owner}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{ar?"تُستحق":"due"} {r.treatment.deadline}</span></div>
             <PTag p={r.treatment.priority}/>
             <STag s={st}/>
-            <button onClick={()=>advance(r)} disabled={st==="Complete"} style={{background:st==="Complete"?T.s3:T.violet,color:st==="Complete"?T.green:"#fff",border:st==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"7px 8px",fontSize:9.5,fontWeight:700,fontFamily:F.b,cursor:st==="Complete"?"default":"pointer"}}>{st==="Complete"?"Evidence recorded":st==="Planned"?"Start treatment":"Mark complete"}</button>
+            <button onClick={()=>advance(r)} disabled={st==="Complete"} style={{background:st==="Complete"?T.s3:T.violet,color:st==="Complete"?T.green:"#fff",border:st==="Complete"?`1px solid ${T.green}40`:"none",borderRadius:7,padding:"7px 8px",fontSize:9.5,fontWeight:700,fontFamily:F.b,cursor:st==="Complete"?"default":"pointer"}}>{T_(st==="Complete"?"Evidence recorded":st==="Planned"?"Start treatment":"Mark complete")}</button>
           </div>;
         })}
       </div>
@@ -598,8 +596,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     {rcTab==="assessments"&&<RiskAssessmentCascade setTab={setTab} setAiCentralView={setAiCentralView}/>}
     {rcTab==="residual"&&<div>
       <Card style={{padding:16,marginBottom:12}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>Inherent vs residual by initiative</h3>
-        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>How far treatment has driven each initiative's exposure down. Click a row to open its risks.</p>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 4px"}}>{T_("Inherent vs residual by initiative")}</h3>
+        <p style={{fontSize:10,color:T.ink3,fontFamily:F.b,margin:"0 0 12px"}}>{T_("How far treatment has driven each initiative's exposure down. Click a row to open its risks.")}</p>
         <div style={{display:"grid",gap:10}}>
           {acInitiatives.map(i=>{
             const rs=riskRegister.filter(r=>r.initiativeId===i.id);
@@ -608,27 +606,27 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
             const res=Math.max(...rs.map(r=>r.residual));
             return <button key={i.id} onClick={()=>{setDimBy("Project");setDimVal(i.name);setRcTab("register");}} style={{display:"grid",gridTemplateColumns:"180px 1fr 1fr 90px",gap:12,alignItems:"center",background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
               <span style={{fontSize:11,fontWeight:800,color:T.ink,fontFamily:F.b}}>{i.name}</span>
-              <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>INHERENT {inh}/25</div><Bar value={inh*4} color={T.red}/></div>
-              <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>RESIDUAL {res}/25</div><Bar value={res*4} color={res<=6?T.green:T.amber}/></div>
-              <Tag label={`-${inh-res} pts`} color={T.green} bg={T.greenL}/>
+              <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>{ar?"المتأصّل":"INHERENT"} {inh}/25</div><Bar value={inh*4} color={T.red}/></div>
+              <div><div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,marginBottom:3}}>{ar?"المتبقّي":"RESIDUAL"} {res}/25</div><Bar value={res*4} color={res<=6?T.green:T.amber}/></div>
+              <Tag label={ar?`-${inh-res} نقطة`:`-${inh-res} pts`} color={T.green} bg={T.greenL}/>
             </button>;
           })}
         </div>
       </Card>
       <Card style={{padding:16}}>
-        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>Control effectiveness</h3>
+        <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:800,color:T.ink,margin:"0 0 10px"}}>{T_("Control effectiveness")}</h3>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:8}}>
           {[...new Set(riskRegister.flatMap(r=>r.controls))].map(c=>{
             const linked=riskRegister.filter(r=>r.controls.includes(c));
             const done=linked.filter(r=>r.treatment.status==="Complete").length;
             const eff=Math.round((done/linked.length)*100);
             const col=eff>=70?T.green:eff>=40?T.amber:T.red;
-            return <button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
+            return <button key={c} onClick={()=>setTab&&setTab("controls")} title={ar?"افتح في مكتبة الضوابط":"Open in the control library"} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
                 <span style={{fontSize:10.5,fontWeight:800,color:T.ink,fontFamily:F.m}}>{c}</span>
                 <span style={{fontSize:11,fontWeight:900,fontFamily:F.m,color:col}}>{eff}%</span>
               </div>
-              <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginBottom:5}}>Covers {linked.map(r=>r.id).join(", ")} · {done}/{linked.length} treatments complete</div>
+              <div style={{fontSize:9,color:T.ink3,fontFamily:F.b,marginBottom:5}}>{ar?`يغطّي ${linked.map(r=>r.id).join(", ")} · ${done}/${linked.length} معالجات مكتملة`:`Covers ${linked.map(r=>r.id).join(", ")} · ${done}/${linked.length} treatments complete`}</div>
               <Bar value={eff} color={col}/>
             </button>;
           })}
@@ -643,17 +641,17 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
         const linked=riskRegister.filter(r=>r.kris.includes(k.id));
         return <Card key={k.id} style={{padding:15,border:`1px solid ${c}30`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <Tag label={breach?"Breaching":"Within appetite"} color={c} bg={c+"16"}/>
-            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{k.id} · trend {k.trend}</span>
+            <Tag label={T_(breach?"Breaching":"Within appetite")} color={c} bg={c+"16"}/>
+            <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{k.id} · {ar?"اتجاه":"trend"} {T_(k.trend)}</span>
           </div>
-          <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{k.name}</div>
+          <div style={{fontSize:13,fontWeight:800,color:T.ink,fontFamily:F.b,marginBottom:3}}>{T_(k.name)}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:8}}>
             <span style={{fontSize:24,fontWeight:900,fontFamily:F.m,color:c}}>{k.value}</span>
-            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{k.unit} · threshold {k.direction==="above"?"≤":"≥"} {k.threshold}</span>
+            <span style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{T_(k.unit)} · {ar?"عتبة":"threshold"} {k.direction==="above"?"≤":"≥"} {k.threshold}</span>
           </div>
-          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginBottom:10}}>Protects {k.framework}{linked.length>0&&` · watches ${linked.map(r=>r.id).join(", ")}`}</div>
-          {ini?<button onClick={openInitiative} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ini.name} →</button>
-          :<Tag label="Enterprise-level" color={T.blue} bg={T.blue+"14"}/>}
+          <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,marginBottom:10}}>{ar?`يحمي ${k.framework}${linked.length>0?` · يراقب ${linked.map(r=>r.id).join(", ")}`:""}`:`Protects ${k.framework}${linked.length>0?` · watches ${linked.map(r=>r.id).join(", ")}`:""}`}</div>
+          {ini?<button onClick={openInitiative} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ini.name} {ar?"←":"→"}</button>
+          :<Tag label={T_("Enterprise-level")} color={T.blue} bg={T.blue+"14"}/>}
         </Card>;
       })}
     </div>}
