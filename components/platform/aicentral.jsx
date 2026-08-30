@@ -2069,7 +2069,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     return <Card style={{padding:0,overflow:"hidden"}}>
       <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>{T_("Evidence for this initiative")}</h3><Tag label={`${rows.length} ${T_("records")}`} color={AI_GOLD} bg={AI_GOLD+"16"}/></div>
       {rows.length===0&&<div style={{padding:"18px",fontSize:11,color:T.ink3,fontFamily:F.b}}>{T_("No evidence yet - completed phase artifacts and decisions will appear here automatically.")}</div>}
-      {rows.map(e=><div key={`${e.item}-${e.time}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr auto",gap:12,padding:"12px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+      {rows.map((e,ri)=><div key={`${e.item}-${e.time}-${ri}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr auto",gap:12,padding:"12px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
         <div><div style={{fontSize:12,color:T.ink,fontWeight:700}}>{e.item}</div><div style={{fontSize:9,color:T.ink3}}>{T_("Control:")} {e.control}</div></div>
         <span style={{fontSize:10,color:T.ink2}}>{T_("Owner:")} {e.owner}</span>
         <div style={{display:"flex",gap:6}}><STag s={e.status}/><STag s={e.approval}/></div>
@@ -2387,7 +2387,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
       {secHead("Recent activity")}
       {activity.length===0&&<div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{T_("No recorded activity yet - completed artifacts will appear here.")}</div>}
       <div style={{display:"grid",gap:7}}>
-        {activity.map(e=><div key={`${e.item}-${e.time}`} style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}><span style={{color:T.ink4,fontFamily:F.m}}>{e.time}</span> · {e.item}</div>)}
+        {activity.map((e,ai)=><div key={`${e.item}-${e.time}-${ai}`} style={{fontSize:10,color:T.ink2,fontFamily:F.b,lineHeight:1.5}}><span style={{color:T.ink4,fontFamily:F.m}}>{e.time}</span> · {e.item}</div>)}
       </div>
       {activity.length>0&&<button onClick={()=>setView("evidence")} style={{marginTop:9,background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer",padding:0}}>{T_("Open evidence →")}</button>}
     </div>;
@@ -2769,7 +2769,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         </div>
         <Tag label={`${evFiltered.length} ${T_("items")}`} color={AI_GOLD} bg={AI_GOLD+"18"}/>
       </div>
-      {evFiltered.map(e=><div key={`${e.item}-${e.time}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr 1fr 1fr",gap:12,padding:"14px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
+      {evFiltered.map((e,ei)=><div key={`${e.item}-${e.time}-${ei}`} style={{display:"grid",gridTemplateColumns:"1.3fr 1fr 1fr 1fr",gap:12,padding:"14px 18px",borderBottom:"1px solid "+T.border,alignItems:"center"}}>
         <div><div style={{fontSize:13,color:T.ink,fontWeight:700}}>{e.item} <span style={{fontSize:9,color:rc,fontFamily:F.m,border:`1px solid ${rc}40`,borderRadius:5,padding:"1px 5px",marginLeft:4}}>{e.version||"v1"}</span></div><div style={{fontSize:10,color:T.ink3}}>{e.initiative} - {T_(e.scope||"Project")}</div></div>
         <div style={{fontSize:11,color:T.ink2}}>{T_("Control:")} {e.control}<br/>{T_("Risk:")} {e.risk}</div>
         <div style={{fontSize:11,color:T.ink2}}>{T_("Owner:")} {e.owner}</div>

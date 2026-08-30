@@ -431,29 +431,29 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
         const assessments=acAssessments[sel.initiativeId]||[];
         return <>
           {relKris.length>0&&<div style={{marginTop:10}}>
-            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>Key risk indicators</div>
+            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>{T_("Key risk indicators")}</div>
             {relKris.map(k=>{const breach=k.direction==="above"?k.value>k.threshold:k.value<k.threshold;return <div key={k.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{k.name}</span>
-              <span style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:10,fontWeight:800,color:breach?T.red:T.green,fontFamily:F.m}}>{k.value}{k.unit.startsWith("%")?"%":""}</span><Tag label={breach?"Breaching":"Within"} color={breach?T.red:T.green} bg={(breach?T.red:T.green)+"16"}/></span>
+              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b}}>{T_(k.name)}</span>
+              <span style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:10,fontWeight:800,color:breach?T.red:T.green,fontFamily:F.m}}>{k.value}{k.unit.startsWith("%")?"%":""}</span><Tag label={T_(breach?"Breaching":"Within")} color={breach?T.red:T.green} bg={(breach?T.red:T.green)+"16"}/></span>
             </div>;})}
           </div>}
           {relEvents.length>0&&<div style={{marginTop:12}}>
-            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>Related incidents & vulnerabilities</div>
+            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:6}}>{T_("Related incidents & vulnerabilities")}</div>
             {relEvents.map(e=><div key={e.ref} style={{display:"flex",gap:8,alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
               <span style={{fontSize:9,fontFamily:F.m,fontWeight:900,color:T.ink4,flexShrink:0}}>{e.ref}</span>
-              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.title}</span>
-              {e.severity&&<span style={{fontSize:8.5,fontWeight:800,fontFamily:F.m,color:evColor(e.severity[1]),border:`1px solid ${evColor(e.severity[1])}55`,borderRadius:20,padding:"1px 7px",flexShrink:0}}>{e.severity[0]}</span>}
+              <span style={{fontSize:10,color:T.ink2,fontFamily:F.b,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{T_(e.title)}</span>
+              {e.severity&&<span style={{fontSize:8.5,fontWeight:800,fontFamily:F.m,color:evColor(e.severity[1]),border:`1px solid ${evColor(e.severity[1])}55`,borderRadius:20,padding:"1px 7px",flexShrink:0}}>{T_(e.severity[0])}</span>}
             </div>)}
           </div>}
           {assessments.length>0&&<div style={{marginTop:12,background:T.s3,borderRadius:8,padding:"9px 12px"}}>
-            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Assessment history</div>
-            <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{assessments.length} assessment{assessments.length>1?"s":""} on record · <button onClick={()=>setRcTab("assessments")} style={{background:"none",border:"none",padding:0,color:AI_GOLD_INK,fontWeight:800,fontFamily:F.b,fontSize:10.5,cursor:"pointer"}}>open cascade →</button></span>
+            <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>{T_("Assessment history")}</div>
+            <span style={{fontSize:10.5,color:T.ink2,fontFamily:F.b}}>{ar?`${assessments.length} تقييم مُسجَّل`:`${assessments.length} assessment${assessments.length>1?"s":""} on record`} · <button onClick={()=>setRcTab("assessments")} style={{background:"none",border:"none",padding:0,color:AI_GOLD_INK,fontWeight:800,fontFamily:F.b,fontSize:10.5,cursor:"pointer"}}>{ar?"افتح التتابع ←":"open cascade →"}</button></span>
           </div>}
         </>;
       })()}
       <div style={{display:"grid",gridTemplateColumns:initOf(sel)?"1fr 1fr":"1fr",gap:8,marginTop:12}}>
-        <button onClick={()=>{setRcTab("treatments");}} style={{background:T.violet,border:"none",borderRadius:7,padding:"9px",color:"#fff",fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{effT(sel)==="Complete"?"Treatment complete":"Manage treatment"}</button>
-        {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open initiative →</button>}
+        <button onClick={()=>{setRcTab("treatments");}} style={{background:T.violet,border:"none",borderRadius:7,padding:"9px",color:"#fff",fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{T_(effT(sel)==="Complete"?"Treatment complete":"Manage treatment")}</button>
+        {initOf(sel)&&<button onClick={openInitiative} style={{background:AI_GOLD+"16",border:`1px solid ${AI_GOLD}45`,borderRadius:7,padding:"9px",color:AI_GOLD_INK,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ar?"افتح المبادرة ←":"Open initiative →"}</button>}
       </div>
     </div>
   </Card>;
@@ -461,8 +461,8 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
   return <div style={{animation:"up .3s ease"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-      <SHead title="Risk Center" sub="The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3."/>
-      <button onClick={()=>setCreateOpen(o=>!o)} style={{flexShrink:0,background:createOpen?"transparent":T.red+"14",border:`1px solid ${T.red}${createOpen?"55":"45"}`,borderRadius:8,padding:"9px 15px",color:T.red,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{createOpen?"Close":"+ New risk"}</button>
+      <SHead title={T_("Risk Center")} sub={T_("The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3.")}/>
+      <button onClick={()=>setCreateOpen(o=>!o)} style={{flexShrink:0,background:createOpen?"transparent":T.red+"14",border:`1px solid ${T.red}${createOpen?"55":"45"}`,borderRadius:8,padding:"9px 15px",color:T.red,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{T_(createOpen?"Close":"+ New risk")}</button>
     </div>
     {createOpen&&<Card style={{padding:18,marginBottom:14,border:`1px solid ${T.red}45`,animation:"up .25s ease"}}>
       <h3 style={{fontSize:14,color:T.ink,fontWeight:800,margin:"0 0 4px"}}>Register a risk</h3>
