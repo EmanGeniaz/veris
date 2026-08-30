@@ -341,7 +341,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
       aiRecommendation:"Assign a risk owner and complete the AI risk assessment to set inherent and residual scores."};
     setExtra([rec,...extra]);setSel(rec);setCreateOpen(false);setRcTab("register");
     setRdraft({title:"",category:"",unit:"",execOwner:"",riskOwner:"",framework:"",likelihood:"3",impact:"3",level:"Medium",strategy:"Mitigate"});
-    showToast&&showToast(`${rec.id} added to the risk register`);
+    showToast&&showToast(ar?`أُضيف ${rec.id} إلى سجل المخاطر`:`${rec.id} added to the risk register`);
   };
   const lvColor=l=>l==="Critical"?T.red:l==="High"?T.amber:l==="Medium"?T.blue:T.green;
   const initOf=r=>r.initiativeId?acInitiatives.find(i=>i.id===r.initiativeId):null;
@@ -371,7 +371,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
     setBumped(prev=>({...prev,[r.id]:next}));
     const ini=initOf(r);
     pushBus("vz-gw-evidence",{item:`Treatment update: ${r.id} ${r.title} -> ${next}`,initiative:ini?ini.name:r.unit,scope:ini?"Project":"Enterprise",control:`Risk Center - ISO 42001 C.8.3 (${r.controls.join(", ")})`,risk:r.category,owner:r.treatment.owner,status:"Complete",approval:"Recorded",version:"v1",time:"Just now"});
-    showToast&&showToast(`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
+    showToast&&showToast(ar?`معالجة ${r.id} ${next==="Complete"?"اكتملت":"بدأت"} - الأدلة مُسجَّلة`:`${r.id} treatment ${next==="Complete"?"completed":"started"} - evidence recorded`);
   };
   const kriBreach=k=>k.direction==="above"?k.value>k.threshold:k.value<k.threshold;
   const openCritHigh=scopedRisks.filter(r=>{const l=levelFor(r,effT(r));return (l==="Critical"||l==="High")&&r.status!=="Closed";}).length;
@@ -389,41 +389,41 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   const detail=sel&&<Card style={{overflow:"hidden",position:"sticky",top:70,height:"fit-content",boxShadow:`0 0 28px ${lvColor(selMath.level)}10`,animation:"fade .25s ease"}}>
     <div style={{background:`linear-gradient(135deg,${lvColor(selMath.level)}18,${T.s3})`,borderBottom:`1px solid ${lvColor(selMath.level)}30`,padding:"14px 16px"}}>
       <div style={{display:"flex",gap:7,alignItems:"center"}}><Tag label={selMath.level} color={lvColor(selMath.level)} bg={lvColor(selMath.level)+"20"}/><STag s={sel.status}/><span style={{fontSize:9,color:T.ink4,fontFamily:F.m,marginLeft:"auto"}}>{sel.id}</span></div>
-      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{sel.title}</h3>
+      <h3 style={{fontFamily:F.h,fontSize:14,fontWeight:700,color:T.ink,marginTop:9,lineHeight:1.3}}>{T_(sel.title)}</h3>
       <p style={{fontSize:10,color:T.ink3,fontFamily:F.m,marginTop:3}}>{sel.system}</p>
     </div>
     <div style={{padding:16}}>
-      <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:12}}>{sel.desc}</p>
+      <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,marginBottom:12}}>{T_(sel.desc)}</p>
       {[["Category",sel.category],["Business unit",sel.unit],["Executive owner",sel.execOwner],["Risk owner",sel.riskOwner],["Inherent score",`${selMath.inherent}/25`],["Residual score",`${selMath.live}/25`]].map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>
-        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</span>
-        <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:170}}>{v}</span>
+        <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.05em"}}>{T_(l)}</span>
+        <span style={{fontSize:10,color:T.ink,fontFamily:F.m,fontWeight:600,textAlign:"right",maxWidth:170}}>{T_(v)}</span>
       </div>)}
       {/* ── Risk math: residual computed from inherent minus treatment
           buy-down, live with the treatment status. ── */}
       <div style={{marginTop:12,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"10px 12px"}}>
-        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>Residual math</div>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:8}}>{T_("Residual math")}</div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",fontFamily:F.m}}>
-          <span style={{fontSize:11,fontWeight:800,color:T.ink2}} title="likelihood × impact">Inherent {selMath.inherent}</span>
+          <span style={{fontSize:11,fontWeight:800,color:T.ink2}} title={ar?"الاحتمالية × الأثر":"likelihood × impact"}>{ar?"المتأصّل":"Inherent"} {selMath.inherent}</span>
           <span style={{color:T.ink4,fontSize:11}}>−</span>
-          <span style={{fontSize:11,fontWeight:800,color:selMath.progressed?T.green:T.ink3}} title="bought down by treatment">buy-down {selMath.boughtDown}</span>
+          <span style={{fontSize:11,fontWeight:800,color:selMath.progressed?T.green:T.ink3}} title={ar?"مُخفَّض بالمعالجة":"bought down by treatment"}>{ar?"تخفيض":"buy-down"} {selMath.boughtDown}</span>
           <span style={{color:T.ink4,fontSize:11}}>=</span>
           <span style={{fontSize:13,fontWeight:900,color:lvColor(selMath.level)}}>{selMath.live}</span>
-          <Tag label={selMath.level} color={lvColor(selMath.level)} bg={lvColor(selMath.level)+"18"}/>
-          {selMath.progressed&&<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",borderRadius:999,padding:"2px 8px"}}>▼ from {selMath.assessed}</span>}
+          <Tag label={T_(selMath.level)} color={lvColor(selMath.level)} bg={lvColor(selMath.level)+"18"}/>
+          {selMath.progressed&&<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",borderRadius:999,padding:"2px 8px"}}>{ar?`▼ من ${selMath.assessed}`:`▼ from ${selMath.assessed}`}</span>}
         </div>
         <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5,marginTop:7}}>{selMath.note}</div>
       </div>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",margin:"11px 0 0"}}>
         {sel.frameworks.map(f=><Tag key={f} label={f} color={T.blue} bg={T.blue+"14"}/>)}
-        {sel.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title="Open in the control library" style={{background:T.violet+"14",border:`1px solid ${T.violet}40`,borderRadius:6,padding:"2px 8px",color:T.violet,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
+        {sel.controls.map(c=><button key={c} onClick={()=>setTab&&setTab("controls")} title={ar?"افتح في مكتبة الضوابط":"Open in the control library"} style={{background:T.violet+"14",border:`1px solid ${T.violet}40`,borderRadius:6,padding:"2px 8px",color:T.violet,fontSize:9,fontWeight:800,fontFamily:F.m,cursor:"pointer"}}>{c}</button>)}
       </div>
       <div style={{marginTop:13,background:T.s3,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${T.violet}`}}>
-        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Treatment - {sel.treatment.strategy} · {sel.treatment.owner} · due {sel.treatment.deadline}</div>
-        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.treatment.action}</p>
+        <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>{ar?"المعالجة":"Treatment"} - {T_(sel.treatment.strategy)} · {sel.treatment.owner} · {ar?"تُستحق":"due"} {sel.treatment.deadline}</div>
+        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{T_(sel.treatment.action)}</p>
       </div>
       <div style={{marginTop:10,background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px"}}>
-        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD_INK,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>AI recommendation</div>
-        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{sel.aiRecommendation}</p>
+        <div style={{fontSize:9,fontWeight:800,color:AI_GOLD_INK,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>{T_("AI recommendation")}</div>
+        <p style={{fontSize:10.5,color:T.ink2,lineHeight:1.65,fontFamily:F.b,margin:0}}>{T_(sel.aiRecommendation)}</p>
       </div>
       {(()=>{
         const relKris=(sel.kris||[]).map(id=>kriRegister.find(k=>k.id===id)).filter(Boolean);
