@@ -241,7 +241,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         })()}
         {acOnly&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${RAIL.border}`,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
-          <div style={{fontSize:10,color:RAIL.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
+          <div style={{fontSize:10,color:RAIL.ink3,lineHeight:1.5,fontFamily:F.b}}>{tn(lang,"Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.")}</div>
         </div>}
         {acOnly&&AI_CENTRAL_NAV.map((item,idx)=>{
           const isA=aiCentralView===item.id;
@@ -251,7 +251,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",[rtl?"right":"left"]:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":RAIL.chip,color:isA?AI_GOLD:RAIL.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
-            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:RAIL.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
+            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tn(lang,item.label)}</span><span style={{display:"block",fontSize:9,color:RAIL.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tn(lang,item.sub)}</span></span>
           </button>;
         })}
       </nav>
