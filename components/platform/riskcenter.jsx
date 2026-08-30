@@ -9,6 +9,247 @@ import { T, AI_GOLD, AI_GOLD_INK, ROLES, F, CountUp, Tag, PTag, STag, Bar, Card,
 import { PageAISpine } from "./spine";
 import { SmartSelect } from "./smartselect";
 import { SECURITY_EVENTS } from "@/lib/role-centers";
+import { useLang, ts, registerContent } from "@/lib/i18n";
+
+/* Arabic content for the Risk Center (PageRiskCenter + RiskAssessmentCascade)
+   and the register/KRI/engine data it renders. Keys are the exact English
+   strings; missing keys fall back to English. Reuses house vocabulary already
+   registered by the role centers (Treatments, KRIs, Priority, Low/Medium/
+   High/Critical, Accept, Action, Status, Model, Framework, Residual, …). */
+registerContent({
+  // ── chrome / labels ──
+  "Initiative": "المبادرة",
+  "VerisZone proprietary governance engines · run automatically per initiative": "محرّكات حوكمة مملوكة لفيرِس زون · تعمل تلقائياً لكل مبادرة",
+  "Risks on register": "المخاطر في السجل",
+  "Critical / high open": "الحرجة/العالية المفتوحة",
+  "Treatments in progress": "المعالجات قيد التنفيذ",
+  "KRIs breaching": "مؤشّرات المخاطر المتجاوِزة",
+  "Risk Register": "سجل المخاطر",
+  "Assessments": "التقييمات",
+  "Heat Map": "خريطة الحرارة",
+  "Residual & Trends": "المتبقّي والاتجاهات",
+  "Risk Drift": "انحراف المخاطر",
+  "Category": "الفئة",
+  "Business unit": "وحدة الأعمال",
+  "Business Unit": "وحدة الأعمال",
+  "Executive owner": "المالك التنفيذي",
+  "Risk owner": "مالك الخطر",
+  "Inherent score": "درجة المتأصّل",
+  "Residual score": "درجة المتبقّي",
+  "Residual math": "حساب المتبقّي",
+  "AI recommendation": "توصية الذكاء الاصطناعي",
+  "Key risk indicators": "مؤشّرات المخاطر الرئيسية",
+  "Related incidents & vulnerabilities": "الحوادث والثغرات ذات الصلة",
+  "Assessment history": "سجل التقييمات",
+  "Risk Center": "مركز المخاطر",
+  "The system of record for every AI risk. Owned once, viewed many times - every risk traces to its initiative, executive owner, controls, frameworks and treatment evidence. ISO 42001 C.8.2 / C.8.3.": "نظام التسجيل لكل مخاطر الذكاء الاصطناعي. يُملَك مرة، ويُعرَض مرات - كل خطر يتتبّع إلى مبادرته ومالكه التنفيذي وضوابطه وأطره وأدلة معالجته. الأيزو 42001 C.8.2 / C.8.3.",
+  "Close": "إغلاق",
+  "+ New risk": "+ خطر جديد",
+  "Register a risk": "سجّل خطراً",
+  "Category, unit, owners and framework are governed vocabularies — pick, add or request a value inline. New risks land Open, awaiting assessment.": "الفئة والوحدة والمُلّاك والإطار مفردات مُحوكَمة — اختر أو أضِف أو اطلب قيمة مباشرةً. المخاطر الجديدة تصل بحالة مفتوحة، بانتظار التقييم.",
+  "Risk title": "عنوان الخطر",
+  "Control framework": "إطار الضوابط",
+  "Likelihood (1-5)": "الاحتمالية (1-5)",
+  "Impact (1-5)": "الأثر (1-5)",
+  "Level": "المستوى",
+  "Treatment strategy": "استراتيجية المعالجة",
+  "e.g. Model drift on credit engine": "مثال: انحراف النموذج على محرّك الائتمان",
+  "Mitigate": "تخفيف",
+  "Transfer": "نقل",
+  "Avoid": "تجنّب",
+  "Register risk": "سجّل الخطر",
+  "A risk title is required": "عنوان الخطر مطلوب",
+  "View by": "عرض حسب",
+  "Executive": "التنفيذي",
+  "EU AI Act": "قانون الذكاء الاصطناعي الأوروبي",
+  "All": "الكل",
+  "Initiative / Unit": "المبادرة / الوحدة",
+  "Strategy": "الاستراتيجية",
+  "Owner / deadline": "المالك / الموعد النهائي",
+  "Inherent risk heat map": "خريطة حرارة المخاطر المتأصّلة",
+  "Click a cell to see the risks behind it. Rows are impact, columns likelihood.": "انقر خلية لرؤية المخاطر وراءها. الصفوف هي الأثر، والأعمدة الاحتمالية.",
+  "lower likelihood": "احتمالية أدنى",
+  "higher likelihood": "احتمالية أعلى",
+  "All risks in view": "كل المخاطر في العرض",
+  "No risks sit in this cell - the register has nothing at this likelihood and impact.": "لا مخاطر في هذه الخلية - السجل لا يحوي شيئاً عند هذه الاحتمالية والأثر.",
+  "Evidence recorded": "الأدلة مُسجَّلة",
+  "Start treatment": "ابدأ المعالجة",
+  "Mark complete": "حدّد كمكتمل",
+  "Inherent vs residual by initiative": "المتأصّل مقابل المتبقّي حسب المبادرة",
+  "How far treatment has driven each initiative's exposure down. Click a row to open its risks.": "إلى أي مدى خفّضت المعالجة تعرّض كل مبادرة. انقر صفاً لفتح مخاطره.",
+  "Control effectiveness": "فعالية الضوابط",
+  "Breaching": "متجاوِز",
+  "Within": "ضمن الحد",
+  "Within appetite": "ضمن الحد المقبول",
+  "Enterprise-level": "على مستوى المؤسسة",
+  "Treatment complete": "المعالجة مكتملة",
+  "Manage treatment": "أدِر المعالجة",
+  // ── governance engines (AI_GOV_ENGINES) ──
+  "AI Opportunity Assessment": "تقييم فرص الذكاء الاصطناعي",
+  "AI Impact Assessment": "تقييم أثر الذكاء الاصطناعي",
+  "AI Risk Assessment": "تقييم مخاطر الذكاء الاصطناعي",
+  "AI Security Assessment": "تقييم أمن الذكاء الاصطناعي",
+  "AI Privacy Assessment": "تقييم خصوصية الذكاء الاصطناعي",
+  "AI Compliance Assessment": "تقييم امتثال الذكاء الاصطناعي",
+  "AI Governance Assessment": "تقييم حوكمة الذكاء الاصطناعي",
+  "AI Risk Treatment": "معالجة مخاطر الذكاء الاصطناعي",
+  "Is this opportunity worth qualifying?": "هل تستحق هذه الفرصة التأهيل؟",
+  "Who and what does this system affect?": "من وماذا يؤثّر فيه هذا النظام؟",
+  "What can go wrong and how badly?": "ما الذي قد يسوء وإلى أي مدى؟",
+  "Can it be attacked or leak data?": "هل يمكن مهاجمته أو تسريب البيانات منه؟",
+  "Is personal data processed lawfully?": "هل تُعالَج البيانات الشخصية بشكل قانوني؟",
+  "Which frameworks apply and are we covered?": "أي الأطر تنطبق وهل نحن مُغطّون؟",
+  "Are ownership, oversight and evidence in place?": "هل الملكية والإشراف والأدلة قائمة؟",
+  "Are the risks being driven down?": "هل يجري تخفيض المخاطر؟",
+  // ── engine drill hints (ref-code-only hints fall back to English) ──
+  "Opportunity record": "سجل الفرصة",
+  "Impact drives RSK-001..003": "الأثر يقود RSK-001..003",
+  "RSK-001 treatment": "معالجة RSK-001",
+  "RSK-002 treatment": "معالجة RSK-002",
+  "RSK-005 treatment": "معالجة RSK-005",
+  "RSK-008 treatment": "معالجة RSK-008",
+  "Framework posture": "جاهزية الإطار",
+  "Governance module": "وحدة الحوكمة",
+  "Treatments tab": "علامة المعالجات",
+  "Impact drives RSK-004/005": "الأثر يقود RSK-004/005",
+  "Security controls": "ضوابط الأمن",
+  "EU AI Act row": "صف قانون الذكاء الاصطناعي الأوروبي",
+  "Approval gate": "بوابة الاعتماد",
+  "Impact record": "سجل الأثر",
+  "Privacy record": "سجل الخصوصية",
+  "SOX controls": "ضوابط SOX",
+  "Impact drives RSK-008/009": "الأثر يقود RSK-008/009",
+  "Phase gate": "بوابة المرحلة",
+  // ── engine outcomes (acAssessments) ──
+  "Qualified: high-volume support workload, $4.8M value hypothesis validated.": "مؤهّل: عبء عمل دعم كبير الحجم، وفرضية قيمة 4.8 مليون دولار مُثبَتة.",
+  "Customer-facing GenAI; affects customers and agents; human handoff required.": "ذكاء توليدي موجّه للعملاء؛ يؤثّر في العملاء والوكلاء؛ يلزم تسليم بشري.",
+  "3 risks registered (1 Critical bias, 2 High). Inherent 20/25 max.": "3 مخاطر مُسجَّلة (1 تحيّز حرج، 2 عالية). المتأصّل 20/25 كحد أقصى.",
+  "Prompt-shield live; red-team evidence pack outstanding (CISO).": "درع المطالبات فعّال؛ حزمة أدلة الفريق الأحمر معلّقة (CISO).",
+  "PII masking at gateway verified; 30-day retention set.": "إخفاء البيانات الشخصية عند البوابة مُتحقَّق منه؛ ضُبِط الاحتفاظ لـ 30 يوماً.",
+  "ISO 42001 + EU AI Act mapping complete; Art.9 documentation current.": "اكتمل ربط الأيزو 42001 وقانون الذكاء الاصطناعي الأوروبي؛ توثيق المادة 9 محدَّث.",
+  "Owners assigned, HITL configured, evidence flowing. Guardrail 82%.": "المُلّاك مُعيَّنون، وبوابة الإنسان في الحلقة مُهيَّأة، والأدلة متدفّقة. الحاجز 82%.",
+  "3 treatments running; bias monitoring live, red-team pack due May 24.": "3 معالجات جارية؛ مراقبة التحيّز فعّالة، وحزمة الفريق الأحمر مستحقة 24 مايو.",
+  "Qualified: $7.2M value in decision assurance; board-sponsored.": "مؤهّل: قيمة 7.2 مليون دولار في ضمان القرار؛ برعاية المجلس.",
+  "High impact: automated decisions with legal effect on customers (Art.22).": "أثر عالٍ: قرارات آلية ذات أثر قانوني على العملاء (المادة 22).",
+  "2 High risks: adverse decision harm, explainability gap.": "خطران عاليان: ضرر القرار السلبي، وفجوة القابلية للتفسير.",
+  "Internal model, no external exposure; access controls verified.": "نموذج داخلي، دون تعرّض خارجي؛ ضوابط الوصول مُتحقَّق منها.",
+  "Art.22 processing basis documented; disclosure template with Legal.": "أساس معالجة المادة 22 موثّق؛ قالب الإفصاح لدى القانون.",
+  "EU AI Act high-risk conformity path open; Art.14 oversight pending.": "مسار مطابقة عالي الخطورة لقانون الذكاء الاصطناعي الأوروبي مفتوح؛ إشراف المادة 14 معلّق.",
+  "Human-oversight design record awaiting approval - blocks Testing exit.": "سجل تصميم الإشراف البشري بانتظار الاعتماد - يحجب الخروج من الاختبار.",
+  "SHAP explainability in build; HITL review gate planned for Jun 5.": "قابلية تفسير SHAP قيد البناء؛ بوابة مراجعة الإنسان في الحلقة مُخطَّطة لـ 5 يونيو.",
+  "Qualified: close-cycle automation, clear SOX-safe value case.": "مؤهّل: أتمتة دورة الإقفال، وحالة قيمة واضحة آمنة لـ SOX.",
+  "Internal process impact only; controller review preserves accountability.": "أثر على العملية الداخلية فقط؛ مراجعة المراقب المالي تحفظ المساءلة.",
+  "2 Medium risks, both mitigated to residual 4/25.": "خطران متوسطان، كلاهما خُفِّف إلى متبقٍّ 4/25.",
+  "No external model calls; SoD enforced at workflow layer.": "لا استدعاءات نماذج خارجية؛ فصل المهام مُنفَّذ في طبقة سير العمل.",
+  "No personal data in scope beyond employee IDs; retention compliant.": "لا بيانات شخصية في النطاق عدا معرّفات الموظفين؛ الاحتفاظ ممتثل.",
+  "SOX 404 evidence trail automated; monthly sampling in audit pack.": "أثر أدلة SOX 404 مؤتمت؛ أخذ عيّنات شهري في حزمة التدقيق.",
+  "Guardrail 91%; evidence complete through Optimization.": "الحاجز 91%؛ الأدلة مكتملة حتى مرحلة التحسين.",
+  "All treatments complete; controls monitored, drift low.": "جميع المعالجات مكتملة؛ الضوابط مُراقَبة، والانحراف منخفض.",
+  "Qualified with conditions: $2.4M value dependent on adoption.": "مؤهّل بشروط: قيمة 2.4 مليون دولار تعتمد على التبنّي.",
+  "Employment-related AI - EU AI Act Annex III high-risk classification.": "ذكاء اصطناعي متعلّق بالتوظيف - تصنيف عالي الخطورة وفق الملحق الثالث لقانون الذكاء الاصطناعي الأوروبي.",
+  "2 High risks: profiling and bias in matching. Residual 9-12/25.": "خطران عاليان: التنميط والتحيّز في المطابقة. المتبقّي 9-12/25.",
+  "Internal deployment; access limited to People analytics group.": "نشر داخلي؛ الوصول مقصور على مجموعة تحليلات الموارد البشرية.",
+  "DPIA overdue - required before any rollout beyond assessment.": "تقييم الأثر متأخر - مطلوب قبل أي طرح يتجاوز التقييم.",
+  "Annex III conformity path undecided; fairness workbook incomplete.": "مسار مطابقة الملحق الثالث غير محسوم؛ مصنّف الإنصاف غير مكتمل.",
+  "Guardrail 67%; fairness assessment blocks the Governance gate.": "الحاجز 67%؛ تقييم الإنصاف يحجب بوابة الحوكمة.",
+  "Treatment plan drafted; starts once fairness workbook lands.": "خطة المعالجة مُصاغة؛ تبدأ فور وصول مصنّف الإنصاف.",
+  // ── initiative cascade blockers (acInitiatives.blockedBy) ──
+  "CISO prompt-injection evidence due": "أدلة حقن المطالبات من CISO مستحقة",
+  "Human oversight design record awaiting approval": "سجل تصميم الإشراف البشري بانتظار الاعتماد",
+  "Fairness assessment workbook incomplete": "مصنّف تقييم الإنصاف غير مكتمل",
+  // ── risk titles (riskRegister.title) ──
+  "Prompt injection": "حقن المطالبات",
+  "Data leakage via prompts": "تسريب البيانات عبر المطالبات",
+  "Bias and fairness - differential response quality": "التحيّز والإنصاف - جودة استجابة تفاضلية",
+  "Adverse decision harm": "ضرر القرار السلبي",
+  "Explainability gap": "فجوة القابلية للتفسير",
+  "Incorrect journal suggestion": "اقتراح قيد محاسبي خاطئ",
+  "Segregation of duties": "الفصل بين المهام",
+  "Employee profiling": "تنميط الموظفين",
+  "Bias in opportunity matching": "التحيّز في مطابقة الفرص",
+  "Unmasked PII in training data": "بيانات شخصية غير مُخفاة في بيانات التدريب",
+  "Confident incorrect summaries": "ملخّصات خاطئة بثقة",
+  "Unsafe maintenance prediction": "تنبؤ صيانة غير آمن",
+  // ── risk categories (riskRegister.category) ──
+  "Model Security": "أمن النموذج",
+  "Data Privacy": "خصوصية البيانات",
+  "Bias & Fairness": "التحيّز والإنصاف",
+  "Consumer Harm": "ضرر المستهلك",
+  "Transparency": "الشفافية",
+  "Financial Accuracy": "الدقة المالية",
+  "Process Control": "ضبط العملية",
+  "Hallucination": "الهلوسة",
+  "Safety": "السلامة",
+  "Operational": "تشغيلي",
+  // ── business units (riskRegister.unit) ──
+  "Customer Operations": "عمليات العملاء",
+  "Retail Banking": "الخدمات المصرفية للأفراد",
+  "Finance": "المالية",
+  "People": "الموارد البشرية",
+  "Security": "الأمن",
+  "Operations": "العمليات",
+  // ── risk descriptions (riskRegister.desc) ──
+  "Adversarial prompts could override system instructions and exfiltrate data or trigger unapproved actions in the copilot.": "قد تتجاوز المطالبات العدائية تعليمات النظام وتسرّب البيانات أو تُطلق إجراءات غير معتمدة في المساعد.",
+  "Agents may paste customer PII into prompts; unmasked data could reach an external model provider.": "قد يلصق الوكلاء بيانات العملاء الشخصية في المطالبات؛ وقد تصل البيانات غير المُخفاة إلى مزوّد نموذج خارجي.",
+  "Bias testing found disproportionate response quality for non-native English speakers. Art.9 risk management must document this.": "وجد اختبار التحيّز جودة استجابة غير متكافئة لغير الناطقين بالإنجليزية كلغة أم. يجب أن توثّق إدارة مخاطر المادة 9 هذا.",
+  "An incorrect automated credit decision has direct legal effect on a customer. Human oversight design is still awaiting approval.": "لقرار ائتماني آلي خاطئ أثر قانوني مباشر على العميل. لا يزال تصميم الإشراف البشري بانتظار الاعتماد.",
+  "Decision logic is opaque to affected individuals; Art.22 requires a meaningful explanation for automated decisions with legal effect.": "منطق القرار غير شفّاف للأفراد المتأثّرين؛ تتطلّب المادة 22 تفسيراً ذا معنى للقرارات الآلية ذات الأثر القانوني.",
+  "A wrong automated journal entry could misstate financials; all suggestions post through controller review.": "قد يؤدّي قيد محاسبي آلي خاطئ إلى تحريف البيانات المالية؛ تُرحَّل جميع الاقتراحات عبر مراجعة المراقب المالي.",
+  "The automation must never both propose and approve an entry; role separation is enforced at the workflow layer.": "يجب ألّا تقترح الأتمتة قيداً وتعتمده معاً أبداً؛ فصل الأدوار مُنفَّذ في طبقة سير العمل.",
+  "Skill recommendations could constitute employee profiling; a DPIA is required before any rollout beyond assessment.": "قد تشكّل توصيات المهارات تنميطاً للموظفين؛ يلزم تقييم أثر قبل أي طرح يتجاوز التقييم.",
+  "Employment-related AI is High-Risk under EU AI Act Annex III; the fairness assessment workbook is incomplete and blocks the phase gate.": "الذكاء الاصطناعي المتعلّق بالتوظيف عالي الخطورة وفق الملحق الثالث لقانون الذكاء الاصطناعي الأوروبي؛ ومصنّف تقييم الإنصاف غير مكتمل ويحجب بوابة المرحلة.",
+  "The fraud model's training dataset contains unmasked PII; provenance and bias documentation are incomplete.": "تحتوي مجموعة بيانات تدريب نموذج الاحتيال على بيانات شخصية غير مُخفاة؛ وتوثيق المصدر والتحيّز غير مكتمل.",
+  "Summaries can be confidently wrong; decisions made on fabricated content in legal or financial contexts are the exposure.": "قد تكون الملخّصات خاطئة بثقة؛ والتعرّض هو القرارات المبنية على محتوى مُلفَّق في السياقات القانونية أو المالية.",
+  "An incorrect prediction could contribute to equipment failure and physical harm; potential High-Risk classification.": "قد يسهم تنبؤ خاطئ في تعطّل المعدّات وضرر مادي؛ تصنيف محتمل عالي الخطورة.",
+  // ── treatment actions (riskRegister.treatment.action) ──
+  "Gateway prompt-shield detectors, output filtering and red-team evidence pack before pilot exit. CISO evidence due.": "كواشف درع المطالبات في البوابة، وتصفية المخرجات، وحزمة أدلة الفريق الأحمر قبل الخروج من التجربة. أدلة CISO مستحقة.",
+  "Gateway masking for PII and card patterns; retention limited to 30 days; DLP audit weekly.": "إخفاء البيانات الشخصية وأنماط البطاقات في البوابة؛ الاحتفاظ محدود بـ 30 يوماً؛ تدقيق منع تسريب البيانات أسبوعياً.",
+  "Continuous bias monitoring with automated alerts; retrain on balanced dataset; fairness guardrails pre-go-live.": "مراقبة تحيّز مستمرة مع تنبيهات آلية؛ إعادة تدريب على مجموعة بيانات متوازنة؛ حواجز إنصاف قبل الإطلاق.",
+  "HITL review for all adverse decisions; oversight design record to be approved; quarterly outcome audit.": "مراجعة الإنسان في الحلقة لكل القرارات السلبية؛ اعتماد سجل تصميم الإشراف؛ تدقيق نتائج ربع سنوي.",
+  "SHAP explainability layer; automated Art.22 decision explanations; legal disclosure template; model card update.": "طبقة قابلية تفسير SHAP؛ تفسيرات آلية لقرارات المادة 22؛ قالب إفصاح قانوني؛ تحديث بطاقة النموذج.",
+  "Controller review gate on every suggested entry; monthly accuracy sampling into the SOX audit trail.": "بوابة مراجعة المراقب المالي على كل قيد مقترح؛ أخذ عيّنات دقّة شهري في أثر تدقيق SOX.",
+  "Workflow-enforced role separation; quarterly access review evidence into the audit pack.": "فصل أدوار مُنفَّذ بسير العمل؛ أدلة مراجعة وصول ربع سنوية في حزمة التدقيق.",
+  "Complete DPIA; purpose limitation in the data contract; works-council briefing before pilot.": "إكمال تقييم الأثر؛ تحديد الغرض في عقد البيانات؛ إحاطة مجلس العمل قبل التجربة.",
+  "Complete the fairness assessment workbook; bias testing across protected attributes; conformity path decision.": "إكمال مصنّف تقييم الإنصاف؛ اختبار التحيّز عبر السمات المحمية؛ قرار مسار المطابقة.",
+  "Differential-privacy anonymisation of the training set; performance re-validation; C.7.2 documentation update.": "إخفاء هوية مجموعة التدريب بالخصوصية التفاضلية؛ إعادة التحقق من الأداء؛ تحديث توثيق C.7.2.",
+  "Mandatory human review in legal/financial contexts; confidence score displayed; hallucination rate tracked.": "مراجعة بشرية إلزامية في السياقات القانونية/المالية؛ عرض درجة الثقة؛ تتبّع معدّل الهلوسة.",
+  "Hard safety threshold override; fail-safe mode for critical equipment; C.8.5 kill-switch deployment.": "تجاوز عتبة سلامة صارم؛ وضع الأمان عند الفشل للمعدّات الحرجة؛ نشر مفتاح الإيقاف C.8.5.",
+  // ── AI recommendations (riskRegister.aiRecommendation) ──
+  "Hold pilot-exit approval until the red-team evidence lands; detector block-rate is trending down 12% week over week.": "علّق اعتماد الخروج من التجربة حتى وصول أدلة الفريق الأحمر؛ معدّل حجب الكواشف يتراجع 12% أسبوعياً.",
+  "Masking now intercepts 100% of card patterns in the log sample - keep weekly DLP audit until two clean cycles.": "يعترض الإخفاء الآن 100% من أنماط البطاقات في عيّنة السجل - أبقِ تدقيق منع تسريب البيانات أسبوعياً حتى دورتين نظيفتين.",
+  "Bias alert rate is above threshold - recommend blocking Scale until two consecutive weeks under 2.5 alerts/1k.": "معدّل تنبيهات التحيّز فوق العتبة - يُوصى بحجب التوسّع حتى أسبوعين متتاليين دون 2.5 تنبيه/ألف.",
+  "This is the initiative's approval blocker - expedite the human-oversight design record; every week of delay defers $138k of expected value.": "هذا هو حاجز اعتماد المبادرة - عجّل بسجل تصميم الإشراف البشري؛ كل أسبوع تأخير يؤجّل 138 ألف دولار من القيمة المتوقّعة.",
+  "Pair the SHAP rollout with the oversight record (RSK-004) - both feed the same Art.14 approval gate.": "اقرِن طرح SHAP بسجل الإشراف (RSK-004) - كلاهما يغذّي بوابة اعتماد المادة 14 نفسها.",
+  "Controls are effective and drift is low - no action needed; keep monthly sampling as scale evidence.": "الضوابط فعّالة والانحراف منخفض - لا يلزم إجراء؛ أبقِ أخذ العيّنات الشهري كدليل توسّع.",
+  "Include the Q2 access review in the scale decision pack - it is the last SoD evidence item.": "أدرِج مراجعة وصول الربع الثاني في حزمة قرار التوسّع - إنها آخر بند دليل لفصل المهام.",
+  "Sequence the DPIA before the fairness workbook completes so both gate artifacts land in the same phase review.": "رتّب تقييم الأثر قبل اكتمال مصنّف الإنصاف كي تصل مخرجات البوابة كلاهما في مراجعة المرحلة نفسها.",
+  "This blocker holds the initiative in Assessment - the workbook is 60% complete; two analyst-weeks close it.": "يُبقي هذا الحاجز المبادرة في مرحلة التقييم - المصنّف مكتمل 60%؛ أسبوعا محلّل يُغلقانه.",
+  "Onboard this model into AI Central as a governed initiative - it currently runs outside the lifecycle.": "أدرِج هذا النموذج في مركز الذكاء الاصطناعي كمبادرة مُحوكَمة - فهو يعمل حالياً خارج دورة الحياة.",
+  "Accepted with controls - revisit if the hallucination KRI worsens for two consecutive months.": "مقبول مع الضوابط - أعِد النظر إذا ساء مؤشّر مخاطر الهلوسة لشهرين متتاليين.",
+  "Classify under Annex III now - if High-Risk, the kill-switch becomes a mandatory control, not an enhancement.": "صنّف وفق الملحق الثالث الآن - إذا كان عالي الخطورة، يصبح مفتاح الإيقاف ضابطاً إلزامياً وليس تحسيناً.",
+  // ── key risk indicators (kriRegister) ──
+  "Guardrail violation rate": "معدّل انتهاك الحواجز",
+  "HITL override rate": "معدّل تجاوز الإنسان في الحلقة",
+  "Model drift index": "مؤشّر انحراف النموذج",
+  "Bias alert rate": "معدّل تنبيهات التحيّز",
+  "Evidence coverage": "تغطية الأدلة",
+  "Incident response MTTR": "متوسط زمن الاستجابة للحوادث",
+  "% of calls": "% من الاستدعاءات",
+  "% of decisions": "% من القرارات",
+  "per 1k responses": "لكل ألف استجابة",
+  "% of controls": "% من الضوابط",
+  "hours": "ساعات",
+  "improving": "يتحسّن",
+  "worsening": "يسوء",
+  "stable": "مستقر",
+  // ── related security events (SECURITY_EVENTS.title / severity) ──
+  "Prompt-injection attempt blocked at gateway": "محاولة حقن مطالبات محجوبة عند البوابة",
+  "Model drift → integrity risk on fraud signals": "انحراف النموذج ← خطر سلامة على إشارات الاحتيال",
+  "Unauthenticated inference endpoint on staging model": "نقطة نهاية استدلال غير موثّقة على نموذج تجريبي",
+  "Verbose error messages leak schema hints": "رسائل خطأ مطوَّلة تسرّب تلميحات المخطّط",
+  "P1 · Critical": "P1 · حرج",
+  "P2 · High": "P2 · عالٍ",
+});
 
 /* Each CXO owns a slice of the register — the Risk Center opens scoped to
    the risks that executive is accountable for, with a toggle to see all. */
@@ -16,6 +257,7 @@ const RISK_OWNER_OF = { ceo:"CEO", ciso:"CISO", cdpo:"CDPO", caio:"CAIO", cro:"C
 const evColor = c => c==="crit"?"#B42318":c==="warn"?"#C99A2E":c==="info"?"#0B4EA2":"#6B7280";
 
 export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const [selId,setSelId]=useState(fixed||acInitiatives[0].id);
   const ini=acInitiatives.find(i=>i.id===selId)||acInitiatives[0];
   const outcomes=acAssessments[selId]||[];
@@ -27,9 +269,9 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
   };
   return <div>
     {!fixed&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>Initiative</span>
+      <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>{T_("Initiative")}</span>
       {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={{background:selId===i.id?AI_GOLD+"20":T.s2,border:`1px solid ${selId===i.id?AI_GOLD+"55":T.border}`,color:selId===i.id?AI_GOLD:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{i.name}</button>)}
-      <span style={{marginLeft:"auto",fontSize:9,color:T.ink4,fontFamily:F.m}}>VerisZone proprietary governance engines · run automatically per initiative</span>
+      <span style={{marginLeft:"auto",fontSize:9,color:T.ink4,fontFamily:F.m}}>{T_("VerisZone proprietary governance engines · run automatically per initiative")}</span>
     </Card>}
     <div style={{display:"grid",gap:8}}>
       {AI_GOV_ENGINES.map((e,idx)=>{
@@ -45,19 +287,19 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
                 <div style={{fontSize:16,fontWeight:900,fontFamily:F.m,color:scoreCol,marginTop:3}}>{o.score}</div>
               </div>
               <div>
-                <div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{e.name}</div>
-                <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:2}}>{e.question}</div>
-                <div style={{marginTop:5,display:"flex",gap:6,alignItems:"center"}}><STag s={o.status}/><span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>Owner: {e.owner}</span></div>
+                <div style={{fontSize:11.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(e.name)}</div>
+                <div style={{fontSize:9,color:T.ink4,fontFamily:F.b,marginTop:2}}>{T_(e.question)}</div>
+                <div style={{marginTop:5,display:"flex",gap:6,alignItems:"center"}}><STag s={o.status}/><span style={{fontSize:8.5,color:T.ink4,fontFamily:F.m}}>{ar?"المالك: ":"Owner: "}{e.owner}</span></div>
               </div>
-              <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>{o.outcome}</div>
-              <button onClick={()=>drillTo(o.drill)} title={o.drill.hint} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 11px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{o.drill.hint} →</button>
+              <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.6}}>{T_(o.outcome)}</div>
+              <button onClick={()=>drillTo(o.drill)} title={T_(o.drill.hint)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:7,padding:"7px 11px",color:T.ink2,fontSize:9.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>{T_(o.drill.hint)} {ar?"←":"→"}</button>
             </div>
           </Card>
           {idx<AI_GOV_ENGINES.length-1&&<div style={{textAlign:"center",fontSize:11,color:T.ink4,lineHeight:1,padding:"2px 0"}}>↓</div>}
         </div>;
       })}
     </div>
-    {ini.blockedBy&&<div style={{marginTop:10,background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>Cascade blocker:</strong> {ini.blockedBy}</div>}
+    {ini.blockedBy&&<div style={{marginTop:10,background:T.redL,border:`1px solid ${T.red}40`,borderRadius:9,padding:"10px 13px",fontSize:11,color:T.ink2,fontFamily:F.b}}><strong style={{color:T.red}}>{ar?"عائق التتابع:":"Cascade blocker:"}</strong> {T_(ini.blockedBy)}</div>}
   </div>;
 }
 
@@ -66,6 +308,7 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
    and reports render filtered views of this register. Every risk drills
    back to its initiative, executive, controls, frameworks and treatment. */
 export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   const R=ROLES[role]||ROLES.caio;
   const RC_LEGACY={riskcenter:"register",aira:"register",airt:"treatments",aia:"assessments",aiia:"assessments"};
   const [rcTab,setRcTab]=useState(RC_LEGACY[tab]||"register");
@@ -87,7 +330,7 @@ export function PageRiskCenter({role,tab,setTab,setAiCentralView,showToast}){
   const scopedRisks=ALL_RISKS.filter(r=>!mineOnly||!myOwner||r.execOwner===myOwner);
   const setRK=k=>v=>setRdraft(d=>({...d,[k]:v}));
   const createRisk=()=>{
-    if(!rdraft.title.trim()){showToast&&showToast("A risk title is required","error");return;}
+    if(!rdraft.title.trim()){showToast&&showToast(T_("A risk title is required"),"error");return;}
     const n=extra.length+riskRegister.length+1;
     const L=Number(rdraft.likelihood),I=Number(rdraft.impact);
     const rec={id:`RSK-X${String(n).padStart(2,"0")}`,title:rdraft.title.trim(),system:rdraft.title.trim(),category:rdraft.category||"Operational",
