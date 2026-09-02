@@ -10,6 +10,7 @@ import { breakerSessions, breakerStats, BREAKER_STATES, SIGNALS, stateMeta } fro
 import { PAAS_ENDPOINT, PAAS_CLIENTS, PAAS_KEYS, PAAS_SAMPLES, PAAS_DECISION_META, paasStats } from "@/lib/policy-service";
 import { PLANES, estateRows, coverageStats, COVERAGE_CHANNELS } from "@/lib/enforcement-coverage";
 import { GUARDRAIL_LAYERS, GUARDRAIL_STATUS, layerStats, guardrailStats } from "@/lib/guardrail-coverage";
+import { MEMORY_RETENTION, MEMORY_DECISION_META, seededMemoryLedger, memoryStats } from "@/lib/memory";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -760,6 +761,58 @@ export function CircuitBreaker({ showToast }) {
       {advisor(ar ? <>تُظهِر الجلسة <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> الآلية: {rows.find(r => r.state === "halt") ? "بلغت درجة وكيل إشارة الاحتيال " + rows.find(r => r.state === "halt")?.score + " (حقن + خروج + قفزة حسّاسة)، فأوقف القاطع الجلسة وألغى كل رمز" : "تجاوزت الدرجة العتبة فسُحِبت القدرة"} — قبل أن تبلغ بوابة بشرية، ثم كتب التعثّر في سلسلة المادة 12 مع المالك المُساءَل. البوابة الثابتة لكل أداة لا تستطيع هذا؛ فهي لا تعمل إلا عند الأداة التي كان مسموحاً للوكيل استدعاؤها أصلاً. أُلغِي {s.tokensRevoked} رمزاً داخل عمر {s.ttlSeconds} ثانية عبر {s.acted} جلسة متعثّرة.</> : <>Session <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> shows the mechanism: the {rows.find(r => r.state === "halt") ? "Fraud Signal Agent's score hit " + rows.find(r => r.state === "halt")?.score + " (injection + egress + sensitive spike), so the breaker halted the session and revoked every token" : "score crossed the threshold and capability was pulled"} — before it reached a human gate, then wrote the trip to the Art.12 chain with the accountable owner. A fixed per-tool gate can't do this; it only fires at the tool the agent was already allowed to call. {s.tokensRevoked} tokens were revoked inside the {s.ttlSeconds}s TTL across {s.acted} tripped session{s.acted === 1 ? "" : "s"}.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Circuit-breaker trips exported — reconciled to the Article 12 evidence chain")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export breaker trips</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Memory Guardrails ────────────────────────────────────────────────────
+   The governed agent-memory store. Every write runs the DLP classifier:
+   Restricted content is refused, PII is masked, and the item is stamped with a
+   class-based retention window and expiry. Recall is partitioned by
+   tenant + agent + session and re-checks class at read time. Wired live into
+   the gateway pipeline. */
+export function MemoryGuardrails({ showToast }) {
+  const T_ = useT();
+  const rows = seededMemoryLedger();
+  const s = memoryStats(rows);
+  const memDec = d => { const m = MEMORY_DECISION_META[d] || { label: d, tone: "ink3" }; return <Pill c={tok(m.tone)}>{m.label}</Pill>; };
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Memory Guardrails" sub="Static gates say what an agent may do; memory guardrails say what it may remember and recall. Every write runs the same DLP rulebook as the gateway — Restricted content (secrets / PCI / PHI) is refused outright, PII is masked before storage — and each item is stamped with a class-based retention window. Recall is partitioned by tenant + agent + session and re-checks data class at read time, so a long-running agent never accumulates a private, ungoverned copy of sensitive data. Enforced live in the gateway pipeline." />
+    <div style={kpiGrid}>
+      <Kpi l="Session partitions" v={String(s.partitions)} c={AI_GOLD} sub="tenant · agent · session" />
+      <Kpi l="Stored" v={String(s.stored)} c={T.green} sub={`${s.masked} masked at write`} />
+      <Kpi l="Refused" v={String(s.refused)} c={T.red} sub="Restricted — never persisted" />
+      <Kpi l="Recall crossing" v="0" c={T.green} sub="partitions are sealed" />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Retention policy · more sensitive → shorter life</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>How long a memory of each class may persist</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+        {Object.entries(MEMORY_RETENTION).map(([cls, r]) => { const gap = r.seconds <= 0; const c = gap ? T.red : cls === "Confidential" ? T.amber : T.green; return <div key={cls} style={{ padding: "12px 13px", borderRadius: 10, background: c + "0e", border: `1px solid ${c}33` }}>
+          <div style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.b, marginBottom: 4 }}>{T_(cls)}</div>
+          <div style={{ fontSize: 11, color: c, fontFamily: F.m, fontWeight: 800 }}>{gap ? T_("Refused at write") : r.label}</div>
+        </div>; })}
+      </div>
+    </Card>
+
+    <Card style={cardPad}>
+      <Eyebrow>Governed writes · the DLP decision on every memory</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What was remembered, and what was refused</H3>
+      <Table head={["Session", "Kind", "Content (as stored)", "Class", "Retention", "Decision"]}>
+        {rows.map((r, i) => <tr key={i}>
+          <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{r.session}<div style={{ fontSize: 9, color: T.ink4 }}>{r.agent}</div></Td>
+          <Td style={{ color: T.ink3 }}>{r.kind}</Td>
+          <Td style={{ color: r.written ? T.ink : T.ink4, maxWidth: 320 }}>{r.written ? r.text : <span style={{ fontStyle: "italic" }}>{r.reason}</span>}</Td>
+          <Td><Pill c={r.class === "Restricted" ? T.red : r.class === "Confidential" ? T.amber : T.green}>{r.class}</Pill></Td>
+          <Td style={{ fontFamily: F.m, color: r.written ? T.ink2 : T.ink4 }}>{r.written ? r.retention : "—"}</Td>
+          <Td>{memDec(r.decision)}</Td>
+        </tr>)}
+      </Table>
+      {advisor(<>The Doc agent tried to remember an <b style={{ color: T.ink }}>API key</b> and the CRC agent a <b style={{ color: T.ink }}>card number</b> — both classified Restricted and <b style={{ color: T.ink }}>refused at write</b>, so no ungoverned copy exists to leak later. The customer email was <b style={{ color: T.ink }}>masked</b> before storage. {s.refused} of {s.total} writes were refused; every stored item carries an expiry and lives only inside its tenant/agent/session partition.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Memory-guardrail decisions exported — " + s.stored + " stored, " + s.refused + " refused")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export memory decisions</button>
       </div>
     </Card>
   </div>;

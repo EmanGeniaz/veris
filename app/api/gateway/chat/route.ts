@@ -12,6 +12,7 @@ import { issueToken } from "@/lib/enforce";
 import { egressDecision } from "@/lib/egress";
 import { requiresApproval } from "@/lib/hitl";
 import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
+import { rememberLive, recallLive } from "@/lib/memory";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -41,9 +42,12 @@ export async function POST(req: NextRequest) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ enabled: false });
   try {
-    const { prompt, tenant, agent, tool, mcpServer, dest, value } = await req.json();
+    const { prompt, tenant, agent, tool, mcpServer, dest, value, session } = await req.json();
     const text = String(prompt || "").slice(0, 8000);
     const model = process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5";
+    /* Memory-guardrail scope — a memory is partitioned by tenant + agent +
+       session so recall can never cross a boundary. */
+    const memScope = { tenant: String(tenant || "demo"), agent: String(agent || "anon"), session: String(session || `${tenant || "demo"}:${agent || "anon"}`) };
     /* Veris Enforce — the enforcement plane, at call time. If this request is an
        agent invoking a tool, the decision runs deterministically here (identity,
        capability, provenance — never text classification) before anything else,
@@ -106,7 +110,11 @@ export async function POST(req: NextRequest) {
     /* Retrieve from the tenant's ingested documents (RAG) and merge with the
        structured enterprise context. */
     const passages = await retrieve(String(tenant || "demo"), guard.masked, 4);
-    const ctx = [...internalContext(guard.masked), ...passages.map(p => `Document "${p.title}": ${p.snippet}`)];
+    /* Memory recall — governed: only this tenant/agent/session's own,
+       unexpired memories, already class-filtered and PII-masked at write. */
+    let memCtx: string[] = [];
+    try { memCtx = recallLive(memScope).map((m: { class: string; masked: boolean; text: string }) => `Prior memory (${m.class}${m.masked ? ", masked" : ""}): ${m.text}`); } catch { /* memory is best-effort — never breaks the response */ }
+    const ctx = [...internalContext(guard.masked), ...memCtx, ...passages.map(p => `Document "${p.title}": ${p.snippet}`)];
     const system = "You are Veris Intelligence, the enterprise AI advisor inside VerisZone. Be concise and executive-grade. " +
       // Scope guard: Veris Intelligence is a governance advisor, not a general chatbot. Off-domain
       // questions (weather, current events, trivia, general coding) must be declined and redirected —
@@ -136,9 +144,15 @@ export async function POST(req: NextRequest) {
     const tokensIn = estimateTokens(guard.masked), tokensOut = estimateTokens(answer);
     const cost = costOf(tokensIn + tokensOut, providerId);
     await logInference(tenant, { model, agent, tool, decision: guard.didMask ? "mask" : "allow", dataClass: classification.dataClass, tokens: tokensIn + tokensOut });
+    /* Memory write — governed: the DLP classifier decides allow / mask / refuse,
+       Restricted content is never persisted, retention/expiry are stamped by
+       class. Best-effort so it never breaks the response. */
+    let mem: { decision: string; written: boolean } | null = null;
+    try { const mw = rememberLive({ ...memScope, kind: "turn", text: guard.masked }); mem = { decision: mw.decision, written: mw.written }; } catch { /* best-effort */ }
     return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask,
       classification, capabilityToken, responseValidation: { ok: rv.ok, findings: rv.findings },
       cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
+      memory: { recalled: memCtx.length, write: mem },
       source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
     return NextResponse.json({ enabled: false });
