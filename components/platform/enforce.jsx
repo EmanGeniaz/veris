@@ -9,6 +9,7 @@ import { HITL_GATES, hitlStats } from "@/lib/hitl";
 import { breakerSessions, breakerStats, BREAKER_STATES, SIGNALS, stateMeta } from "@/lib/circuit-breaker";
 import { PAAS_ENDPOINT, PAAS_CLIENTS, PAAS_KEYS, PAAS_SAMPLES, PAAS_DECISION_META, paasStats } from "@/lib/policy-service";
 import { PLANES, estateRows, coverageStats, COVERAGE_CHANNELS } from "@/lib/enforcement-coverage";
+import { GUARDRAIL_LAYERS, GUARDRAIL_STATUS, layerStats, guardrailStats } from "@/lib/guardrail-coverage";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -759,6 +760,94 @@ export function CircuitBreaker({ showToast }) {
       {advisor(ar ? <>تُظهِر الجلسة <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> الآلية: {rows.find(r => r.state === "halt") ? "بلغت درجة وكيل إشارة الاحتيال " + rows.find(r => r.state === "halt")?.score + " (حقن + خروج + قفزة حسّاسة)، فأوقف القاطع الجلسة وألغى كل رمز" : "تجاوزت الدرجة العتبة فسُحِبت القدرة"} — قبل أن تبلغ بوابة بشرية، ثم كتب التعثّر في سلسلة المادة 12 مع المالك المُساءَل. البوابة الثابتة لكل أداة لا تستطيع هذا؛ فهي لا تعمل إلا عند الأداة التي كان مسموحاً للوكيل استدعاؤها أصلاً. أُلغِي {s.tokensRevoked} رمزاً داخل عمر {s.ttlSeconds} ثانية عبر {s.acted} جلسة متعثّرة.</> : <>Session <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> shows the mechanism: the {rows.find(r => r.state === "halt") ? "Fraud Signal Agent's score hit " + rows.find(r => r.state === "halt")?.score + " (injection + egress + sensitive spike), so the breaker halted the session and revoked every token" : "score crossed the threshold and capability was pulled"} — before it reached a human gate, then wrote the trip to the Art.12 chain with the accountable owner. A fixed per-tool gate can't do this; it only fires at the tool the agent was already allowed to call. {s.tokensRevoked} tokens were revoked inside the {s.ttlSeconds}s TTL across {s.acted} tripped session{s.acted === 1 ? "" : "s"}.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Circuit-breaker trips exported — reconciled to the Article 12 evidence chain")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export breaker trips</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Guardrail Coverage ───────────────────────────────────────────────────
+   The 7 guardrail layers every agentic AI stack needs, scored honestly against
+   what VerisZone actually enforces in code. Enforced / Partial / Gap per
+   sub-control, each mapped to a real engine. Deliberately not a green wall —
+   the point is that the product tells the truth about its own guardrails. */
+export function GuardrailCoverage({ showToast }) {
+  const T_ = useT();
+  const s = guardrailStats();
+  const [openId, setOpenId] = useState(GUARDRAIL_LAYERS[0].id);
+  const StatusChip = ({ status }) => {
+    const m = GUARDRAIL_STATUS[status]; const c = tok(m.tone);
+    return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 9.5, fontWeight: 800, fontFamily: F.m, color: c, background: c + "18", border: `1px solid ${c}40`, whiteSpace: "nowrap" }}>
+      <span aria-hidden="true">{m.glyph}</span>{T_(m.label)}
+    </span>;
+  };
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Guardrail Coverage" sub="The seven guardrail layers every agentic AI stack needs — Input, Prompt, Retrieval, Memory, Runtime, Tool and Output — scored honestly against what VerisZone enforces in code. Every control is Enforced, Partial or a Gap, mapped to the real engine behind it. This is the product telling the truth about its own guardrails, not a datasheet: some engines are strong, some run on seeded signals, and some layers are genuinely not built yet." />
+
+    <div style={kpiGrid}>
+      <Kpi l="Overall coverage" v={s.coverage + "%"} c={s.coverage >= 60 ? AI_GOLD : T.amber} sub={`weighted across ${s.controls} controls`} />
+      <Kpi l="Enforced" v={String(s.have)} c={T.green} sub="real runtime enforcement" />
+      <Kpi l="Partial" v={String(s.partial)} c={T.amber} sub="in part, or seeded signals" />
+      <Kpi l="Gaps" v={String(s.gap)} c={T.red} sub="not built as running code" />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {Object.values(GUARDRAIL_STATUS).map(m => { const c = tok(m.tone); return <span key={m.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontFamily: F.b, color: T.ink2 }}>
+            <span style={{ color: c, fontWeight: 900 }}>{m.glyph}</span><b style={{ color: T.ink }}>{T_(m.label)}</b>
+            <span style={{ color: T.ink4 }}>{m.id === "have" ? "· named engine, runs per request" : m.id === "partial" ? "· partial, or real engine on seeded signals" : "· label / roadmap only"}</span>
+          </span>; })}
+        </div>
+      </div>
+      <div style={{ marginTop: 12, padding: "10px 13px", borderRadius: 10, background: T.green + "0d", border: `1px solid ${T.green}2e`, fontSize: 11.5, color: T.ink2, fontFamily: F.b, lineHeight: 1.6 }}>
+        <b style={{ color: T.ink }}>Strongest · {T_(s.strongest.name)}</b> ({s.strongest.coverage}%) — the enforcement plane is real: deny-by-default capability tokens, transaction gates and the hash-chained ledger. <b style={{ color: T.ink }}>Weakest · {T_(s.weakest.name)}</b> ({s.weakest.coverage}%) — there is no governed agent-memory store yet, so most of that layer is a genuine gap.
+      </div>
+    </Card>
+
+    <div style={{ display: "grid", gap: 12 }}>
+      {GUARDRAIL_LAYERS.map(layer => {
+        const ls = layerStats(layer); const c = tok(ls.tone); const open = openId === layer.id;
+        return <Card key={layer.id} style={{ padding: 0, overflow: "hidden" }}>
+          <button onClick={() => setOpenId(open ? null : layer.id)} style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "14px 16px", display: "flex", gap: 14, alignItems: "center" }}>
+            <span style={{ fontSize: 22, fontWeight: 900, fontFamily: F.m, color: AI_GOLD + "88", minWidth: 34 }}>{layer.n}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", gap: 9, alignItems: "baseline", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 15, fontWeight: 900, color: T.ink, fontFamily: F.h }}>{T_(layer.name)}</span>
+                <span style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, fontStyle: "italic" }}>{T_(layer.tag)}</span>
+              </div>
+              <div style={{ fontSize: 9.5, color: T.ink4, fontFamily: F.m, marginTop: 3 }}>{layer.engine}</div>
+            </div>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              {layer.controls.map((ct, i) => <span key={i} title={T_(GUARDRAIL_STATUS[ct.status].label)} style={{ width: 9, height: 9, borderRadius: 2, background: tok(GUARDRAIL_STATUS[ct.status].tone) }} />)}
+            </div>
+            <div style={{ textAlign: "right", minWidth: 62 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, fontFamily: F.m, color: c }}>{ls.coverage}%</div>
+              <div style={{ fontSize: 8.5, color: T.ink4, fontFamily: F.m }}>{ls.have}·{ls.partial}·{ls.gap}</div>
+            </div>
+            <span style={{ fontSize: 12, color: T.ink4, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▸</span>
+          </button>
+          {open && <div style={{ padding: "0 16px 14px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 8 }}>
+            {layer.controls.map((ct, i) => <div key={i} style={{ background: T.s2, border: `1px solid ${T.border}`, borderRadius: 9, padding: "10px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 5 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: T.ink, fontFamily: F.b }}>{T_(ct.name)}</span>
+                <StatusChip status={ct.status} />
+              </div>
+              <p style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55, margin: 0 }}>{T_(ct.note)}</p>
+            </div>)}
+          </div>}
+        </Card>;
+      })}
+    </div>
+
+    <Card style={{ ...cardPad, marginTop: 14 }}>
+      <Eyebrow>The honest caveat</Eyebrow>
+      <H3 style={{ marginBottom: 8 }}>What is real vs. what is seeded</H3>
+      <p style={{ fontSize: 11.5, color: T.ink2, fontFamily: F.b, lineHeight: 1.65, margin: 0 }}>
+        Every "Enforced" control above is backed by a real, deterministic engine that runs on each gateway request — the injection / PII detectors, the deny-by-default capability check, the egress allow-list, the HITL thresholds, the output validator. Several runtime signals (the circuit-breaker's per-session risk, the tool-call ledger window, the egress event log) run on <b style={{ color: T.ink }}>seeded demo data</b>: the logic is real and deterministic, but it is not yet wired to live per-request telemetry. The Gaps are exactly that — not yet built.
+      </p>
+      {advisor(<>The clear build order to raise coverage: a governed agent-memory store (closes the weakest layer), a real per-caller rate limiter, retrieval trust / freshness scoring, and an output toxicity + hallucination verifier. Each is a self-contained addition to the gateway pipeline — none requires re-architecting the enforcement plane.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Guardrail coverage exported — 7 layers, " + s.controls + " controls, " + s.coverage + "% weighted")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export guardrail coverage</button>
       </div>
     </Card>
   </div>;
