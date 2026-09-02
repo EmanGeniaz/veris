@@ -7,6 +7,7 @@
    All retrieval/scoring runs here — nothing lives in the frontend. */
 
 import { db, dbConfigured } from "./db";
+import { guardPassages } from "@/lib/retrieval-guard";
 
 type Doc = { id: string; tenant: string; title: string; source: string; content: string; createdAt: number };
 
@@ -60,18 +61,23 @@ export async function listDocs(tenant: string) {
 /* Retrieve the top-k passages most relevant to a query, each with the
    document it came from so the answer can cite it. Keyword/overlap scoring
    — runs fully in-tenant, no external embedding calls. */
-export async function retrieve(tenant: string, query: string, k = 4) {
+export type RetrievedPassage = { docId: string; title: string; source: string; snippet: string; score: number; createdAt?: number; trust?: string; trustScore?: number; ageDays?: number; stale?: boolean; masked?: boolean };
+
+export async function retrieve(tenant: string, query: string, k = 4): Promise<RetrievedPassage[]> {
   const t = terms(query);
-  if (!t.length) return [] as { docId: string; title: string; source: string; snippet: string; score: number }[];
+  if (!t.length) return [];
   const docs = await getDocs(tenant);
-  const scored: { docId: string; title: string; source: string; snippet: string; score: number }[] = [];
+  const scored: RetrievedPassage[] = [];
   for (const d of docs) {
     for (const c of chunk(d.content)) {
       const cl = c.toLowerCase();
       const score = t.reduce((n, term) => n + (cl.includes(term) ? 1 : 0), 0);
-      if (score > 0) scored.push({ docId: d.id, title: d.title, source: d.source, snippet: c.slice(0, 340), score });
+      if (score > 0) scored.push({ docId: d.id, title: d.title, source: d.source, snippet: c.slice(0, 340), score, createdAt: d.createdAt });
     }
   }
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, k);
+  /* Retrieval guardrails — before a passage may ground the answer: drop
+     untrusted/blocked sources, reject junk chunks and DLP-mask/-block sensitive
+     ones, and re-rank by relevance × source trust × recency. */
+  const guarded = guardPassages(scored, { nowMs: Date.now() }) as { passages: RetrievedPassage[] };
+  return guarded.passages.slice(0, k);
 }

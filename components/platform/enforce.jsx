@@ -11,6 +11,7 @@ import { PAAS_ENDPOINT, PAAS_CLIENTS, PAAS_KEYS, PAAS_SAMPLES, PAAS_DECISION_MET
 import { PLANES, estateRows, coverageStats, COVERAGE_CHANNELS } from "@/lib/enforcement-coverage";
 import { GUARDRAIL_LAYERS, GUARDRAIL_STATUS, layerStats, guardrailStats } from "@/lib/guardrail-coverage";
 import { MEMORY_RETENTION, MEMORY_DECISION_META, seededMemoryLedger, memoryStats } from "@/lib/memory";
+import { SOURCE_TRUST_TIERS, FRESHNESS, seededRetrievalLedger, retrievalGuardStats } from "@/lib/retrieval-guard";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -813,6 +814,60 @@ export function MemoryGuardrails({ showToast }) {
       {advisor(<>The Doc agent tried to remember an <b style={{ color: T.ink }}>API key</b> and the CRC agent a <b style={{ color: T.ink }}>card number</b> — both classified Restricted and <b style={{ color: T.ink }}>refused at write</b>, so no ungoverned copy exists to leak later. The customer email was <b style={{ color: T.ink }}>masked</b> before storage. {s.refused} of {s.total} writes were refused; every stored item carries an expiry and lives only inside its tenant/agent/session partition.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Memory-guardrail decisions exported — " + s.stored + " stored, " + s.refused + " refused")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export memory decisions</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Retrieval Guardrails ─────────────────────────────────────────────────
+   What a passage must clear before it may ground an answer: source-trust
+   filtering, chunk validation + DLP, freshness, and trust/recency-weighted
+   ranking. Wired live into knowledge.ts retrieve(). */
+export function RetrievalGuardrails({ showToast }) {
+  const T_ = useT();
+  const rows = seededRetrievalLedger();
+  const s = retrievalGuardStats(rows);
+  const decTone = d => d === "admitted" ? "good" : d === "masked" ? "info" : d === "down-weighted" ? "warn" : "crit";
+  const tierTone = t => SOURCE_TRUST_TIERS[t]?.tone || "ink3";
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Retrieval Guardrails" sub="RAG grounds the model in the org's own documents — but retrieval is an injection surface: a poisoned, stale or untrusted passage becomes context the model treats as truth. Before any passage may ground an answer it must clear the guard: its source is classified into a trust tier (blocked sources dropped), the chunk is validated and DLP-cleaned (secret-bearing chunks blocked, PII masked), and what survives is re-ranked by relevance × source trust × recency so a trusted, fresh policy outranks a stale forum post. Enforced live inside retrieve()." />
+    <div style={kpiGrid}>
+      <Kpi l="Admitted" v={String(s.admitted)} c={T.green} sub={`${s.masked} masked · ${s.downWeighted} down-weighted`} />
+      <Kpi l="Dropped" v={String(s.dropped)} c={T.red} sub="untrusted · junk · secret-bearing" />
+      <Kpi l="Blocked sources" v={String(s.blockedSources)} c={T.red} sub="paste sinks · untrusted dumps" />
+      <Kpi l="Stale flagged" v={String(s.stale)} c={T.amber} sub={`older than ${FRESHNESS.staleAfterDays}d`} />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Source trust tiers · score weights ranking, blocked is dropped</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>Not every source is worth the same</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10 }}>
+        {Object.entries(SOURCE_TRUST_TIERS).map(([tier, m]) => { const c = tok(m.tone); return <div key={tier} style={{ padding: "12px 13px", borderRadius: 10, background: c + "0e", border: `1px solid ${c}33` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 900, color: T.ink, fontFamily: F.b }}>{T_(m.label)}</span>
+            <span style={{ fontSize: 11, fontWeight: 900, color: c, fontFamily: F.m }}>{m.score.toFixed(1)}</span>
+          </div>
+          <div style={{ fontSize: 9.5, color: T.ink3, fontFamily: F.b }}>{tier === "blocked" ? T_("dropped from retrieval") : T_("weights relevance × trust × recency")}</div>
+        </div>; })}
+      </div>
+    </Card>
+
+    <Card style={cardPad}>
+      <Eyebrow>Governed retrieval · the decision on every candidate passage</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What grounded the answer, and what was kept out</H3>
+      <Table head={["Document", "Source", "Trust", "Age", "Guarded score", "Decision"]}>
+        {rows.map((r, i) => <tr key={i}>
+          <Td style={{ color: T.ink, fontWeight: 700, maxWidth: 220 }}>{r.title}</Td>
+          <Td style={{ fontFamily: F.m, color: T.ink3, maxWidth: 200, wordBreak: "break-all" }}>{r.source}</Td>
+          <Td><Pill c={tok(tierTone(r.tier))}>{SOURCE_TRUST_TIERS[r.tier]?.label || r.tier}</Pill></Td>
+          <Td style={{ fontFamily: F.m, color: r.stale ? T.amber : T.ink2, whiteSpace: "nowrap" }}>{r.ageDays}d{r.stale ? " · stale" : ""}</Td>
+          <Td style={{ fontFamily: F.m, fontWeight: 900, color: r.guardedScore > 0 ? T.ink : T.ink4 }}>{r.guardedScore || "—"}</Td>
+          <Td><Pill c={tok(decTone(r.decision))}>{r.decision}</Pill>{r.reason && <div style={{ fontSize: 8.5, color: T.ink4, fontFamily: F.m, marginTop: 3 }}>{r.reason}</div>}</Td>
+        </tr>)}
+      </Table>
+      {advisor(<>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Retrieval-guard decisions exported — " + s.admitted + " admitted, " + s.dropped + " dropped")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export retrieval decisions</button>
       </div>
     </Card>
   </div>;
