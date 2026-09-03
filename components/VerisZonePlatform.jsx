@@ -26,7 +26,7 @@ import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/road
 import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
 import { McpRegistry } from "./platform/mcp";
 import { PageSuperAdmin } from "./platform/superadmin";
-import { EgressPolicy, HitlGates, CircuitBreaker, PolicyAsAService, EnforcementCoverage } from "./platform/enforce";
+import { EgressPolicy, HitlGates, CircuitBreaker, PolicyAsAService, EnforcementCoverage, GuardrailCoverage, MemoryGuardrails, RetrievalGuardrails, RuntimeGuardrails, InputGuardrails } from "./platform/enforce";
 import { TemplateLibrary } from "./platform/template-library";
 /* Employee/Manager command-center surfaces that delegate to a real,
    fully-built platform page rather than a config block — so the governed
@@ -40,6 +40,8 @@ const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",em
   cgo_drift:"drift",caio_drift:"drift",cgo_workflows:"workflows",ciso_workflows:"workflows",cgo_art12:"art12",legal_art12:"art12",
   ciso_enforce:"enforce",cgo_enforce:"enforce",ciso_coverage:"coverage",cgo_coverage:"coverage",ciso_authority:"authority",ciso_ledger:"ledger",cgo_ledger:"ledger",
   ciso_mcp:"mcp",cgo_mcp:"mcp",ciso_egress:"egress",ciso_hitl:"hitl",cgo_hitl:"hitl",ciso_breaker:"breaker",cgo_breaker:"breaker",
+  ciso_guardlayers:"guardrails",cgo_guardlayers:"guardrails",caio_guardlayers:"guardrails",
+  ciso_memory:"memguard",cgo_memory:"memguard",ciso_retrieval:"retrguard",cgo_retrieval:"retrguard",ciso_runtime:"rtguard",cgo_runtime:"rtguard",ciso_input:"inguard",cgo_input:"inguard",
   ciso_paas:"paas",cgo_paas:"paas",caio_templates:"templatelib",cgo_templates:"templatelib"};
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
@@ -241,7 +243,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
         })()}
         {acOnly&&<div style={{padding:"6px 8px 12px",borderBottom:`1px solid ${RAIL.border}`,marginBottom:10}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.14em",marginBottom:6}}>AI Central</div>
-          <div style={{fontSize:10,color:RAIL.ink3,lineHeight:1.5,fontFamily:F.b}}>Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.</div>
+          <div style={{fontSize:10,color:RAIL.ink3,lineHeight:1.5,fontFamily:F.b}}>{tn(lang,"Enterprise control plane where AI initiatives are planned, governed, monitored and decided to scale or retire.")}</div>
         </div>}
         {acOnly&&AI_CENTRAL_NAV.map((item,idx)=>{
           const isA=aiCentralView===item.id;
@@ -251,7 +253,7 @@ function Sidebar({tab,setTab,role,hitlCount,open,onClose,aiCentralView,setAiCent
             {isA&&<motion.span layoutId="vzNavActive" transition={spring} style={{position:"absolute",inset:0,borderRadius:9,background:`linear-gradient(90deg,${AI_GOLD}20,${AI_GOLD}09 62%,transparent)`,border:`1px solid ${AI_GOLD}42`,boxShadow:`inset 0 0 20px ${AI_GOLD}0D`}}/>}
             {isA&&<motion.span layoutId="vzNavRail" transition={spring} style={{position:"absolute",[rtl?"right":"left"]:0,top:8,bottom:8,width:3,borderRadius:4,background:AI_GOLD,boxShadow:`0 0 12px ${AI_GOLD}66`}}/>}
             <span style={{width:18,height:18,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:isA?AI_GOLD+"24":RAIL.chip,color:isA?AI_GOLD:RAIL.ink4,fontSize:9,fontWeight:900,fontFamily:F.m,flexShrink:0,position:"relative",zIndex:1}}>{idx+1}</span>
-            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.label}</span><span style={{display:"block",fontSize:9,color:RAIL.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.sub}</span></span>
+            <span style={{minWidth:0,position:"relative",zIndex:1}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tn(lang,item.label)}</span><span style={{display:"block",fontSize:9,color:RAIL.ink4,fontWeight:500,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tn(lang,item.sub)}</span></span>
           </button>;
         })}
       </nav>
@@ -1027,6 +1029,11 @@ export default function VerisZone() {
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="egress"&&<EgressPolicy role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="hitl"&&<HitlGates role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="breaker"&&<CircuitBreaker role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="guardrails"&&<GuardrailCoverage role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="memguard"&&<MemoryGuardrails role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="retrguard"&&<RetrievalGuardrails role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="rtguard"&&<RuntimeGuardrails role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="inguard"&&<InputGuardrails role={role} showToast={showToast}/>}
         {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {tab==="admin"      &&<PageAdmin      role={role} showToast={showToast} setTab={setTab}/>}
