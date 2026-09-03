@@ -13,6 +13,7 @@ import { GUARDRAIL_LAYERS, GUARDRAIL_STATUS, layerStats, guardrailStats } from "
 import { MEMORY_RETENTION, MEMORY_DECISION_META, seededMemoryLedger, memoryStats } from "@/lib/memory";
 import { SOURCE_TRUST_TIERS, FRESHNESS, seededRetrievalLedger, retrievalGuardStats } from "@/lib/retrieval-guard";
 import { RUNTIME_POLICY, RUNTIME_DECISION_META, seededRuntimeLedger, runtimeGuardStats } from "@/lib/runtime-guard";
+import { INPUT_MIME_ALLOWLIST, INPUT_RATE, seededInputLedger, inputGuardStats } from "@/lib/input-guard";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -869,6 +870,54 @@ export function RetrievalGuardrails({ showToast }) {
       {advisor(<>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Retrieval-guard decisions exported — " + s.admitted + " admitted, " + s.dropped + " dropped")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export retrieval decisions</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Input Guardrails ─────────────────────────────────────────────────────
+   The first gate: sanitise invisible-character / hidden-prompt smuggling out of
+   the text, scan attachments for malware / MIME mismatch, cap size and rate.
+   Wired live into the gateway ingress (ingressCheck). */
+export function InputGuardrails({ showToast }) {
+  const T_ = useT();
+  const rows = seededInputLedger();
+  const s = inputGuardStats(rows);
+  const decTone = d => d === "allow" ? "good" : d === "sanitized" ? "info" : "crit";
+  const decLabel = d => d === "allow" ? "Allowed" : d === "sanitized" ? "Sanitized" : "Blocked";
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Input Guardrails" sub="The first thing that touches a request, before classification or the model. Ingress is an injection surface twice over: the text can carry invisible instruction-smuggling — zero-width and Unicode-Tag characters a human never sees but a model reads — and any attachment can be a malicious or mis-declared file. The guard sanitises the text (stripping zero-width / Unicode-Tag / bidi / control characters and neutralising script blocks), scans every attachment for executable magic bytes, dangerous or double extensions and MIME mismatches, and rate-limits the session. Enforced live at the gateway door." />
+    <div style={kpiGrid}>
+      <Kpi l="Inputs screened" v={String(s.total)} c={AI_GOLD} sub="text + attachments" />
+      <Kpi l="Sanitized" v={String(s.sanitized)} c={T.blue} sub="hidden-char smuggling stripped" />
+      <Kpi l="Blocked" v={String(s.blocked)} c={T.red} sub="malware · MIME · size" />
+      <Kpi l="Malware caught" v={String(s.malwareBlocked)} c={T.red} sub="magic bytes / bad extension" />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Attachment policy · allow-listed MIME types</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What may come in, and the burst limit</H3>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
+        {Object.values(INPUT_MIME_ALLOWLIST).flat().map(ext => <span key={ext} style={{ fontSize: 10, fontFamily: F.m, fontWeight: 700, color: T.green, background: T.green + "14", border: `1px solid ${T.green}33`, borderRadius: 6, padding: "3px 9px" }}>.{ext}</span>)}
+        <span style={{ fontSize: 10, fontFamily: F.m, fontWeight: 700, color: T.red, background: T.red + "12", border: `1px solid ${T.red}33`, borderRadius: 6, padding: "3px 9px" }}>everything else · blocked</span>
+      </div>
+      <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b }}>Rate limit · <b style={{ color: T.ink }}>{INPUT_RATE.max} requests / {INPUT_RATE.windowMs / 1000}s</b> per session · executable magic bytes and double extensions blocked regardless of declared type.</div>
+    </Card>
+
+    <Card style={cardPad}>
+      <Eyebrow>Governed ingress · the decision on every input</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What was cleaned, and what was kept out</H3>
+      <Table head={["Input", "Kind", "Detail", "Decision"]}>
+        {rows.map((r, i) => <tr key={i}>
+          <Td style={{ color: T.ink, fontWeight: 700, maxWidth: 220 }}>{r.label}{r.mime ? <div style={{ fontSize: 9, color: T.ink4, fontFamily: F.m }}>{r.mime}</div> : null}</Td>
+          <Td style={{ color: T.ink3 }}>{r.kind}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 300 }}>{(r.reasons && r.reasons.length) ? r.reasons.join(" · ") : (r.note || <span style={{ color: T.ink4 }}>clean</span>)}</Td>
+          <Td><Pill c={tok(decTone(r.decision))}>{decLabel(r.decision)}</Pill></Td>
+        </tr>)}
+      </Table>
+      {advisor(<>The <b style={{ color: T.ink }}>hidden-instruction</b> input carried zero-width and Unicode-Tag characters — invisible to a reviewer, readable by a model — and was stripped before classification. <b style={{ color: T.ink }}>invoice.pdf.exe</b> and a <b style={{ color: T.ink }}>.png carrying PE magic bytes</b> were caught as malware despite their declared types. {s.blocked} of {s.total} inputs were blocked at the door; the rest passed to the policy engine.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Input-guard decisions exported — " + s.blocked + " blocked, " + s.sanitized + " sanitized")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export input decisions</button>
       </div>
     </Card>
   </div>;

@@ -10,3 +10,4 @@ declare module "@/lib/mcp-registry";
 declare module "@/lib/memory";
 declare module "@/lib/retrieval-guard";
 declare module "@/lib/runtime-guard";
+declare module "@/lib/input-guard";

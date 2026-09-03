@@ -14,6 +14,7 @@ import { requiresApproval } from "@/lib/hitl";
 import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
 import { rememberLive, recallLive } from "@/lib/memory";
 import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
+import { ingressCheck } from "@/lib/input-guard";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -46,13 +47,24 @@ export async function POST(req: NextRequest) {
      in-flight count even if the model call throws. */
   let rtAdmitted = false, rtKey = "", rtStart = 0;
   try {
-    const { prompt, tenant, agent, tool, mcpServer, dest, value, session } = await req.json();
-    const text = String(prompt || "").slice(0, 8000);
+    const { prompt, tenant, agent, tool, mcpServer, dest, value, session, attachments } = await req.json();
     const model = process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5";
     /* Memory-guardrail scope — a memory is partitioned by tenant + agent +
        session so recall can never cross a boundary. */
     const memScope = { tenant: String(tenant || "demo"), agent: String(agent || "anon"), session: String(session || `${tenant || "demo"}:${agent || "anon"}`) };
     rtKey = `${memScope.tenant}/${memScope.agent}/${memScope.session}`;
+    /* Input guardrails — the first gate. Sanitise invisible-character /
+       hidden-prompt smuggling out of the text, scan any attachment for
+       malware / MIME mismatch, and rate-limit the session. A malicious
+       attachment or a burst is blocked before anything else runs; the
+       sanitised text is what the rest of the pipeline sees. */
+    const ig = ingressCheck({ text: prompt, attachments, sessionKey: rtKey });
+    if (ig.blocked) {
+      await logInference(tenant, { model, agent, tool, decision: "block" });
+      return NextResponse.json({ enabled: true, blocked: true, detector: "Input guard",
+        input: { decision: ig.decision, findings: ig.findings, attachments: ig.attachmentResults, rate: ig.rate } });
+    }
+    const text = ig.sanitized;
     /* Veris Enforce — the enforcement plane, at call time. If this request is an
        agent invoking a tool, the decision runs deterministically here (identity,
        capability, provenance — never text classification) before anything else,
@@ -173,6 +185,7 @@ export async function POST(req: NextRequest) {
       classification, capabilityToken, responseValidation: { ok: rv.ok, findings: rv.findings },
       cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
       memory: { recalled: memCtx.length, write: mem }, runtime,
+      input: { sanitized: ig.sanitized_changed, findings: ig.findings },
       source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
     if (rtAdmitted) { try { completeCall(rtKey, Date.now() - rtStart); } catch { /* best-effort */ } }
