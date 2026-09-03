@@ -12,6 +12,7 @@ import { PLANES, estateRows, coverageStats, COVERAGE_CHANNELS } from "@/lib/enfo
 import { GUARDRAIL_LAYERS, GUARDRAIL_STATUS, layerStats, guardrailStats } from "@/lib/guardrail-coverage";
 import { MEMORY_RETENTION, MEMORY_DECISION_META, seededMemoryLedger, memoryStats } from "@/lib/memory";
 import { SOURCE_TRUST_TIERS, FRESHNESS, seededRetrievalLedger, retrievalGuardStats } from "@/lib/retrieval-guard";
+import { RUNTIME_POLICY, RUNTIME_DECISION_META, seededRuntimeLedger, runtimeGuardStats } from "@/lib/runtime-guard";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -868,6 +869,58 @@ export function RetrievalGuardrails({ showToast }) {
       {advisor(<>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Retrieval-guard decisions exported — " + s.admitted + " admitted, " + s.dropped + " dropped")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export retrieval decisions</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Runtime Guardrails ───────────────────────────────────────────────────
+   How a session behaves in motion: loop detection, concurrency + rate limits
+   and latency tracking, enforced at tool-call admission. Wired live into the
+   gateway (admitCall / completeCall). */
+export function RuntimeGuardrails({ showToast }) {
+  const T_ = useT();
+  const rows = seededRuntimeLedger();
+  const s = runtimeGuardStats(rows);
+  const decTone = d => RUNTIME_DECISION_META[d]?.tone || "ink3";
+  const P = RUNTIME_POLICY;
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Runtime Guardrails" sub="Static gates and the circuit breaker govern what an agent may do; runtime guardrails govern how a session behaves as it runs — the failure modes that only appear in motion. At tool-call admission the guard inspects the session's recent action stream for a loop (a repeated action or an A↔B cycle) and halts it before it spins, throttles calls over the per-session concurrency and rate caps, and records every call's latency so one over the SLA is flagged as a real anomaly signal. These govern agent tool calls, not human chat turns, so ordinary conversation is never mistaken for a loop. Enforced live in the gateway." />
+    <div style={kpiGrid}>
+      <Kpi l="Sessions watched" v={String(s.watched)} c={AI_GOLD} sub="this window" />
+      <Kpi l="Loops halted" v={String(s.looped)} c={T.red} sub="repeat / cycle" />
+      <Kpi l="Throttled" v={String(s.throttled)} c={T.amber} sub="concurrency / rate cap" />
+      <Kpi l="SLA breaches" v={String(s.sloBreaches)} c={T.red} sub={`P95 ${s.p95}ms · SLA ${s.sloMs}ms`} />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Runtime policy · deterministic thresholds</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>The limits every session runs under</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10 }}>
+        {[["Latency SLA", `${P.latencySloMs} ms`, "per call"], ["Concurrency cap", String(P.maxConcurrent), "in-flight / session"], ["Rate cap", `${P.maxCallsPerWindow} / ${P.rateWindowMs / 1000}s`, "per session"], ["Loop threshold", `${P.loopRepeatThreshold}×`, `in last ${P.loopWindow} actions`]].map(([l, v, d]) => <div key={l} style={{ padding: "12px 13px", borderRadius: 10, background: T.s2, border: `1px solid ${T.border}` }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: T.ink4, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: F.m, marginBottom: 4 }}>{T_(l)}</div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: T.ink, fontFamily: F.m }}>{v}</div>
+          <div style={{ fontSize: 9, color: T.ink3, fontFamily: F.b }}>{T_(d)}</div>
+        </div>)}
+      </div>
+    </Card>
+
+    <Card style={cardPad}>
+      <Eyebrow>Live sessions · decision computed from the call stream</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What the runtime guard did, and why</H3>
+      <Table head={["Session", "Agent", "Action stream", "In-flight", "P95 latency", "Decision"]}>
+        {rows.map(r => <tr key={r.id}>
+          <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{r.id}</Td>
+          <Td style={{ color: T.ink, fontWeight: 700 }}>{r.agent}</Td>
+          <Td><div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>{r.actions.map((a, i) => <span key={i} style={{ fontSize: 9, fontFamily: F.m, color: T.ink2, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 5, padding: "1px 6px" }}>{a}</span>)}</div></Td>
+          <Td style={{ fontFamily: F.m, fontWeight: 900, color: r.inFlight > P.maxConcurrent ? T.red : T.ink2 }}>{r.inFlight}</Td>
+          <Td style={{ fontFamily: F.m, color: r.sloBreach ? T.red : T.ink2 }}>{r.p95}ms{r.sloBreach ? " ⚠" : ""}</Td>
+          <Td><Pill c={tok(decTone(r.decision))}>{RUNTIME_DECISION_META[r.decision]?.label || r.decision}</Pill>{r.reason && <div style={{ fontSize: 8.5, color: T.ink4, fontFamily: F.m, marginTop: 3 }}>{r.reason}</div>}</Td>
+        </tr>)}
+      </Table>
+      {advisor(<>Session <b style={{ color: T.ink }}>{rows.find(r => r.decision === "loop")?.id || "RSES-02"}</b> repeated <b style={{ color: T.ink }}>{rows.find(r => r.decision === "loop")?.reason || "the same action"}</b> and was halted before it could spin; <b style={{ color: T.ink }}>{rows.find(r => r.decision === "throttle")?.id || "RSES-05"}</b> hit the concurrency cap and was throttled. The Fraud agent's single call took {rows.find(r => r.sloBreach)?.p95 || "9400"}ms — over the {P.latencySloMs}ms SLA, so it is flagged as a latency anomaly the circuit breaker can act on. {s.looped + s.throttled} of {s.watched} sessions were held back.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Runtime-guard decisions exported — " + s.looped + " loops halted, " + s.throttled + " throttled")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export runtime decisions</button>
       </div>
     </Card>
   </div>;
