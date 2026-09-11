@@ -14,6 +14,7 @@ import { MEMORY_RETENTION, MEMORY_DECISION_META, seededMemoryLedger, memoryStats
 import { SOURCE_TRUST_TIERS, FRESHNESS, seededRetrievalLedger, retrievalGuardStats } from "@/lib/retrieval-guard";
 import { RUNTIME_POLICY, RUNTIME_DECISION_META, seededRuntimeLedger, runtimeGuardStats } from "@/lib/runtime-guard";
 import { INPUT_MIME_ALLOWLIST, INPUT_RATE, seededInputLedger, inputGuardStats } from "@/lib/input-guard";
+import { TOXICITY_CATEGORIES, OUTPUT_DECISION_META, seededOutputLedger, outputGuardStats } from "@/lib/output-guard";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -870,6 +871,57 @@ export function RetrievalGuardrails({ showToast }) {
       {advisor(<>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Retrieval-guard decisions exported — " + s.admitted + " admitted, " + s.dropped + " dropped")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export retrieval decisions</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Output Guardrails ────────────────────────────────────────────────────
+   The last gate: a toxicity classifier and a groundedness heuristic on top of
+   the egress secret/PII redactor. A high-severity category withholds the
+   response. Wired live into the gateway after validateResponse(). */
+export function OutputGuardrails({ showToast }) {
+  const T_ = useT();
+  const rows = seededOutputLedger();
+  const s = outputGuardStats(rows);
+  const decTone = d => OUTPUT_DECISION_META[d]?.tone || "ink3";
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Output Guardrails" sub="The last gate before a response reaches the user. On top of the egress redactor (which strips secrets and PII that slip into the model's output), the guard runs a toxicity classifier across violence / self-harm / hate / harassment / sexual / profanity and a groundedness heuristic that checks the figures in an answer against the retrieved context. A high-severity category — or a secret that got past the redactor — withholds the response entirely; lesser issues flag it. Enforced live on every response." />
+    <div style={kpiGrid}>
+      <Kpi l="Responses screened" v={String(s.total)} c={AI_GOLD} sub="every model output" />
+      <Kpi l="Blocked" v={String(s.blocked)} c={T.red} sub="high-severity · secret leak" />
+      <Kpi l="Flagged" v={String(s.flagged)} c={T.amber} sub="lower-severity · ungrounded" />
+      <Kpi l="Ungrounded" v={String(s.ungrounded)} c={T.amber} sub="figures not in context" />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Toxicity categories · high-severity blocks, lower flags</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What the classifier scores</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
+        {Object.values(TOXICITY_CATEGORIES).map(c => { const hard = c.weight >= 4; const col = hard ? T.red : c.weight >= 2 ? T.amber : T.ink3; return <div key={c.label} style={{ padding: "12px 13px", borderRadius: 10, background: col + "0e", border: `1px solid ${col}33` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 900, color: T.ink, fontFamily: F.b }}>{T_(c.label)}</span>
+            <span style={{ fontSize: 10, fontWeight: 900, color: col, fontFamily: F.m }}>{hard ? T_("block") : T_("flag")}</span>
+          </div>
+          <div style={{ fontSize: 9, color: T.ink3, fontFamily: F.m }}>{T_("severity weight")} {c.weight}</div>
+        </div>; })}
+      </div>
+    </Card>
+
+    <Card style={cardPad}>
+      <Eyebrow>Governed egress · the decision on every response</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What reached the user, and what was withheld</H3>
+      <Table head={["Response", "Toxicity", "Findings", "Decision"]}>
+        {rows.map((r, i) => <tr key={i}>
+          <Td style={{ color: T.ink, fontWeight: 700, maxWidth: 220 }}>{r.label}</Td>
+          <Td style={{ fontFamily: F.m }}><span style={{ color: r.severity === "high" ? T.red : r.severity === "medium" ? T.amber : T.ink3 }}>{r.severity}</span>{r.categories?.length ? <div style={{ fontSize: 9, color: T.ink4 }}>{r.categories.join(", ")}</div> : null}</Td>
+          <Td style={{ color: T.ink3, maxWidth: 300 }}>{(r.findings && r.findings.length) ? r.findings.join(" · ") : <span style={{ color: T.ink4 }}>clean</span>}</Td>
+          <Td><Pill c={tok(decTone(r.decision))}>{OUTPUT_DECISION_META[r.decision]?.label || r.decision}</Pill></Td>
+        </tr>)}
+      </Table>
+      {advisor(<>The <b style={{ color: T.ink }}>violent</b> and <b style={{ color: T.ink }}>self-harm</b> outputs were withheld entirely — the user received a policy notice, not the content — and a response that <b style={{ color: T.ink }}>leaked a secret</b> past the redactor was blocked. The answer claiming 92% adoption and 310% ROI was flagged as ungrounded: those figures aren't in the retrieved context. {s.blocked} of {s.total} responses were withheld.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Output-guard decisions exported — " + s.blocked + " blocked, " + s.flagged + " flagged")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export output decisions</button>
       </div>
     </Card>
   </div>;

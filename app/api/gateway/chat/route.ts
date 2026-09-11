@@ -15,6 +15,7 @@ import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
 import { rememberLive, recallLive } from "@/lib/memory";
 import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
 import { ingressCheck } from "@/lib/input-guard";
+import { moderateOutput, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -163,8 +164,14 @@ export async function POST(req: NextRequest) {
        user — redact any secret/PII that slipped through and flag a
        system-prompt reflection (a sign an injection got past ingress). */
     const rv = validateResponse(answer);
+    /* Output guardrails — moderation on egress: a toxicity classifier and a
+       groundedness heuristic. A high-severity category (or a secret/PII leak
+       that slipped the redactor) blocks the response entirely; lesser issues
+       flag it. */
+    const og = moderateOutput(rv.redacted, ctx.join("\n"), rv.findings);
+    const safe = og.blocked ? SAFE_WITHHELD_MESSAGE : rv.redacted;
     const sources = [...new Set(passages.map(p => p.title))];
-    const grounded = sources.length ? `${rv.redacted}\n\n— Grounded in your documents: ${sources.join(", ")}` : rv.redacted;
+    const grounded = sources.length && !og.blocked ? `${safe}\n\n— Grounded in your documents: ${sources.join(", ")}` : safe;
     /* FinOps: meter this interaction. Cost is priced through the same
        engine that rolls up enterprise spend — the number on the message
        and the number on the CFO's dashboard come from one price book. */
@@ -181,11 +188,12 @@ export async function POST(req: NextRequest) {
        call over the SLA is flagged as a real anomaly signal. */
     let runtime: { latencyMs: number; sloBreach: boolean } | null = null;
     try { const rc = rtAdmitted ? completeCall(rtKey, Date.now() - rtStart) : recordLatency(rtKey, Date.now() - rtStart); rtAdmitted = false; runtime = { latencyMs: rc.latencyMs, sloBreach: rc.breach }; } catch { /* best-effort */ }
-    return NextResponse.json({ enabled: true, blocked: false, text: grounded, masked: guard.didMask,
+    return NextResponse.json({ enabled: true, blocked: og.blocked, text: grounded, masked: guard.didMask,
       classification, capabilityToken, responseValidation: { ok: rv.ok, findings: rv.findings },
       cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },
       memory: { recalled: memCtx.length, write: mem }, runtime,
       input: { sanitized: ig.sanitized_changed, findings: ig.findings },
+      output: { decision: og.decision, toxicity: og.toxicity.severity, categories: og.toxicity.categories, grounded: og.grounding.grounded, findings: og.findings },
       source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
     if (rtAdmitted) { try { completeCall(rtKey, Date.now() - rtStart); } catch { /* best-effort */ } }
