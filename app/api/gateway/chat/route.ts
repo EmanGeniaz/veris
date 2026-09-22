@@ -15,8 +15,8 @@ import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
 import { rememberDurable, recallDurable } from "@/lib/memory-store";
 import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
 import { ingressCheck } from "@/lib/input-guard";
-import { moderateOutput, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
-import { checkFaithfulness, needsJudge, judgeFaithfulness, HALLUCINATION_CAUTION } from "@/lib/hallucination";
+import { moderateOutputAsync, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
+import { checkFaithfulness, shouldJudge, judgeFaithfulness, HALLUCINATION_CAUTION } from "@/lib/hallucination";
 import { resolveModel, modelAllowlist } from "@/lib/model-policy";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
        groundedness heuristic. A high-severity category (or a secret/PII leak
        that slipped the redactor) blocks the response entirely; lesser issues
        flag it. */
-    const og = moderateOutput(rv.redacted, ctx.join("\n"), rv.findings);
+    const og = await moderateOutputAsync(rv.redacted, ctx.join("\n"), rv.findings);
     /* Hallucination / faithfulness — deterministic claim-grounding on every
        answer, escalated to a strict LLM judge only when the fast check is
        uncertain. Best-effort; a caution is appended when the answer can't be
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
     if (!og.blocked) {
       try {
         faith = checkFaithfulness(rv.redacted, ctx.join("\n"));
-        if (faith && needsJudge(faith)) { const j = await judgeFaithfulness({ answer: rv.redacted, context: ctx.join("\n"), apiKey: key, model }); if (j) faith.judge = j; }
+        if (faith && shouldJudge(faith)) { const j = await judgeFaithfulness({ answer: rv.redacted, context: ctx.join("\n"), apiKey: key, model }); if (j) faith.judge = j; }
       } catch { /* faithfulness is best-effort — never breaks the response */ }
     }
     const finalVerdict = faith?.judge?.verdict || faith?.verdict;

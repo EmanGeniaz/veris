@@ -19,11 +19,15 @@ import inputGuard from "../lib/input-guard.js";
 import memory from "../lib/memory.js";
 import runtimeGuard from "../lib/runtime-guard.js";
 import concurrencyStore from "../lib/concurrency-store.js";
+import outputGuard from "../lib/output-guard.js";
+import hallucination from "../lib/hallucination.js";
 const { sourceTrust, registerSource } = retrievalGuard;
 const { scanAttachment, scanAttachmentAsync, EICAR_SIGNATURE } = inputGuard;
 const { memoryWrite, memoryRecall, memorySweep } = memory;
 const { admitCall, completeCall, RUNTIME_POLICY } = runtimeGuard;
 const { createConcurrencyStore } = concurrencyStore;
+const { moderateOutput, classifyToxicityAsync } = outputGuard;
+const { checkFaithfulness, shouldJudge } = hallucination;
 
 const R = [];
 const check = (name, cond) => { R.push([cond ? "PASS" : "FAIL", name]); };
@@ -106,6 +110,48 @@ check("async scan is a no-op when AV_SCAN_URL unset", cleanAsync.decision === "a
   const isoOverA = admitCall("k", "xN", now, RUNTIME_POLICY, isoA);
   const isoB1 = admitCall("k", "y0", now, RUNTIME_POLICY, isoB);
   check("separate stores keep independent caps", isoOverA.decision === "throttle" && isoB1.decision === "allow");
+}
+
+/* ── #140 output moderation + hallucination — a labelled set asserting the
+   deterministic floor's decisions (toxic/clean, grounded/ungrounded), plus the
+   moderation seam's fail-open and the configurable judge mode. ── */
+{
+  // Labelled toxicity set: [text, expectBlock].
+  const toxSet = [
+    ["Residual risk on the credit initiative is 41%.", false],
+    ["The adoption trend is up quarter over quarter.", false],
+    ["If they do that again I will kill you and everyone there.", true],
+    ["Here is how to end my life quietly.", true],
+    ["That question is stupid and you are a moron.", false], // harassment = medium, flag not block
+  ];
+  let toxOk = true;
+  for (const [text, expectBlock] of toxSet) { if (moderateOutput(text, "").blocked !== expectBlock) toxOk = false; }
+  check("toxicity floor blocks high-severity, allows/flags the rest", toxOk);
+  check("harassment flags (not blocks)", moderateOutput("you are a moron and a loser", "").decision === "flag");
+
+  // Labelled grounding set: [answer, context, expectVerdictOneOf].
+  const groundSet = [
+    ["Residual risk on the credit initiative is 41%, down from 54%.", "Credit initiative residual risk 41%, inherent 54%.", ["grounded"]],
+    ["Adoption reached 92% and ROI hit 310% this quarter.", "Adoption is 64%. ROI is negative this quarter.", ["ungrounded", "mixed"]],
+    ["The fraud model's PSI is 0.42 and drift breached in July.", "", ["unverifiable"]],
+  ];
+  let groundOk = true;
+  for (const [answer, context, expect] of groundSet) { if (!expect.includes(checkFaithfulness(answer, context).verdict)) groundOk = false; }
+  check("faithfulness floor labels grounded / ungrounded / unverifiable", groundOk);
+
+  // Moderation seam fails OPEN to the floor when the classifier errors.
+  const seam = await classifyToxicityAsync("perfectly clean governance text", {
+    moderationUrl: "http://av.invalid/moderate",
+    fetch: async () => { throw new Error("unreachable"); },
+  });
+  check("moderation seam fails open to the lexicon floor", seam.severity === "none" && seam.classifier === "lexicon");
+
+  // Judge mode: "always" judges any grounded-checkable answer; "off" never does.
+  const faithMixed = checkFaithfulness("Adoption reached 92% and ROI hit 310%.", "Adoption is 64%. ROI is negative.");
+  const faithGrounded = checkFaithfulness("Residual risk is 41%.", "Residual risk 41%.");
+  check("judge mode=always judges even a grounded answer", shouldJudge(faithGrounded, "always") === true);
+  check("judge mode=off never judges", shouldJudge(faithMixed, "off") === false);
+  check("judge mode=auto judges only the uncertain", shouldJudge(faithMixed, "auto") === true && shouldJudge(faithGrounded, "auto") === false);
 }
 
 const failed = R.filter(([s]) => s === "FAIL");
