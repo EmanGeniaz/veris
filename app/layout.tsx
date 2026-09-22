@@ -5,9 +5,16 @@ export const metadata: Metadata = {
   title: "GenVeris - Govern AI with certainty.",
   description: "GenVeris enterprise AI governance operating system.",
   icons: {
-    icon: "/brand/genveris-dark-app-icon.png",
-    shortcut: "/brand/genveris-dark-app-icon.png",
-    apple: "/brand/genveris-dark-app-icon.png"
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/brand/genveris-favicon-16.png", type: "image/png", sizes: "16x16" },
+      { url: "/brand/genveris-favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/brand/genveris-favicon-48.png", type: "image/png", sizes: "48x48" },
+      { url: "/brand/genveris-icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/brand/genveris-icon-512.png", type: "image/png", sizes: "512x512" }
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/brand/genveris-apple-touch-180.png"
   }
 };
 
