@@ -12,7 +12,7 @@ import { issueToken } from "@/lib/enforce";
 import { egressDecision } from "@/lib/egress";
 import { requiresApproval } from "@/lib/hitl";
 import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
-import { rememberLive, recallLive } from "@/lib/memory";
+import { rememberDurable, recallDurable } from "@/lib/memory-store";
 import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
 import { ingressCheck } from "@/lib/input-guard";
 import { moderateOutput, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
     /* Memory recall — governed: only this tenant/agent/session's own,
        unexpired memories, already class-filtered and PII-masked at write. */
     let memCtx: string[] = [];
-    try { memCtx = recallLive(memScope).map((m: { class: string; masked: boolean; text: string }) => `Prior memory (${m.class}${m.masked ? ", masked" : ""}): ${m.text}`); } catch { /* memory is best-effort — never breaks the response */ }
+    try { memCtx = (await recallDurable(memScope)).map((m: { class: string; masked: boolean; text: string }) => `Prior memory (${m.class}${m.masked ? ", masked" : ""}): ${m.text}`); } catch { /* memory is best-effort — never breaks the response */ }
     const ctx = [...internalContext(guard.masked), ...memCtx, ...passages.map(p => `Document "${p.title}": ${p.snippet}`)];
     const system = "You are Veris Intelligence, the enterprise AI advisor inside GenVeris. Be concise and executive-grade. " +
       // Scope guard: Veris Intelligence is a governance advisor, not a general chatbot. Off-domain
@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
        Restricted content is never persisted, retention/expiry are stamped by
        class. Best-effort so it never breaks the response. */
     let mem: { decision: string; written: boolean } | null = null;
-    try { const mw = rememberLive({ ...memScope, kind: "turn", text: guard.masked }); mem = { decision: mw.decision, written: mw.written }; } catch { /* best-effort */ }
+    try { const mw = await rememberDurable({ ...memScope, kind: "turn", text: guard.masked }); mem = { decision: mw.decision, written: mw.written }; } catch { /* best-effort */ }
     /* Runtime guardrails — settle the in-flight count and record latency, so a
        call over the SLA is flagged as a real anomaly signal. */
     let runtime: { latencyMs: number; sloBreach: boolean } | null = null;

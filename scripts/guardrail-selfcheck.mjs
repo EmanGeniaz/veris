@@ -16,8 +16,14 @@
 import { resolveModel, modelAllowed, detectModelOverride } from "../lib/model-policy.ts";
 import retrievalGuard from "../lib/retrieval-guard.js";
 import inputGuard from "../lib/input-guard.js";
+import memory from "../lib/memory.js";
+import runtimeGuard from "../lib/runtime-guard.js";
+import concurrencyStore from "../lib/concurrency-store.js";
 const { sourceTrust, registerSource } = retrievalGuard;
 const { scanAttachment, scanAttachmentAsync, EICAR_SIGNATURE } = inputGuard;
+const { memoryWrite, memoryRecall, memorySweep } = memory;
+const { admitCall, completeCall, RUNTIME_POLICY } = runtimeGuard;
+const { createConcurrencyStore } = concurrencyStore;
 
 const R = [];
 const check = (name, cond) => { R.push([cond ? "PASS" : "FAIL", name]); };
@@ -46,6 +52,61 @@ const eicarAsync = await scanAttachmentAsync({ name: "report.txt", mime: "text/p
 check("async scan blocks EICAR without a network call", eicarAsync.decision === "block" && eicarAsync.avScanned === false);
 const cleanAsync = await scanAttachmentAsync({ name: "board-pack.pdf", mime: "application/pdf", size: 2400000, headerHex: "255044462d" });
 check("async scan is a no-op when AV_SCAN_URL unset", cleanAsync.decision === "allow" && cleanAsync.avScanned === false);
+
+/* ── #136 memory retention/expiry — the durable guarantee is a query-time
+   expiry filter, so recall must never return an expired item even before a
+   sweep, and the sweep must drop it; both survive a "restart" (rebuilding the
+   store array from the persisted items). ── */
+{
+  const t0 = Date.parse("2026-09-01T00:00:00Z");
+  const w = memoryWrite({ tenant: "demo", agent: "a1", session: "s1", text: "Reconciliation for August close is 88% complete." }, t0);
+  check("memory write is governed + stored", w.written && w.item?.expiresAt > t0);
+  const store = [w.item];                          // the "persisted" rows
+  const beforeExpiry = memoryRecall(store, { tenant: "demo", agent: "a1", session: "s1" }, t0 + 60_000);
+  check("recall returns a live item", beforeExpiry.length === 1);
+  const afterExpiry = t0 + (8 * 24 * 3600 * 1000);  // Internal = 7d retention → expired
+  const recalledExpired = memoryRecall(store, { tenant: "demo", agent: "a1", session: "s1" }, afterExpiry);
+  check("recall never returns an expired item (query-time filter)", recalledExpired.length === 0);
+  const swept = memorySweep(store, afterExpiry);
+  const restarted = [...swept];                     // simulate a restart from swept rows
+  const afterRestart = memoryRecall(restarted, { tenant: "demo", agent: "a1", session: "s1" }, afterExpiry);
+  check("expired item is gone after sweep + restart", swept.length === 0 && afterRestart.length === 0);
+  const other = memoryRecall(store, { tenant: "demo", agent: "a2", session: "s1" }, t0 + 60_000);
+  check("recall cannot cross a session partition", other.length === 0);
+}
+
+/* ── #137 concurrency — two "instances" sharing ONE store cannot exceed the
+   global cap; with SEPARATE stores each gets its own cap (proving the store is
+   what makes the cap global). ── */
+{
+  const now = Date.parse("2026-09-01T00:00:00Z");
+  const shared = new Map();
+  const instA = createConcurrencyStore(shared);
+  const instB = createConcurrencyStore(shared);
+  const max = RUNTIME_POLICY.maxConcurrent;
+  const key = "tenant:agent:sess";
+  let admitted = 0;
+  for (let i = 0; i < max; i++) {
+    // Alternate which "instance" issues the call; distinct actions avoid loop detection.
+    const inst = i % 2 === 0 ? instA : instB;
+    const r = admitCall(key, `act${i}`, now, RUNTIME_POLICY, inst);
+    if (r.decision === "allow") admitted++;
+  }
+  check(`shared store admits up to the global cap (${max})`, admitted === max);
+  const over = admitCall(key, "actN", now, RUNTIME_POLICY, instB);
+  check("shared store throttles the call over the global cap", over.decision === "throttle");
+  // Release one slot via instance A; instance B should then get exactly one in.
+  completeCall(key, 100, RUNTIME_POLICY, instA);
+  const afterRelease = admitCall(key, "actR", now, RUNTIME_POLICY, instB);
+  check("a released slot frees exactly one call across instances", afterRelease.decision === "allow");
+  // Separate stores → independent caps (the store, not the key, scopes the cap).
+  const isoA = createConcurrencyStore();
+  const isoB = createConcurrencyStore();
+  for (let i = 0; i < max; i++) admitCall("k", `x${i}`, now, RUNTIME_POLICY, isoA);
+  const isoOverA = admitCall("k", "xN", now, RUNTIME_POLICY, isoA);
+  const isoB1 = admitCall("k", "y0", now, RUNTIME_POLICY, isoB);
+  check("separate stores keep independent caps", isoOverA.decision === "throttle" && isoB1.decision === "allow");
+}
 
 const failed = R.filter(([s]) => s === "FAIL");
 for (const [s, n] of R) console.log(`${s}  ${n}`);
