@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 const { collectPageHealth, expectHealthy, enterDemoWorkspace } = require('./helpers');
 
 /**
- * RBAC is a core VerisZone feature: each role tab must present a distinct
+ * RBAC is a core GenVeris feature: each role tab must present a distinct
  * persona and content. We verify the view actually changes between roles.
  */
 test.describe('Role-based views (RBAC)', () => {

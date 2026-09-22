@@ -15,7 +15,7 @@ function collectPageHealth(page) {
   page.on('response', (res) => {
     const s = res.status();
     // Ignore 3xx redirects; flag 4xx/5xx on first-party requests.
-    if (s >= 400 && res.url().includes('veriszone')) {
+    if (s >= 400 && res.url().includes('genveris')) {
       health.badResponses.push(`${s} ${res.url()}`);
     }
   });

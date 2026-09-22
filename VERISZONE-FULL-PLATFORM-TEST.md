@@ -1,4 +1,4 @@
-# VerisZone — Full-Platform Test
+# GenVeris — Full-Platform Test
 
 _Real test run, 2026-08-05. Every number below came from an executed check — nothing asserted. Honest scope at the end: what this pass does and does not cover._
 

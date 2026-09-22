@@ -55,7 +55,7 @@ registerContent({
   "ungranted tool reached for — stopped": "أداة غير ممنوحة جرى بلوغها — أُوقِفت", "every call re-hashed": "كل استدعاء يُعاد بصمه",
   "The closed loop · policy → enforcement → evidence": "الحلقة المغلقة · السياسة ← الإنفاذ ← الدليل",
   "One control set, three planes": "مجموعة ضوابط واحدة، ثلاثة مستويات",
-  "Policy": "السياسة", "VerisZone control plane": "مستوى تحكّم VerisZone",
+  "Policy": "السياسة", "GenVeris control plane": "مستوى تحكّم GenVeris",
   "Capabilities, oversight rules & data scopes are declared per agent.": "تُعلَن القدرات وقواعد الإشراف ونطاقات البيانات لكل وكيل.",
   "Enforcement": "الإنفاذ", "Every tool call is decided at runtime — deny-by-default, tokens, egress & HITL.": "كل استدعاء أداة يُقرَّر وقت التشغيل — المنع افتراضياً، والرموز، والخروج، والإنسان في الحلقة.",
   "Evidence": "الدليل", "Article 12 chain": "سلسلة المادة 12",
@@ -63,7 +63,7 @@ registerContent({
   "✦ Export enforcement posture": "✦ تصدير وضع الإنفاذ",
   // ── EnforcementCoverage ──
   "Enforcement Coverage": "تغطية الإنفاذ",
-  "Veris Enforce decides what an agent does only where the agent's traffic runs through the plane — enforcement is a chokepoint, not action at a distance. This is the honest split of the AI estate: what is enforced inline, what is observed out-of-band, and what is still shadow. Building the AI in VerisZone is not the requirement; routing its model, tool and egress traffic through the plane is.": "يقرّر Veris Enforce ما يفعله الوكيل فقط حيث تمرّ حركته عبر المستوى — الإنفاذ نقطة اختناق، لا فعل عن بُعد. هذا هو التقسيم الصادق لبيئة الذكاء الاصطناعي: ما يُنفَّذ مباشرةً، وما يُراقَب خارج المسار، وما لا يزال ظِلّياً. بناء الذكاء الاصطناعي في VerisZone ليس المطلوب؛ بل توجيه حركة نموذجه وأدواته وخروجه عبر المستوى.",
+  "Veris Enforce decides what an agent does only where the agent's traffic runs through the plane — enforcement is a chokepoint, not action at a distance. This is the honest split of the AI estate: what is enforced inline, what is observed out-of-band, and what is still shadow. Building the AI in GenVeris is not the requirement; routing its model, tool and egress traffic through the plane is.": "يقرّر Veris Enforce ما يفعله الوكيل فقط حيث تمرّ حركته عبر المستوى — الإنفاذ نقطة اختناق، لا فعل عن بُعد. هذا هو التقسيم الصادق لبيئة الذكاء الاصطناعي: ما يُنفَّذ مباشرةً، وما يُراقَب خارج المسار، وما لا يزال ظِلّياً. بناء الذكاء الاصطناعي في GenVeris ليس المطلوب؛ بل توجيه حركة نموذجه وأدواته وخروجه عبر المستوى.",
   "Enforced inline": "مُنفَّذ مباشرةً", "Observed only": "مُراقَب فقط", "At least visible": "مرئي على الأقل",
   "The three planes · what control reaches where": "المستويات الثلاثة · أين تصل السيطرة",
   "Inline control · out-of-band observation · shadow": "سيطرة مباشرة · مراقبة خارج المسار · ظِلّي",
@@ -257,7 +257,7 @@ export function EnforcementOverview({ showToast }) {
   const T_ = useT(); const ar = useLang() === "ar";
   const s = enforceStats();
   const loop = [
-    ["Policy", "VerisZone control plane", "Capabilities, oversight rules & data scopes are declared per agent.", T.blue],
+    ["Policy", "GenVeris control plane", "Capabilities, oversight rules & data scopes are declared per agent.", T.blue],
     ["Enforcement", "Veris Enforce", "Every tool call is decided at runtime — deny-by-default, tokens, egress & HITL.", AI_GOLD],
     ["Evidence", "Article 12 chain", "Each decision is signed into a tamper-evident ledger the board & auditors read.", T.green],
   ];
@@ -305,7 +305,7 @@ export function EnforcementCoverage({ showToast }) {
     ["At least visible", `${s.governedPct}%`, AI_GOLD, ar ? "مُنفَّذ + مُراقَب — والباقي نقطة عمياء" : "enforced + observed — the rest is blind spot", "all"],
   ];
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Enforcement Coverage" sub="Veris Enforce decides what an agent does only where the agent's traffic runs through the plane — enforcement is a chokepoint, not action at a distance. This is the honest split of the AI estate: what is enforced inline, what is observed out-of-band, and what is still shadow. Building the AI in VerisZone is not the requirement; routing its model, tool and egress traffic through the plane is." />
+    <Head title="Enforcement Coverage" sub="Veris Enforce decides what an agent does only where the agent's traffic runs through the plane — enforcement is a chokepoint, not action at a distance. This is the honest split of the AI estate: what is enforced inline, what is observed out-of-band, and what is still shadow. Building the AI in GenVeris is not the requirement; routing its model, tool and egress traffic through the plane is." />
 
     <div style={kpiGrid}>
       {kpis.map(([l, v, c, sub, key]) => <button key={l} onClick={() => setPlane(key)} style={{ textAlign: "left", cursor: "pointer", background: plane === key ? c + "12" : T.card, border: `1px solid ${plane === key ? c + "66" : T.border}`, borderRadius: 12, padding: "13px 15px" }}>
@@ -407,7 +407,7 @@ export function PolicyAsAService({ showToast }) {
       const res = await fetch("/api/policy/inspect", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text, context: "paas-console", actor: "policy.console@veriszone.ai", channel: "paas-console" }),
+        body: JSON.stringify({ text, context: "paas-console", actor: "policy.console@genveris.ai", channel: "paas-console" }),
       });
       if (!res.ok) throw new Error("inspect " + res.status);
       const v = await res.json();
@@ -1029,7 +1029,7 @@ export function RuntimeGuardrails({ showToast }) {
 
 /* ── Guardrail Coverage ───────────────────────────────────────────────────
    The 7 guardrail layers every agentic AI stack needs, scored honestly against
-   what VerisZone actually enforces in code. Enforced / Partial / Gap per
+   what GenVeris actually enforces in code. Enforced / Partial / Gap per
    sub-control, each mapped to a real engine. Deliberately not a green wall —
    the point is that the product tells the truth about its own guardrails. */
 export function GuardrailCoverage({ showToast }) {
@@ -1043,7 +1043,7 @@ export function GuardrailCoverage({ showToast }) {
     </span>;
   };
   return <div style={{ animation: "up .3s ease" }}>
-    <Head title="Guardrail Coverage" sub="The seven guardrail layers every agentic AI stack needs — Input, Prompt, Retrieval, Memory, Runtime, Tool and Output — scored honestly against what VerisZone enforces in code. Every control is Enforced, Partial or a Gap, mapped to the real engine behind it. This is the product telling the truth about its own guardrails, not a datasheet: some engines are strong, some run on seeded signals, and some layers are genuinely not built yet." />
+    <Head title="Guardrail Coverage" sub="The seven guardrail layers every agentic AI stack needs — Input, Prompt, Retrieval, Memory, Runtime, Tool and Output — scored honestly against what GenVeris enforces in code. Every control is Enforced, Partial or a Gap, mapped to the real engine behind it. This is the product telling the truth about its own guardrails, not a datasheet: some engines are strong, some run on seeded signals, and some layers are genuinely not built yet." />
 
     <div style={kpiGrid}>
       <Kpi l="Overall coverage" v={s.coverage + "%"} c={s.coverage >= 60 ? AI_GOLD : T.amber} sub={`weighted across ${s.controls} controls`} />

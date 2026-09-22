@@ -1,11 +1,11 @@
-# VerisZone — Design Philosophy
+# GenVeris — Design Philosophy
 
-> **Govern with certainty.**
+> **Govern AI with certainty.**
 > The interface is not decoration on top of a governance database. It *is* the
-> governance argument, made visible. Every design decision in VerisZone answers
+> governance argument, made visible. Every design decision in GenVeris answers
 > one question: *does this help an executive trust the number in front of them?*
 
-This document is the reference for how VerisZone looks, feels and behaves — the
+This document is the reference for how GenVeris looks, feels and behaves — the
 principles, the token system, the palette strategy, the accessibility floor, and
 the rules that keep the product honest.
 
@@ -46,7 +46,7 @@ enforces. The UI never implies a control that the engine doesn't actually apply.
 
 ## 2. The token system
 
-VerisZone has **no hard-coded colours in feature code**. Everything reads from a
+GenVeris has **no hard-coded colours in feature code**. Everything reads from a
 shared, runtime-mutable token object. This is what makes 13 palettes, guaranteed
 contrast, and a single source of visual truth possible.
 
@@ -67,7 +67,7 @@ Shadow     shadow                                  (one calibrated elevation)
 Two named accents sit outside `T` because they are brand-constant:
 
 ```
-AI_GOLD      #D6A84F   — the VerisZone gold, for FILLS and accents
+AI_GOLD      #D6A84F   — the GenVeris gold, for FILLS and accents
 AI_GOLD_INK  #7E620F   — the text-safe gold, for gold TEXT (AA on cream)
 ```
 
@@ -107,7 +107,7 @@ earned. Type weight does the hierarchy work (300–800), not a zoo of typefaces.
 
 ## 3. Colour strategy: light-only, 13 palettes
 
-VerisZone **runs in light mode only.** Dark mode was deliberately removed — a
+GenVeris **runs in light mode only.** Dark mode was deliberately removed — a
 governance tool is used in boardrooms and audits under bright light, and a single
 optimised light system beats two half-tuned ones.
 
@@ -151,7 +151,7 @@ Colour is a vocabulary, and it is used consistently everywhere:
 | **Blue** | Informational · Continue · in-progress |
 | **Amber** | Attention · Improve · variance |
 | **Red** | Risk · blocked · Retire · breach |
-| **Gold** | The VerisZone accent — AI, recommendations, the brand moment |
+| **Gold** | The GenVeris accent — AI, recommendations, the brand moment |
 
 Decision language is derived, never arbitrary: a feedback set resolves to
 **Scale / Continue / Improve / Retire** (`feedbackDecision`), and a *failing risk
@@ -202,7 +202,7 @@ sake. Nothing important is conveyed by motion alone.
 
 ## 8. Determinism & SSR safety
 
-Because VerisZone server-renders and must produce identical, auditable output:
+Because GenVeris server-renders and must produce identical, auditable output:
 
 - **No `Date.now()` / `Math.random()` in render paths.** Anything time- or
   randomness-derived is passed in or stamped outside render, so the same inputs
@@ -243,4 +243,4 @@ If a change violates one of these, it is wrong no matter how good it looks.
 (tokens, palettes, primitives) and enforced across the 30 platform surfaces and
 the engines in `lib/`. When in doubt, read `core.jsx` — it is the constitution.*
 
-© Geniaz — VerisZone.
+© Geniaz — GenVeris.

@@ -1,6 +1,6 @@
-# VerisZone E2E test suite (Playwright)
+# GenVeris E2E test suite (Playwright)
 
-A durable, re-runnable end-to-end suite for the VerisZone console. Unlike a
+A durable, re-runnable end-to-end suite for the GenVeris console. Unlike a
 one-off manual pass, this runs on every change and catches regressions before
 customers do.
 

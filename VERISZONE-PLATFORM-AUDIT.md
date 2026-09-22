@@ -1,4 +1,4 @@
-# VerisZone — Complete Platform Audit
+# GenVeris — Complete Platform Audit
 
 _Full-platform audit & test: vision, functionality, clickability, UI/UX. Executed 2026-08-05. Every figure below came from a real run — build, live headless-Chromium walks, and direct engine assertions. Nothing asserted; nothing inflated._
 

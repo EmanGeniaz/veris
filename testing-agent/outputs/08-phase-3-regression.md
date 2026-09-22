@@ -2,7 +2,7 @@
 
 | Check | Status | Evidence | Notes |
 | --- | --- | --- | --- |
-| Source glyph scan | Pass | `Select-String` for `Ã`, `Â`, `â`, `�`, and long apostrophe runs returned no matches | Verified against `components/VerisZonePlatform.jsx`. |
+| Source glyph scan | Pass | `Select-String` for `Ã`, `Â`, `â`, `�`, and long apostrophe runs returned no matches | Verified against `components/GenVerisPlatform.jsx`. |
 | Lint | Pass | `cmd /c npm run lint` exited 0 | ESLint completed without findings. |
 | Build | Pass | `cmd /c npm run build` exited 0 | Next.js compiled and generated `/` plus `/_not-found`. |
 | Tests | Pass | `cmd /c npm test` exited 0 | `npm test` runs `next build` as the current project-level smoke check. Unit/E2E tests remain Unknown because no dedicated suites exist. |

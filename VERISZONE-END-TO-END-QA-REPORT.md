@@ -1,4 +1,4 @@
-# VerisZone — End-to-End QA Report
+# GenVeris — End-to-End QA Report
 
 _Adversarial audit. Verdicts are PASS / FAIL / REVIEW / NOT VERIFIABLE. Nothing marked PASS without a real test; nothing inflated._
 
@@ -50,7 +50,7 @@ _Adversarial audit. Verdicts are PASS / FAIL / REVIEW / NOT VERIFIABLE. Nothing 
 - **NOT exhaustively tested** (marked NOT VERIFIABLE below): 8 of 13 roles' live journeys; most non-Overview surfaces; in-drawer form submit/validation (Phase 16); responsive breakpoints (14); live state-sync (17); performance timings (21); full lifecycle completion-gating (7); evidence upload/version (8); live Veris Intelligence per role with a real API key (10 — no key present, so only the honest-degrade path was exercised).
 
 ## Executive summary
-VerisZone is a **polished, well-engineered demo SPA**: it builds clean, renders every role/surface without runtime errors, has real navigation + universal search, an honest AI-degradation path, and genuine server-side RBAC scaffolding. **However, for a product whose entire value proposition is _governance traceability and auditability_, the data layer undermines that promise:** the same headline metrics render **different values on different screens**, several dashboards **hardcode figures instead of deriving them**, and the CEO risk tables are **self-contradictory and diverge from the canonical risk register**. These are not cosmetic — an executive cannot trust a governance score that reads 72 here and 79 there.
+GenVeris is a **polished, well-engineered demo SPA**: it builds clean, renders every role/surface without runtime errors, has real navigation + universal search, an honest AI-degradation path, and genuine server-side RBAC scaffolding. **However, for a product whose entire value proposition is _governance traceability and auditability_, the data layer undermines that promise:** the same headline metrics render **different values on different screens**, several dashboards **hardcode figures instead of deriving them**, and the CEO risk tables are **self-contradictory and diverge from the canonical risk register**. These are not cosmetic — an executive cannot trust a governance score that reads 72 here and 79 there.
 
 | Dimension | Score /100 | Basis |
 | --- | --- | --- |

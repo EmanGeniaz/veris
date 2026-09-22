@@ -1,4 +1,4 @@
-const DEFAULTS = { endpoint: "https://demo.veriszone.ai/api/policy/inspect", key: "", actor: "", failClosed: false };
+const DEFAULTS = { endpoint: "https://demo.genveris.ai/api/policy/inspect", key: "", actor: "", failClosed: false };
 const $ = (id) => document.getElementById(id);
 
 chrome.storage.sync.get(DEFAULTS).then((s) => {

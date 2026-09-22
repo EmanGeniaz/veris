@@ -19,7 +19,7 @@ import { useLang, ts, registerContent } from "@/lib/i18n";
 registerContent({
   // ── chrome / labels ──
   "Initiative": "المبادرة",
-  "VerisZone proprietary governance engines · run automatically per initiative": "محرّكات حوكمة مملوكة لفيرِس زون · تعمل تلقائياً لكل مبادرة",
+  "GenVeris proprietary governance engines · run automatically per initiative": "محرّكات حوكمة مملوكة لفيرِس زون · تعمل تلقائياً لكل مبادرة",
   "Risks on register": "المخاطر في السجل",
   "Critical / high open": "الحرجة/العالية المفتوحة",
   "Treatments in progress": "المعالجات قيد التنفيذ",
@@ -269,7 +269,7 @@ export function RiskAssessmentCascade({setTab,setAiCentralView,fixed}){
     {!fixed&&<Card style={{padding:"12px 14px",marginBottom:12,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={{fontSize:9,color:T.ink4,fontFamily:F.m,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em"}}>{T_("Initiative")}</span>
       {acInitiatives.map(i=><button key={i.id} onClick={()=>setSelId(i.id)} style={{background:selId===i.id?AI_GOLD+"20":T.s2,border:`1px solid ${selId===i.id?AI_GOLD+"55":T.border}`,color:selId===i.id?AI_GOLD:T.ink3,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:800,fontFamily:F.b,cursor:"pointer"}}>{i.name}</button>)}
-      <span style={{marginLeft:"auto",fontSize:9,color:T.ink4,fontFamily:F.m}}>{T_("VerisZone proprietary governance engines · run automatically per initiative")}</span>
+      <span style={{marginLeft:"auto",fontSize:9,color:T.ink4,fontFamily:F.m}}>{T_("GenVeris proprietary governance engines · run automatically per initiative")}</span>
     </Card>}
     <div style={{display:"grid",gap:8}}>
       {AI_GOV_ENGINES.map((e,idx)=>{

@@ -46,7 +46,7 @@ export function ArabicGovernanceBriefing({ showToast }) {
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
       <div style={{ maxWidth: 720 }}>
         <h2 style={{ fontFamily: F.h, fontSize: 24, fontWeight: 900, color: T.ink, margin: 0, letterSpacing: ar ? 0 : "-0.02em" }}>{t("gb.title", "AI Governance Briefing")}</h2>
-        <p style={{ fontFamily: F.b, fontSize: 12.5, color: T.ink3, margin: "5px 0 0", lineHeight: 1.7 }}>{t("gb.sub", "A snapshot of compliance and controls across VerisZone — computed from real controls, never asserted.")}</p>
+        <p style={{ fontFamily: F.b, fontSize: 12.5, color: T.ink3, margin: "5px 0 0", lineHeight: 1.7 }}>{t("gb.sub", "A snapshot of compliance and controls across GenVeris — computed from real controls, never asserted.")}</p>
       </div>
       <div style={{ display: "flex", gap: 4, background: T.s2, border: `1px solid ${T.border}`, borderRadius: 10, padding: 3 }}>
         {LANGS.map(l => { const on = lang === l.code; return <button key={l.code} onClick={() => { setLang(l.code); showToast && showToast(l.code === "ar" ? "تم التبديل إلى العربية" : "Switched to English"); }} style={{ background: on ? AI_GOLD : "transparent", border: "none", borderRadius: 8, padding: "6px 13px", color: on ? "#241703" : T.ink2, fontSize: 12, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{l.native}</button>; })}
@@ -97,7 +97,7 @@ export function ArabicGovernanceBriefing({ showToast }) {
     </Card>
 
     <div style={{ padding: "11px 13px", borderRadius: 10, background: T.s2, border: `1px solid ${T.border}`, fontSize: 11, color: T.ink3, lineHeight: 1.7, fontFamily: F.b, textAlign: start }}>
-      {t("gb.honesty", "VerisZone reports control coverage and audit-readiness — not legal compliance, which an external auditor certifies.")}
+      {t("gb.honesty", "GenVeris reports control coverage and audit-readiness — not legal compliance, which an external auditor certifies.")}
     </div>
   </div>;
 }

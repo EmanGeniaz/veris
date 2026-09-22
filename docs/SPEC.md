@@ -1,4 +1,4 @@
-# VerisZone — Locked Feature Spec
+# GenVeris — Locked Feature Spec
 
 > The frozen feature list. A feature ships only if it is here. Status legend:
 > **DONE** (built + live-tested) · **MODELLED** (built, runs on seeded data — real

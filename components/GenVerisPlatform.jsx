@@ -448,7 +448,7 @@ function BrandEntryShell({theme,onTheme,onEnter}) {
           <div style={{height:1,background:`linear-gradient(90deg, ${AI_GOLD}50, ${T.border}, transparent)`,marginBottom:13}}/>
           <div style={{fontSize:11,fontWeight:900,fontFamily:F.b,color:theme==="light"?T.blue:AI_GOLD,textTransform:"uppercase",letterSpacing:"0.16em",marginBottom:8}}>Enterprise AI Transformation Control Plane</div>
           <h1 style={{fontSize:"clamp(30px,3.9vw,48px)",lineHeight:1.04,letterSpacing:0,fontWeight:400,fontFamily:F.e,margin:"0 0 10px",maxWidth:760}}>Pilot AI safely. Scale only when evidence says yes.</h1>
-          <p style={{fontSize:14,lineHeight:1.7,color:T.ink2,fontFamily:F.b,maxWidth:720,margin:0}}>VerisZone lets CXOs plan AI department by department, then hands execution to AI Central where AI Spine monitors risk drift, value, adoption, controls, evidence, and scale readiness.</p>
+          <p style={{fontSize:14,lineHeight:1.7,color:T.ink2,fontFamily:F.b,maxWidth:720,margin:0}}>GenVeris lets CXOs plan AI department by department, then hands execution to AI Central where AI Spine monitors risk drift, value, adoption, controls, evidence, and scale readiness.</p>
         </div>
         <div style={{maxWidth:760,margin:"0 0 12px"}}>
           <div style={{fontSize:10,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.14em",margin:"0 0 8px"}}>Platform capabilities</div>
@@ -578,7 +578,7 @@ function AppearanceCard({paletteId,setPaletteId,showToast}){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:4,flexWrap:"wrap"}}>
       <div>
         <h3 style={{fontFamily:F.h,fontSize:18,fontWeight:900,color:T.ink}}>Appearance</h3>
-        <p style={{fontFamily:F.b,fontSize:11.5,color:T.ink3,marginTop:2}}>VerisZone runs in light mode. Choose the workspace palette — it recolours the ground and the left rail across every screen.</p>
+        <p style={{fontFamily:F.b,fontSize:11.5,color:T.ink3,marginTop:2}}>GenVeris runs in light mode. Choose the workspace palette — it recolours the ground and the left rail across every screen.</p>
       </div>
       <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",background:T.s2,border:`1px solid ${T.border}`,borderRadius:20,padding:"5px 11px"}}>Light mode</span>
     </div>
@@ -607,7 +607,7 @@ function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut,
   const [dirty,setDirty]=useState(false);   // unsaved edits pending — warn before a refresh/navigation loses them
   const update=(field,value)=>{setDirty(true);setProfiles(prev=>({...prev,[selected]:{...(prev[selected]||USER_PROFILES[selected]),[field]:value}}));};
   const saveProfiles=()=>{
-    if(typeof window!=="undefined")window.localStorage.setItem("veriszone.userProfiles",JSON.stringify(profiles));
+    if(typeof window!=="undefined")window.localStorage.setItem("genveris.userProfiles",JSON.stringify(profiles));
     setDirty(false);
     showToast(`${selectedRole.label} profile saved`);
   };
@@ -624,7 +624,7 @@ function PageProfile({role,sessionMode,profiles,setProfiles,showToast,onSignOut,
   ];
   const initials=(profile.name||selectedRole.name).split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title={view==="appearance"?"Workspace Settings":"User Profiles"} sub={view==="appearance"?"Personalise the look of your workspace and manage preferences.":"Manage demo identities, credentials, organisation metadata and workspace access for every VerisZone user."}/>
+    <SHead title={view==="appearance"?"Workspace Settings":"User Profiles"} sub={view==="appearance"?"Personalise the look of your workspace and manage preferences.":"Manage demo identities, credentials, organisation metadata and workspace access for every GenVeris user."}/>
     <div style={{display:"inline-flex",gap:4,background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:4,marginBottom:14}}>
       {[["identity","Identity"],["appearance","Appearance"]].map(([id,label])=><button key={id} type="button" onClick={()=>setView(id)} style={{padding:"7px 15px",borderRadius:9,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:"none",background:view===id?AI_GOLD:"transparent",color:view===id?"#241820":T.ink3}}>{label}</button>)}
     </div>
@@ -710,19 +710,19 @@ function FreshWorkspaceEmpty({role,tab,aiCentralView,setTab}) {
   </div>;
 }
 
-export default function VerisZone() {
+export default function GenVeris() {
   const [role,setRole]=useState("caio");
   const [tab,setTab]=useState("home");
   const [toast,setToast]=useState({msg:"",vis:false,type:"success"});
   const [hitlCount,setHitlCount]=useState(()=>HITL["caio"].length);
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [isMobile,setIsMobile]=useState(()=>typeof window!=="undefined"&&window.innerWidth<768);
-  /* VerisZone is light-mode only; identity now comes from the chosen
+  /* GenVeris is light-mode only; identity now comes from the chosen
      workspace palette rather than a dark/light toggle. */
   const theme="light";
   const [paletteId,setPaletteIdState]=useState(DEFAULT_PALETTE);
-  const setPaletteId=id=>{ setPaletteIdState(id); if(typeof window!=="undefined") window.localStorage.setItem("veriszone.palette",id); };
-  useEffect(()=>{ if(typeof window==="undefined")return; const saved=window.localStorage.getItem("veriszone.palette"); if(saved&&paletteById(saved).id===saved) setPaletteIdState(saved); },[]);
+  const setPaletteId=id=>{ setPaletteIdState(id); if(typeof window!=="undefined") window.localStorage.setItem("genveris.palette",id); };
+  useEffect(()=>{ if(typeof window==="undefined")return; const saved=window.localStorage.getItem("genveris.palette"); if(saved&&paletteById(saved).id===saved) setPaletteIdState(saved); },[]);
   /* Universal search + cross-module deep-open: any enterprise object is
      reachable from anywhere; selecting an initiative opens its workspace. */
   const [searchQ,setSearchQ]=useState("");
@@ -732,8 +732,8 @@ export default function VerisZone() {
      whole shell mirrors when Arabic. Persisted per browser; loaded post-mount
      to stay SSR-safe (no localStorage read during render). */
   const [lang,setLangState]=useState("en");
-  const setLang=l=>{ setLangState(l); if(typeof window!=="undefined") window.localStorage.setItem("veriszone.lang",l); };
-  useEffect(()=>{ if(typeof window==="undefined")return; const saved=window.localStorage.getItem("veriszone.lang"); if(saved==="ar"||saved==="en") setLangState(saved); },[]);
+  const setLang=l=>{ setLangState(l); if(typeof window!=="undefined") window.localStorage.setItem("genveris.lang",l); };
+  useEffect(()=>{ if(typeof window==="undefined")return; const saved=window.localStorage.getItem("genveris.lang"); if(saved==="ar"||saved==="en") setLangState(saved); },[]);
   const rtl=lang==="ar";
   const [initToOpen,setInitToOpen]=useState(null);
   const [aiCentralView,setAiCentralView]=useState("dashboard");
@@ -756,7 +756,7 @@ export default function VerisZone() {
   const [userProfiles,setUserProfiles]=useState(()=>{
     if(typeof window==="undefined")return USER_PROFILES;
     try{
-      return {...USER_PROFILES,...JSON.parse(window.localStorage.getItem("veriszone.userProfiles")||"{}")};
+      return {...USER_PROFILES,...JSON.parse(window.localStorage.getItem("genveris.userProfiles")||"{}")};
     }catch{
       return USER_PROFILES;
     }
@@ -785,8 +785,8 @@ export default function VerisZone() {
   /* First-time entry into a seeded demo auto-launches the guided tour once. */
   useEffect(()=>{
     if(!hasEntered||sessionMode!=="demo"||typeof window==="undefined")return;
-    if(window.localStorage.getItem("veriszone.tourSeen"))return;
-    window.localStorage.setItem("veriszone.tourSeen","1");
+    if(window.localStorage.getItem("genveris.tourSeen"))return;
+    window.localStorage.setItem("genveris.tourSeen","1");
     setTourOpen(true);
   },[hasEntered,sessionMode]);
 
@@ -818,7 +818,7 @@ export default function VerisZone() {
     setAiCentralView("dashboard");
     setSessionMode("demo");
     // Clear the session-entry flag so deep links no longer auto-restore after sign-out.
-    if(typeof window!=="undefined"){window.sessionStorage.removeItem("veriszone.authed");window.history.replaceState(null,"","/");}
+    if(typeof window!=="undefined"){window.sessionStorage.removeItem("genveris.authed");window.history.replaceState(null,"","/");}
   },[]);
   const enterApp=useCallback((profile=LOGIN_PROFILES[0])=>{
     setRole(profile.role);
@@ -830,7 +830,7 @@ export default function VerisZone() {
     // Mark this browser session as authenticated. enterApp is only reached AFTER a
     // real sign-in (the entry screen) — so this flag is what lets deep-link
     // restoration below run without re-opening the login gate on every refresh.
-    if(typeof window!=="undefined")window.sessionStorage.setItem("veriszone.authed","1");
+    if(typeof window!=="undefined")window.sessionStorage.setItem("genveris.authed","1");
     setHasEntered(true);
   },[]);
   useEffect(()=>{
@@ -869,7 +869,7 @@ export default function VerisZone() {
       // *restored* if this browser session already signed in via the entry screen
       // (enterApp sets the flag). A cold visitor typing /workspace/aicentral/ledger
       // has no flag, so we fall through to the sign-in shell instead of the app.
-      if(typeof window==="undefined"||!window.sessionStorage.getItem("veriszone.authed"))return;
+      if(typeof window==="undefined"||!window.sessionStorage.getItem("genveris.authed"))return;
       if(enterFromRoute())return;
       if(window.location.hash==="#profile"){
         setHasEntered(true);

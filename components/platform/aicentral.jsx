@@ -1120,7 +1120,7 @@ export function PageIntegrations({role,showToast}){
           <Tag label={T_(r.stage)} color={rc} bg={RCL(role)+"80"}/>
           <span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{T_("Due")} {r.due}</span>
           <Tag label={T_(r.status)} color={sc} bg={sc+"18"}/>
-          <button onClick={()=>{vzDownload("veriszone-trust-pack.md",`# VerisZone Trust Pack (generated demo)\n\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}%`).join("\n")}\n`);showToast("Trust pack downloaded");}} style={{background:rc+"20",color:rc,border:"1px solid "+rc+"30",borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>{T_("Respond")}</button>
+          <button onClick={()=>{vzDownload("genveris-trust-pack.md",`# GenVeris Trust Pack (generated demo)\n\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}%`).join("\n")}\n`);showToast("Trust pack downloaded");}} style={{background:rc+"20",color:rc,border:"1px solid "+rc+"30",borderRadius:5,padding:"4px 8px",fontSize:9,fontWeight:600,fontFamily:F.b}}>{T_("Respond")}</button>
         </div>;})}
       </Card>
     </div>}

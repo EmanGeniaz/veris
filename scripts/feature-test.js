@@ -1,4 +1,4 @@
-/* VerisZone interactive feature test - exercises the platform's
+/* GenVeris interactive feature test - exercises the platform's
    mutating flows end-to-end against a running local build.
    Usage: node scripts/feature-test.js */
 const { chromium } = require('playwright');
@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
   await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2500);
   const email = page.locator('input').first();
-  if (!(await email.inputValue())) await email.fill('demo@veriszone.com');
+  if (!(await email.inputValue())) await email.fill('demo@genveris.com');
   await page.click('text=Enter Demo Center Workspace');
   await page.waitForTimeout(2200);
 

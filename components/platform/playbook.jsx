@@ -134,7 +134,7 @@ export function PagePlaybook({role,setTab,setAiCentralView,showToast,tab}){
           </div>
           {activePhase===4&&<div style={{background:AI_GOLD+"0d",border:`1px solid ${AI_GOLD}30`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
             <div style={{fontSize:9,fontWeight:800,color:AI_GOLD_INK,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:5}}>Governance-phase assessments</div>
-            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:7}}>The VerisZone engine cascade (AiOA → AiIA → AiRA → AiSA → AiPA → AiCA → AiGA → AiRT) runs automatically for this initiative.</div>
+            <div style={{fontSize:10,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:7}}>The GenVeris engine cascade (AiOA → AiIA → AiRA → AiSA → AiPA → AiCA → AiGA → AiRT) runs automatically for this initiative.</div>
             <button onClick={()=>setTab&&setTab("aiia")} style={{background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}40`,borderRadius:7,padding:"6px 11px",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>Open the assessment cascade →</button>
           </div>}
           <div style={{fontSize:9,fontWeight:800,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:7}}>Project risks - Risk Center register</div>
@@ -317,7 +317,7 @@ export function PlaybookRunbooks({role,setTab,showToast}) {
 /* ── Reference Architecture ───────────────────────────────────────────────
    The 7-layer enterprise AI reference architecture, standard in every
    initiative's playbook. Each layer, both governance spines and the runtime
-   foundation are mapped to the VerisZone engine that actually enforces it, so
+   foundation are mapped to the GenVeris engine that actually enforces it, so
    this is a control map for the selected initiative - not a poster. */
 
 const ARCH_LAYERS = [
@@ -387,13 +387,13 @@ export function PlaybookArchitecture({ini,selId,setSelId,role,setTab}){
         </div>)}
       </div>
       <div style={{fontSize:9.5,color:T.ink2,fontFamily:F.b,lineHeight:1.55,background:accent+"10",border:`1px solid ${accent}30`,borderRadius:7,padding:"8px 9px",marginBottom:8}}>
-        <span style={{color:accent,fontWeight:800}}>VerisZone · </span>{cfg.veris}
+        <span style={{color:accent,fontWeight:800}}>GenVeris · </span>{cfg.veris}
       </div>
       <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,fontStyle:"italic",lineHeight:1.5,borderLeft:`3px solid ${accent}55`,paddingLeft:9}}>{cfg.maxim}</div>
     </Card>;
 
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title="Reference Architecture" sub="Every AI initiative, system, agent or bot sits on the same seven layers - governance down the left, observability down the right, runtime underneath. Each layer maps to the VerisZone engine that enforces it for this initiative."/>
+    <SHead title="Reference Architecture" sub="Every AI initiative, system, agent or bot sits on the same seven layers - governance down the left, observability down the right, runtime underneath. Each layer maps to the GenVeris engine that enforces it for this initiative."/>
 
     {/* Initiative binding strip */}
     <Card style={{padding:16,marginBottom:12}}>
@@ -434,7 +434,7 @@ export function PlaybookArchitecture({ini,selId,setSelId,role,setTab}){
                 {L.parts.map(p=><span key={p} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 8px",fontSize:9.5,color:T.ink2,fontFamily:F.b,fontWeight:600}}>{p}</span>)}
               </div>
               <div style={{fontSize:10.5,color:T.ink2,fontFamily:F.b,lineHeight:1.55,background:gold+"0d",border:`1px solid ${gold}26`,borderRadius:7,padding:"8px 10px",marginBottom:6}}>
-                <span style={{color:AI_GOLD_INK,fontWeight:800}}>VerisZone · </span>{L.veris}
+                <span style={{color:AI_GOLD_INK,fontWeight:800}}>GenVeris · </span>{L.veris}
               </div>
               <div style={{fontSize:9.5,color:T.ink3,fontFamily:F.b,fontStyle:"italic",lineHeight:1.5,borderLeft:`3px solid ${gold}55`,paddingLeft:9}}>{L.maxim}</div>
             </div>

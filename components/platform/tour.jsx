@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react
 import { T, F, AI_GOLD, BrandLogo } from "./core";
 
 /* ── Guided product tour ───────────────────────────────────────────────
-   Teaches the VerisZone mental model on the *real* screens. Each step may
+   Teaches the GenVeris mental model on the *real* screens. Each step may
    `enter()` — driving the app (role / tab / AI Central view) so the live
    surface sits behind a dimmed vignette — and may `spotlight` a stable DOM
    selector, which we measure and cut a hole around. Concept steps have no
@@ -67,9 +67,9 @@ export function GuidedTour({ open, onClose, drive }) {
       key: "welcome", center: true,
       render: () => <div style={{ textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><BrandLogo theme="dark" width={150} /></div>
-        <h2 style={h2}>Welcome to VerisZone</h2>
+        <h2 style={h2}>Welcome to GenVeris</h2>
         <p style={{ ...body, maxWidth: 440, margin: "0 auto" }}>
-          VerisZone isn't a set of dashboards — it's a <b style={{ color: "#fff" }}>control plane</b>. In two minutes, you'll hold the one idea that makes every screen obvious.
+          GenVeris isn't a set of dashboards — it's a <b style={{ color: "#fff" }}>control plane</b>. In two minutes, you'll hold the one idea that makes every screen obvious.
         </p>
       </div>,
     },
@@ -78,7 +78,7 @@ export function GuidedTour({ open, onClose, drive }) {
       render: () => <div>
         <Eyebrow>The mental model</Eyebrow>
         <p style={{ ...body, textAlign: "center", maxWidth: 470, margin: "2px auto 16px" }}>
-          VerisZone governs <b style={{ color: "#fff" }}>one object — an AI initiative</b> — as it moves through a 13-phase lifecycle, with policy cascading <b style={{ color: AI_GOLD }}>down</b> and evidence &amp; risk rolling <b style={{ color: "#7DA3C9" }}>up</b>.
+          GenVeris governs <b style={{ color: "#fff" }}>one object — an AI initiative</b> — as it moves through a 13-phase lifecycle, with policy cascading <b style={{ color: AI_GOLD }}>down</b> and evidence &amp; risk rolling <b style={{ color: "#7DA3C9" }}>up</b>.
         </p>
         <ModelArt />
       </div>,
@@ -195,7 +195,7 @@ export function GuidedTour({ open, onClose, drive }) {
     cardStyle = { position: "fixed", left, top, width: w };
   }
 
-  return <div aria-modal="true" role="dialog" aria-label="VerisZone guided tour" style={{ position: "fixed", inset: 0, zIndex: 4000, fontFamily: F.b }}>
+  return <div aria-modal="true" role="dialog" aria-label="GenVeris guided tour" style={{ position: "fixed", inset: 0, zIndex: 4000, fontFamily: F.b }}>
     {/* dim layer with a hole around the spotlight */}
     {spot
       ? <div style={{ position: "fixed", left: spot.x, top: spot.y, width: spot.w, height: spot.h, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(9,12,22,.74)", border: `2px solid ${AI_GOLD}`, pointerEvents: "none", transition: "all .25s ease" }} />
@@ -229,7 +229,7 @@ export function GuidedTour({ open, onClose, drive }) {
 /* launch pill for the top bar */
 export function TourButton({ onClick, theme }) {
   const dark = theme !== "light";
-  return <button onClick={onClick} title="Guided tour — learn the VerisZone model" aria-label="Start guided tour" style={{ display: "flex", alignItems: "center", gap: 6, background: AI_GOLD + (dark ? "22" : "18"), border: `1px solid ${AI_GOLD}55`, borderRadius: 20, padding: "5px 12px", color: dark ? AI_GOLD : GOLD_INK, fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", whiteSpace: "nowrap" }}>
+  return <button onClick={onClick} title="Guided tour — learn the GenVeris model" aria-label="Start guided tour" style={{ display: "flex", alignItems: "center", gap: 6, background: AI_GOLD + (dark ? "22" : "18"), border: `1px solid ${AI_GOLD}55`, borderRadius: 20, padding: "5px 12px", color: dark ? AI_GOLD : GOLD_INK, fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", whiteSpace: "nowrap" }}>
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polygon points="15 9 12.5 12.5 9 15 11.5 11.5 15 9" fill="currentColor" stroke="none" /></svg>
     Tour
   </button>;

@@ -1,8 +1,8 @@
 /* Content script — runs on public AI sites. It inspects text at the moment it
    would leave the browser (paste, drag-drop, file upload, and submit) by asking
-   the background worker, which calls VerisZone's /api/policy/inspect. On a
+   the background worker, which calls GenVeris's /api/policy/inspect. On a
    `block` verdict it stops the action; on `mask` it substitutes the redacted
-   text VerisZone returns. This is a reference implementation — selectors for
+   text GenVeris returns. This is a reference implementation — selectors for
    each site's composer may need tuning as those UIs change.
 
    Enforcement lives server-side in the policy engine; this only carries the
@@ -12,7 +12,7 @@ const HOST = location.hostname;
 
 function toast(msg, tone) {
   const el = document.createElement("div");
-  el.textContent = "VerisZone: " + msg;
+  el.textContent = "GenVeris: " + msg;
   Object.assign(el.style, {
     position: "fixed", zIndex: 2147483647, bottom: "20px", left: "50%", transform: "translateX(-50%)",
     background: tone === "block" ? "#B42318" : "#1D4ED8", color: "#fff", font: "600 13px system-ui",
