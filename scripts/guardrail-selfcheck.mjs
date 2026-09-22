@@ -16,6 +16,7 @@
 import { resolveModel, modelAllowed, detectModelOverride } from "../lib/model-policy.ts";
 import { resolveBusTenant } from "../lib/bus-tenant.ts";
 import { telemetryMode, pickTelemetry } from "../lib/telemetry-source.ts";
+import { authReadiness } from "../lib/auth-readiness.ts";
 import retrievalGuard from "../lib/retrieval-guard.js";
 import inputGuard from "../lib/input-guard.js";
 import memory from "../lib/memory.js";
@@ -186,6 +187,22 @@ check("async scan is a no-op when AV_SCAN_URL unset", cleanAsync.decision === "a
   check("DB uses live rows, labelled live", live.source === "live" && live.rows.length === 1 && live.mode === "live");
   const emptyLive = pickTelemetry({ dbConfigured: true, liveRows: [], seededRows: seeded });
   check("empty live ledger stays live (never shows seeded as real)", emptyLive.source === "live" && emptyLive.rows.length === 0);
+}
+
+/* ── #142 auth provisioning readiness — a secrets-safe check reports which
+   prerequisites are set (booleans/names only, never values). ── */
+{
+  const demoEnv = { AUTH_SECRET: "auth-disabled-placeholder", DATABASE_URL: "postgres://user:password@localhost:5432/db", DIRECT_URL: "" };
+  const rDemo = authReadiness(demoEnv);
+  check("demo/placeholder env is not ready", rDemo.ready === false && rDemo.usingPlaceholderSecret === true);
+  check("readiness lists missing prerequisites by name", rDemo.missing.includes("AUTH_SECRET") && rDemo.missing.includes("DATABASE_URL"));
+  const provisioned = { AUTH_SECRET: "a-real-32-char-secret-value-xxxxx", DATABASE_URL: "postgresql://u:p@db.example:5432/app", DIRECT_URL: "postgresql://u:p@db.example:5432/app" };
+  const rReady = authReadiness(provisioned);
+  check("fully provisioned env is ready", rReady.ready === true && rReady.missing.length === 0 && rReady.usingPlaceholderSecret === false);
+  const noDirect = authReadiness({ AUTH_SECRET: "real-secret-value-here-xxxxxxxxxx", DATABASE_URL: "postgresql://u:p@db.example:5432/app" });
+  check("missing DIRECT_URL is recommended but not blocking", noDirect.ready === true && noDirect.recommendDirectUrl === true);
+  // The readiness object must never carry a secret value.
+  check("readiness never echoes a secret value", !JSON.stringify(rReady).includes("a-real-32-char-secret-value-xxxxx"));
 }
 
 const failed = R.filter(([s]) => s === "FAIL");
