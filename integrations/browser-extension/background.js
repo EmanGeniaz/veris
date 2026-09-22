@@ -1,10 +1,10 @@
-/* Service worker — holds the VerisZone config (endpoint + tenant key + actor)
+/* Service worker — holds the GenVeris config (endpoint + tenant key + actor)
    so the tenant key never lives in the page, and calls /api/policy/inspect on
    the content script's behalf. Verdicts are cached by a hash of the text so
    repeated inspections of the same content are instant. */
 
 const DEFAULTS = {
-  endpoint: "https://demo.veriszone.ai/api/policy/inspect", // set in Options
+  endpoint: "https://demo.genveris.ai/api/policy/inspect", // set in Options
   key: "",                                                  // x-veris-key (blank = dev/open mode)
   actor: "",                                                // user email, for the audit trail
   failClosed: false,                                        // block if the endpoint is unreachable
@@ -41,7 +41,7 @@ async function inspect({ text, destination }) {
     return verdict;
   } catch (e) {
     // Fail-open by default (don't break the user); fail-closed blocks on error.
-    return { decision: c.failClosed ? "block" : "allow", reason: "VerisZone unreachable", error: String(e) };
+    return { decision: c.failClosed ? "block" : "allow", reason: "GenVeris unreachable", error: String(e) };
   }
 }
 

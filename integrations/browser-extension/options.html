@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>VerisZone AI Guard — Settings</title>
+  <title>GenVeris AI Guard — Settings</title>
   <style>
     body { font: 14px system-ui, sans-serif; margin: 24px; max-width: 460px; color: #1c2130; }
     h1 { font-size: 18px; margin: 0 0 4px; }
@@ -15,11 +15,11 @@
   </style>
 </head>
 <body>
-  <h1>VerisZone AI Guard</h1>
+  <h1>GenVeris AI Guard</h1>
   <p class="sub">Point the extension at your tenant's policy-inspection endpoint.</p>
 
   <label for="endpoint">Inspection endpoint</label>
-  <input id="endpoint" type="text" placeholder="https://acme.veriszone.ai/api/policy/inspect" />
+  <input id="endpoint" type="text" placeholder="https://acme.genveris.ai/api/policy/inspect" />
 
   <label for="key">Tenant key (x-veris-key)</label>
   <input id="key" type="password" placeholder="leave blank in dev / open mode" />
@@ -29,7 +29,7 @@
 
   <div class="row">
     <input id="failClosed" type="checkbox" />
-    <label for="failClosed" style="margin:0;font-weight:600">Fail closed (block AI input if VerisZone is unreachable)</label>
+    <label for="failClosed" style="margin:0;font-weight:600">Fail closed (block AI input if GenVeris is unreachable)</label>
   </div>
 
   <button id="save">Save</button><span id="ok" class="ok" style="display:none">Saved ✓</span>

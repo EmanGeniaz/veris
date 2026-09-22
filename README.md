@@ -1,17 +1,17 @@
-# VerisZone — Enterprise AI Governance Control Plane
+# GenVeris — Enterprise AI Governance Control Plane
 
-> **Govern with certainty.**
-> VerisZone is the control plane where an enterprise plans, governs, ships and
+> **Govern AI with certainty.**
+> GenVeris is the control plane where an enterprise plans, governs, ships and
 > proves the value of every AI initiative — from first opportunity to retirement —
 > under one auditable system of record. A product of **Geniaz**.
 
 ---
 
-## 1. What VerisZone is
+## 1. What GenVeris is
 
 Most organisations run AI as a scatter of pilots: a chatbot here, a copilot there,
 a forecasting model in finance — each with its own risk story, its own spend, its
-own (often absent) evidence trail. VerisZone replaces that scatter with a single
+own (often absent) evidence trail. GenVeris replaces that scatter with a single
 **governed portfolio**:
 
 - **One object model.** Every AI effort is an *initiative* — a single record that
@@ -232,7 +232,7 @@ The entry page (`select[aria-label="Sign in to"]`) offers four ways in:
 
 ## 9. Governance & compliance coverage
 
-VerisZone maps initiatives against the frameworks enterprises are actually
+GenVeris maps initiatives against the frameworks enterprises are actually
 audited on, including:
 
 - **EU AI Act** risk tiers (Unacceptable / High / Limited / Minimal) and GPAI obligations
@@ -287,4 +287,4 @@ separately in **[`design_Philosophy.md`](./design_Philosophy.md)**.
 
 ---
 
-© Geniaz. VerisZone is proprietary software.
+© Geniaz. GenVeris is proprietary software.

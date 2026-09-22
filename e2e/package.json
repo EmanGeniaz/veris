@@ -1,7 +1,7 @@
 {
-  "name": "veriszone-e2e",
+  "name": "genveris-e2e",
   "version": "1.0.0",
-  "description": "End-to-end tests for the VerisZone control-plane console",
+  "description": "End-to-end tests for the GenVeris control-plane console",
   "private": true,
   "scripts": {
     "test": "playwright test",

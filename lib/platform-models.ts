@@ -683,9 +683,9 @@ export const guardrailDetectors: GuardrailDetector[] = [
 ];
 
 export const deploymentModes: DeploymentMode[] = [
-  { id: "mode-workspace", name: "Enterprise Workspace", desc: "Prompts intercepted inside VerisZone before any model call.", status: "Active" },
+  { id: "mode-workspace", name: "Enterprise Workspace", desc: "Prompts intercepted inside GenVeris before any model call.", status: "Active" },
   { id: "mode-copilot",   name: "Microsoft Copilot Integration", desc: "Consume Copilot telemetry via Graph, Purview and Defender APIs.", status: "Available" },
-  { id: "mode-api",       name: "API Gateway", desc: "Enterprise applications call the VerisZone Gateway before invoking models.", status: "Active" },
+  { id: "mode-api",       name: "API Gateway", desc: "Enterprise applications call the GenVeris Gateway before invoking models.", status: "Active" },
   { id: "mode-ext",       name: "Browser Extension", desc: "Inspect prompts on external AI sites: warn, block, redact, log.", status: "Planned" },
   { id: "mode-byol",      name: "Bring Your Own LLM", desc: "Any compatible endpoint configured as a connector - no redesign required.", status: "Available" },
 ];
@@ -880,7 +880,7 @@ export const kriRegister: KriRecord[] = [
   { id: "KRI-06", name: "Incident response MTTR", value: 26, unit: "hours", threshold: 24, direction: "above", trend: "improving", initiativeId: null, framework: "NIST AI RMF MG-4" },
 ];
 
-/* ── Governance engines: VerisZone IP ───────────────────────────
+/* ── Governance engines: GenVeris IP ───────────────────────────
    Every AI initiative automatically runs the cascade. The engines are
    never navigation - their outcomes surface in Risk Center assessments,
    dashboards, reports and recommendations. */

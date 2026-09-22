@@ -1,8 +1,8 @@
-/* Generates the shareable VerisZone Dictionary artifact (standalone HTML) from
+/* Generates the shareable GenVeris Dictionary artifact (standalone HTML) from
    the canonical lib/platform-dictionary.js + captured surface screenshots.
    Re-run to update the artifact whenever the dictionary changes:
      node scripts/gen-dictionary-artifact.mjs
-   Output: scratchpad/veriszone-dictionary.html (publish via the Artifact tool). */
+   Output: scratchpad/genveris-dictionary.html (publish via the Artifact tool). */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { fileURLToPath } from "url";
@@ -11,10 +11,10 @@ import { PLATFORM_DICTIONARY, DICT_CATEGORIES } from "../lib/platform-dictionary
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const SHOT_DIR = process.env.SHOT_DIR || join(__dir, "dictionary-shots");
-const OUT = process.env.OUT || join(__dir, "..", "veriszone-dictionary.html");
+const OUT = process.env.OUT || join(__dir, "..", "genveris-dictionary.html");
 
-/* ── real VerisZone logo → data URI (blue+gold on transparent, for the dark header) ── */
-const LOGO_PATH = join(__dir, "..", "public", "brand", "veriszone-dark-transparent.png");
+/* ── real GenVeris logo → data URI (blue+gold on transparent, for the dark header) ── */
+const LOGO_PATH = join(__dir, "..", "public", "brand", "genveris-dark-transparent.png");
 const LOGO = existsSync(LOGO_PATH) ? `data:image/png;base64,${readFileSync(LOGO_PATH).toString("base64")}` : "";
 
 const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -131,7 +131,7 @@ function card(e) {
   const sf = entryShotFile.get(e.term);
   const shot = sf && shotURI[sf] ? `
         <figure class="shot">
-          <img loading="lazy" src="${shotURI[sf]}" alt="Screenshot of ${esc(e.term)} in VerisZone" />
+          <img loading="lazy" src="${shotURI[sf]}" alt="Screenshot of ${esc(e.term)} in GenVeris" />
           <figcaption>Where “${esc(e.term)}” lives in the platform</figcaption>
         </figure>` : "";
   return `
@@ -174,7 +174,7 @@ const chips = ["All", ...DICT_CATEGORIES].map(c =>
 ).join("");
 
 const html = `<meta charset="utf-8" />
-<title>VerisZone Dictionary</title>
+<title>GenVeris Dictionary</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root{
@@ -290,7 +290,7 @@ const html = `<meta charset="utf-8" />
 <header class="top">
   <div class="top-in">
     <div class="brand">
-      ${LOGO ? `<img class="logo" src="${LOGO}" alt="VerisZone" />` : `<b>VerisZone</b>`}
+      ${LOGO ? `<img class="logo" src="${LOGO}" alt="GenVeris" />` : `<b>GenVeris</b>`}
       <span class="brand-sub">Governance Dictionary</span>
     </div>
     <div class="search">
@@ -303,7 +303,7 @@ const html = `<meta charset="utf-8" />
 
 <div class="wrap">
   <section class="hero">
-    <h1>Every name in <em>VerisZone</em>, explained.</h1>
+    <h1>Every name in <em>GenVeris</em>, explained.</h1>
     <p>The complete reference to the platform's vocabulary — every role, surface, engine, framework, concept and metric — each with what it means, where it's used, how it works, a screenshot, and a quick What / Why / How / Where.</p>
     <div class="legend">
       <span><b>${PLATFORM_DICTIONARY.length}</b> terms</span>
@@ -321,7 +321,7 @@ const html = `<meta charset="utf-8" />
     <div class="empty" id="empty">No term matches that search.</div>
   </main>
   <footer class="wrap-in">
-    <p><b>VerisZone Governance Dictionary</b> — the enterprise AI governance control plane. One entry per name; kept in sync with the in-product Glossary &amp; Learning surface.</p>
+    <p><b>GenVeris Governance Dictionary</b> — the enterprise AI governance control plane. One entry per name; kept in sync with the in-product Glossary &amp; Learning surface.</p>
   </footer>
 </div>
 

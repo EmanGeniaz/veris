@@ -777,7 +777,7 @@ function Playbook({showToast,role="ceo"}){
 /* Board portfolio pack — a plain-text board export of the live estate. */
 function vzDownloadPlaybook(realized,roiPct){
   const lines=CEO_PORTFOLIO.map(p=>`- ${p.name} (${p.unit}) · ${p.stage} · ROI ${p.roi>0?"+"+p.roi:p.roi}% · risk ${p.risk} · verdict ${programVerdict(p).label}`);
-  vzDownload("veriszone-ai-playbook.md",`# VerisZone Enterprise AI Playbook\n\nThe complete portfolio of enterprise AI — the board's single source of truth.\n\nPrograms: ${CEO_PORTFOLIO.length} · Value realized: $${realized.toFixed(1)}M · Portfolio ROI: +${roiPct}%\n\n## Portfolio\n${lines.join("\n")}\n\n## Governance spine\n- Cadence: monthly council · quarterly board · weekly delivery\n- Gate: 13-phase lifecycle; scale gate needs human-oversight record + conformity assessment\n- Escalation: critical risk -> CISO 24h; value-leak >15% -> CFO reforecast\n- Ownership: every program has sponsor + risk owner + delivery lead\n`);
+  vzDownload("genveris-ai-playbook.md",`# GenVeris Enterprise AI Playbook\n\nThe complete portfolio of enterprise AI — the board's single source of truth.\n\nPrograms: ${CEO_PORTFOLIO.length} · Value realized: $${realized.toFixed(1)}M · Portfolio ROI: +${roiPct}%\n\n## Portfolio\n${lines.join("\n")}\n\n## Governance spine\n- Cadence: monthly council · quarterly board · weekly delivery\n- Gate: 13-phase lifecycle; scale gate needs human-oversight record + conformity assessment\n- Escalation: critical risk -> CISO 24h; value-leak >15% -> CFO reforecast\n- Ownership: every program has sponsor + risk owner + delivery lead\n`);
 }
 
 /* ══════════════════ PORTFOLIO ══════════════════ */

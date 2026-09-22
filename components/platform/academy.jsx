@@ -10,7 +10,7 @@ import { useLang, ts } from "@/lib/i18n";
 import { USE_CASES, USE_CASE_CATS, USE_CASE_CAT_AR } from "@/lib/use-cases";
 
 /* ── Use Cases (Help / Guides) ──────────────────────────────────────
-   A problem an organisation faces, and the step-by-step way VerisZone
+   A problem an organisation faces, and the step-by-step way GenVeris
    solves it. Bilingual; content lives in lib/use-cases.js. */
 function UseCases() {
   const lang = useLang(); const ar = lang === "ar"; const T_ = en => ts(lang, en);
@@ -20,8 +20,8 @@ function UseCases() {
   const chips = ["all", ...USE_CASE_CATS];
   return <div style={{ animation: "up .3s ease" }}>
     <SHead title={ar ? "حالات الاستخدام" : "Use Cases"} sub={ar
-      ? "مشكلة تواجهها مؤسستك، والطريقة خطوة بخطوة التي تحلّها بها VerisZone — كل خطوة تشير إلى السطح الذي ينجزها."
-      : "A problem your organisation faces, and the step-by-step way VerisZone solves it — each step points to the surface that does the work."} />
+      ? "مشكلة تواجهها مؤسستك، والطريقة خطوة بخطوة التي تحلّها بها GenVeris — كل خطوة تشير إلى السطح الذي ينجزها."
+      : "A problem your organisation faces, and the step-by-step way GenVeris solves it — each step points to the surface that does the work."} />
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
       {chips.map(c => { const on = cat === c; return <button key={c} onClick={() => setCat(c)} style={{ fontSize: 10.5, fontWeight: 800, fontFamily: F.b, cursor: "pointer", color: on ? "#241703" : T.ink2, background: on ? AI_GOLD : T.s2, border: `1px solid ${on ? AI_GOLD : T.border}`, borderRadius: 999, padding: "5px 12px" }}>{c === "all" ? (ar ? "الكل" : "All") : catLabel(c)}</button>; })}
     </div>

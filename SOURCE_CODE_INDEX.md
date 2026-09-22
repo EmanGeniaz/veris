@@ -1,4 +1,4 @@
-# VerisZone Source Code Index
+# GenVeris Source Code Index
 
 This project source handover includes the application code, local project skills, public brand assets, mock data, configuration, and prior quality-agent outputs.
 
@@ -8,13 +8,13 @@ Generated folders such as `node_modules` and `.next` are intentionally excluded 
 
 | Path | Purpose |
 | --- | --- |
-| `app/page.tsx` | Root route; renders the VerisZone platform shell |
+| `app/page.tsx` | Root route; renders the GenVeris platform shell |
 | `app/layout.tsx` | Next.js root layout and metadata/favicon |
 | `app/globals.css` | Global CSS and theme styles |
 | `app/profile/page.tsx` | Profile route wrapper |
 | `app/workspace/[profile]/[[...segments]]/page.tsx` | Dynamic workspace route wrapper |
-| `components/VerisZonePlatform.jsx` | Main MVP application component and UI implementation |
-| `components/VerisZonePlatform.d.ts` | Type declaration for the JSX platform component |
+| `components/GenVerisPlatform.jsx` | Main MVP application component and UI implementation |
+| `components/GenVerisPlatform.d.ts` | Type declaration for the JSX platform component |
 | `components/ui/button.tsx` | Reusable shadcn-style button component |
 | `lib/types.ts` | TypeScript type definitions |
 | `lib/mock-data.ts` | Mock AI governance data |
@@ -26,10 +26,10 @@ Generated folders such as `node_modules` and `.next` are intentionally excluded 
 
 | Path | Purpose |
 | --- | --- |
-| `public/brand/veriszone-official-dark.png` | Official dark-mode VerisZone logo asset |
-| `public/brand/veriszone-official-light.png` | Official light-mode VerisZone logo asset |
-| `public/brand/veriszone-logo-light.svg` | Light logo SVG variant |
-| `public/brand/veriszone-dark-app-icon.png` | Favicon/app icon |
+| `public/brand/genveris-official-dark.png` | Official dark-mode GenVeris logo asset |
+| `public/brand/genveris-official-light.png` | Official light-mode GenVeris logo asset |
+| `public/brand/genveris-logo-light.svg` | Light logo SVG variant |
+| `public/brand/genveris-dark-app-icon.png` | Favicon/app icon |
 | `public/brand/ai-central-symbol.png` | AI Central symbol |
 | `public/brand/ai-central-logo.png` | AI Central logo |
 

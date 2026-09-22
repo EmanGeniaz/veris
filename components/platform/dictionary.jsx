@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { T, F, AI_GOLD, AI_GOLD_INK, Card, SHead } from "./core";
 import { PLATFORM_DICTIONARY, DICT_CATEGORIES } from "@/lib/platform-dictionary";
 
-/* ── Glossary & Learning — the in-product mirror of the VerisZone Dictionary.
+/* ── Glossary & Learning — the in-product mirror of the GenVeris Dictionary.
    Reads the same lib/platform-dictionary.js as the shareable artifact, so the
    two stay in sync. Search + category filter + expandable entries; each entry
    carries Meaning, Usage, Example and a What/Why/How/Where quick-learning grid.
@@ -68,7 +68,7 @@ export function GlossaryLearning() {
   const field = { background: "#fff", border: `1px solid ${T.border}`, borderRadius: 9, padding: "9px 13px", color: T.ink, fontSize: 13, fontWeight: 600, fontFamily: F.b, outline: "none" };
 
   return <div style={{ animation: "up .3s ease" }}>
-    <SHead title="Glossary & Learning" sub={`Every name in VerisZone, explained — ${PLATFORM_DICTIONARY.length} terms across roles, surfaces, engines, frameworks, concepts and metrics. Search or filter, then open a term for its meaning, usage, an example and a quick What / Why / How / Where.`} />
+    <SHead title="Glossary & Learning" sub={`Every name in GenVeris, explained — ${PLATFORM_DICTIONARY.length} terms across roles, surfaces, engines, frameworks, concepts and metrics. Search or filter, then open a term for its meaning, usage, an example and a quick What / Why / How / Where.`} />
 
     <Card style={{ padding: 14, marginBottom: 12 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>

@@ -214,7 +214,7 @@ export function PageStrategy({role,setTab}) {
     if(!pn.trim()||!pd.trim()){setErr("Project name and description are required.");return;}
     setErr("");setLoading(true);setResult(null);
     const fwList=fws.length?fws.join(", "):R.frameworks.join(", ");
-    const systemPrompt="You are VerisZone's AI Strategy Engine, specialising in "+R.label+" ("+R.title+") responsibilities and ISO 42001 AIMS implementation.\nGenerate a governance strategy. Respond ONLY in valid JSON, no markdown, no backticks:\n{\"summary\":\"2-3 sentence summary\",\"riskLevel\":\"Critical|High|Medium|Low\",\"objectives\":[{\"title\":\"string\",\"desc\":\"string\"}],\"steps\":[{\"n\":1,\"action\":\"string\",\"owner\":\"string\",\"timeline\":\"string\",\"clause\":\"string\",\"priority\":\"Critical|High|Medium\"}],\"regulatory\":[{\"framework\":\"string\",\"article\":\"string\",\"req\":\"string\",\"risk\":\"string\"}],\"hitl\":true,\"hitlReason\":\"string\"}\nRules: exactly 4 objectives, exactly 6 steps ordered chronologically, exactly 3 regulatory items. Reference real ISO 42001 clauses and regulatory articles. Return ONLY the JSON object.";
+    const systemPrompt="You are GenVeris's AI Strategy Engine, specialising in "+R.label+" ("+R.title+") responsibilities and ISO 42001 AIMS implementation.\nGenerate a governance strategy. Respond ONLY in valid JSON, no markdown, no backticks:\n{\"summary\":\"2-3 sentence summary\",\"riskLevel\":\"Critical|High|Medium|Low\",\"objectives\":[{\"title\":\"string\",\"desc\":\"string\"}],\"steps\":[{\"n\":1,\"action\":\"string\",\"owner\":\"string\",\"timeline\":\"string\",\"clause\":\"string\",\"priority\":\"Critical|High|Medium\"}],\"regulatory\":[{\"framework\":\"string\",\"article\":\"string\",\"req\":\"string\",\"risk\":\"string\"}],\"hitl\":true,\"hitlReason\":\"string\"}\nRules: exactly 4 objectives, exactly 6 steps ordered chronologically, exactly 3 regulatory items. Reference real ISO 42001 clauses and regulatory articles. Return ONLY the JSON object.";
     const userMsg="Role: "+R.label+" - "+R.title+"\nProject: "+pn+"\nDescription: "+pd+"\nFrameworks: "+fwList+"\nTimeline: "+tl+"\nPriority: "+pri;
     const r=await askGateway(systemPrompt+"\n\n"+userMsg);
     if(!r.enabled)setErr("AI strategy generation runs through the Veris AI Gateway, which isn't configured in this environment (no model key).");
@@ -298,7 +298,7 @@ export function PageStrategy({role,setTab}) {
         <div style={{width:24,height:24,borderRadius:6,background:rc,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}></div>
         <h2 style={{fontFamily:F.h,fontSize:18,fontWeight:700,color:T.ink}}>AI Strategy Generator</h2>
       </div>
-      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginBottom:18,lineHeight:1.65}}>Describe your project and VerisZone will generate a structured governance strategy.</p>
+      <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,marginBottom:18,lineHeight:1.65}}>Describe your project and GenVeris will generate a structured governance strategy.</p>
       <div style={{display:"flex",flexDirection:"column",gap:11,marginBottom:12}}>
         <div>
           <label style={{fontSize:9,fontWeight:700,color:T.ink4,display:"block",marginBottom:5,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.06em"}}>Project Name *</label>
@@ -410,7 +410,7 @@ export function PageHITL({role,showToast,onCountChange}) {
       <span style={{fontSize:18,flexShrink:0}}>HITL</span>
       <div>
         <div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:4}}>What is Human-in-the-Loop?</div>
-        <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,margin:0}}>VerisZone AI analyses your compliance posture and recommends actions. For high-stakes decisions, <strong style={{color:T.ink}}>the system cannot act until you explicitly approve.</strong> You see the full reasoning, ISO 42001 clause reference, confidence score, and proposed action before you decide. Every decision is time-stamped and audit-logged.</p>
+        <p style={{fontSize:11,color:T.ink3,lineHeight:1.7,fontFamily:F.b,margin:0}}>GenVeris AI analyses your compliance posture and recommends actions. For high-stakes decisions, <strong style={{color:T.ink}}>the system cannot act until you explicitly approve.</strong> You see the full reasoning, ISO 42001 clause reference, confidence score, and proposed action before you decide. Every decision is time-stamped and audit-logged.</p>
       </div>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:13}}>
@@ -458,7 +458,7 @@ export function PageHITL({role,showToast,onCountChange}) {
 }
 
 /* Section */
-/* The VerisZone governance engine cascade - proprietary engines that
+/* The GenVeris governance engine cascade - proprietary engines that
    run automatically for every AI initiative. Users see outcomes; the
    engines power dashboards, assessments and recommendations. */
 export function PageRoadmap({role,setTab,setAiCentralView}) {

@@ -1,4 +1,4 @@
-# VerisZone AI Guard — reference browser extension + inspection endpoint
+# GenVeris AI Guard — reference browser extension + inspection endpoint
 
 Closes the "shadow AI" gap: it governs prompts, pastes and uploads to **public**
 AI tools (claude.ai, chatgpt.com, gemini, copilot) using the **same policy
@@ -57,11 +57,11 @@ agents, this extension, and any CASB identically.
 1. Open `chrome://extensions`, enable **Developer mode**, **Load unpacked**, and
    select this `integrations/browser-extension/` folder.
 2. Open the extension **Options** and set the **Inspection endpoint** (e.g.
-   `https://acme.veriszone.ai/api/policy/inspect`), the **tenant key**, and the
+   `https://acme.genveris.ai/api/policy/inspect`), the **tenant key**, and the
    **actor** email. Toggle **Fail closed** if input should be blocked when
-   VerisZone is unreachable.
+   GenVeris is unreachable.
 3. Visit claude.ai and paste a fake card number / email — it is masked or the
-   paste is blocked, with a toast, and a verdict is logged to VerisZone.
+   paste is blocked, with a toast, and a verdict is logged to GenVeris.
 
 > Reference implementation. Composer selectors and file handling may need
 > tuning per site as their UIs change; ship via Chrome Enterprise / MDM policy
@@ -76,6 +76,6 @@ endpoint. Two modes:
   `api.anthropic.com` / claude.ai to `/api/policy/inspect`; on `block` it returns
   a block page, on `mask` it rewrites the body with `redacted`.
 - **Host allow-list (coarse):** enforce `egressDecision()` at the host level —
-  allow `api.anthropic.com` only from the VerisZone gateway egress IP and block
+  allow `api.anthropic.com` only from the GenVeris gateway egress IP and block
   direct user access, forcing all AI through the governed path. No body
   inspection required.

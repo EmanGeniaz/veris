@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VerisZone - Govern with certainty.",
-  description: "VerisZone enterprise AI governance operating system.",
+  title: "GenVeris - Govern AI with certainty.",
+  description: "GenVeris enterprise AI governance operating system.",
   icons: {
-    icon: "/brand/veriszone-dark-app-icon.png",
-    shortcut: "/brand/veriszone-dark-app-icon.png",
-    apple: "/brand/veriszone-dark-app-icon.png"
+    icon: "/brand/genveris-dark-app-icon.png",
+    shortcut: "/brand/genveris-dark-app-icon.png",
+    apple: "/brand/genveris-dark-app-icon.png"
   }
 };
 

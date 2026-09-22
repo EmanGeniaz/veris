@@ -175,7 +175,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
        chatbot. When the gateway is unreachable (no model key) the local reply must
        still DECLINE off-topic questions rather than pretend it did enterprise work.
        Only decline on a clear off-topic signal with no governance signal present. */
-    const enterpriseSignal=/\b(ai|ml|model|agent|governance|govern|policy|policies|risk|compliance|complian|initiative|portfolio|audit|evidence|control|framework|iso|eu ai act|gdpr|nist|deploy|pilot|adoption|roi|budget|vendor|incident|drift|bias|guardrail|prompt|dataset|privacy|security|approval|regulat|veriszone|workspace|academy)\b/i;
+    const enterpriseSignal=/\b(ai|ml|model|agent|governance|govern|policy|policies|risk|compliance|complian|initiative|portfolio|audit|evidence|control|framework|iso|eu ai act|gdpr|nist|deploy|pilot|adoption|roi|budget|vendor|incident|drift|bias|guardrail|prompt|dataset|privacy|security|approval|regulat|genveris|workspace|academy)\b/i;
     const offTopic=/\b(weather|forecast|temperature|humidity|sports?|football|soccer|cricket|basketball|tennis|recipe|cook|restaurant|movie|film|song|lyrics|celebrit|joke|horoscope|lottery|capital of|who won|population of|translate|poem)\b/i;
     const offDomain=!blocked&&offTopic.test(text)&&!enterpriseSignal.test(text);
     const enriched=(blocked||offDomain)?[]:wbEnrichFor(text);
@@ -186,8 +186,8 @@ export function PageWorkbench({role,sessionMode,showToast}){
         :`Request blocked by the ${guard.detector} policy. Nothing left the enterprise boundary. Remove the sensitive content, or request an exception through HITL approval.`)
       :offDomain
       ?(ar
-        ?`هذا خارج نطاق حوكمتي. أنا استخبارات فيريس — أساعدك في مبادرات الذكاء الاصطناعي ونماذجه ووكلائه، والمخاطر، والامتثال، والسياسة، والأدلة، وكيفية تشغيل VerisZone. اسألني عن أحدها وسأوجّهه عبر البوابة المُحوكَمة.`
-        :`That's outside my governance scope. I'm Veris Intelligence — I help with your AI initiatives, models and agents, risk, compliance, policy, evidence and how to operate VerisZone. Ask me one of those and I'll route it through the governed gateway.`)
+        ?`هذا خارج نطاق حوكمتي. أنا استخبارات فيريس — أساعدك في مبادرات الذكاء الاصطناعي ونماذجه ووكلائه، والمخاطر، والامتثال، والسياسة، والأدلة، وكيفية تشغيل GenVeris. اسألني عن أحدها وسأوجّهه عبر البوابة المُحوكَمة.`
+        :`That's outside my governance scope. I'm Veris Intelligence — I help with your AI initiatives, models and agents, risk, compliance, policy, evidence and how to operate GenVeris. Ask me one of those and I'll route it through the governed gateway.`)
       :(ar
         ?`${artifact?"تم توليد مسودة":"تم"} باستخدام معرفة المؤسسة قبل أي استدعاء للنموذج — موجَّه إلى ${provider.name} (${route.reason.toLowerCase()}).${guard?" جرى تقنيع البيانات الحسّاسة عند حدود المؤسسة.":""}${artifact?" سُجِّلت المُخرَجات وقرار سياستها في الثقة والأدلة.":""}`
         :`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`);
@@ -240,7 +240,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
   const gaColor=a=>a==="Blocked"?T.red:a==="Masked"?T.amber:a==="Justification required"?T.blue:T.green;
   const clsColor=c=>c==="Restricted"?T.red:c==="Confidential"?T.amber:T.blue;
   return <div style={{animation:"up .3s ease"}}>
-    <SHead title={T_("AI Assistant")} sub={ar?"مساحة عملك الذكية الشخصية — تؤمّن VerisZone كل محادثة بصمت عبر بوابة الذكاء الاصطناعي.":"Your personal AI workspace - VerisZone silently secures every conversation through the AI Gateway."}/>
+    <SHead title={T_("AI Assistant")} sub={ar?"مساحة عملك الذكية الشخصية — تؤمّن GenVeris كل محادثة بصمت عبر بوابة الذكاء الاصطناعي.":"Your personal AI workspace - GenVeris silently secures every conversation through the AI Gateway."}/>
     <input ref={fileRef} type="file" accept=".txt,.md,.markdown,.csv,.json,.log,.text" style={{display:"none"}} onChange={ingestFile}/>
     <div style={{display:"grid",gridTemplateColumns:"290px 1fr",gap:14,alignItems:"start"}}>
       {/* Conversations - searchable, pinned and grouped like a personal assistant */}

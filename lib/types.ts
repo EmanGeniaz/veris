@@ -387,7 +387,7 @@ export type KriRecord = {
   framework: string;
 };
 
-/* ── Governance engines (VerisZone IP) ──────────────────────────
+/* ── Governance engines (GenVeris IP) ──────────────────────────
    The engines power assessments across the platform; users experience
    outcomes, never methodology pages. */
 export type GovEngine = {

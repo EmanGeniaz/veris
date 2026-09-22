@@ -1,6 +1,6 @@
-# VerisZone — Setup (Supabase + Vercel)
+# GenVeris — Setup (Supabase + Vercel)
 
-VerisZone runs fully in **demo mode** with no configuration (localStorage + a
+GenVeris runs fully in **demo mode** with no configuration (localStorage + a
 grounded AI simulation). Three independent env vars turn on real capabilities:
 
 | Capability | Turned on by | Notes |

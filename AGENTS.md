@@ -1,4 +1,4 @@
-# VerisZone Codex Agents
+# GenVeris Codex Agents
 
 ## master-platform-quality-orchestrator
 

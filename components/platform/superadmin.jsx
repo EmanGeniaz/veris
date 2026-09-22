@@ -152,7 +152,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
         <span style={{ fontSize: 9.5, fontWeight: 900, fontFamily: F.m, color: AI_GOLD, background: AI_GOLD + "1f", border: `1px solid ${AI_GOLD}55`, borderRadius: 999, padding: "3px 10px", textTransform: "uppercase", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>Super Admin</span>
       </div>
       <div style={{ flex: 1 }} />
-      <span className="sa-op-email" style={{ fontSize: 11, color: "#AEB6C6", fontFamily: F.b }}>Platform operator · root@veriszone.ai</span>
+      <span className="sa-op-email" style={{ fontSize: 11, color: "#AEB6C6", fontFamily: F.b }}>Platform operator · root@genveris.ai</span>
       <button onClick={onSignOut} style={{ background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", borderRadius: 8, padding: "7px 13px", color: "#fff", fontSize: 11, fontWeight: 800, fontFamily: F.b, cursor: "pointer", flexShrink: 0 }}>Sign out</button>
     </div>
 
@@ -187,7 +187,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
                 <div style={{ width: 34, height: 34, borderRadius: 9, background: AI_GOLD + "1a", color: AI_GOLD_INK, display: "grid", placeItems: "center", fontWeight: 900, fontFamily: F.h, fontSize: 14 }}>{o.name[0]}</div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{o.name}</div>
-                  <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.m }}>{o.slug}.veriszone.ai · {o.region} · {o.plan}</div>
+                  <div style={{ fontSize: 10, color: T.ink3, fontFamily: F.m }}>{o.slug}.genveris.ai · {o.region} · {o.plan}</div>
                 </div>
                 <Pill c={o.seeded ? T.blue : T.ink3}>{o.seeded ? "Seeded" : "Clean"}</Pill>
                 <Pill c={o.status === "Active" ? T.green : T.amber}>{o.status}</Pill>
@@ -204,7 +204,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
                 <label style={{ display: "grid", gap: 4 }}><Eyebrow>Region</Eyebrow><select value={nf.region} onChange={e => setNf({ ...nf, region: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{SA_REGIONS.map(r => <option key={r}>{r}</option>)}</select></label>
                 <label style={{ display: "grid", gap: 4 }}><Eyebrow>Plan</Eyebrow><select value={nf.plan} onChange={e => setNf({ ...nf, plan: e.target.value })} style={{ ...field(), cursor: "pointer" }}>{SA_PLANS.map(p => <option key={p}>{p}</option>)}</select></label>
               </div>
-              {nf.name.trim() && <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.m }}>Tenant: <b style={{ color: T.ink2 }}>{slugify(nf.name)}.veriszone.ai</b></div>}
+              {nf.name.trim() && <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.m }}>Tenant: <b style={{ color: T.ink2 }}>{slugify(nf.name)}.genveris.ai</b></div>}
               <button onClick={createOrg} style={btn(true)}>+ Provision clean organization</button>
             </div>
           </Card>
@@ -281,7 +281,7 @@ export function PageSuperAdmin({ onSignOut, showToast }) {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.6fr auto", gap: 10, alignItems: "end" }}>
             <label style={{ display: "grid", gap: 4 }}><Eyebrow>Name</Eyebrow><input value={of.name} onChange={e => setOf({ ...of, name: e.target.value })} placeholder="Full name" style={field()} /></label>
-            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={of.email} onChange={e => setOf({ ...of, email: e.target.value })} placeholder="name@veriszone.ai" style={field()} /></label>
+            <label style={{ display: "grid", gap: 4 }}><Eyebrow>Email</Eyebrow><input value={of.email} onChange={e => setOf({ ...of, email: e.target.value })} placeholder="name@genveris.ai" style={field()} /></label>
             <button onClick={appointOp} style={btn(true)}>+ Appoint operator</button>
           </div>
         </Card>

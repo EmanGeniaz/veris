@@ -8,7 +8,7 @@ require('dotenv').config();
  *  - For authenticated / write tests, point this at your STAGING url and
  *    supply TEST_EMAIL / TEST_PASSWORD in a .env file. NEVER production.
  */
-const BASE_URL = process.env.BASE_URL || 'https://console.veriszone.com';
+const BASE_URL = process.env.BASE_URL || 'https://console.genveris.com';
 
 module.exports = defineConfig({
   testDir: './tests',

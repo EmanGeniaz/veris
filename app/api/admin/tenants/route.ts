@@ -28,5 +28,5 @@ export async function POST(req: NextRequest) {
   if (!slug || !name) return NextResponse.json({ ok: false, error: "slug and name required" }, { status: 400 });
   if (await prisma.tenant.findUnique({ where: { slug } })) return NextResponse.json({ ok: false, error: "slug already exists" }, { status: 409 });
   const id = await seedDemo(prisma, { slug, name, mode });
-  return NextResponse.json({ ok: true, tenantId: id, slug, mode, signIn: `role@${slug}.veriszone.demo (rotate the seeded password)` });
+  return NextResponse.json({ ok: true, tenantId: id, slug, mode, signIn: `role@${slug}.genveris.demo (rotate the seeded password)` });
 }
