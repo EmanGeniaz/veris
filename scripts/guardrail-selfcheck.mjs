@@ -14,6 +14,8 @@
    through the default (namespace) binding under CJS interop, so they are
    default-imported and destructured; model-policy is .ts and exports normally. */
 import { resolveModel, modelAllowed, detectModelOverride } from "../lib/model-policy.ts";
+import { resolveBusTenant } from "../lib/bus-tenant.ts";
+import { telemetryMode, pickTelemetry } from "../lib/telemetry-source.ts";
 import retrievalGuard from "../lib/retrieval-guard.js";
 import inputGuard from "../lib/input-guard.js";
 import memory from "../lib/memory.js";
@@ -152,6 +154,38 @@ check("async scan is a no-op when AV_SCAN_URL unset", cleanAsync.decision === "a
   check("judge mode=always judges even a grounded answer", shouldJudge(faithGrounded, "always") === true);
   check("judge mode=off never judges", shouldJudge(faithMixed, "off") === false);
   check("judge mode=auto judges only the uncertain", shouldJudge(faithMixed, "auto") === true && shouldJudge(faithGrounded, "auto") === false);
+}
+
+/* ── #143 bus tenant isolation — a signed-in user is bound to their own
+   tenant; a request authenticated as tenant A can never resolve to tenant B,
+   anonymous callers are confined to demo, and Host routing is reachable only in
+   no-auth mode. ── */
+{
+  const A = resolveBusTenant({ authConfigured: true, sessionEmail: "a@ta.com", userTenantId: "tenant_A", host: "acme.genveris.com" });
+  const B = resolveBusTenant({ authConfigured: true, sessionEmail: "b@tb.com", userTenantId: "tenant_B", host: "acme.genveris.com" });
+  check("signed-in user resolves to their own tenant", A.source === "session" && A.tenantId === "tenant_A");
+  check("tenant A cannot resolve to tenant B (isolation)", A.tenantId !== B.tenantId && B.tenantId === "tenant_B");
+  check("Host header cannot override a signed-in user's tenant", A.source === "session"); // host 'acme' ignored
+  const anon = resolveBusTenant({ authConfigured: true, sessionEmail: null, userTenantId: null, host: "acme.genveris.com" });
+  check("anonymous + auth configured is confined to demo", anon.source === "demo" && anon.slug === "demo");
+  const noAuthHost = resolveBusTenant({ authConfigured: false, sessionEmail: null, userTenantId: null, host: "acme.genveris.com" });
+  check("Host routing works only in no-auth demo mode", noAuthHost.source === "host" && noAuthHost.slug === "acme");
+  const infra = resolveBusTenant({ authConfigured: false, host: "console.genveris.com" });
+  check("reserved infra host falls back to demo", infra.source === "demo");
+}
+
+/* ── #144 telemetry source — live only with a DB, seeded (clearly labelled)
+   otherwise; an empty live ledger is still truthfully live, not seeded. ── */
+{
+  check("no DB → demo mode label", telemetryMode(false).mode === "demo" && telemetryMode(false).live === false);
+  check("DB configured → live mode label", telemetryMode(true).mode === "live");
+  const seeded = [{ x: 1 }, { x: 2 }];
+  const demo = pickTelemetry({ dbConfigured: false, liveRows: [{ x: 9 }], seededRows: seeded });
+  check("no DB uses seeded rows, labelled demo", demo.source === "seeded" && demo.rows === seeded && demo.mode === "demo");
+  const live = pickTelemetry({ dbConfigured: true, liveRows: [{ x: 9 }], seededRows: seeded });
+  check("DB uses live rows, labelled live", live.source === "live" && live.rows.length === 1 && live.mode === "live");
+  const emptyLive = pickTelemetry({ dbConfigured: true, liveRows: [], seededRows: seeded });
+  check("empty live ledger stays live (never shows seeded as real)", emptyLive.source === "live" && emptyLive.rows.length === 0);
 }
 
 const failed = R.filter(([s]) => s === "FAIL");

@@ -5,11 +5,13 @@
    so the surface falls back to its seeded sample. */
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { db } from "@/lib/db";
+import { db, dbConfigured } from "@/lib/db";
+import { telemetryMode } from "@/lib/telemetry-source";
 
 export async function GET(req: NextRequest) {
   const prisma = db();
-  if (!prisma) return NextResponse.json({ enabled: false });
+  // No DB → the surface is honestly in demo mode and falls back to its seeded sample.
+  if (!prisma) return NextResponse.json({ enabled: false, mode: telemetryMode(false).mode });
   try {
     const tenantSlug = req.nextUrl.searchParams.get("tenant") || "demo";
     const t = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
@@ -45,8 +47,8 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ enabled: true, events, chainIntact, total: inf.length });
+    return NextResponse.json({ enabled: true, mode: telemetryMode(dbConfigured()).mode, events, chainIntact, total: inf.length });
   } catch {
-    return NextResponse.json({ enabled: false });
+    return NextResponse.json({ enabled: false, mode: telemetryMode(false).mode });
   }
 }
