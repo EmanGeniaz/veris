@@ -17,6 +17,7 @@ import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
 import { ingressCheck } from "@/lib/input-guard";
 import { moderateOutput, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
 import { checkFaithfulness, needsJudge, judgeFaithfulness, HALLUCINATION_CAUTION } from "@/lib/hallucination";
+import { resolveModel, modelAllowlist } from "@/lib/model-policy";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -49,8 +50,17 @@ export async function POST(req: NextRequest) {
      in-flight count even if the model call throws. */
   let rtAdmitted = false, rtKey = "", rtStart = 0;
   try {
-    const { prompt, tenant, agent, tool, mcpServer, dest, value, session, attachments } = await req.json();
-    const model = process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5";
+    const { prompt, tenant, agent, tool, mcpServer, dest, value, session, attachments, model: reqModel } = await req.json();
+    /* Model policy — a caller-supplied model must be on the allowlist; the
+       effective model is always allow-listed. Blocks a disallowed model before
+       any work. */
+    const mp = resolveModel(reqModel);
+    if (mp.blocked) {
+      await logInference(tenant, { model: mp.model, agent, tool, decision: "block" });
+      return NextResponse.json({ enabled: true, blocked: true, detector: "Model policy",
+        model: { requested: String(reqModel || ""), reason: mp.reason, allowlist: modelAllowlist() } });
+    }
+    const model = mp.model;
     /* Memory-guardrail scope — a memory is partitioned by tenant + agent +
        session so recall can never cross a boundary. */
     const memScope = { tenant: String(tenant || "demo"), agent: String(agent || "anon"), session: String(session || `${tenant || "demo"}:${agent || "anon"}`) };
