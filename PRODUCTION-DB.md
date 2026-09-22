@@ -1,4 +1,4 @@
-# VerisZone - Activating Real Persistence (Phase 2a)
+# GenVeris - Activating Real Persistence (Phase 2a)
 
 The platform runs fully without a database: evidence, decisions and
 ideas persist in the browser (localStorage). When `DATABASE_URL` points
@@ -40,7 +40,7 @@ until then the demo entry flow is unchanged.
 2. Optional SSO: set `AUTH_MICROSOFT_ENTRA_ID_ID/_SECRET/_ISSUER` or
    `AUTH_GOOGLE_ID/_SECRET`. Providers appear automatically.
 3. Credentials sign-in works against seeded users:
-   `<role>@veriszone.demo` / `veriszone-demo` (rotate in production).
+   `<role>@genveris.demo` / `genveris-demo` (rotate in production).
 4. When signed in, evidence, decisions and ideas are stamped with the
    user's identity and scoped to the user's tenant.
 
@@ -70,8 +70,8 @@ simulated demo path continues unchanged.
   "Create a new workspace": organization name, slug, seeded-demo or
   clean mode, plus the token. POST /api/admin/tenants does the same
   programmatically; GET lists workspaces.
-- Per-tenant domains: point `acme.veriszone.com` (wildcard DNS +
+- Per-tenant domains: point `acme.genveris.com` (wildcard DNS +
   Vercel domain) at the project and API traffic on that host resolves
   the `acme` workspace automatically; unknown hosts fall back to demo.
-- Each workspace seeds role users `role@<slug>.veriszone.demo`
+- Each workspace seeds role users `role@<slug>.genveris.demo`
   (rotate the seeded password); clean workspaces start with no content.

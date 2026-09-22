@@ -1,4 +1,4 @@
-# VerisZone — Roadmap
+# GenVeris — Roadmap
 
 > Forward horizons. The Gantt (`docs/GANTT.md`) tracks the committed milestones;
 > this shows the direction beyond them. Honest about what needs a real
@@ -32,7 +32,7 @@
 | Hardening & assurance — security review, pen-test, load test, external audit | External security + auditor | ❌ |
 
 ## Vision (direction, not committed scope)
-- **Two products, one seam:** VerisZone (governance control plane) + Veris Enforce
+- **Two products, one seam:** GenVeris (governance control plane) + Veris Enforce
   (standalone AI-security), sold separately, integrated so the customer feels one
   surface — licensed, never free.
 - **Regional-first:** UAE/Dubai as the first deep regional build (data residency,

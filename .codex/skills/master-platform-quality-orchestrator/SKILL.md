@@ -1,6 +1,6 @@
 # master-platform-quality-orchestrator
 
-Reusable orchestration skill for VerisZone platform inspection, audit, phased remediation, regression testing, and enterprise-readiness assessment.
+Reusable orchestration skill for GenVeris platform inspection, audit, phased remediation, regression testing, and enterprise-readiness assessment.
 
 ## Mission
 

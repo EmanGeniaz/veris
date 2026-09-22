@@ -1,10 +1,10 @@
-# VerisZone Platform Handover
+# GenVeris Platform Handover
 
 Last updated: 2026-07-21
 
 ## 1. Product Context
 
-VerisZone is currently implemented as an enterprise AI governance and transformation control-plane MVP. The product direction has evolved from a governance dashboard into an Enterprise AI Transformation Control Plane:
+GenVeris is currently implemented as an enterprise AI governance and transformation control-plane MVP. The product direction has evolved from a governance dashboard into an Enterprise AI Transformation Control Plane:
 
 - CXO Platform: strategy, accountability, AI opportunity intake, CXO reviews, pilot planning, budget, ownership, scale decisions.
 - AI Central: execution and assurance workspace for AI initiatives, department pilots, task monitoring, risk tracking, guardrails, evidence, exceptions, adoption, compliance and scale readiness.
@@ -13,49 +13,49 @@ VerisZone is currently implemented as an enterprise AI governance and transforma
 
 Evidence:
 
-- Main implementation: `components/VerisZonePlatform.jsx`
-- Login profile definitions: `components/VerisZonePlatform.jsx` around `LOGIN_PROFILES`
-- Workspace-empty behavior: `components/VerisZonePlatform.jsx` around `FreshWorkspaceEmpty`
-- AI Central module: `components/VerisZonePlatform.jsx` around `PageAICentral`
-- Template library: `components/VerisZonePlatform.jsx` around `PageTemplates`
+- Main implementation: `components/GenVerisPlatform.jsx`
+- Login profile definitions: `components/GenVerisPlatform.jsx` around `LOGIN_PROFILES`
+- Workspace-empty behavior: `components/GenVerisPlatform.jsx` around `FreshWorkspaceEmpty`
+- AI Central module: `components/GenVerisPlatform.jsx` around `PageAICentral`
+- Template library: `components/GenVerisPlatform.jsx` around `PageTemplates`
 
 ## 2. Current Tech Stack
 
 | Area | Current State | Evidence |
 | --- | --- | --- |
 | Framework | Next.js 15 app router | `package.json`, `app/page.tsx`, `app/layout.tsx` |
-| Language | TypeScript project with a large JSX app component | `tsconfig.json`, `components/VerisZonePlatform.jsx`, `components/VerisZonePlatform.d.ts` |
-| UI | Tailwind CSS plus inline React styles | `tailwind.config.ts`, `app/globals.css`, `components/VerisZonePlatform.jsx` |
-| Animation | Framer Motion installed; custom CSS/keyframes also used | `package.json`, `components/VerisZonePlatform.jsx` |
-| Icons | Lucide React installed and used | `package.json`, `components/VerisZonePlatform.jsx` |
-| Charts | Recharts installed and used | `package.json`, `components/VerisZonePlatform.jsx` |
-| State | Zustand installed; app currently relies heavily on local component state | `package.json`, `lib/store.ts`, `components/VerisZonePlatform.jsx` |
+| Language | TypeScript project with a large JSX app component | `tsconfig.json`, `components/GenVerisPlatform.jsx`, `components/GenVerisPlatform.d.ts` |
+| UI | Tailwind CSS plus inline React styles | `tailwind.config.ts`, `app/globals.css`, `components/GenVerisPlatform.jsx` |
+| Animation | Framer Motion installed; custom CSS/keyframes also used | `package.json`, `components/GenVerisPlatform.jsx` |
+| Icons | Lucide React installed and used | `package.json`, `components/GenVerisPlatform.jsx` |
+| Charts | Recharts installed and used | `package.json`, `components/GenVerisPlatform.jsx` |
+| State | Zustand installed; app currently relies heavily on local component state | `package.json`, `lib/store.ts`, `components/GenVerisPlatform.jsx` |
 
 ## 3. Important Routes
 
 | Route | Purpose | Current Status | Evidence |
 | --- | --- | --- | --- |
-| `/` | Main login/demo entry shell | Implemented | `app/page.tsx` renders `VerisZonePlatform` |
+| `/` | Main login/demo entry shell | Implemented | `app/page.tsx` renders `GenVerisPlatform` |
 | `/profile` | Profile route wrapper | Implemented as same platform shell | `app/profile/page.tsx` |
 | `/workspace/[profile]/[[...segments]]` | Dynamic workspace route wrapper | Implemented as same platform shell | `app/workspace/[profile]/[[...segments]]/page.tsx` |
 
 Routing caveat:
 
-- The dynamic route exists, but much of the in-app navigation is still driven by local state and hash-style behavior inside `components/VerisZonePlatform.jsx`.
+- The dynamic route exists, but much of the in-app navigation is still driven by local state and hash-style behavior inside `components/GenVerisPlatform.jsx`.
 - Previous backlog marked hash/local tab routing as High priority.
 
 ## 4. Key Source Files
 
 | File | Purpose |
 | --- | --- |
-| `components/VerisZonePlatform.jsx` | Main product UI, login shell, navigation, pages, mock data, templates, AI Central, profile editor |
-| `components/VerisZonePlatform.d.ts` | Type declaration for the JSX component |
+| `components/GenVerisPlatform.jsx` | Main product UI, login shell, navigation, pages, mock data, templates, AI Central, profile editor |
+| `components/GenVerisPlatform.d.ts` | Type declaration for the JSX component |
 | `lib/types.ts` | Type model definitions for governance, CXO and transformation objects |
 | `lib/platform-models.ts` | Mock transformation control-plane data |
 | `lib/mock-data.ts` | Mock governance data from the earlier onion-layer MVP |
 | `lib/store.ts` | Zustand store stub |
 | `app/globals.css` | Global styling and theme foundations |
-| `public/brand/*` | VerisZone and AI Central brand assets |
+| `public/brand/*` | GenVeris and AI Central brand assets |
 | `testing-agent/outputs/*` | Prior audit/regression/report artifacts |
 | `.codex/skills/*` | Local Codex reusable skills and checklists |
 
@@ -63,9 +63,9 @@ Routing caveat:
 
 Current intended brand rules:
 
-- Product name: VerisZone
-- Tagline: Govern with certainty.
-- Dark mode uses premium blue/gold VerisZone logo assets.
+- Product name: GenVeris
+- Tagline: Govern AI with certainty.
+- Dark mode uses premium blue/gold GenVeris logo assets.
 - Light mode uses the light blue/gold logo treatment.
 - AI Central has a separate symbol/logo and should be visible as a standalone login profile, not as a normal CXO tab.
 
@@ -73,11 +73,11 @@ Important assets:
 
 | Asset | Purpose |
 | --- | --- |
-| `public/brand/veriszone-official-dark.png` | Dark-mode VerisZone logo |
-| `public/brand/veriszone-official-light.png` | Light-mode VerisZone logo |
-| `public/brand/veriszone-logo-dark.png` | Legacy/current dark logo variant |
-| `public/brand/veriszone-logo-light.svg` | Light logo SVG variant |
-| `public/brand/veriszone-dark-app-icon.png` | Favicon/app icon |
+| `public/brand/genveris-official-dark.png` | Dark-mode GenVeris logo |
+| `public/brand/genveris-official-light.png` | Light-mode GenVeris logo |
+| `public/brand/genveris-logo-dark.png` | Legacy/current dark logo variant |
+| `public/brand/genveris-logo-light.svg` | Light logo SVG variant |
+| `public/brand/genveris-dark-app-icon.png` | Favicon/app icon |
 | `public/brand/ai-central-symbol.png` | AI Central symbol |
 | `public/brand/ai-central-logo.png` | AI Central logo |
 
@@ -122,7 +122,7 @@ Relevant kit documents inspected:
 
 Current template implementation:
 
-- `KIT_TEMPLATE_SOURCES` is present in `components/VerisZonePlatform.jsx`.
+- `KIT_TEMPLATE_SOURCES` is present in `components/GenVerisPlatform.jsx`.
 - `PageTemplates` displays implementation kit source metadata.
 - Template preview/generation is local mock generation, not a real AI call.
 - Some draft content still needs stronger alignment to kit documents, especially `t_mc`, `t_nc`, `t_ks`, `t_soa`, `t_bias`, `t_dep`, `t_ethics`, `t_kpi`, `t_post`, `t_dpia`, and `t_tia`.
@@ -133,7 +133,7 @@ Existing backlog evidence is in `testing-agent/outputs/02-priority-backlog.md`.
 
 | Priority | Status | Issue | Evidence |
 | --- | --- | --- | --- |
-| High | Verified | Monolithic app component | `components/VerisZonePlatform.jsx` |
+| High | Verified | Monolithic app component | `components/GenVerisPlatform.jsx` |
 | High | Verified | Hash/local tab routing | `app/page.tsx`, `enterFromHash` |
 | High | Verified | No real RBAC boundary | Local role/session state only |
 | High | Verified | Profile changes are local-only | `PageProfile`; save action only updates UI/toast |
@@ -171,7 +171,7 @@ curl.exe -I http://localhost:3000/
 2. Run lint/build and restart server.
 3. Verify template Preview and Generate buttons visually in Demo Center.
 4. Remove or convert any remaining non-clickable labels into either real controls or disabled controls with explanatory state.
-5. Split `components/VerisZonePlatform.jsx` into smaller modules:
+5. Split `components/GenVerisPlatform.jsx` into smaller modules:
    - `BrandEntryShell`
    - `AppShell`
    - `Sidebar`
@@ -192,7 +192,7 @@ curl.exe -I http://localhost:3000/
 
 ## 11. Guardrails For Future Changes
 
-- Do not remove VerisZone logo assets or AI Central assets.
+- Do not remove GenVeris logo assets or AI Central assets.
 - Keep Demo Center seeded; keep subscribed workspaces empty.
 - Do not place AI Central as a normal CXO tab.
 - Keep AI Spine as part of AI Central unless the user asks otherwise.

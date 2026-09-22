@@ -1,4 +1,4 @@
-// VerisZone persistence layer. The schema mirrors lib/types.ts - the
+// GenVeris persistence layer. The schema mirrors lib/types.ts - the
 // mock data layer remains the demo tenant's seed.
 generator client {
   provider = "prisma-client-js"

@@ -9,7 +9,7 @@ export type TenantSpec = { slug?: string; name?: string; mode?: "demo" | "clean"
 
 export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
   const slug = spec.slug || "demo";
-  const name = spec.name || "VerisZone Demo Center";
+  const name = spec.name || "GenVeris Demo Center";
   const mode = spec.mode || "demo";
 
   const tenant = await prisma.tenant.upsert({
@@ -87,10 +87,10 @@ export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
   const roles = ["ceo","cfo","cio","coo","caio","ciso","chro","cdpo","cgo","employee","manager"];
   for (const role of roles) {
     await prisma.user.upsert({
-      where: { email: `${role}@${slug}.veriszone.demo` },
+      where: { email: `${role}@${slug}.genveris.demo` },
       update: {},
-      create: { tenantId: tenant.id, email: `${role}@${slug}.veriszone.demo`, name: role.toUpperCase() + " Demo", role,
-        passwordHash: hashPassword("veriszone-demo", "vzdemo") },
+      create: { tenantId: tenant.id, email: `${role}@${slug}.genveris.demo`, name: role.toUpperCase() + " Demo", role,
+        passwordHash: hashPassword("genveris-demo", "vzdemo") },
     });
   }
   console.log("Seeded demo tenant + role users:", tenant.id);

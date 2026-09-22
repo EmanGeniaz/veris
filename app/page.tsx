@@ -1,7 +1,7 @@
 "use client";
 
-import VerisZonePlatform from "@/components/VerisZonePlatform";
+import GenVerisPlatform from "@/components/GenVerisPlatform";
 
 export default function Home() {
-  return <VerisZonePlatform />;
+  return <GenVerisPlatform />;
 }

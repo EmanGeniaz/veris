@@ -2,10 +2,10 @@
 
 | Issue ID | Status | Area | Files Changed | Evidence | Result |
 | --- | --- | --- | --- | --- | --- |
-| DP-01 | Verified fixed | Icon consistency | `components/VerisZonePlatform.jsx` | Render scan for `{*.icon}`, `>?<`, mojibake, and known copy artifacts returned no matches in rendered paths | Added reusable Lucide `Glyph`/`IconBox` system and replaced sidebar, template, AIIA, implementation, integration, marketplace, and AI Governance Cube placeholder glyph renders. |
-| DP-02 | Verified fixed | Glyph alignment | `components/VerisZonePlatform.jsx` | Components now render icons through fixed-size boxes and consistent stroke width | Standardized icon sizing, alignment, color inheritance, and icon containers across major dashboard areas. |
-| DP-03 | Verified fixed | Typography/copy polish | `components/VerisZonePlatform.jsx` | Source evidence: `ScopeBuilder`, `budget approved.allocation`, `driftassessment`, and stray quote in Assurance Dimension were present before patch | Corrected visible enterprise copy defects without changing workflows. |
-| DP-04 | Verified fixed | Button hierarchy | `components/VerisZonePlatform.jsx` | Existing blank controls were previously fixed; current lint/build pass with named buttons intact | Buttons keep clearer labels and icon system avoids placeholder-only affordances. |
+| DP-01 | Verified fixed | Icon consistency | `components/GenVerisPlatform.jsx` | Render scan for `{*.icon}`, `>?<`, mojibake, and known copy artifacts returned no matches in rendered paths | Added reusable Lucide `Glyph`/`IconBox` system and replaced sidebar, template, AIIA, implementation, integration, marketplace, and AI Governance Cube placeholder glyph renders. |
+| DP-02 | Verified fixed | Glyph alignment | `components/GenVerisPlatform.jsx` | Components now render icons through fixed-size boxes and consistent stroke width | Standardized icon sizing, alignment, color inheritance, and icon containers across major dashboard areas. |
+| DP-03 | Verified fixed | Typography/copy polish | `components/GenVerisPlatform.jsx` | Source evidence: `ScopeBuilder`, `budget approved.allocation`, `driftassessment`, and stray quote in Assurance Dimension were present before patch | Corrected visible enterprise copy defects without changing workflows. |
+| DP-04 | Verified fixed | Button hierarchy | `components/GenVerisPlatform.jsx` | Existing blank controls were previously fixed; current lint/build pass with named buttons intact | Buttons keep clearer labels and icon system avoids placeholder-only affordances. |
 
 ## Regression
 

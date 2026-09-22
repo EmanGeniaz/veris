@@ -1,4 +1,4 @@
-# VerisZone Skills Reference
+# GenVeris Skills Reference
 
 This file explains which local Codex skills and operating modes should be used for this project.
 
@@ -60,8 +60,8 @@ Supporting checklists:
 
 ## 4. Project-Specific Product Rules
 
-- Product name is `VerisZone`.
-- Tagline is `Govern with certainty.`
+- Product name is `GenVeris`.
+- Tagline is `Govern AI with certainty.`
 - Demo Center is the seeded sales showcase.
 - CXO workspaces should be clean by default.
 - AI Central should be available as a separate login profile.
@@ -124,7 +124,7 @@ curl.exe -I http://localhost:3000/
 ## 7. Recommended Continuation Workflow
 
 1. Read `HANDOVER.md`.
-2. Inspect `components/VerisZonePlatform.jsx` around the target module.
+2. Inspect `components/GenVerisPlatform.jsx` around the target module.
 3. Make scoped changes only.
 4. Run lint and build.
 5. Restart `localhost:3000`.

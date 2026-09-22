@@ -26,14 +26,14 @@ const capMeta = {
 const seedUsers = () => {
   const base = RBAC_ROLES.map(r => {
     const p = USER_PROFILES[r] || {};
-    return { id: r, name: p.name || (ROLES[r] || {}).name || r, email: p.email || `${r}@veriszone.ai`, roleId: r,
+    return { id: r, name: p.name || (ROLES[r] || {}).name || r, email: p.email || `${r}@genveris.ai`, roleId: r,
       unit: p.department || "—", status: "Active", mfa: true, last: "Today" };
   });
   const extra = [
-    { id: "u-leila", name: "Leila Haddad", email: "leila.haddad@veriszone.ai", roleId: "manager", unit: "Customer Operations", status: "Active", mfa: false, last: "2h ago" },
-    { id: "u-omar", name: "Omar Khan", email: "omar.khan@veriszone.ai", roleId: "employee", unit: "Risk & Compliance", status: "Active", mfa: true, last: "Yesterday" },
-    { id: "u-sam", name: "Sam Doe", email: "sam.doe@veriszone.ai", roleId: "employee", unit: "Engineering", status: "Invited", mfa: false, last: "—" },
-    { id: "u-dana", name: "Dana Ford", email: "dana.ford@veriszone.ai", roleId: "employee", unit: "Finance", status: "Suspended", mfa: true, last: "31d ago" },
+    { id: "u-leila", name: "Leila Haddad", email: "leila.haddad@genveris.ai", roleId: "manager", unit: "Customer Operations", status: "Active", mfa: false, last: "2h ago" },
+    { id: "u-omar", name: "Omar Khan", email: "omar.khan@genveris.ai", roleId: "employee", unit: "Risk & Compliance", status: "Active", mfa: true, last: "Yesterday" },
+    { id: "u-sam", name: "Sam Doe", email: "sam.doe@genveris.ai", roleId: "employee", unit: "Engineering", status: "Invited", mfa: false, last: "—" },
+    { id: "u-dana", name: "Dana Ford", email: "dana.ford@genveris.ai", roleId: "employee", unit: "Finance", status: "Suspended", mfa: true, last: "31d ago" },
   ];
   return [...base, ...extra];
 };
@@ -55,10 +55,10 @@ const SEED_SOD = [
 const SEED_AUDIT = [
   { at: "09:42", actor: "System", action: "Access review cycle opened", target: "Q3 recertification" },
   { at: "08:15", actor: "Aisha Patel", action: "Granted Approve", target: "CRO · Decisions" },
-  { at: "Yesterday", actor: "Marcus Reid", action: "Invited user", target: "sam.doe@veriszone.ai" },
+  { at: "Yesterday", actor: "Marcus Reid", action: "Invited user", target: "sam.doe@genveris.ai" },
 ];
 const SEED_ORG = {
-  name: "VerisZone Enterprise", domains: "veriszone.ai, veriszone.com", sso: "Okta (SAML 2.0)", scim: true, mfa: true,
+  name: "GenVeris Enterprise", domains: "genveris.ai, genveris.com", sso: "Okta (SAML 2.0)", scim: true, mfa: true,
   session: "30", region: "EU / US", evidence: "7 years", logRetention: "400", approvalDual: true, ipAllowlist: false, dpo: "Niamh Lynch",
 };
 /* Admin state persists to the bus (localStorage now; mirrors to the API when a
@@ -183,7 +183,7 @@ export function PageAdmin({ role = "caio", showToast, setTab }) {
         <h3 style={{ fontSize: 13, color: T.ink, fontWeight: 800, margin: "0 0 10px" }}>Invite a user</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10, marginBottom: 12 }}>
           <Field label="Full name"><input value={invite.name} onChange={e => setInvite({ ...invite, name: e.target.value })} placeholder="e.g. Alex Rivera" style={fieldStyle} /></Field>
-          <Field label="Work email"><input value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })} placeholder="alex@veriszone.ai" style={fieldStyle} /></Field>
+          <Field label="Work email"><input value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })} placeholder="alex@genveris.ai" style={fieldStyle} /></Field>
           <Field label="Role"><select value={invite.roleId} onChange={e => setInvite({ ...invite, roleId: e.target.value })} style={{ ...fieldStyle, cursor: "pointer" }}>{RBAC_ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></Field>
           <Field label="Business unit"><input value={invite.unit} onChange={e => setInvite({ ...invite, unit: e.target.value })} placeholder="e.g. Finance" style={fieldStyle} /></Field>
         </div>

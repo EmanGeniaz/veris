@@ -1,9 +1,9 @@
-# VerisZone — Project Charter
+# GenVeris — Project Charter
 
 > Source of truth for scope, decisions and honesty rules. If a feature is not in
 > this charter and `docs/SPEC.md`, it does not get built. Updated every cycle.
 
-**Product:** VerisZone — Enterprise AI Governance Control Plane (a product of Geniaz)
+**Product:** GenVeris — Enterprise AI Governance Control Plane (a product of Geniaz)
 **Owner (business):** Saif / Sikander Ahmed
 **PM · Developer · Tester:** Claude Code (this session)
 **Last updated:** cycle C19 (M2 data-subject-rights lifecycle shipped)
@@ -12,7 +12,7 @@
 
 ## 1. Vision (locked — from README)
 
-VerisZone is the control plane where an enterprise **plans, governs, ships and
+GenVeris is the control plane where an enterprise **plans, governs, ships and
 proves the value** of every AI initiative — opportunity to retirement — under one
 auditable system of record. One object model (the *initiative*), one 13-phase
 lifecycle, one governance spine (posture **computed** from initiatives, never
@@ -30,7 +30,7 @@ asserted), one **AI Gateway**, and one **enforcement plane (Veris Enforce)** whe
 | D4 | Render safety | No `Date.now` / `Math.random` in any render/SSR path — deterministic engines |
 | D5 | Readability | Grandma-readable is an **acceptance criterion**, not polish (see SPEC §Readability) |
 | D6 | Evidence gate | No feature is "done" until: `npm run build` passes + live Playwright test + 0 console errors, shown to the owner |
-| D7 | Veris Enforce | A **separately-licensed standalone AI-security product**. VerisZone embeds its surfaces seamlessly but **entitlement-gated per tenant** (MS 365 / Visio model): licensed → live Enforce data; unlicensed → locked/upsell + route to buy. Never free inside VerisZone. A **shared enforcement core** prevents drift. |
+| D7 | Veris Enforce | A **separately-licensed standalone AI-security product**. GenVeris embeds its surfaces seamlessly but **entitlement-gated per tenant** (MS 365 / Visio model): licensed → live Enforce data; unlicensed → locked/upsell + route to buy. Never free inside GenVeris. A **shared enforcement core** prevents drift. |
 | D8 | Localisation | **Arabic + RTL**, rolled out **pilot-first** (i18n scaffolding + 1–2 full surfaces to prove the pattern), then surface-by-surface. |
 | D9 | Regional law | First-class **UAE / Dubai** scope: PDPL (Federal), DIFC DP Law, ADGM DP Regs, DESC, and data-residency / cloud rules — as a computed regulatory pack. |
 | D10 | Test gate | Every feature passes an automated **click-integrity** run capturing **location** (role · surface · element), **console logs**, and clickability before "done" (harness = milestone M-TEST). |
@@ -38,12 +38,12 @@ asserted), one **AI Gateway**, and one **enforcement plane (Veris Enforce)** whe
 ## 2b. Veris Enforce — product-line model (D7)
 
 Veris Enforce is its own end-to-end AI-security product, **sold separately**.
-Inside VerisZone it appears as native surfaces but is **licensed**:
+Inside GenVeris it appears as native surfaces but is **licensed**:
 
 - **Shared core** (`lib/enforce*`, policy engine, capability model) — one
   implementation, consumed by both the standalone product and the embedded view,
   so behaviour never diverges.
-- **Data contract** — VerisZone reads Enforce state through a defined interface
+- **Data contract** — GenVeris reads Enforce state through a defined interface
   (`enforceProvider`), so the embedded surfaces render live when the tenant is
   licensed and a locked/upsell state when not.
 - **Entitlement gate** — per-tenant `enforceLicensed`. Licensed → live; unlicensed

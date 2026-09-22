@@ -1,11 +1,11 @@
-# VerisZone — Test Inventory (Phase 1)
+# GenVeris — Test Inventory (Phase 1)
 
 _Read-only inventory established before testing. Evidence is `file:line`._
 
 ## Routes (Next.js filesystem)
 | Route | Type | Renders |
 | --- | --- | --- |
-| `/` | page | `VerisZonePlatform` SPA (`app/page.tsx`) |
+| `/` | page | `GenVerisPlatform` SPA (`app/page.tsx`) |
 | `/profile` | page | same SPA, profile tab (`app/profile/page.tsx`) |
 | `/workspace/[profile]/[[...segments]]` | page | same SPA, hydrates tab from URL (`app/workspace/.../page.tsx`) |
 | `/api/admin/setup` | API | tenant provisioning |
@@ -17,7 +17,7 @@ _Read-only inventory established before testing. Evidence is `file:line`._
 | `/api/gateway/chat` | API | AI gateway (returns `{enabled:false}` w/o `ANTHROPIC_API_KEY`) |
 | `/api/knowledge` | API | knowledge retrieval |
 
-In-app navigation is a **client `tab` state machine** (~50 tab pseudo-routes) in `VerisZonePlatform.jsx`, mirrored to the URL via `history.replaceState` — not the Next router.
+In-app navigation is a **client `tab` state machine** (~50 tab pseudo-routes) in `GenVerisPlatform.jsx`, mirrored to the URL via `history.replaceState` — not the Next router.
 
 ## Navigation (per role, from `components/platform/core.jsx`)
 | Role | Sidebar items | Notes |

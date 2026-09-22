@@ -36,7 +36,7 @@ registerContent({
   "control-mapped, demo-ready": "مرتبطة بالضوابط، جاهزة للعرض",
   "In library": "في المكتبة",
   "ready to activate": "جاهزة للتفعيل",
-  "VerisZone control": "ضابط VerisZone",
+  "GenVeris control": "ضابط GenVeris",
   "Evidenced in": "المُثبَت في",
   "Status": "الحالة",
   "Requirement": "المتطلب",
@@ -109,7 +109,7 @@ export function CompliancePosture({role,setTab,setAiCentralView}) {
 }
 
 /* ── Global Framework Library ── the whole landscape, hardcoded. Pick the
-   customer's jurisdiction and VerisZone auto-surfaces the frameworks that
+   customer's jurisdiction and GenVeris auto-surfaces the frameworks that
    govern them: the global foundational + security + lifecycle standards that
    apply everywhere, plus that country's own national law or standard. */
 export function PageFrameworkLibrary({role,showToast}){
@@ -160,8 +160,8 @@ export function PageFrameworkLibrary({role,showToast}){
   const KPI=({l,v,c,sub})=><Card style={{padding:"13px 15px"}}><div style={{fontSize:9,letterSpacing:"0.09em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>{l}</div><div style={{fontSize:26,fontWeight:900,color:c,fontFamily:F.m,margin:"5px 0 2px"}}>{v}</div><div style={{fontSize:10,color:T.ink3,fontFamily:F.b}}>{sub}</div></Card>;
   return <div>
     <SHead title={T_("Global Framework Library")} sub={ar
-      ? "لا يغطي أيّ إطار وحده كل شيء — تشحن VerisZone المشهد الكامل مُضمَّناً. اختر الولاية القضائية للعميل فتظهر الحزمة المنطبقة تلقائياً: المعايير الأساسية والأمنية ومعايير دورة الحياة العالمية التي تنطبق في كل مكان، إضافةً إلى القانون أو المعيار الوطني لتلك الدولة."
-      : "No single framework covers everything — VerisZone ships the whole landscape hardcoded. Select the customer's jurisdiction and the applicable stack surfaces automatically: the global foundational, security and lifecycle standards that apply everywhere, plus that country's own national law or standard."}/>
+      ? "لا يغطي أيّ إطار وحده كل شيء — تشحن GenVeris المشهد الكامل مُضمَّناً. اختر الولاية القضائية للعميل فتظهر الحزمة المنطبقة تلقائياً: المعايير الأساسية والأمنية ومعايير دورة الحياة العالمية التي تنطبق في كل مكان، إضافةً إلى القانون أو المعيار الوطني لتلك الدولة."
+      : "No single framework covers everything — GenVeris ships the whole landscape hardcoded. Select the customer's jurisdiction and the applicable stack surfaces automatically: the global foundational, security and lifecycle standards that apply everywhere, plus that country's own national law or standard."}/>
 
     <Card style={{padding:16,marginBottom:14}}>
       <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.12em",fontFamily:F.m,marginBottom:9}}>{T_("Customer jurisdiction")}</div>
@@ -185,7 +185,7 @@ export function PageFrameworkLibrary({role,showToast}){
         <span style={{fontSize:10,fontWeight:800,color:T.ink3,fontFamily:F.m}}>{items.length}</span>
       </div>
       {cat.id==="governance"&&<Card style={{padding:"14px 16px",marginBottom:12,background:AI_GOLD+"08",border:`1px solid ${AI_GOLD}30`}}>
-        <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:11}}>AI governance isn't a bolt-on — it's the <b style={{color:T.ink2}}>top tier of a nested governance hierarchy</b> the board already runs. VerisZone operates the AI (and most of the data) tier; the enterprise owns the corporate and IT tiers, into which the AI layer plugs.</div>
+        <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55,marginBottom:11}}>AI governance isn't a bolt-on — it's the <b style={{color:T.ink2}}>top tier of a nested governance hierarchy</b> the board already runs. GenVeris operates the AI (and most of the data) tier; the enterprise owns the corporate and IT tiers, into which the AI layer plugs.</div>
         <div style={{display:"grid",gridTemplateColumns:`repeat(${GOVERNANCE_LINEAGE.length},minmax(0,1fr))`,gap:8,alignItems:"stretch"}}>
           {GOVERNANCE_LINEAGE.map((g,i)=>{const full=g.scope==="Full";const c=full?T.green:T.amber;const fw=FRAMEWORKS.find(f=>f.id===g.id);return <div key={g.id} onClick={()=>setMapFw(g.id)} style={{position:"relative",cursor:"pointer",background:T.card,border:`1px solid ${mapFw===g.id?c+"77":T.border}`,borderRadius:10,padding:"11px 12px"}}>
             <div style={{fontSize:8.5,fontWeight:900,color:c,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.08em"}}>{g.tier}{i<GOVERNANCE_LINEAGE.length-1&&<span style={{position:"absolute",right:-7,top:"46%",color:T.ink4,fontSize:12,zIndex:1}}>→</span>}</div>
@@ -228,8 +228,8 @@ export function PageFrameworkLibrary({role,showToast}){
         <span style={{fontSize:9.5,fontWeight:900,fontFamily:F.m,color:T.green,background:T.green+"18",border:`1px solid ${T.green}40`,borderRadius:999,padding:"4px 11px",whiteSpace:"nowrap"}}>{g.met}/{g.total} {ar?"مُستوفى":"Met"} · {g.score}% {ar?"وضعية":"posture"}</span>
       </div>
       <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,marginBottom:11,lineHeight:1.5}}>{ar
-        ? `يرتبط كل ${T_(M.unit)} بضابط تُشغّله VerisZone فعلاً — الوضعية محسوبة من الضوابط الحيّة، لا مُدّعاة.`
-        : `Each ${M.unit} maps to a control VerisZone already runs — posture computed from live controls, not asserted.`}</div>
+        ? `يرتبط كل ${T_(M.unit)} بضابط تُشغّله GenVeris فعلاً — الوضعية محسوبة من الضوابط الحيّة، لا مُدّعاة.`
+        : `Each ${M.unit} maps to a control GenVeris already runs — posture computed from live controls, not asserted.`}</div>
       {M.instruments&&<div style={{marginBottom:13}}>
         <div style={{fontSize:9,fontWeight:900,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:F.m,marginBottom:8}}>{T_("The instruments")} · {M.instruments.length} {T_("in force")}</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,230px),1fr))",gap:8}}>
@@ -241,7 +241,7 @@ export function PageFrameworkLibrary({role,showToast}){
         </div>
       </div>}
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
-        <thead><tr>{["#",T_(M.col),T_("VerisZone control"),T_("Evidenced in"),T_("Status")].map(h=><th key={h} style={{textAlign:ar?"right":"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
+        <thead><tr>{["#",T_(M.col),T_("GenVeris control"),T_("Evidenced in"),T_("Status")].map(h=><th key={h} style={{textAlign:ar?"right":"left",fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m,padding:"0 10px 9px",borderBottom:`1px solid ${T.border}`}}>{h}</th>)}</tr></thead>
         <tbody>{M.rows.map(gd=>{const c=gd.status==="Met"?T.green:gd.status==="Gap"?T.red:T.amber;const stLabel=ar?(UAE_STATUS_AR[gd.status]||gd.status):gd.status;return <tr key={gd.n}>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink4,fontFamily:F.m,fontWeight:800}}>{gd.n}</td>
           <td style={{padding:"10px",borderBottom:`1px solid ${T.border}`,color:T.ink,fontWeight:700}}>{ar&&gd.nameAr?gd.nameAr:gd.name}<div style={{fontSize:9.5,color:T.ink4,fontWeight:500,marginTop:1}}>{ar&&gd.descAr?gd.descAr:gd.desc}</div></td>
@@ -255,11 +255,11 @@ export function PageFrameworkLibrary({role,showToast}){
     <div style={{padding:"12px 14px",borderRadius:10,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}30`,fontSize:11.5,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}>
       <b style={{color:AI_GOLD_INK}}>{T_("Veris Intelligence:")}</b> {region==="global"
         ? (ar
-          ? <>المشهد الكامل مُضمَّن — {s.total} إطاراً عبر الأساسية والوطنية والأمنية ودورة الحياة. لا يحتاج أيّ عميل إليها كلّها دفعةً واحدة؛ اختر ولاية قضائية فتُضيّق VerisZone إلى الحزمة التي تحكُمها.</>
-          : <>The full landscape is hardcoded — {s.total} frameworks across foundational, national, security and lifecycle. No customer needs all of them at once; pick a jurisdiction and VerisZone narrows to the stack that governs them.</>)
+          ? <>المشهد الكامل مُضمَّن — {s.total} إطاراً عبر الأساسية والوطنية والأمنية ودورة الحياة. لا يحتاج أيّ عميل إليها كلّها دفعةً واحدة؛ اختر ولاية قضائية فتُضيّق GenVeris إلى الحزمة التي تحكُمها.</>
+          : <>The full landscape is hardcoded — {s.total} frameworks across foundational, national, security and lifecycle. No customer needs all of them at once; pick a jurisdiction and GenVeris narrows to the stack that governs them.</>)
         : (ar
-          ? <>لعميلٍ يعمل في <b>{regionLabel(region)}</b>، تُطبّق VerisZone تلقائياً <b>{s.total} إطاراً</b>: المعايير الأساسية والأمنية ومعايير دورة الحياة العالمية إضافةً إلى {s.regional} {s.regional===1?"أداة إقليمية":"أدوات إقليمية"} — منها {s.binding} ذات قوة مُلزِمة. {s.operational} منها قيد التشغيل فعلاً مقابل ضوابط حيّة؛ والباقي يُفعَّل من المكتبة.</>
-          : <>For a customer operating in <b>{regionLabel(region)}</b>, VerisZone auto-applies <b>{s.total} frameworks</b>: the global foundational, security and lifecycle standards plus {s.regional} regional {s.regional===1?"instrument":"instruments"} — {s.binding} carrying binding force. {s.operational} are already operational against live controls; the rest activate from the library.</>)}
+          ? <>لعميلٍ يعمل في <b>{regionLabel(region)}</b>، تُطبّق GenVeris تلقائياً <b>{s.total} إطاراً</b>: المعايير الأساسية والأمنية ومعايير دورة الحياة العالمية إضافةً إلى {s.regional} {s.regional===1?"أداة إقليمية":"أدوات إقليمية"} — منها {s.binding} ذات قوة مُلزِمة. {s.operational} منها قيد التشغيل فعلاً مقابل ضوابط حيّة؛ والباقي يُفعَّل من المكتبة.</>
+          : <>For a customer operating in <b>{regionLabel(region)}</b>, GenVeris auto-applies <b>{s.total} frameworks</b>: the global foundational, security and lifecycle standards plus {s.regional} regional {s.regional===1?"instrument":"instruments"} — {s.binding} carrying binding force. {s.operational} are already operational against live controls; the rest activate from the library.</>)}
       <div style={{marginTop:11}}><button onClick={()=>showToast&&showToast(ar?`تم تطبيق حزمة الأطر لـ ${regionLabel(region)} — تفعيل ${s.total} إطاراً لهذا المستأجر`:`Applied framework stack for ${regionLabel(region)} — ${s.total} frameworks activated for this tenant`)} style={{background:AI_GOLD,border:"none",borderRadius:9,padding:"9px 15px",color:"#241703",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{T_("Apply this jurisdiction stack")}</button></div>
     </div>
   </div>;
@@ -359,7 +359,7 @@ export function PageTemplates({role,showToast}) {
   const [genResult,setGenResult]=useState(null);
   const selectedTemplate=TEMPLATES.find(t=>t.id===selId);
   const buildTemplatePreview=(template)=>{
-    const source=KIT_TEMPLATE_SOURCES[template.id]||"VerisZone native template";
+    const source=KIT_TEMPLATE_SOURCES[template.id]||"GenVeris native template";
     const header=`# ${template.name}
 
 Framework: ${template.fw}
@@ -665,7 +665,7 @@ A reviewable governance artifact tied to ${template.fw}.`}`;
       </div>
       {loading&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"18px 0",color:T.ink3,fontFamily:F.b,fontSize:12}}><Spinner color={rc}/>Generating governance template preview...</div>}
       {!loading&&!genResult&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10}}>
-        {[["Framework",selectedTemplate.fw],["Category",selectedTemplate.cat],["Roles",selectedTemplate.tags.join(", ")],["Kit source",KIT_TEMPLATE_SOURCES[selectedTemplate.id]||"VerisZone native template"],["Mode",selectedTemplate.ai?"AI-assisted":"Manual template"]].map(([label,value])=><div key={label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:12}}>
+        {[["Framework",selectedTemplate.fw],["Category",selectedTemplate.cat],["Roles",selectedTemplate.tags.join(", ")],["Kit source",KIT_TEMPLATE_SOURCES[selectedTemplate.id]||"GenVeris native template"],["Mode",selectedTemplate.ai?"AI-assisted":"Manual template"]].map(([label,value])=><div key={label} style={{background:T.s3,border:`1px solid ${T.border}`,borderRadius:9,padding:12}}>
           <div style={{fontSize:9,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>{label}</div>
           <div style={{fontSize:12,color:T.ink,fontFamily:F.b,fontWeight:800,lineHeight:1.4}}>{value}</div>
         </div>)}
@@ -1095,7 +1095,7 @@ export function PageTrustCenter({role, showToast}) {
   const runCopilot=async()=>{
     if(!question.trim())return;
     setLoading(true);setAiResponse(null);
-    const r=await askGateway(`As VerisZone's customer-facing Trust Copilot, answer this trust/security question concisely and professionally, grounded only in the enterprise's live compliance posture: ${question}`);
+    const r=await askGateway(`As GenVeris's customer-facing Trust Copilot, answer this trust/security question concisely and professionally, grounded only in the enterprise's live compliance posture: ${question}`);
     if(!r.enabled)setAiResponse("The AI Trust Copilot runs through the Veris AI Gateway, which isn't configured in this environment (no model key). The certification posture shown above reflects the live Trust Center data.");
     else setAiResponse(r.text||"No response returned.");
     setLoading(false);
@@ -1134,7 +1134,7 @@ export function PageTrustCenter({role, showToast}) {
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>showToast("Auto-complete requires the production AI Gateway connection - available after go-live","error")} style={{flex:1,background:rc,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>AI Complete</button>
-          <button onClick={()=>{vzDownload("veriszone-security-questionnaire.md",`# Security Questionnaire (generated demo)\n\nGenerated from the VerisZone Trust Center.\n\nFramework posture:\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}% (${f.sub})`).join("\n")}\n`);showToast("Questionnaire downloaded");}} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
+          <button onClick={()=>{vzDownload("genveris-security-questionnaire.md",`# Security Questionnaire (generated demo)\n\nGenerated from the GenVeris Trust Center.\n\nFramework posture:\n${AC_FRAMEWORK_POSTURE.map(f=>`- ${f.name}: ${f.score}% (${f.sub})`).join("\n")}\n`);showToast("Questionnaire downloaded");}} style={{flex:1,background:T.s3,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"8px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
         </div>
       </Card>)}
     </div>}
@@ -1143,7 +1143,7 @@ export function PageTrustCenter({role, showToast}) {
       {D.policies.map((p,i)=><div key={i} style={{padding:"12px 16px",borderBottom:i<D.policies.length-1?`1px solid ${T.border}`:"none",background:i%2===0?T.s1:T.bg,display:"flex",alignItems:"center",gap:12}}>
         <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600,color:T.ink,fontFamily:F.b,marginBottom:2}}>{p.name}</div><span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>v{p.version} {p.updated}</span></div>
         <Tag label="Public" color={T.green} bg={T.greenL}/>
-        <button onClick={()=>{vzDownload("veriszone-policy.md","# Policy document (generated demo)\n\nExported from the VerisZone Trust Center policy library.\n");showToast("Policy downloaded");}} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:6,padding:"5px 11px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
+        <button onClick={()=>{vzDownload("genveris-policy.md","# Policy document (generated demo)\n\nExported from the GenVeris Trust Center policy library.\n");showToast("Policy downloaded");}} style={{background:rc+"20",color:rc,border:`1px solid ${rc}30`,borderRadius:6,padding:"5px 11px",fontSize:10,fontWeight:600,fontFamily:F.b}}>Download</button>
       </div>)}
     </Card>}
     {tab==="copilot"&&<Card style={{padding:20}}>
@@ -1426,7 +1426,7 @@ export function PageAIGovCube({role,setTab}) {
           <button onClick={()=>setSelComp(null)} style={{background:"none",border:"none",color:T.ink4,fontSize:16,cursor:"pointer"}}>Close</button>
         </div>
         <div style={{background:T.s3,borderRadius:8,padding:"10px 14px",borderLeft:"3px solid "+comp.color}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Where in VerisZone</div>
+          <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Where in GenVeris</div>
           <div style={{fontSize:11,color:comp.color,fontFamily:F.b,fontWeight:600}}>{comp.veris}</div>
         </div>
       </Card>:null;})()}
@@ -1449,7 +1449,7 @@ export function PageAIGovCube({role,setTab}) {
             <p style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.55,margin:0}}>{a.desc}</p></div>
           </div>
           {selA===a.id&&<div style={{background:T.s3,borderRadius:7,padding:"9px 12px",borderLeft:"3px solid "+a.color,animation:"up .2s ease"}}>
-            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Where in VerisZone</div>
+            <div style={{fontSize:9,fontWeight:700,color:T.ink4,textTransform:"uppercase",letterSpacing:"0.07em",fontFamily:F.m,marginBottom:4}}>Where in GenVeris</div>
             <div style={{fontSize:11,color:a.color,fontFamily:F.b,fontWeight:600}}>{a.veris}</div>
           </div>}
         </Card>)}
