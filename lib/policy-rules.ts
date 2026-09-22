@@ -9,6 +9,7 @@
    runs in the Node gateway route and in the client workbench inspection. */
 import { POLICY_REGISTER } from "./platform-models";
 import { estimateTokens, REQUEST_TOKEN_CEILING } from "./cost-engine";
+import { detectModelOverride } from "./model-policy";
 
 export type DetectorKey =
   | "credential" | "card" | "email" | "pii" | "injection" | "sensitive" | "code" | "model" | "cost";
@@ -46,7 +47,9 @@ const DETECT: Record<DetectorKey, (t: string) => boolean> = {
   // FinOps spend guard: an oversized single request is expensive — the
   // Cost & Token Guard routes it to review (POL-FIN-005 §3.2 Spend limits).
   cost: (t) => estimateTokens(t) > REQUEST_TOKEN_CEILING,
-  model: () => false, // allowlist / routing enforcement lives in model routing (roadmap)
+  // Model allowlist: flag a prompt trying to force a disallowed model. The
+  // authoritative check runs at the gateway (lib/model-policy resolveModel).
+  model: (t) => detectModelOverride(t),
 };
 
 export function severityOf(action: string): number {

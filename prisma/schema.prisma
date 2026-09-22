@@ -228,6 +228,28 @@ model KnowledgeDoc {
   @@index([tenant])
 }
 
+/* Governed agent memory — the durable backing for the Memory Guardrail.
+   Every row was already governed at write (Restricted refused, PII masked) by
+   lib/memory.js; this table just makes retention + expiry survive a restart and
+   hold across serverless instances. Partitioned by tenant+agent+session; recall
+   filters on expiresAt at query time and a sweep deletes past-window rows. */
+model AgentMemory {
+  id         String   @id
+  tenant     String
+  agent      String
+  session    String
+  kind       String   @default("turn")
+  class      String
+  categories Json     // string[]
+  text       String   @db.Text
+  masked     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([tenant, agent, session, expiresAt])
+  @@index([expiresAt])
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   tenantId  String

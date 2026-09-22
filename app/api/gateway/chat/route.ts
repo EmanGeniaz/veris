@@ -12,11 +12,12 @@ import { issueToken } from "@/lib/enforce";
 import { egressDecision } from "@/lib/egress";
 import { requiresApproval } from "@/lib/hitl";
 import { MCP_SERVERS, mcpServerStatus } from "@/lib/mcp-registry";
-import { rememberLive, recallLive } from "@/lib/memory";
+import { rememberDurable, recallDurable } from "@/lib/memory-store";
 import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
 import { ingressCheck } from "@/lib/input-guard";
-import { moderateOutput, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
-import { checkFaithfulness, needsJudge, judgeFaithfulness, HALLUCINATION_CAUTION } from "@/lib/hallucination";
+import { moderateOutputAsync, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
+import { checkFaithfulness, shouldJudge, judgeFaithfulness, HALLUCINATION_CAUTION } from "@/lib/hallucination";
+import { resolveModel, modelAllowlist } from "@/lib/model-policy";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -49,8 +50,17 @@ export async function POST(req: NextRequest) {
      in-flight count even if the model call throws. */
   let rtAdmitted = false, rtKey = "", rtStart = 0;
   try {
-    const { prompt, tenant, agent, tool, mcpServer, dest, value, session, attachments } = await req.json();
-    const model = process.env.VZ_GATEWAY_MODEL || "claude-sonnet-5";
+    const { prompt, tenant, agent, tool, mcpServer, dest, value, session, attachments, model: reqModel } = await req.json();
+    /* Model policy — a caller-supplied model must be on the allowlist; the
+       effective model is always allow-listed. Blocks a disallowed model before
+       any work. */
+    const mp = resolveModel(reqModel);
+    if (mp.blocked) {
+      await logInference(tenant, { model: mp.model, agent, tool, decision: "block" });
+      return NextResponse.json({ enabled: true, blocked: true, detector: "Model policy",
+        model: { requested: String(reqModel || ""), reason: mp.reason, allowlist: modelAllowlist() } });
+    }
+    const model = mp.model;
     /* Memory-guardrail scope — a memory is partitioned by tenant + agent +
        session so recall can never cross a boundary. */
     const memScope = { tenant: String(tenant || "demo"), agent: String(agent || "anon"), session: String(session || `${tenant || "demo"}:${agent || "anon"}`) };
@@ -142,7 +152,7 @@ export async function POST(req: NextRequest) {
     /* Memory recall — governed: only this tenant/agent/session's own,
        unexpired memories, already class-filtered and PII-masked at write. */
     let memCtx: string[] = [];
-    try { memCtx = recallLive(memScope).map((m: { class: string; masked: boolean; text: string }) => `Prior memory (${m.class}${m.masked ? ", masked" : ""}): ${m.text}`); } catch { /* memory is best-effort — never breaks the response */ }
+    try { memCtx = (await recallDurable(memScope)).map((m: { class: string; masked: boolean; text: string }) => `Prior memory (${m.class}${m.masked ? ", masked" : ""}): ${m.text}`); } catch { /* memory is best-effort — never breaks the response */ }
     const ctx = [...internalContext(guard.masked), ...memCtx, ...passages.map(p => `Document "${p.title}": ${p.snippet}`)];
     const system = "You are Veris Intelligence, the enterprise AI advisor inside GenVeris. Be concise and executive-grade. " +
       // Scope guard: Veris Intelligence is a governance advisor, not a general chatbot. Off-domain
@@ -169,7 +179,7 @@ export async function POST(req: NextRequest) {
        groundedness heuristic. A high-severity category (or a secret/PII leak
        that slipped the redactor) blocks the response entirely; lesser issues
        flag it. */
-    const og = moderateOutput(rv.redacted, ctx.join("\n"), rv.findings);
+    const og = await moderateOutputAsync(rv.redacted, ctx.join("\n"), rv.findings);
     /* Hallucination / faithfulness — deterministic claim-grounding on every
        answer, escalated to a strict LLM judge only when the fast check is
        uncertain. Best-effort; a caution is appended when the answer can't be
@@ -178,7 +188,7 @@ export async function POST(req: NextRequest) {
     if (!og.blocked) {
       try {
         faith = checkFaithfulness(rv.redacted, ctx.join("\n"));
-        if (faith && needsJudge(faith)) { const j = await judgeFaithfulness({ answer: rv.redacted, context: ctx.join("\n"), apiKey: key, model }); if (j) faith.judge = j; }
+        if (faith && shouldJudge(faith)) { const j = await judgeFaithfulness({ answer: rv.redacted, context: ctx.join("\n"), apiKey: key, model }); if (j) faith.judge = j; }
       } catch { /* faithfulness is best-effort — never breaks the response */ }
     }
     const finalVerdict = faith?.judge?.verdict || faith?.verdict;
@@ -197,7 +207,7 @@ export async function POST(req: NextRequest) {
        Restricted content is never persisted, retention/expiry are stamped by
        class. Best-effort so it never breaks the response. */
     let mem: { decision: string; written: boolean } | null = null;
-    try { const mw = rememberLive({ ...memScope, kind: "turn", text: guard.masked }); mem = { decision: mw.decision, written: mw.written }; } catch { /* best-effort */ }
+    try { const mw = await rememberDurable({ ...memScope, kind: "turn", text: guard.masked }); mem = { decision: mw.decision, written: mw.written }; } catch { /* best-effort */ }
     /* Runtime guardrails — settle the in-flight count and record latency, so a
        call over the SLA is flagged as a real anomaly signal. */
     let runtime: { latencyMs: number; sloBreach: boolean } | null = null;

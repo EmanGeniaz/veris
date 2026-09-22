@@ -1,11 +1,15 @@
-/* Persistence bus: evidence, decisions and ideas flow here when the
-   database is configured; the client falls back to localStorage when
-   it is not. One demo tenant for now - auth and multi-tenant arrive in
-   Phase 2b. */
+/* Persistence bus: evidence, decisions and ideas flow here when the database is
+   configured; the client falls back to localStorage when it is not. Multi-tenant
+   and tenant isolation are wired: every read/write is scoped to the tenant
+   resolved from the authenticated session (lib/bus-tenant), and a signed-in user
+   can only ever see their own tenant's data — a request authenticated as tenant A
+   cannot read tenant B's store. Host-based routing applies only in the no-auth
+   demo mode. */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
+import { resolveBusTenant } from "@/lib/bus-tenant";
 import { can, isCap, STORE_REQUIREMENT, STORE_READ_REQUIREMENT, type AccessMatrix } from "@/lib/rbac";
 
 const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit", "rbacPolicy", "policies", "violations"]);
@@ -28,37 +32,33 @@ async function sessionRole(): Promise<string | null> {
 
 async function sessionCtx(prisma: NonNullable<ReturnType<typeof db>>, reqHost?: string | null) {
   let identity: { name: string; email: string } | null = null;
-  let tenantId: string | null = null;
+  let sessionEmail: string | null = null;
+  let userTenantId: string | null = null;
   if (authConfigured()) {
     const session = await auth();
     if (session?.user?.email) {
       identity = { name: session.user.name || session.user.email, email: session.user.email };
-      const u = await prisma.user.findUnique({ where: { email: session.user.email } });
-      if (u) tenantId = u.tenantId;
+      sessionEmail = session.user.email;
+      const u = await prisma.user.findUnique({ where: { email: sessionEmail } });
+      if (u) userTenantId = u.tenantId;
     }
   }
-  if (!tenantId) {
-    /* Anonymous callers are confined to the public demo tenant whenever auth is
-       configured: a real tenant's data is only ever served to a signed-in user
-       (resolved above from their session). Without this guard, an unauthenticated
-       request to acme.genveris.com/api/bus/* would return acme's real data —
-       including adminAudit / rbacPolicy — purely from the Host header.
-       Host-based tenant routing therefore applies only in the no-auth mode used
-       for local/self-hosted demo deployments. */
-    const host = (reqHost || "").split(":")[0];
-    const label = host.split(".")[0];
-    let slug = "demo";
-    if (!authConfigured() && label && !["console", "www", "localhost", "genveris", "veris"].includes(label)) {
-      if (await prisma.tenant.findUnique({ where: { slug: label } })) slug = label;
-    }
-    const t = await prisma.tenant.upsert({
-      where: { slug },
-      update: {},
-      create: { slug: "demo", name: "GenVeris Demo Center", mode: "demo" },
-    });
-    tenantId = t.id;
-  }
-  return { tenantId, identity };
+
+  /* One pure decision (lib/bus-tenant) governs isolation: a signed-in user is
+     bound to their own tenant; an anonymous caller is confined to demo when auth
+     is configured; Host-based routing is reachable only in no-auth demo mode. */
+  const res = resolveBusTenant({ authConfigured: authConfigured(), sessionEmail, userTenantId, host: reqHost });
+  if (res.source === "session") return { tenantId: res.tenantId, identity };
+
+  // Non-session sources resolve to a demo tenant; a Host slug must exist first.
+  let slug = res.slug;
+  if (res.source === "host" && !(await prisma.tenant.findUnique({ where: { slug } }))) slug = "demo";
+  const t = await prisma.tenant.upsert({
+    where: { slug },
+    update: {},
+    create: { slug: "demo", name: "GenVeris Demo Center", mode: "demo" },
+  });
+  return { tenantId: t.id, identity };
 }
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: string }> }) {
