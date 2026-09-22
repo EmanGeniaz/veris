@@ -16,6 +16,7 @@ import { rememberLive, recallLive } from "@/lib/memory";
 import { admitCall, completeCall, recordLatency } from "@/lib/runtime-guard";
 import { ingressCheck } from "@/lib/input-guard";
 import { moderateOutput, SAFE_WITHHELD_MESSAGE } from "@/lib/output-guard";
+import { checkFaithfulness, needsJudge, judgeFaithfulness, HALLUCINATION_CAUTION } from "@/lib/hallucination";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 
@@ -169,7 +170,20 @@ export async function POST(req: NextRequest) {
        that slipped the redactor) blocks the response entirely; lesser issues
        flag it. */
     const og = moderateOutput(rv.redacted, ctx.join("\n"), rv.findings);
-    const safe = og.blocked ? SAFE_WITHHELD_MESSAGE : rv.redacted;
+    /* Hallucination / faithfulness — deterministic claim-grounding on every
+       answer, escalated to a strict LLM judge only when the fast check is
+       uncertain. Best-effort; a caution is appended when the answer can't be
+       verified against the retrieved evidence. */
+    let faith: { verdict: string; score: number; hasContext: boolean; findings: string[]; judge: { verdict: string; unsupported: string[] } | null } | null = null;
+    if (!og.blocked) {
+      try {
+        faith = checkFaithfulness(rv.redacted, ctx.join("\n"));
+        if (faith && needsJudge(faith)) { const j = await judgeFaithfulness({ answer: rv.redacted, context: ctx.join("\n"), apiKey: key, model }); if (j) faith.judge = j; }
+      } catch { /* faithfulness is best-effort — never breaks the response */ }
+    }
+    const finalVerdict = faith?.judge?.verdict || faith?.verdict;
+    const caution = (!og.blocked && faith?.hasContext && (finalVerdict === "ungrounded" || finalVerdict === "mixed")) ? HALLUCINATION_CAUTION : "";
+    const safe = og.blocked ? SAFE_WITHHELD_MESSAGE : rv.redacted + caution;
     const sources = [...new Set(passages.map(p => p.title))];
     const grounded = sources.length && !og.blocked ? `${safe}\n\n— Grounded in your documents: ${sources.join(", ")}` : safe;
     /* FinOps: meter this interaction. Cost is priced through the same
@@ -194,6 +208,7 @@ export async function POST(req: NextRequest) {
       memory: { recalled: memCtx.length, write: mem }, runtime,
       input: { sanitized: ig.sanitized_changed, findings: ig.findings },
       output: { decision: og.decision, toxicity: og.toxicity.severity, categories: og.toxicity.categories, grounded: og.grounding.grounded, findings: og.findings },
+      hallucination: faith ? { verdict: finalVerdict, score: faith.score, findings: faith.findings, judged: !!faith.judge, unsupported: faith.judge?.unsupported || [] } : null,
       source: ctx.length ? "Hybrid" : "External", citations: passages.map(p => ({ title: p.title, source: p.source })) });
   } catch {
     if (rtAdmitted) { try { completeCall(rtKey, Date.now() - rtStart); } catch { /* best-effort */ } }

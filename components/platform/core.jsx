@@ -376,6 +376,7 @@ export const CAIO_NAV = [
   {id:"caio_templates", icon:"T", label:"Template Library"},
   {id:"caio_drift", icon:"M", label:"Drift Monitor"},
   {id:"caio_guardlayers", icon:"G", label:"Guardrail Layers"},
+  {id:"caio_hallucination", icon:"H", label:"Hallucination Monitor"},
 ];
 
 /* CEO Command Center surfaces - each is a tab that renders a view of the
@@ -404,7 +405,7 @@ export const CEO_NAV_SECTIONS = [
 
 /* CAIO gets the AI Governance Office command center. "Overview" is home. */
 export const CAIO_NAV_SECTIONS = [
-  {title:"AI Governance Office", items:["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary","caio_crosswalk","caio_soa","caio_templates","caio_drift","caio_guardlayers"]},
+  {title:"AI Governance Office", items:["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary","caio_crosswalk","caio_soa","caio_templates","caio_drift","caio_guardlayers","caio_hallucination"]},
   {title:"Enterprise", items:["aicentral","academy"]},
 ];
 

@@ -26,7 +26,7 @@ import { DriftMonitor, WorkflowPermissions, Article12Log } from "./platform/road
 import { EnforcementOverview, AgentAuthority, ToolCallLedger } from "./platform/enforce";
 import { McpRegistry } from "./platform/mcp";
 import { PageSuperAdmin } from "./platform/superadmin";
-import { EgressPolicy, HitlGates, CircuitBreaker, PolicyAsAService, EnforcementCoverage, GuardrailCoverage, MemoryGuardrails, RetrievalGuardrails, RuntimeGuardrails, InputGuardrails, OutputGuardrails } from "./platform/enforce";
+import { EgressPolicy, HitlGates, CircuitBreaker, PolicyAsAService, EnforcementCoverage, GuardrailCoverage, MemoryGuardrails, RetrievalGuardrails, RuntimeGuardrails, InputGuardrails, OutputGuardrails, HallucinationMonitor } from "./platform/enforce";
 import { TemplateLibrary } from "./platform/template-library";
 /* Employee/Manager command-center surfaces that delegate to a real,
    fully-built platform page rather than a config block — so the governed
@@ -42,6 +42,7 @@ const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",em
   ciso_mcp:"mcp",cgo_mcp:"mcp",ciso_egress:"egress",ciso_hitl:"hitl",cgo_hitl:"hitl",ciso_breaker:"breaker",cgo_breaker:"breaker",
   ciso_guardlayers:"guardrails",cgo_guardlayers:"guardrails",caio_guardlayers:"guardrails",
   ciso_memory:"memguard",cgo_memory:"memguard",ciso_retrieval:"retrguard",cgo_retrieval:"retrguard",ciso_runtime:"rtguard",cgo_runtime:"rtguard",ciso_input:"inguard",cgo_input:"inguard",ciso_output:"outguard",cgo_output:"outguard",
+  ciso_hallucination:"hallmon",cgo_hallucination:"hallmon",caio_hallucination:"hallmon",
   ciso_paas:"paas",cgo_paas:"paas",caio_templates:"templatelib",cgo_templates:"templatelib"};
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
@@ -1035,6 +1036,7 @@ export default function GenVeris() {
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="rtguard"&&<RuntimeGuardrails role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="inguard"&&<InputGuardrails role={role} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="outguard"&&<OutputGuardrails role={role} showToast={showToast}/>}
+        {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="hallmon"&&<HallucinationMonitor role={role} showToast={showToast}/>}
         {showSeededData&&tab==="home"&&role!=="ceo"&&role!=="caio"&&!ROLE_CENTERS[role]&&<PageHome       role={role} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&tab==="onboard"    &&<PageOnboard    role={role} showToast={showToast}/>}
         {tab==="admin"      &&<PageAdmin      role={role} showToast={showToast} setTab={setTab}/>}

@@ -15,6 +15,7 @@ import { SOURCE_TRUST_TIERS, FRESHNESS, seededRetrievalLedger, retrievalGuardSta
 import { RUNTIME_POLICY, RUNTIME_DECISION_META, seededRuntimeLedger, runtimeGuardStats } from "@/lib/runtime-guard";
 import { INPUT_MIME_ALLOWLIST, INPUT_RATE, seededInputLedger, inputGuardStats } from "@/lib/input-guard";
 import { TOXICITY_CATEGORIES, OUTPUT_DECISION_META, seededOutputLedger, outputGuardStats } from "@/lib/output-guard";
+import { HALLUCINATION_META, seededHallucinationLedger, hallucinationStats } from "@/lib/hallucination";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* ── shared local primitives (match roadmap/convergence) ──
@@ -871,6 +872,58 @@ export function RetrievalGuardrails({ showToast }) {
       {advisor(<>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Retrieval-guard decisions exported — " + s.admitted + " admitted, " + s.dropped + " dropped")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export retrieval decisions</button>
+      </div>
+    </Card>
+  </div>;
+}
+
+/* ── Hallucination Monitor ────────────────────────────────────────────────
+   "Make sure the LLM is not hallucinating." Deterministic faithfulness scoring
+   on every answer, escalated to a strict LLM judge when uncertain. Wired live
+   into the gateway response path. */
+export function HallucinationMonitor({ showToast }) {
+  const T_ = useT();
+  const rows = seededHallucinationLedger();
+  const s = hallucinationStats(rows);
+  const vTone = v => HALLUCINATION_META[v]?.tone || "ink3";
+  return <div style={{ animation: "up .3s ease" }}>
+    <Head title="Hallucination Monitor" sub="Every answer the gateway returns is checked for faithfulness before it reaches the user — the guarantee that GenVeris is grounded in your evidence, not inventing it. A deterministic pass checks each factual claim's figures and salient terms against the retrieved context and penalises overconfident absolutes; when that pass is uncertain, a strict LLM judge re-reads the answer against the context alone and returns the unsupported claims. An answer that can't be verified is scored down and flagged with a caution. Enforced live on every response." />
+    <div style={kpiGrid}>
+      <Kpi l="Avg faithfulness" v={s.avgScore + "%"} c={s.avgScore >= 70 ? T.green : s.avgScore >= 50 ? T.amber : T.red} sub="across responses" />
+      <Kpi l="Grounded" v={String(s.grounded)} c={T.green} sub="fully supported by evidence" />
+      <Kpi l="Flagged" v={String(s.flagged)} c={T.amber} sub="mixed · ungrounded · unverifiable" />
+      <Kpi l="Escalated to judge" v={String(s.wouldJudge)} c={AI_GOLD} sub="strict LLM second pass" />
+    </div>
+
+    <Card style={{ ...cardPad, marginBottom: 14 }}>
+      <Eyebrow>Two-tier verification</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>How faithfulness is decided</H3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: T.green + "0e", border: `1px solid ${T.green}33` }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: T.ink, fontFamily: F.b, marginBottom: 4 }}>1 · Deterministic (always on)</div>
+          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55 }}>Each claim's figures must appear in the retrieved context and its salient terms must overlap; specifics asserted with no evidence and overconfident absolutes are penalised. No extra model call.</div>
+        </div>
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: AI_GOLD + "0e", border: `1px solid ${AI_GOLD}33` }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: T.ink, fontFamily: F.b, marginBottom: 4 }}>2 · LLM judge (on uncertainty)</div>
+          <div style={{ fontSize: 10.5, color: T.ink3, fontFamily: F.b, lineHeight: 1.55 }}>When the fast pass isn't clearly grounded, a strict verifier model re-reads the answer against the context alone and returns the exact unsupported claims — accuracy where it matters, cost only when needed.</div>
+        </div>
+      </div>
+    </Card>
+
+    <Card style={cardPad}>
+      <Eyebrow>Per-response faithfulness · the verdict on every answer</Eyebrow>
+      <H3 style={{ marginBottom: 12 }}>What was grounded, and what was caught</H3>
+      <Table head={["Answer", "Faithfulness", "Findings", "Verdict"]}>
+        {rows.map((r, i) => <tr key={i}>
+          <Td style={{ color: T.ink, fontWeight: 700, maxWidth: 240 }}>{r.label}{r.judged ? <span style={{ fontSize: 8.5, color: AI_GOLD_INK, fontFamily: F.m, marginLeft: 6 }}>→ judge</span> : null}</Td>
+          <Td style={{ fontFamily: F.m, fontWeight: 900, color: r.score >= 70 ? T.green : r.score >= 50 ? T.amber : T.red }}>{r.score}%<span style={{ fontSize: 9, color: T.ink4, fontWeight: 600 }}> · {r.supported}/{r.checkable} claims</span></Td>
+          <Td style={{ color: T.ink3, maxWidth: 300 }}>{(r.findings && r.findings.length) ? r.findings.join(" · ") : <span style={{ color: T.ink4 }}>clean</span>}</Td>
+          <Td><Pill c={tok(vTone(r.verdict))}>{HALLUCINATION_META[r.verdict]?.label || r.verdict}</Pill></Td>
+        </tr>)}
+      </Table>
+      {advisor(<>The answer claiming <b style={{ color: T.ink }}>92% adoption and 310% ROI</b> was caught: those figures aren't in the retrieved context, so it scored 0 and would be re-checked by the judge. The answer that asserted a <b style={{ color: T.ink }}>PSI of 0.42 with no context retrieved</b> is marked unverifiable rather than trusted. Average faithfulness across this window is {s.avgScore}%.</>)}
+      <div style={{ marginTop: 12 }}>
+        <button onClick={() => showToast && showToast("Faithfulness report exported — avg " + s.avgScore + "%, " + s.flagged + " flagged")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export faithfulness report</button>
       </div>
     </Card>
   </div>;
