@@ -8,6 +8,8 @@ import { initiativesForRole, ROLE_FACET } from "@/lib/initiative-facets";
 import { assetById } from "@/lib/ai-assets";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
+import { CustomizeMenu } from "./customize-menu";
+import { ROLE_CENTER_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* Arabic for the command-center chrome + the employee Overview's top-level text
@@ -1340,6 +1342,15 @@ function Overview({role,cfg,ctx,userName}){
      THEIR facet of the shared initiative — one object, many owners. */
   const facetDomain=ROLE_FACET[role];
   const queue=facetDomain?initiativesForRole(role):[];
+  /* Per-viewer personalization: which landing sections show. "facet" only makes
+     sense for roles that have a cross-functional gate, so drop it otherwise. */
+  const sectionCatalog=facetDomain?ROLE_CENTER_SECTIONS:ROLE_CENTER_SECTIONS.filter(s=>s.key!=="facet");
+  const [prefs,setPrefs]=useState(()=>loadDashboardPrefs("rolecenter",role,sectionCatalog));
+  useEffect(()=>{setPrefs(loadDashboardPrefs("rolecenter",role,sectionCatalog));},[role]); // eslint-disable-line react-hooks/exhaustive-deps
+  const show=k=>prefs[k]!==false;
+  const toggleSection=k=>setPrefs(prev=>{const next={...prev,[k]:prev[k]===false};saveDashboardPrefs("rolecenter",role,next,sectionCatalog);return next;});
+  const resetSections=()=>{saveDashboardPrefs("rolecenter",role,{},sectionCatalog);setPrefs(loadDashboardPrefs("rolecenter",role,sectionCatalog));};
+  const anyVisible=sectionCatalog.some(s=>show(s.key));
   const FacetBand=()=>!facetDomain?null:<Card style={{padding:"14px 16px",marginBottom:16,border:`1px solid ${AI_GOLD}35`}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,marginBottom:queue.length?10:0}}>
       <div><Eyebrow>{ar?"متعدد الوظائف · بوابتك":"Cross-functional · your gate"}</Eyebrow><H3 style={{margin:0}}>{ar?`مبادرات تحتاج مراجعتك (${T_(facetDomain)})`:`Initiatives needing your ${facetDomain} review`}</H3></div>
@@ -1380,7 +1391,19 @@ function Overview({role,cfg,ctx,userName}){
         {jump.map(s=><button key={s.id} onClick={()=>ctx.setTab&&ctx.setTab(s.id)} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.s2,border:`1px solid ${T.border}`,borderRadius:999,padding:"6px 13px",fontSize:11,fontWeight:700,fontFamily:F.b,color:T.ink2,cursor:"pointer",transition:"border-color .15s"}}>{T_(s.label)}{s.badge?<span style={{fontSize:9,fontWeight:900,fontFamily:F.m,color:"#fff",background:AI_GOLD_INK,borderRadius:999,padding:"0 6px",lineHeight:"15px"}}>{s.badge}</span>:null}</button>)}
       </div>:null;
     })()}
-    <div style={{marginTop:18,animation:"up .2s ease"}}><FacetBand/><Attn items={cfg.attn} ctx={ctx}/><Kpis items={cfg.kpis} ctx={lctx}/><Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/></div>
+    <div style={{marginTop:16,display:"flex",justifyContent:"flex-end"}}>
+      <CustomizeMenu sections={sectionCatalog} prefs={prefs} onToggle={toggleSection} onReset={resetSections}/>
+    </div>
+    <div style={{marginTop:10,animation:"up .2s ease"}}>
+      {show("facet")&&<FacetBand/>}
+      {show("attention")&&<Attn items={cfg.attn} ctx={ctx}/>}
+      {show("kpis")&&<Kpis items={cfg.kpis} ctx={lctx}/>}
+      {show("panels")&&<Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/>}
+      {!anyVisible&&<Card style={{padding:32,textAlign:"center"}}>
+        <div style={{fontSize:13,fontWeight:800,color:T.ink2,fontFamily:F.b,marginBottom:5}}>{T_("Your dashboard is empty")}</div>
+        <div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{T_("Use Customize above to choose the sections you want to see.")}</div>
+      </Card>}
+    </div>
   </div>;
 }
 

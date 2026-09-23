@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card } from "./core";
+import { CustomizeMenu } from "./customize-menu";
+import { CAIO_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
 import { frameworkScore } from "@/lib/portfolio";
 import { GOVERNANCE_INPUTS, GOVERNANCE_SCORE } from "@/lib/governance";
 
@@ -174,6 +176,12 @@ function Overview({role,go,showToast,userName}){
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const TABS=[["overview","Overview"],["governance","Governance Score"],["compliance","Compliance"],["risks","Risks"],["incidents","Incidents"]];
+  /* Per-viewer personalization of the overview landing: which sections show. */
+  const [prefs,setPrefs]=useState(()=>loadDashboardPrefs("caio",role,CAIO_SECTIONS));
+  useEffect(()=>{setPrefs(loadDashboardPrefs("caio",role,CAIO_SECTIONS));},[role]);
+  const show=k=>prefs[k]!==false;
+  const toggleSection=k=>setPrefs(prev=>{const next={...prev,[k]:prev[k]===false};saveDashboardPrefs("caio",role,next,CAIO_SECTIONS);return next;});
+  const resetSections=()=>{saveDashboardPrefs("caio",role,{},CAIO_SECTIONS);setPrefs(loadDashboardPrefs("caio",role,CAIO_SECTIONS));};
   return <div style={{animation:"up .3s ease"}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <div>
@@ -186,11 +194,14 @@ function Overview({role,go,showToast,userName}){
       </button>
     </div>
 
-    <div style={{display:"flex",gap:6,margin:"18px 0",flexWrap:"wrap"}}>
-      {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{l}</button>)}
+    <div style={{display:"flex",gap:12,margin:"18px 0",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{l}</button>)}
+      </div>
+      {tab==="overview"&&<CustomizeMenu sections={CAIO_SECTIONS} prefs={prefs} onToggle={toggleSection} onReset={resetSections}/>}
     </div>
 
-    {tab==="overview"&&<OverviewTab go={go}/>}
+    {tab==="overview"&&<OverviewTab go={go} show={show}/>}
     {tab==="governance"&&<GovPanel withDefs/>}
     {tab==="compliance"&&<CompliancePanel/>}
     {tab==="risks"&&<Card style={cardPad}><Eyebrow>Active risk register · all projects</Eyebrow><H3 style={{marginBottom:12}}>{RISK_OPEN} open · {RISK_CH}</H3>
@@ -199,8 +210,10 @@ function Overview({role,go,showToast,userName}){
   </div>;
 }
 
-function OverviewTab({go}){
+function OverviewTab({go,show=()=>true}){
+  const anyVisible=CAIO_SECTIONS.some(s=>show(s.key));
   return <div style={{animation:"up .2s ease"}}>
+    {show("attention")&&<>
     <Eyebrow style={{margin:"0 2px 9px"}}>Immediate attention · approvals pending</Eyebrow>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:18}}>
       {CAIO_ATTENTION.map(a=><Card key={a.t} style={{padding:"13px 15px",borderLeft:`3px solid ${a.c}`,cursor:"pointer"}}>
@@ -209,6 +222,8 @@ function OverviewTab({go}){
         <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{a.go} →</div>
       </Card>)}
     </div>
+    </>}
+    {show("metrics")&&<>
     <Eyebrow style={{margin:"0 2px 9px"}}>CAIO domain metrics</Eyebrow>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
       <Kpi l="Governance score" v={<>{GOV_SCORE}<span style={{fontSize:13,color:T.ink4}}>/100</span></>} vc={T.green} s="+4 vs last quarter" onClick={()=>go("caiogov")}/>
@@ -218,23 +233,30 @@ function OverviewTab({go}){
       <Kpi l="Open risks" v={String(RISK_OPEN)} vc={T.red} s={RISK_CH} onClick={()=>go("caiorisk")}/>
       <Kpi l="AI incidents" v="3" vc={T.amber} s="open · 1 P1" onClick={()=>go("caioincidents")}/>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16}}>
+    </>}
+    {show("govcompliance")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16}}>
       <GovPanel/>
       <CompliancePanel compact/>
-    </div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16,marginTop:16}}>
+    </div>}
+    {show("risksincidents")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16,marginTop:16}}>
       <Card style={cardPad}><Eyebrow>Major &amp; active risks</Eyebrow><H3 style={{marginBottom:12}}>Highest exposure first</H3>
         <Table>{CAIO_RISKS.map(r=><tr key={r.r}><Td style={{fontWeight:700,color:T.ink}}>{r.r}</Td><Td>{r.p}</Td><Td><Pill c={r.gc}>{r.g}</Pill></Td></tr>)}</Table>
       </Card>
       <Card style={cardPad}><Eyebrow>AI incidents · from ServiceNow / CRM</Eyebrow><H3 style={{marginBottom:12}}>By priority &amp; severity</H3>
         <Table>{CAIO_INCIDENTS.map(i=><tr key={i.id}><Td style={{fontWeight:700,color:T.ink}}>{i.id}</Td><Td>{i.sum}</Td><Td><Pill c={i.pc}>{i.pri}</Pill></Td></tr>)}</Table>
       </Card>
-    </div>
+    </div>}
+    {show("quickaccess")&&<>
     <Eyebrow style={{margin:"20px 2px 9px"}}>Quick access</Eyebrow>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:14}}>
       {[["Run Impact Assessment","Start an AIA for a project","caioaia"],["Create risk + treatment","AI Risk Treatment Plan","caiorisk"],["New project playbook","Strategy → runbook","caioplaybook"],["Governance Library","ISO · regulatory · checklists","caiolibrary"]].map(([t,d,dest])=>
         <button key={t} onClick={()=>go(dest)} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:12,padding:14,cursor:"pointer",textAlign:"left"}}><div style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t}</div><div style={{fontSize:10,color:T.ink3,marginTop:3,fontFamily:F.b}}>{d}</div></button>)}
     </div>
+    </>}
+    {!anyVisible&&<Card style={{padding:32,textAlign:"center"}}>
+      <div style={{fontSize:13,fontWeight:800,color:T.ink2,fontFamily:F.b,marginBottom:5}}>Your dashboard is empty</div>
+      <div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>Use <strong style={{color:AI_GOLD_INK}}>Customize</strong> above to choose the sections you want to see.</div>
+    </Card>}
   </div>;
 }
 function GovPanel({withDefs}){
