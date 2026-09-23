@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { T, F, AI_GOLD, AI_GOLD_INK, Card } from "./core";
+import { TelemetryBadge } from "./telemetry-badge";
 import { AI_AGENTS, agentPosture } from "@/lib/agent-registry";
 import { TOOLCALL_LEDGER, enforceStats, ENFORCE_DECISION_META, issueToken, TOKEN_TTL_SECONDS } from "@/lib/enforce";
 import { EGRESS_POLICY, EGRESS_EVENTS, EGRESS_DECISION_META, egressStats } from "@/lib/egress";
@@ -611,8 +612,21 @@ export function AgentAuthority({ showToast }) {
 /* ══════════════ TOOL-CALL LEDGER — the tamper-evident record ══════════════ */
 export function ToolCallLedger({ showToast }) {
   const T_ = useT(); const ar = useLang() === "ar";
-  const rows = TOOLCALL_LEDGER;
-  const s = enforceStats(rows);
+  /* Live-first (BL-04): read the tenant's real audit-chain tool-call decisions
+     when a database is configured; fall back to the seeded window otherwise, and
+     badge which one is showing so a demo window is never mistaken for live. */
+  const [live, setLive] = useState(null); // { rows, stats, intact } | null
+  useEffect(() => {
+    let on = true;
+    fetch("/api/enforce/ledger?tenant=demo")
+      .then(r => r.json())
+      .then(d => { if (on && d && d.enabled) setLive({ rows: d.rows || [], stats: d.stats, intact: d.intact }); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const usingLive = !!live;
+  const rows = usingLive ? live.rows : TOOLCALL_LEDGER;
+  const s = usingLive ? live.stats : enforceStats(TOOLCALL_LEDGER);
   return <div style={{ animation: "up .3s ease" }}>
     <Head title="Tool-Call Ledger" sub="The audit artifact nobody else owns: prove what your agents were allowed to do, and prove what they actually did. Every tool call is one signed row — the authorised grant beside the actual call, the deterministic decision, its token, and a hash chained to the row before it. Change any row and every later hash breaks. This is the record EU AI Act Art.12 and ISO 42001 push toward." />
     <div style={kpiGrid}>
@@ -624,9 +638,10 @@ export function ToolCallLedger({ showToast }) {
     </div>
     <Card style={cardPad}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <div><Eyebrow>Signed tool-call record · authorised vs actual</Eyebrow><H3>Tamper-evident hash chain</H3></div>
+        <div><div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}><Eyebrow>Signed tool-call record · authorised vs actual</Eyebrow><TelemetryBadge/></div><H3>Tamper-evident hash chain</H3></div>
         <button onClick={() => showToast && showToast(s.intact ? "Chain verified — every row re-hashed, no tampering" : "Chain broken — a row was altered")} style={{ background: s.intact ? T.green : T.red, border: "none", borderRadius: 10, padding: "8px 13px", color: "#fff", fontSize: 11.5, fontWeight: 900, fontFamily: F.b, cursor: "pointer" }}>{s.intact ? T_("✓ Verify chain") : T_("Chain broken")}</button>
       </div>
+      {usingLive && rows.length === 0 && <div style={{ padding: "22px 4px", fontSize: 12, color: T.ink3, fontFamily: F.b }}>No live tool calls recorded yet — as agents call tools through the gateway, each signed decision appears here on the tenant's audit chain.</div>}
       <Table head={["#", "Agent", "Tool call", "Authorised", "Decision", "Scope", "Token", "Risk", "Hash"]}>
         {rows.map(r => <tr key={r.id}>
           <Td style={{ fontFamily: F.m, color: T.ink4 }}>{r.seq}</Td>

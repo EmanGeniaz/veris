@@ -64,6 +64,9 @@ jobs:
       - name: Telemetry labeling tests (truthful live-vs-demo provenance)
         run: npm run test:telemetry
 
+      - name: Live tool-call ledger tests (audit-chain -> ledger)
+        run: npm run test:enforcelive
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
