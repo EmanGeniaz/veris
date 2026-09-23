@@ -49,6 +49,9 @@ jobs:
       - name: UI contract tests (self-hosted fonts, non-blocking tour)
         run: npm run test:ui
 
+      - name: Robustness tests (timeouts, input validation, honest errors)
+        run: npm run test:robustness
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
