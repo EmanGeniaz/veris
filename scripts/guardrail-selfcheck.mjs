@@ -17,6 +17,7 @@ import { resolveModel, modelAllowed, detectModelOverride } from "../lib/model-po
 import { resolveBusTenant } from "../lib/bus-tenant.ts";
 import { telemetryMode, pickTelemetry } from "../lib/telemetry-source.ts";
 import { authReadiness } from "../lib/auth-readiness.ts";
+import { classify, evaluateRules, validateResponse, hasCredential } from "../lib/policy-rules.ts";
 import retrievalGuard from "../lib/retrieval-guard.js";
 import inputGuard from "../lib/input-guard.js";
 import memory from "../lib/memory.js";
@@ -203,6 +204,60 @@ check("async scan is a no-op when AV_SCAN_URL unset", cleanAsync.decision === "a
   check("missing DIRECT_URL is recommended but not blocking", noDirect.ready === true && noDirect.recommendDirectUrl === true);
   // The readiness object must never carry a secret value.
   check("readiness never echoes a secret value", !JSON.stringify(rReady).includes("a-real-32-char-secret-value-xxxxx"));
+}
+
+/* ── BL-12 provider-credential DLP — detection, classification, redaction, and
+   negative (no false-positive) coverage. The originally-reported formats plus
+   additional realistic provider tokens; and ordinary hyphenated/underscored text
+   that must NOT be treated as a secret. ── */
+{
+  // Positives: originally-discovered formats + realistic variants. Assembled
+  // from fragments at runtime so no full token literal sits in source (these
+  // are synthetic, but GitHub push-protection flags the real shapes — which is
+  // itself evidence the patterns match genuine credential formats).
+  const secrets = [
+    ["sk-" + "ant-api03-9f8a7b6c5d4e3f2a1bXYZ", "anthropic"],
+    ["sk-" + "proj-AbC123dEf456GhI789jkl",       "openai-proj"],
+    ["sk" + "_live_" + "51H8xYzAbCdEf0123456789", "stripe"],
+    ["AKIA" + "IOSFODNN7EXAMPLE",                "aws"],
+    ["AIza" + "SyA1234567890B1234567890C1234567890", "google"],
+    ["ghp_" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", "github"],
+    ["xoxb" + "-123456789012-abcdefghijklmno",   "slack"],
+  ];
+  let detected = 0, classified = 0, blocked = 0, redacted = 0;
+  for (const [s] of secrets) {
+    if (hasCredential(s)) detected++;
+    const c = classify("here is a key " + s);
+    if (c.dataClass === "Restricted" && c.categories.includes("Secrets")) classified++;
+    if (evaluateRules("prompt with " + s).blocked) blocked++;
+    const v = validateResponse("the answer leaked " + s);
+    if (!v.ok && !v.redacted.includes(s)) redacted++;
+  }
+  check("BL-12 all provider tokens are detected", detected === secrets.length);
+  check("BL-12 all provider tokens classify Restricted/Secrets", classified === secrets.length);
+  check("BL-12 all provider tokens are blocked at evaluateRules", blocked === secrets.length);
+  check("BL-12 all provider tokens are redacted from output", redacted === secrets.length);
+
+  // Negatives: ordinary text must not be flagged (no regression, no over-redaction).
+  const clean = [
+    "task-oriented design workflow",
+    "please ask-me about the roadmap",
+    "sk-oriented-architecture-review",            // sk- prefix but no digit -> not a secret
+    "https://example.com/some-long-hyphenated-path-segment-here",
+    "commit 9f8a7b6c5d4e3f2a1b0c is ready for review",
+    "The residual risk is 41% this quarter.",
+    "AI-generated content pipeline v2",
+    "token of appreciation for the whole team",
+  ];
+  let fp = 0;
+  for (const s of clean) { if (hasCredential(s) || evaluateRules(s).blocked) fp++; }
+  check("BL-12 no false positives on ordinary text", fp === 0);
+  check("BL-12 clean text passes validateResponse untouched", (() => { const v = validateResponse("The residual risk is 41% this quarter."); return v.ok && !/REDACTED/.test(v.redacted); })());
+
+  // Regression: existing DLP behaviour intact.
+  check("BL-12 regression: card still blocked", evaluateRules("card 4111 1111 1111 1111").blocked === true);
+  check("BL-12 regression: email still masked", evaluateRules("reach me at jane@example.com").didMask === true);
+  check("BL-12 regression: api_key= form still blocked", evaluateRules("api_key=" + "sk-live-abcd1234").blocked === true);
 }
 
 const failed = R.filter(([s]) => s === "FAIL");

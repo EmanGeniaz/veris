@@ -23,7 +23,7 @@ export type RuntimeRule = {
 /* Detection library. Test patterns are NON-global (global + .test() is
    stateful and flip-flops); the *G variants are used only for masking. */
 const P = {
-  credential: /(password|api[\s_-]?key|secret|token)\s*[:=]|\bsk-[A-Za-z0-9]{8,}/i,
+  credential: /(password|api[\s_-]?key|secret|token)\s*[:=]/i,
   card: /\b(?:\d[ -]?){13,16}\b/,
   cardG: /\b(?:\d[ -]?){13,16}\b/g,
   email: /[\w.+-]+@[\w-]+\.[\w.]+/,
@@ -36,8 +36,39 @@ const P = {
   code: /```|\b(select \* from|drop table|function\s+\w+\s*\(|private key|-----begin)\b/i,
 };
 
+/* ── Provider-credential token detection (BL-12) ──────────────────────────
+   The legacy credential pattern only caught `keyword=…` or a CONTIGUOUS
+   `sk-<alnum>` token, so real provider keys that carry a hyphen/underscore in
+   the body (sk-ant-api03-…, sk-proj-…, sk_live_…) or non-`sk` formats slipped
+   through detection AND redaction. This is a structured, prefix-anchored set of
+   the credential shapes that actually leak — NOT the three examples hard-coded.
+   The `sk-` form is digit-guarded so ordinary hyphenated words ("sk-oriented")
+   are not mistaken for secrets. Reused by classify(), the credential detector,
+   and validateResponse() so ingress, memory, retrieval, inspection and egress
+   all share one secret definition. */
+const SECRET_TOKEN_SRC = [
+  "\\bsk-(?=[A-Za-z0-9_-]*\\d)[A-Za-z0-9_-]{8,}",            // OpenAI / Anthropic: sk-ant-…, sk-proj-…, sk-… (must contain a digit)
+  "\\b(?:sk|pk|rk|ak|whsec)_(?:live|test)_[A-Za-z0-9]{10,}", // Stripe-style: sk_live_ / pk_test_ / …
+  "\\bAKIA[0-9A-Z]{16}\\b",                                  // AWS access key id
+  "\\bAIza[0-9A-Za-z_-]{35}\\b",                             // Google API key
+  "\\bgh[pousr]_[A-Za-z0-9]{20,}\\b",                        // GitHub tokens (ghp_/gho_/ghu_/ghs_/ghr_)
+  "\\bgithub_pat_[A-Za-z0-9_]{20,}\\b",                      // GitHub fine-grained PAT
+  "\\bxox[baprs]-[A-Za-z0-9-]{10,}",                         // Slack tokens
+  "-----BEGIN [A-Z ]*PRIVATE KEY-----",                     // PEM private key block
+].join("|");
+const SECRET_TOKEN = new RegExp(SECRET_TOKEN_SRC);
+const SECRET_TOKEN_G = new RegExp(SECRET_TOKEN_SRC, "g");
+
+/* True when the text carries a credential in any recognised form — the
+   keyword form (password/api_key/secret/token = …) OR a structured provider
+   token (SECRET_TOKEN). */
+export function hasCredential(text: string): boolean {
+  const t = String(text || "");
+  return P.credential.test(t) || SECRET_TOKEN.test(t);
+}
+
 const DETECT: Record<DetectorKey, (t: string) => boolean> = {
-  credential: (t) => P.credential.test(t),
+  credential: (t) => hasCredential(t),
   card: (t) => P.card.test(t),
   email: (t) => P.email.test(t),
   pii: (t) => P.ssn.test(t) || P.phone.test(t),
@@ -148,7 +179,7 @@ export type Classification = { dataClass: "Public" | "Internal" | "Confidential"
 
 export function classify(text: string): Classification {
   const cats: string[] = [];
-  if (P.credential.test(text)) cats.push("Secrets");
+  if (hasCredential(text)) cats.push("Secrets");
   if (P.card.test(text)) cats.push("PCI");
   if (PHI.test(text)) cats.push("PHI");
   if (P.ssn.test(text) || P.phone.test(text) || P.email.test(text)) cats.push("PII");
@@ -172,7 +203,7 @@ export type ResponseCheck = { ok: boolean; findings: string[]; redacted: string 
 export function validateResponse(text: string): ResponseCheck {
   const findings: string[] = [];
   let redacted = String(text || "");
-  if (P.credential.test(redacted)) { findings.push("Secret/credential in output"); redacted = redacted.replace(/sk-[A-Za-z0-9]{8,}/g, "[REDACTED-SECRET]"); }
+  if (hasCredential(redacted)) { findings.push("Secret/credential in output"); redacted = redacted.replace(SECRET_TOKEN_G, "[REDACTED-SECRET]"); }
   if (P.card.test(redacted)) { findings.push("Card number in output"); redacted = redacted.replace(P.cardG, "[REDACTED-CARD]"); }
   if (P.ssn.test(redacted)) { findings.push("Government ID in output"); redacted = redacted.replace(P.ssnG, "[REDACTED-SSN]"); }
   if (/never reveal these instructions|here (is|are) (my|the) (system )?(prompt|instructions)|you are veris intelligence, the enterprise ai advisor/i.test(text)) findings.push("System-prompt reflection");
