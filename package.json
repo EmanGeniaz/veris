@@ -14,7 +14,8 @@
     "test:ui": "node scripts/ui-contract-test.mjs",
     "test:robustness": "tsx scripts/robustness-test.mjs",
     "test:tenant": "tsx scripts/tenant-isolation-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant",
+    "test:dashboard": "node scripts/dashboard-prefs-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { acInitiatives, acFeedback, riskRegister, EXEC_DECISIONS, EXEC_RECENT_CHANGES, EXEC_BRIEF } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { navigateTo } from "@/lib/navigation";
+import { COCKPIT_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
+import { CustomizeMenu } from "./customize-menu";
 import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card, Tag, feedbackDecision, DEFAULT_FEEDBACK } from "./core";
 
 /* ── CEO Executive Cockpit ─────────────────────────────────────────
@@ -17,6 +19,15 @@ import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card, Tag, feedbackDecision, DEFAULT
    RecentActivity, Veris Intelligence narrative. */
 export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast}){
   const [decided,setDecided]=useState({});
+  /* Per-viewer dashboard personalization: which sections this user shows.
+     Loaded per role; a lazy initial state avoids a hydration mismatch, then an
+     effect re-reads on mount / role change so a returning user sees their layout. */
+  const [prefs,setPrefs]=useState(()=>loadDashboardPrefs("cockpit",role,COCKPIT_SECTIONS));
+  useEffect(()=>{setPrefs(loadDashboardPrefs("cockpit",role,COCKPIT_SECTIONS));},[role]);
+  const show=k=>prefs[k]!==false;
+  const toggleSection=k=>setPrefs(prev=>{const next={...prev,[k]:prev[k]===false};saveDashboardPrefs("cockpit",role,next,COCKPIT_SECTIONS);return next;});
+  const resetSections=()=>{saveDashboardPrefs("cockpit",role,{},COCKPIT_SECTIONS);setPrefs(loadDashboardPrefs("cockpit",role,COCKPIT_SECTIONS));};
+  const anyVisible=COCKPIT_SECTIONS.some(s=>show(s.key));
   const goAC=v=>{setAiCentralView&&setAiCentralView(v);setTab("aicentral");};
   /* Every KPI resolves its canonical destination through the registry. */
   const nav=(objectType,ctx={})=>navigateTo(objectType,ctx,{setTab,setAiCentralView});
@@ -105,25 +116,29 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
           <h1 style={{fontFamily:F.e,fontSize:30,fontWeight:400,color:T.ink,margin:0}}>{greet}, {(ROLES[role]||ROLES.ceo).name.split(" ")[0]}</h1>
           <div style={{fontSize:12,color:health>=75?T.green:T.amber,fontFamily:F.b,fontWeight:800,marginTop:5}}>Enterprise AI is {health>=75?"healthy":"holding - two items need you"}.</div>
         </div>
-        <div style={{display:"flex",gap:9,flexWrap:"wrap"}}>
-          {hero.map(([l,v,c,go,hint])=><button key={l} onClick={go} title={hint} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 15px",cursor:"pointer",textAlign:"left"}}>
-            <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{l}</div>
-            <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
-          </button>)}
+        <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-end"}}>
+          <CustomizeMenu sections={COCKPIT_SECTIONS} prefs={prefs} onToggle={toggleSection} onReset={resetSections}/>
+          {show("kpis")&&<div style={{display:"flex",gap:9,flexWrap:"wrap",justifyContent:"flex-end"}}>
+            {hero.map(([l,v,c,go,hint])=><button key={l} onClick={go} title={hint} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 15px",cursor:"pointer",textAlign:"left"}}>
+              <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.m,fontWeight:900,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>{l}</div>
+              <div style={{fontSize:19,fontWeight:900,fontFamily:F.m,color:c}}>{v}</div>
+            </button>)}
+          </div>}
         </div>
       </div>
-      <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"flex-start"}}>
+      {show("narrative")&&<div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"flex-start"}}>
         <span style={{width:7,height:7,borderRadius:"50%",background:AI_GOLD,boxShadow:`0 0 10px ${AI_GOLD}`,marginTop:5,flexShrink:0,animation:"pulse 2.4s infinite"}}/>
         <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.7,maxWidth:980}}>
           <strong style={{color:AI_GOLD_INK,fontSize:9.5,fontFamily:F.m,letterSpacing:"0.1em"}}>VERIS INTELLIGENCE · </strong>
           {narrative.join(" ")}
         </div>
-      </div>
+      </div>}
     </Card>
     {/* Reading order follows the executive constitution:
         Brief (above) → Snapshot → Attention → Pending decisions → Activity. */}
     <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1.5fr)",gap:16,alignItems:"start"}}>
-      <div style={{display:"grid",gap:12}}>
+      {(show("snapshot")||show("attention")||show("activity"))&&<div style={{display:"grid",gap:12}}>
+        {show("snapshot")&&<>
         <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Enterprise snapshot</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
           {snapshot.map(([l,v,sub,c,go])=><button key={l} onClick={go} style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:11,padding:"12px 13px",cursor:"pointer",textAlign:"left"}}>
@@ -132,6 +147,8 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
             <div style={{fontSize:8.5,color:T.ink4,fontFamily:F.b,marginTop:2}}>{sub}</div>
           </button>)}
         </div>
+        </>}
+        {show("attention")&&<>
         <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginTop:2}}>Attention required</div>
         <div style={{display:"grid",gap:8}}>
           {attention.map(a=><button key={a.name} onClick={a.go} style={{display:"flex",alignItems:"center",gap:10,background:a.c+"0d",border:`1px solid ${a.c}40`,borderRadius:10,padding:"10px 13px",cursor:"pointer",textAlign:"left"}}>
@@ -140,6 +157,8 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
             <span style={{fontSize:9.5,color:a.c,fontFamily:F.m,fontWeight:800}}>{a.note}</span>
           </button>)}
         </div>
+        </>}
+        {show("activity")&&<>
         <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em",marginTop:2}}>Recent executive activity</div>
         <Card style={{padding:"6px 14px"}}>
           {activity.map((r,i)=>{
@@ -151,17 +170,22 @@ export function ExecutiveCockpit({role="ceo",setTab,setAiCentralView,showToast})
             </button>;
           })}
         </Card>
-      </div>
-      <div style={{display:"grid",gap:12}}>
+        </>}
+      </div>}
+      {show("decisions")&&<div style={{display:"grid",gap:12}}>
         <div style={{fontSize:9.5,fontWeight:900,color:T.ink4,fontFamily:F.m,textTransform:"uppercase",letterSpacing:"0.12em"}}>Pending decisions</div>
         {roleDecisions.map(decideCard)}
         {gates.map((i,gi)=>{
           const rec=feedbackDecision(acFeedback[i.id]||DEFAULT_FEEDBACK);
           return decideCard({id:"gate-"+i.id,title:`${rec} ${i.name}`,risk:i.risk,conf:82,time:"Gate open",clause:`Lifecycle evidence through phase ${i.phaseIndex+1}`,reasoning:`${i.actual} realized of ${i.expected} expected · adoption ${i.adoption}%`,action:`Feedback engine recommends ${rec}`,owner:i.sponsor},"g"+gi);
         })}
-        
-      </div>
+
+      </div>}
     </div>
+    {!anyVisible&&<Card style={{padding:32,textAlign:"center"}}>
+      <div style={{fontSize:13,fontWeight:800,color:T.ink2,fontFamily:F.b,marginBottom:5}}>Your dashboard is empty</div>
+      <div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>Use <strong style={{color:AI_GOLD_INK}}>Customize</strong> above to choose the sections you want to see.</div>
+    </Card>}
   </div>;
 }
 

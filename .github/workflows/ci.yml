@@ -55,6 +55,9 @@ jobs:
       - name: Tenant isolation tests (central auth/tenant guard)
         run: npm run test:tenant
 
+      - name: Dashboard personalization tests
+        run: npm run test:dashboard
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
