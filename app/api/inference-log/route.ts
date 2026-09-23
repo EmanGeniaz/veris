@@ -7,13 +7,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { db, dbConfigured } from "@/lib/db";
 import { telemetryMode } from "@/lib/telemetry-source";
+import { resolveTenant } from "@/lib/tenant-guard";
 
 export async function GET(req: NextRequest) {
   const prisma = db();
   // No DB → the surface is honestly in demo mode and falls back to its seeded sample.
   if (!prisma) return NextResponse.json({ enabled: false, mode: telemetryMode(false).mode });
   try {
-    const tenantSlug = req.nextUrl.searchParams.get("tenant") || "demo";
+    // Tenant is bound to the session when auth is configured — a client-supplied
+    // ?tenant cannot read another tenant's Article 12 audit chain (BL-01).
+    const { slug: tenantSlug } = await resolveTenant({ requestedTenant: req.nextUrl.searchParams.get("tenant") });
     const t = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
     if (!t) return NextResponse.json({ enabled: true, events: [], chainIntact: true, total: 0 });
 
