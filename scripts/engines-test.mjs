@@ -98,9 +98,10 @@ const check = (name, cond) => { R.push([cond ? "PASS" : "FAIL", name]); };
   check("evaluateRules masks email (no block)", (() => { const e = evaluateRules("email me at jane@example.com please"); return !e.blocked && e.didMask === true; })());
   check("validateResponse redacts a contiguous sk- secret", (() => { const v = validateResponse("token sk-9f8a7b6c5d4e3f2a1b"); return !v.ok && /REDACTED-SECRET/.test(v.redacted); })());
   check("validateResponse redacts a card in output", (() => { const v = validateResponse("card 4111 1111 1111 1111"); return !v.ok && /REDACTED-CARD/.test(v.redacted); })());
-  // NOTE: hyphenated provider keys (sk-ant-…, sk-proj-…, sk_live_…) are NOT
-  // caught by validateResponse/classify today — tracked as BL-12 (policy-rules
-  // DLP gap, approval-gated). No assertion here enshrines that gap.
+  // Hyphenated/underscored provider keys (sk-ant-…, sk-proj-…, sk_live_…) are now
+  // detected + redacted (BL-12, resolved in PR #149). Full positive/negative
+  // coverage lives in guardrail-selfcheck; this locks the cross-engine path.
+  check("validateResponse redacts a hyphenated provider key (BL-12)", (() => { const v = validateResponse("here is a key " + "sk-ant-" + "api03-" + "9f8a7b6c5d4e3f2a1bXYZ0"); return !v.ok && /REDACTED-SECRET/.test(v.redacted); })());
 }
 
 const failed = R.filter(([s]) => s === "FAIL");

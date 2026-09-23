@@ -46,6 +46,9 @@ jobs:
       - name: Engine regression tests
         run: npm run test:engines
 
+      - name: UI contract tests (self-hosted fonts, non-blocking tour)
+        run: npm run test:ui
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
