@@ -5,6 +5,7 @@ import { riskRegister } from "@/lib/platform-models";
 import { pushBus } from "@/lib/bus";
 import { T, F, AI_GOLD, AI_GOLD_INK, ROLES, Card } from "./core";
 import { CustomizeMenu } from "./customize-menu";
+import { TelemetryBadge } from "./telemetry-badge";
 import { CAIO_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
 import { frameworkScore } from "@/lib/portfolio";
 import { GOVERNANCE_INPUTS, GOVERNANCE_SCORE } from "@/lib/governance";
@@ -261,7 +262,8 @@ function OverviewTab({go,show=()=>true}){
 }
 function GovPanel({withDefs}){
   return <Card style={cardPad}>
-    <Eyebrow>AI Governance Score · weighted inputs</Eyebrow><H3 style={{marginBottom:14}}>How the {GOV_SCORE} is scored</H3>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}><Eyebrow>AI Governance Score · weighted inputs</Eyebrow><TelemetryBadge/></div>
+    <H3 style={{marginBottom:14}}>How the {GOV_SCORE} is scored</H3>
     <div style={{display:"flex",gap:18,alignItems:"center",flexWrap:"wrap"}}>
       <Ring score={GOV_SCORE}/>
       <div style={{flex:1,minWidth:220}}>{GOV_INPUTS.map(g=><ScoreRow key={g.k} label={g.k} v={g.v} c={g.v>=75?T.green:T.amber}/>)}</div>
@@ -272,7 +274,8 @@ function GovPanel({withDefs}){
 }
 function CompliancePanel({compact}){
   return <Card style={cardPad}>
-    <Eyebrow>Compliance posture</Eyebrow><H3 style={{marginBottom:14}}>ISO checklists · standards · regulatory</H3>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}><Eyebrow>Compliance posture</Eyebrow><TelemetryBadge/></div>
+    <H3 style={{marginBottom:14}}>ISO checklists · standards · regulatory</H3>
     {COMPLIANCE.map(c=><ScoreRow key={c.k} label={c.k} v={c.v} c={c.c}/>)}
     <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}><Pill c={T.teal}>ISO 42001 certified body</Pill><Pill c={T.blue}>EU AI Act notified</Pill><Pill c={T.violet}>NIST aligned</Pill></div>
   </Card>;
