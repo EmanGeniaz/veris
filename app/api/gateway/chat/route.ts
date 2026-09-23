@@ -41,6 +41,22 @@ async function logInference(tenantSlug: string, ev: { model: string; agent?: str
   } catch { /* logging must never break the response */ }
 }
 
+/* Egress attempt (BL-04) — append the destination verdict (allow/deny/ssrf) to
+   the audit chain so the live Egress surface reflects what the gateway's inline
+   egress gate actually decided. Faithful telemetry only: the decision is made by
+   egressDecision() and is unchanged here. Best-effort, no-ops without a DB. */
+async function logEgress(tenantSlug: string, ev: { decision: string; destination: string; category?: string; reason?: string; agent?: string; tool?: string }) {
+  try {
+    const prisma = db();
+    if (!prisma) return;
+    const t = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug || "demo") } });
+    if (!t) return;
+    await auditAppend(prisma, t.id, `egress-inspect:${ev.decision}`, "Restricted",
+      JSON.stringify({ kind: "egress", destination: ev.destination, category: ev.category, reason: ev.reason, agent: ev.agent, tool: ev.tool }),
+      ev.agent || "gateway");
+  } catch { /* logging must never break the response */ }
+}
+
 function internalContext(q: string): string[] {
   const ql = q.toLowerCase();
   const hits: string[] = [];
@@ -138,6 +154,9 @@ export async function POST(req: NextRequest) {
          destination (data exfiltration, SSRF against the metadata service). */
       if (dest) {
         const eg = egressDecision(String(dest));
+        // Record the destination attempt (allow AND deny) on the audit chain so
+        // the live Egress surface reflects real inline traffic, not a seed.
+        await logEgress(tenant, { decision: eg.decision, destination: String(dest), category: eg.category, reason: eg.note, agent, tool });
         if (eg.decision !== "allow") {
           await logInference(tenant, { model, agent, tool, decision: "block", dataClass: "Restricted" });
           return NextResponse.json({ enabled: true, blocked: true, detector: eg.decision === "ssrf" ? "Egress · SSRF" : "Egress policy",
