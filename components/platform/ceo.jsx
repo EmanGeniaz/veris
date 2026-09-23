@@ -11,6 +11,8 @@ import { WORLD_GEO } from "@/lib/world-geo";
 import { REPORT_TEMPLATES, SCHEDULED_REPORTS, templateById, reportingStats } from "@/lib/reporting";
 import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
+import { CustomizeMenu } from "./customize-menu";
+import { CEO_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* Arabic content for the CEO Overview landing (surface-by-surface localisation).
@@ -224,6 +226,12 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const TABS=[["overview","Overview"],["risk","Risk"],["value","Value & ROI"],["adoption","Adoption"],["exposure","Deployment Map"],["compliance","Compliance"]];
+  /* Per-viewer personalization of the overview landing: which sections show. */
+  const [prefs,setPrefs]=useState(()=>loadDashboardPrefs("ceo",role,CEO_SECTIONS));
+  useEffect(()=>{setPrefs(loadDashboardPrefs("ceo",role,CEO_SECTIONS));},[role]);
+  const show=k=>prefs[k]!==false;
+  const toggleSection=k=>setPrefs(prev=>{const next={...prev,[k]:prev[k]===false};saveDashboardPrefs("ceo",role,next,CEO_SECTIONS);return next;});
+  const resetSections=()=>{saveDashboardPrefs("ceo",role,{},CEO_SECTIONS);setPrefs(loadDashboardPrefs("ceo",role,CEO_SECTIONS));};
   /* The CEO composite: every initiative, and where each CXO stands on it —
      the same shared object, rolled up. Click opens the full brief. */
   const rag=(n,c)=>n>0?<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,fontWeight:800,fontFamily:F.m,color:c}}><span style={{width:7,height:7,borderRadius:"50%",background:c}}/>{n}</span>:null;
@@ -256,12 +264,19 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
       </button>
     </div>
 
-    {/* horizontal tabs */}
-    <div style={{display:"flex",gap:6,margin:"18px 0",flexWrap:"wrap"}}>
-      {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{T_(l)}</button>)}
+    {/* horizontal tabs + (overview only) the customize control */}
+    <div style={{display:"flex",gap:12,margin:"18px 0",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"7px 15px",borderRadius:20,fontSize:11.5,fontWeight:800,fontFamily:F.b,cursor:"pointer",border:`1px solid ${tab===k?AI_GOLD:T.border}`,background:tab===k?AI_GOLD:T.s2,color:tab===k?"#0b0e24":T.ink3}}>{T_(l)}</button>)}
+      </div>
+      {tab==="overview"&&<CustomizeMenu sections={CEO_SECTIONS} prefs={prefs} onToggle={toggleSection} onReset={resetSections}/>}
     </div>
 
-    {tab==="overview"&&<><CeoBand/><OverviewTab goPortfolio={goPortfolio} openFull={openFull} openCompliance={openCompliance} setTab={navTab}/></>}
+    {tab==="overview"&&<>{show("oversight")&&<CeoBand/>}<OverviewTab show={show} goPortfolio={goPortfolio} openFull={openFull} openCompliance={openCompliance} setTab={navTab}/></>}
+    {tab==="overview"&&!CEO_SECTIONS.some(s=>show(s.key))&&<Card style={{padding:32,textAlign:"center"}}>
+      <div style={{fontSize:13,fontWeight:800,color:T.ink2,fontFamily:F.b,marginBottom:5}}>{T_("Your dashboard is empty")}</div>
+      <div style={{fontSize:11,color:T.ink3,fontFamily:F.b}}>{T_("Use Customize above to choose the sections you want to see.")}</div>
+    </Card>}
     {tab==="risk"&&<RiskTab openFull={openFull}/>}
     {tab==="value"&&<ValueTab/>}
     {tab==="adoption"&&<AdoptionTab/>}
@@ -270,31 +285,31 @@ function Overview({role,goPortfolio,openFull,openCompliance,navTab,showToast,use
   </div>;
 }
 
-function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
+function OverviewTab({show=()=>true,goPortfolio,openFull,openCompliance,setTab}){
   const goto=t=>setTab&&setTab(t);
   const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
   return <div style={{animation:"up .2s ease"}}>
     {/* attention */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:16}}>
+    {show("attention")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12,marginBottom:16}}>
       {CEO_ATTENTION.map(a=><Card key={a.t} onClick={()=>goto(a.to)} style={{padding:"13px 15px",borderInlineStart:`3px solid ${a.c}`,cursor:"pointer"}}>
         <div style={{fontSize:12.5,fontWeight:800,color:T.ink,fontFamily:F.b}}>{T_(a.t)}</div>
         <div style={{fontSize:10.5,color:T.ink3,marginTop:3,lineHeight:1.5,fontFamily:F.b}}>{T_(a.d)}</div>
         <div style={{fontSize:10,color:AI_GOLD_INK,fontWeight:800,marginTop:8,fontFamily:F.b}}>{T_(a.go)} {ar?"←":"→"}</div>
       </Card>)}
-    </div>
+    </div>}
 
     {/* KPI strip — each tile drills into its home surface */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
+    {show("kpis")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
       <Kpi l={T_("Portfolio value")} v={`$${PF.realized.toFixed(1)}M`} s={ar?`مُحقّقة من ${PF.budget.toFixed(1)} مليون مخصّصة`:`realized of $${PF.budget.toFixed(1)}M allocated`} spark={<Spark pts="0,18 20,17 40,14 60,13 80,9 100,7 120,4" color={AI_GOLD} dot/>} onClick={()=>goto("ceobudget")}/>
       <Kpi l={T_("Enterprise health")} v={PF.avgHealth} vc={T.green} s={ar?`مرجّحة عبر ${PF.count} برنامجاً`:`weighted across ${PF.count} programs`} spark={<Spark pts="0,10 20,12 40,9 60,11 80,8 100,7 120,6" color={T.green}/>} onClick={goPortfolio}/>
       <Kpi l={T_("Overall AI risk")} v={<>{PF.criticalCount+PF.highCount+PF.mediumCount}<span style={{fontSize:13,color:T.ink4}}>/{PF.count}</span></>} vc={T.red} s={ar?`${PF.criticalCount} حرجة · ${PF.highCount} عالية مفتوحة`:`${PF.criticalCount} critical · ${PF.highCount} high open`} spark={<Spark pts="0,6 20,8 40,7 60,10 80,9 100,12 120,13" color={T.red}/>} onClick={openFull}/>
       <Kpi l={T_("Compliance")} v={`${COMPLIANCE_PCT}%`} vc={T.blue} s={T_("EU AI Act · ISO 42001 · GDPR")} onClick={openCompliance}/>
       <Kpi l={T_("Adoption")} v={`${PF.adoption}%`} s={T_("across 4 business units")} onClick={goPortfolio}/>
       <Kpi l={T_("Security incidents")} v={OPEN_INCIDENTS} vc={AI_GOLD_INK} s={T_("open this quarter · 0 breaches")} onClick={openFull}/>
-    </div>
+    </div>}
 
     {/* lifecycle bands */}
-    <Card style={{...cardPad,marginBottom:2}}>
+    {show("lifecycle")&&<Card style={{...cardPad,marginBottom:2}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
         <div><Eyebrow style={{margin:0}}>{T_("AI Projects")}</Eyebrow><H3>{T_("By lifecycle status — click any program to drill in")}</H3></div>
         <Pill c={AI_GOLD}>{ar?`${CEO_PORTFOLIO.length} برنامجاً إجمالاً`:`${CEO_PORTFOLIO.length} total programs`}</Pill>
@@ -312,16 +327,16 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
           </button>)}
         </div>)}
       </div>
-    </Card>
+    </Card>}
 
     {/* exposure + budget */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginTop:16}}>
+    {show("exposure")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginTop:16}}>
       <Card style={cardPad}><Eyebrow>{T_("Deployment Exposure Map")}</Eyebrow><H3 style={{marginBottom:12}}>{T_("Where AI is live — by region & program count")}</H3><ExposureMap/><RegionLegend/></Card>
       <Card style={cardPad}><Eyebrow>{T_("Budget → Value")}</Eyebrow><H3 style={{marginBottom:14}}>{T_("How much turned to value vs leaked")}</H3><BudgetValue/></Card>
-    </div>
+    </div>}
 
     {/* adoption + highest risk */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginTop:16}}>
+    {show("adoption")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginTop:16}}>
       <Card style={cardPad}><Eyebrow>{T_("Adoption by Business Unit")}</Eyebrow><H3 style={{marginBottom:12}}>{T_("Who is building & adopting AI — with headcount")}</H3>
         {CEO_BU.map(b=><BarRow key={b.bu} label={T_(b.bu)} sub={b.head.toLocaleString()} pct={b.adoption} color={b.band}/>)}
         <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:11}}>
@@ -329,7 +344,7 @@ function OverviewTab({goPortfolio,openFull,openCompliance,setTab}){
         </div>
       </Card>
       <HighestRisk/>
-    </div>
+    </div>}
   </div>;
 }
 
