@@ -58,6 +58,9 @@ jobs:
       - name: Dashboard personalization tests
         run: npm run test:dashboard
 
+      - name: Identity tests (least-privilege registration / no shipped creds)
+        run: npm run test:identity
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
