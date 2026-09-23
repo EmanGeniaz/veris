@@ -2,15 +2,17 @@
    Locks the pure preference logic behind the user-customizable cockpit: which
    sections a user chooses to see. Browser-free (the merge logic is pure);
    runs in CI. Run: node scripts/dashboard-prefs-test.mjs */
-import { CEO_SECTIONS, COCKPIT_SECTIONS, normalizeSections } from "../lib/dashboard-prefs.js";
+import { CEO_SECTIONS, CAIO_SECTIONS, ROLE_CENTER_SECTIONS, COCKPIT_SECTIONS, normalizeSections } from "../lib/dashboard-prefs.js";
 
 const R = [];
 const check = (name, cond) => { R.push([cond ? "PASS" : "FAIL", name]); };
 const keysOf = (sections) => sections.map((s) => s.key);
 const allTrue = (m, keys) => keys.every((k) => m[k] === true);
 
+const CATALOGS = [["CEO", CEO_SECTIONS], ["CAIO", CAIO_SECTIONS], ["role-center", ROLE_CENTER_SECTIONS], ["cockpit", COCKPIT_SECTIONS]];
+
 /* ── catalogs ── */
-for (const [name, cat] of [["CEO", CEO_SECTIONS], ["cockpit", COCKPIT_SECTIONS]]) {
+for (const [name, cat] of CATALOGS) {
   const keys = keysOf(cat);
   check(`${name} catalog is non-empty`, cat.length >= 1);
   check(`${name} every section has key/label/desc`, cat.every((s) => s.key && s.label && s.desc));
@@ -18,9 +20,11 @@ for (const [name, cat] of [["CEO", CEO_SECTIONS], ["cockpit", COCKPIT_SECTIONS]]
 }
 check("cockpit has its core sections", ["kpis", "snapshot", "attention", "activity", "decisions", "narrative"].every((k) => keysOf(COCKPIT_SECTIONS).includes(k)));
 check("CEO has its core sections", ["oversight", "attention", "kpis", "lifecycle", "exposure", "adoption"].every((k) => keysOf(CEO_SECTIONS).includes(k)));
+check("CAIO has its core sections", ["attention", "metrics", "govcompliance", "risksincidents", "quickaccess"].every((k) => keysOf(CAIO_SECTIONS).includes(k)));
+check("role-center has its core sections", ["facet", "attention", "kpis", "panels"].every((k) => keysOf(ROLE_CENTER_SECTIONS).includes(k)));
 
 /* ── normalizeSections (the merge) — exercised against each catalog ── */
-for (const cat of [CEO_SECTIONS, COCKPIT_SECTIONS]) {
+for (const [, cat] of CATALOGS) {
   const keys = keysOf(cat);
   const first = keys[0];
   check("default (null) shows everything", allTrue(normalizeSections(null, keys), keys));
