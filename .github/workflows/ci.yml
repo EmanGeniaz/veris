@@ -43,6 +43,9 @@ jobs:
       - name: RBAC model tests
         run: npm run test:rbac
 
+      - name: Engine regression tests
+        run: npm run test:engines
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build

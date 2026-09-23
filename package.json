@@ -10,7 +10,8 @@
     "typecheck": "next build",
     "test:selfcheck": "tsx scripts/guardrail-selfcheck.mjs",
     "test:rbac": "tsx scripts/rbac-test.ts",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac",
+    "test:engines": "tsx scripts/engines-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
