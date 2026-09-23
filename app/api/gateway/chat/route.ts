@@ -22,6 +22,7 @@ import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
 import { fetchWithTimeout, TimeoutError } from "@/lib/http";
 import { validateChatRequest } from "@/lib/gateway-validate";
+import { resolveTenant } from "@/lib/tenant-guard";
 
 /* Model calls can be slow but must still be bounded — a hung provider must
    never hang the gateway request. */
@@ -64,7 +65,12 @@ export async function POST(req: NextRequest) {
     catch { return NextResponse.json({ enabled: true, error: true, reason: "bad_request" }, { status: 400 }); }
     const parsed = validateChatRequest(rawBody);
     if (!parsed.ok) return NextResponse.json({ enabled: true, error: true, reason: parsed.reason }, { status: parsed.status });
-    const { prompt, tenant, agent, tool, mcpServer, dest, value, session, attachments, model: reqModel } = parsed.value;
+    const { prompt, tenant: reqTenant, agent, tool, mcpServer, dest, value, session, attachments, model: reqModel } = parsed.value;
+    /* Tenant guard (BL-01) — RAG retrieval, memory scope and the Article 12
+       audit chain must all bind to the caller's OWN tenant. When auth is
+       configured a client-supplied `tenant` is ignored (signed-in → own tenant,
+       anonymous → demo); in no-auth demo mode the requested slug is honoured. */
+    const tenant = (await resolveTenant({ requestedTenant: reqTenant })).slug;
     /* Model policy — a caller-supplied model must be on the allowlist; the
        effective model is always allow-listed. Blocks a disallowed model before
        any work. */

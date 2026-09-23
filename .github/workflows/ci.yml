@@ -52,6 +52,9 @@ jobs:
       - name: Robustness tests (timeouts, input validation, honest errors)
         run: npm run test:robustness
 
+      - name: Tenant isolation tests (central auth/tenant guard)
+        run: npm run test:tenant
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
