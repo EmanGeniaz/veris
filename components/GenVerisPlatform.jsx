@@ -784,11 +784,21 @@ export default function GenVeris() {
     if(window.location.pathname!==nextPath)window.history.replaceState(null,"",nextPath);
   },[hasEntered,tab,aiCentralView,role,sessionMode]);
 
-  /* First-time entry into a seeded demo auto-launches the guided tour once. */
+  /* First-time entry into a seeded demo auto-launches the guided tour once.
+     Non-blocking under automation: the full-screen tour is a modal overlay
+     (zIndex 4000) that intercepts clicks, so it must never auto-launch for a
+     headless/E2E driver (navigator.webdriver) or when explicitly opted out
+     (?tour=off). The tour stays reachable any time via the top-bar TourButton,
+     and tests can drive/dismiss it through the stable data-testid hooks
+     ("vz-tour" / "vz-tour-skip"). */
   useEffect(()=>{
     if(!hasEntered||sessionMode!=="demo"||typeof window==="undefined")return;
-    if(window.localStorage.getItem("genveris.tourSeen"))return;
-    window.localStorage.setItem("genveris.tourSeen","1");
+    try{
+      const noTour=navigator.webdriver===true||new URLSearchParams(window.location.search).get("tour")==="off";
+      if(noTour)return;
+      if(window.localStorage.getItem("genveris.tourSeen"))return;
+      window.localStorage.setItem("genveris.tourSeen","1");
+    }catch{return;}
     setTourOpen(true);
   },[hasEntered,sessionMode]);
 

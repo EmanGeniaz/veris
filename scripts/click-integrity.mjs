@@ -56,7 +56,10 @@ page.on("pageerror", e => failures.push({ ...ctx, kind: "pageerror", text: Strin
 
 const sleep = ms => page.waitForTimeout(ms);
 async function killTour() {
-  for (const s of ['button[aria-label="Close"]', 'button:has-text("Skip")', 'button:has-text("Dismiss")']) {
+  // The guided tour is suppressed for automation (navigator.webdriver), so it
+  // should not appear at all — but dismiss it defensively via the stable test
+  // hook first, then fall back to copy/aria heuristics for older builds.
+  for (const s of ['[data-testid="vz-tour-skip"]', 'button[aria-label="Close"]', 'button:has-text("Skip")', 'button:has-text("Dismiss")']) {
     const el = page.locator(s).first(); if (await el.count()) { try { await el.click({ timeout: 600 }); } catch {} }
   }
   await page.keyboard.press("Escape").catch(() => {});

@@ -11,7 +11,8 @@
     "test:selfcheck": "tsx scripts/guardrail-selfcheck.mjs",
     "test:rbac": "tsx scripts/rbac-test.ts",
     "test:engines": "tsx scripts/engines-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines",
+    "test:ui": "node scripts/ui-contract-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"

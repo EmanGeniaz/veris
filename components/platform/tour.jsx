@@ -195,14 +195,14 @@ export function GuidedTour({ open, onClose, drive }) {
     cardStyle = { position: "fixed", left, top, width: w };
   }
 
-  return <div aria-modal="true" role="dialog" aria-label="GenVeris guided tour" style={{ position: "fixed", inset: 0, zIndex: 4000, fontFamily: F.b }}>
+  return <div data-testid="vz-tour" data-tour-step={step.key} aria-modal="true" role="dialog" aria-label="GenVeris guided tour" style={{ position: "fixed", inset: 0, zIndex: 4000, fontFamily: F.b }}>
     {/* dim layer with a hole around the spotlight */}
     {spot
       ? <div style={{ position: "fixed", left: spot.x, top: spot.y, width: spot.w, height: spot.h, borderRadius: 12, boxShadow: "0 0 0 9999px rgba(9,12,22,.74)", border: `2px solid ${AI_GOLD}`, pointerEvents: "none", transition: "all .25s ease" }} />
       : <div style={{ position: "fixed", inset: 0, background: "rgba(9,12,22,.74)", pointerEvents: "none" }} />}
 
     {/* skip — top right */}
-    <button onClick={finish} style={{ position: "fixed", top: 16, right: 18, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.16)", color: "#C9D2DE", fontSize: 11, fontWeight: 800, fontFamily: F.b, borderRadius: 8, padding: "6px 12px", cursor: "pointer", backdropFilter: "blur(6px)" }}>Skip tour ✕</button>
+    <button data-testid="vz-tour-skip" onClick={finish} style={{ position: "fixed", top: 16, right: 18, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.16)", color: "#C9D2DE", fontSize: 11, fontWeight: 800, fontFamily: F.b, borderRadius: 8, padding: "6px 12px", cursor: "pointer", backdropFilter: "blur(6px)" }}>Skip tour ✕</button>
 
     {/* coach card */}
     <div style={{ ...cardStyle, background: "linear-gradient(180deg,#141a2b,#0e1320)", border: `1px solid ${AI_GOLD}40`, borderRadius: 16, padding: "20px 22px 16px", boxShadow: "0 30px 80px rgba(0,0,0,.6)", color: "#F4E9EE" }}>
