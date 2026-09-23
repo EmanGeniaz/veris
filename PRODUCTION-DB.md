@@ -39,8 +39,12 @@ until then the demo entry flow is unchanged.
 1. Set `AUTH_SECRET` in Vercel (generate with `npx auth secret`).
 2. Optional SSO: set `AUTH_MICROSOFT_ENTRA_ID_ID/_SECRET/_ISSUER` or
    `AUTH_GOOGLE_ID/_SECRET`. Providers appear automatically.
-3. Credentials sign-in works against seeded users:
-   `<role>@genveris.demo` / `genveris-demo` (rotate in production).
+3. Credentials sign-in: self-registration always creates a least-privilege
+   `employee` account (a caller cannot pick their own role); an admin elevates
+   from there. The demo showcase tenant seeds role users
+   (`<role>@<slug>.genveris.demo`) whose password is `DEMO_SEED_PASSWORD` when
+   set, otherwise a random per-user secret — no shipped credential, and a
+   `clean` workspace ships with no accounts at all.
 4. When signed in, evidence, decisions and ideas are stamped with the
    user's identity and scoped to the user's tenant.
 

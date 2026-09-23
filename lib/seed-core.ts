@@ -1,6 +1,7 @@
 /* Shared demo-tenant seed - used by `npm run db:seed` and the one-time
    /api/admin/setup route. */
 import type { PrismaClient } from "@prisma/client";
+import { randomBytes } from "node:crypto";
 import { acInitiatives, acFeedback, acAssessments, riskRegister, kriRegister, knowledgeAssets, POLICY_REGISTER } from "./platform-models";
 import { RUNTIME_RULES } from "./policy-rules";
 import { hashPassword } from "../auth";
@@ -84,15 +85,26 @@ export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
     });
   }
 
-  const roles = ["ceo","cfo","cio","coo","caio","ciso","chro","cdpo","cgo","employee","manager"];
-  for (const role of roles) {
-    await prisma.user.upsert({
-      where: { email: `${role}@${slug}.genveris.demo` },
-      update: {},
-      create: { tenantId: tenant.id, email: `${role}@${slug}.genveris.demo`, name: role.toUpperCase() + " Demo", role,
-        passwordHash: hashPassword("genveris-demo", "vzdemo") },
-    });
+  /* Seeded role users belong to the demo showcase ONLY. A "clean" tenant (a real
+     registered workspace) must NOT ship with pre-made privileged accounts (BL-02).
+     And even the demo accounts never carry a shipped credential: their password
+     comes from DEMO_SEED_PASSWORD when an operator sets one, otherwise a random
+     per-user secret — the demo experience signs in through the role switcher, not
+     these credential accounts, so there is no public backdoor into a role. */
+  if (mode === "demo") {
+    const roles = ["ceo","cfo","cio","coo","caio","ciso","chro","cdpo","cgo","employee","manager"];
+    const configuredPw = process.env.DEMO_SEED_PASSWORD || "";
+    for (const role of roles) {
+      const pw = configuredPw || randomBytes(24).toString("hex");
+      const salt = randomBytes(16).toString("hex");
+      await prisma.user.upsert({
+        where: { email: `${role}@${slug}.genveris.demo` },
+        update: {},
+        create: { tenantId: tenant.id, email: `${role}@${slug}.genveris.demo`, name: role.toUpperCase() + " Demo", role,
+          passwordHash: hashPassword(pw, salt) },
+      });
+    }
   }
-  console.log("Seeded demo tenant + role users:", tenant.id);
+  console.log(`Seeded ${mode} tenant${mode === "demo" ? " + role users" : ""}:`, tenant.id);
   return tenant.id;
 }

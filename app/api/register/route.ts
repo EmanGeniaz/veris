@@ -7,8 +7,8 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { authConfigured, hashPassword } from "@/auth";
 import { db } from "@/lib/db";
+import { resolveRegistrationRole } from "@/lib/identity";
 
-const ROLES = new Set(["ceo", "cfo", "cio", "coo", "caio", "ciso", "chro", "cdpo", "cgo", "cro", "legal", "employee", "manager"]);
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40) || "workspace";
 
@@ -27,7 +27,11 @@ export async function POST(req: Request) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const org = String(body.org || "").trim();
-  const role = ROLES.has(String(body.role)) ? String(body.role) : "employee";
+  /* Least-privilege identity (BL-02): a self-registered account is ALWAYS created
+     at the least-privilege default — the caller's requested role is ignored, so
+     `role:"ceo"` in the body cannot escalate. Privileged roles are granted by an
+     administrator, never by self-registration. */
+  const role = resolveRegistrationRole(body.role);
 
   if (!name || !email || !password) return NextResponse.json({ ok: false, error: "Name, email and password are required." }, { status: 400 });
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ ok: false, error: "Enter a valid email address." }, { status: 400 });

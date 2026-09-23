@@ -28,5 +28,11 @@ export async function POST(req: NextRequest) {
   if (!slug || !name) return NextResponse.json({ ok: false, error: "slug and name required" }, { status: 400 });
   if (await prisma.tenant.findUnique({ where: { slug } })) return NextResponse.json({ ok: false, error: "slug already exists" }, { status: 409 });
   const id = await seedDemo(prisma, { slug, name, mode });
-  return NextResponse.json({ ok: true, tenantId: id, slug, mode, signIn: `role@${slug}.genveris.demo (rotate the seeded password)` });
+  /* A clean workspace ships with no accounts (least privilege — BL-02); the demo
+     showcase seeds role users whose password is DEMO_SEED_PASSWORD or a random
+     per-user secret, never a shipped constant. */
+  const signIn = mode === "demo"
+    ? `role@${slug}.genveris.demo (password: DEMO_SEED_PASSWORD, else randomised per user)`
+    : "no seeded accounts — register the first user, then an admin elevates roles";
+  return NextResponse.json({ ok: true, tenantId: id, slug, mode, signIn });
 }
