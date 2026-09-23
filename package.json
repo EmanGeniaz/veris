@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next build",
-    "test": "npm run typecheck",
+    "test:selfcheck": "tsx scripts/guardrail-selfcheck.mjs",
+    "test:rbac": "tsx scripts/rbac-test.ts",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac",
+    "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
   },
