@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
 import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
 import { providerSpend, costSummary, costHeadline, costOf, fmtUSD, fmtTokens } from "@/lib/cost-engine";
+import { TelemetryBadge } from "./telemetry-badge";
 import { surfacesFor, initiativeById } from "@/lib/initiative-registry";
 import { PageAgentRegistry } from "./agents";
 import { PageAISpine } from "./spine";
@@ -2932,7 +2933,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         book, with the runtime Cost & Token Guard that enforces it. ── */}
     <Card style={{padding:0,overflow:"hidden",marginBottom:14}}>
       <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-        <h3 style={{margin:0,fontSize:14,color:T.ink}}>{T_("AI FinOps — spend vs budget")}</h3>
+        <div style={{display:"flex",alignItems:"center",gap:10}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>{T_("AI FinOps — spend vs budget")}</h3><TelemetryBadge/></div>
         <button onClick={()=>setTab&&setTab("policies")} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:10,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>POL-FIN-005 · {ar?"حارس التكلفة والرموز":"Cost & Token Guard"} →</button>
       </div>
       <div style={{padding:"16px 18px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:16,alignItems:"start"}}>

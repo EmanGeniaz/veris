@@ -16,7 +16,8 @@
     "test:tenant": "tsx scripts/tenant-isolation-test.mjs",
     "test:dashboard": "node scripts/dashboard-prefs-test.mjs",
     "test:identity": "tsx scripts/identity-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity",
+    "test:telemetry": "tsx scripts/telemetry-label-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
