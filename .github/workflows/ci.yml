@@ -1,0 +1,51 @@
+name: CI
+
+# Runs the always-on gate the repo previously lacked: the deterministic
+# guardrail + RBAC assertion suites, then the Next.js build (type-check).
+# Fast, hermetic (no DB / browser / network), so every push and PR is gated.
+# Browser E2E and DB-integration tests are a follow-up (they need a Postgres
+# service + provisioned auth — tracked as BL-05 / issues #142, #145).
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Cancel superseded runs on the same ref to save minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # Fast deterministic assertions first, so logic regressions fail early.
+      - name: Guardrail self-check
+        run: npm run test:selfcheck
+
+      - name: RBAC model tests
+        run: npm run test:rbac
+
+      - name: Engine regression tests
+        run: npm run test:engines
+
+      # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
+      - name: Build (type-check)
+        run: npx next build
