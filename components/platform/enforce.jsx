@@ -1083,10 +1083,26 @@ export function InputGuardrails({ showToast }) {
    gateway (admitCall / completeCall). */
 export function RuntimeGuardrails({ showToast }) {
   const T_ = useT();
-  const rows = seededRuntimeLedger();
-  const s = runtimeGuardStats(rows);
+  /* Live-first (BL-04): read the tenant's real per-request runtime decisions from
+     the audit chain (grouped into sessions) when a database is configured; fall
+     back to the seeded window otherwise, and badge which one is showing. */
+  const [live, setLive] = useState(null); // { rows, stats } | null
+  useEffect(() => {
+    let on = true;
+    fetch("/api/enforce/runtime?tenant=demo")
+      .then(r => r.json())
+      .then(d => { if (on && d && d.enabled) setLive({ rows: d.rows || [], stats: d.stats }); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const usingLive = !!live;
+  const rows = usingLive ? live.rows : seededRuntimeLedger();
+  const s = usingLive ? live.stats : runtimeGuardStats(rows);
   const decTone = d => RUNTIME_DECISION_META[d]?.tone || "ink3";
   const P = RUNTIME_POLICY;
+  const loopRow = rows.find(r => r.decision === "loop");
+  const throttleRow = rows.find(r => r.decision === "throttle");
+  const breachRow = rows.find(r => r.sloBreach);
   return <div style={{ animation: "up .3s ease" }}>
     <Head title="Runtime Guardrails" sub="Static gates and the circuit breaker govern what an agent may do; runtime guardrails govern how a session behaves as it runs — the failure modes that only appear in motion. At tool-call admission the guard inspects the session's recent action stream for a loop (a repeated action or an A↔B cycle) and halts it before it spins, throttles calls over the per-session concurrency and rate caps, and records every call's latency so one over the SLA is flagged as a real anomaly signal. These govern agent tool calls, not human chat turns, so ordinary conversation is never mistaken for a loop. Enforced live in the gateway." />
     <div style={kpiGrid}>
@@ -1109,8 +1125,9 @@ export function RuntimeGuardrails({ showToast }) {
     </Card>
 
     <Card style={cardPad}>
-      <Eyebrow>Live sessions · decision computed from the call stream</Eyebrow>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 2 }}><Eyebrow>Live sessions · decision computed from the call stream</Eyebrow><TelemetryBadge/></div>
       <H3 style={{ marginBottom: 12 }}>What the runtime guard did, and why</H3>
+      {usingLive && rows.length === 0 && <div style={{ padding: "22px 4px", fontSize: 12, color: T.ink3, fontFamily: F.b }}>No live agent sessions recorded yet — as agents make tool calls through the gateway, each admission decision and call latency appears here, grouped by session, on the tenant's audit chain.</div>}
       <Table head={["Session", "Agent", "Action stream", "In-flight", "P95 latency", "Decision"]}>
         {rows.map(r => <tr key={r.id}>
           <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{r.id}</Td>
@@ -1121,7 +1138,11 @@ export function RuntimeGuardrails({ showToast }) {
           <Td><Pill c={tok(decTone(r.decision))}>{RUNTIME_DECISION_META[r.decision]?.label || r.decision}</Pill>{r.reason && <div style={{ fontSize: 8.5, color: T.ink4, fontFamily: F.m, marginTop: 3 }}>{r.reason}</div>}</Td>
         </tr>)}
       </Table>
-      {advisor(<>Session <b style={{ color: T.ink }}>{rows.find(r => r.decision === "loop")?.id || "RSES-02"}</b> repeated <b style={{ color: T.ink }}>{rows.find(r => r.decision === "loop")?.reason || "the same action"}</b> and was halted before it could spin; <b style={{ color: T.ink }}>{rows.find(r => r.decision === "throttle")?.id || "RSES-05"}</b> hit the concurrency cap and was throttled. The Fraud agent's single call took {rows.find(r => r.sloBreach)?.p95 || "9400"}ms — over the {P.latencySloMs}ms SLA, so it is flagged as a latency anomaly the circuit breaker can act on. {s.looped + s.throttled} of {s.watched} sessions were held back.</>)}
+      {advisor(usingLive
+        ? (rows.length === 0
+            ? <>No agent tool-call sessions have run through the gateway yet. As they do, each session's admission decisions and call latencies are recorded on the audit chain and grouped here — a loop or an SLA breach shows up as soon as it happens. {s.watched} sessions watched.</>
+            : <>These are <b style={{ color: T.ink }}>live sessions</b> reconstructed from the audit chain. {loopRow ? <>Session <b style={{ color: T.ink }}>{loopRow.id}</b> was <b style={{ color: T.ink }}>loop-halted</b> ({loopRow.reason}). </> : <>No loops were detected in this window. </>}{throttleRow ? <>Session <b style={{ color: T.ink }}>{throttleRow.id}</b> hit a concurrency/rate cap and was throttled. </> : null}{breachRow ? <>Session <b style={{ color: T.ink }}>{breachRow.id}</b> breached the {P.latencySloMs}ms SLA at P95 {breachRow.p95}ms. </> : <>No session breached the {P.latencySloMs}ms SLA. </>}{s.looped + s.throttled} of {s.watched} sessions were held back.</>)
+        : <>Session <b style={{ color: T.ink }}>{loopRow?.id || "RSES-02"}</b> repeated <b style={{ color: T.ink }}>{loopRow?.reason || "the same action"}</b> and was halted before it could spin; <b style={{ color: T.ink }}>{throttleRow?.id || "RSES-05"}</b> hit the concurrency cap and was throttled. The Fraud agent's single call took {breachRow?.p95 || "9400"}ms — over the {P.latencySloMs}ms SLA, so it is flagged as a latency anomaly the circuit breaker can act on. {s.looped + s.throttled} of {s.watched} sessions were held back.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Runtime-guard decisions exported — " + s.looped + " loops halted, " + s.throttled + " throttled")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export runtime decisions</button>
       </div>
