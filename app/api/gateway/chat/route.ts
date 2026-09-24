@@ -60,6 +60,23 @@ async function logMemory(tenantSlug: string, ev: { decision: string; agent?: str
   } catch { /* logging must never break the response */ }
 }
 
+/* Runtime guardrail event (BL-04) — append the per-request admission decision
+   (allow/throttle/loop) and completed-call latency to the audit chain so the
+   live Runtime Guardrails surface reflects real sessions. Faithful telemetry
+   only: the decision is made by admitCall()/completeCall() and is unchanged
+   here. Best-effort, no-ops without a DB. */
+async function logRuntime(tenantSlug: string, ev: { decision: string; agent?: string; session?: string; action?: string; reason?: string | null; inFlight?: number; latencyMs?: number | null; breach?: boolean }) {
+  try {
+    const prisma = db();
+    if (!prisma) return;
+    const t = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug || "demo") } });
+    if (!t) return;
+    await auditAppend(prisma, t.id, `runtime:${ev.decision}`, ev.agent || "runtime",
+      JSON.stringify({ agent: ev.agent, session: ev.session, action: ev.action, reason: ev.reason ?? null, inFlight: ev.inFlight ?? null, latencyMs: ev.latencyMs ?? null, breach: !!ev.breach }),
+      ev.agent || "gateway");
+  } catch { /* logging must never break the response */ }
+}
+
 /* Egress attempt (BL-04) — append the destination verdict (allow/deny/ssrf) to
    the audit chain so the live Egress surface reflects what the gateway's inline
    egress gate actually decided. Faithful telemetry only: the decision is made by
@@ -90,7 +107,7 @@ export async function POST(req: NextRequest) {
   if (!key) return NextResponse.json({ enabled: false });
   /* Runtime-guard accounting is hoisted so the catch can always settle the
      in-flight count even if the model call throws. */
-  let rtAdmitted = false, rtKey = "", rtStart = 0;
+  let rtAdmitted = false, rtKey = "", rtStart = 0, rtInFlight = 0;
   try {
     /* Input validation — never trust the request body. Reject malformed JSON,
        a non-string / empty / oversized prompt, and mistyped fields with an
@@ -188,10 +205,12 @@ export async function POST(req: NextRequest) {
       const rt = admitCall(rtKey, String(tool));
       if (rt.decision !== "allow") {
         await logInference(tenant, { model, agent, tool, decision: rt.decision === "loop" ? "block" : "escalate" });
+        await logRuntime(tenant, { decision: rt.decision, agent: memScope.agent, session: memScope.session, action: String(tool), reason: rt.reason, inFlight: rt.inFlight });
         return NextResponse.json({ enabled: true, blocked: true, detector: "Runtime guard",
           runtime: { decision: rt.decision, reason: rt.reason, rate: rt.rate, inFlight: rt.inFlight } });
       }
       rtAdmitted = true;
+      rtInFlight = rt.inFlight;
       /* 4 · Allowed — mint a short-lived, scoped capability token for this one
          call; no agent holds a standing key. */
       capabilityToken = issueToken(String(agent), String(tool), undefined, new Date().toISOString()).token;
@@ -285,7 +304,15 @@ export async function POST(req: NextRequest) {
     /* Runtime guardrails — settle the in-flight count and record latency, so a
        call over the SLA is flagged as a real anomaly signal. */
     let runtime: { latencyMs: number; sloBreach: boolean } | null = null;
-    try { const rc = rtAdmitted ? completeCall(rtKey, Date.now() - rtStart) : recordLatency(rtKey, Date.now() - rtStart); rtAdmitted = false; runtime = { latencyMs: rc.latencyMs, sloBreach: rc.breach }; } catch { /* best-effort */ }
+    try {
+      const wasAdmitted = rtAdmitted;
+      const rc = rtAdmitted ? completeCall(rtKey, Date.now() - rtStart) : recordLatency(rtKey, Date.now() - rtStart);
+      rtAdmitted = false;
+      runtime = { latencyMs: rc.latencyMs, sloBreach: rc.breach };
+      // Record the completed agent tool call (allow + its latency) on the chain
+      // so the live Runtime surface sees the session's latency, not just denials.
+      if (wasAdmitted) await logRuntime(tenant, { decision: "allow", agent: memScope.agent, session: memScope.session, action: String(tool), latencyMs: rc.latencyMs, breach: rc.breach, inFlight: rtInFlight });
+    } catch { /* best-effort */ }
     return NextResponse.json({ enabled: true, blocked: og.blocked, text: grounded, masked: guard.didMask,
       classification, capabilityToken, responseValidation: { ok: rv.ok, findings: rv.findings },
       cost: { tokensIn, tokensOut, tokens: tokensIn + tokensOut, cost, costLabel: fmtUSD(cost), provider: "Claude" },

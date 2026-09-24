@@ -73,6 +73,9 @@ jobs:
       - name: Live memory tests (audit-chain -> memory surface)
         run: npm run test:memorylive
 
+      - name: Live runtime tests (audit-chain -> runtime surface)
+        run: npm run test:runtimelive
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
