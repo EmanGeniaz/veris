@@ -76,6 +76,9 @@ jobs:
       - name: Live runtime tests (audit-chain -> runtime surface)
         run: npm run test:runtimelive
 
+      - name: Live circuit-breaker tests (audit-chain -> breaker surface)
+        run: npm run test:breakerlive
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
