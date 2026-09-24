@@ -60,6 +60,24 @@ async function logMemory(tenantSlug: string, ev: { decision: string; agent?: str
   } catch { /* logging must never break the response */ }
 }
 
+/* Circuit-breaker risk signal (BL-04) — as a guardrail fires, emit the signal
+   it represents (injection / egress / guardrail / rate) to the audit chain so
+   the live Circuit Breaker surface can group signals per session and compute the
+   risk score. Faithful telemetry only: the breaker's score→state decision is
+   computed by lib/circuit-breaker and is unchanged here. Best-effort, no-ops
+   without a DB. */
+async function logBreakerSignal(tenantSlug: string, ev: { signal: string; agent?: string; session?: string }) {
+  try {
+    const prisma = db();
+    if (!prisma) return;
+    const t = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug || "demo") } });
+    if (!t) return;
+    await auditAppend(prisma, t.id, `breaker-signal:${ev.signal}`, ev.agent || "breaker",
+      JSON.stringify({ agent: ev.agent, session: ev.session, signal: ev.signal }),
+      ev.agent || "gateway");
+  } catch { /* logging must never break the response */ }
+}
+
 /* Runtime guardrail event (BL-04) — append the per-request admission decision
    (allow/throttle/loop) and completed-call latency to the audit chain so the
    live Runtime Guardrails surface reflects real sessions. Faithful telemetry
@@ -145,6 +163,7 @@ export async function POST(req: NextRequest) {
     const ig = ingressCheck({ text: prompt, attachments, sessionKey: rtKey });
     if (ig.blocked) {
       await logInference(tenant, { model, agent, tool, decision: "block" });
+      await logBreakerSignal(tenant, { signal: "injection", agent: memScope.agent, session: memScope.session });
       return NextResponse.json({ enabled: true, blocked: true, detector: "Input guard",
         input: { decision: ig.decision, findings: ig.findings, attachments: ig.attachmentResults, rate: ig.rate } });
     }
@@ -195,6 +214,7 @@ export async function POST(req: NextRequest) {
         await logEgress(tenant, { decision: eg.decision, destination: String(dest), category: eg.category, reason: eg.note, agent, tool });
         if (eg.decision !== "allow") {
           await logInference(tenant, { model, agent, tool, decision: "block", dataClass: "Restricted" });
+          await logBreakerSignal(tenant, { signal: "egress", agent: memScope.agent, session: memScope.session });
           return NextResponse.json({ enabled: true, blocked: true, detector: eg.decision === "ssrf" ? "Egress · SSRF" : "Egress policy",
             egress: { dest, decision: eg.decision, category: eg.category, reason: eg.note } });
         }
@@ -206,6 +226,7 @@ export async function POST(req: NextRequest) {
       if (rt.decision !== "allow") {
         await logInference(tenant, { model, agent, tool, decision: rt.decision === "loop" ? "block" : "escalate" });
         await logRuntime(tenant, { decision: rt.decision, agent: memScope.agent, session: memScope.session, action: String(tool), reason: rt.reason, inFlight: rt.inFlight });
+        if (rt.decision === "throttle") await logBreakerSignal(tenant, { signal: "rate", agent: memScope.agent, session: memScope.session });
         return NextResponse.json({ enabled: true, blocked: true, detector: "Runtime guard",
           runtime: { decision: rt.decision, reason: rt.reason, rate: rt.rate, inFlight: rt.inFlight } });
       }
@@ -219,6 +240,7 @@ export async function POST(req: NextRequest) {
     const guard = evaluateRules(text);
     if (guard.blocked) {
       await logInference(tenant, { model, agent, tool, decision: "block", dataClass: classification.dataClass });
+      await logBreakerSignal(tenant, { signal: "guardrail", agent: memScope.agent, session: memScope.session });
       return NextResponse.json({ enabled: true, blocked: true, detector: guard.primary?.name ?? "Policy",
         clauseRef: guard.primary?.clauseRef, policyKey: guard.primary?.policyKey,
         violations: guard.matches.map((m) => ({ ruleId: m.ruleId, name: m.name, policyKey: m.policyKey, action: m.action, severity: m.severity })) });

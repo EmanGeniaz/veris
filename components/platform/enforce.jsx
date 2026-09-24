@@ -756,8 +756,23 @@ export function HitlGates({ showToast }) {
 /* ══════════════ CIRCUIT BREAKER — real-time capability revocation ══════════════ */
 export function CircuitBreaker({ showToast }) {
   const T_ = useT(); const ar = useLang() === "ar";
-  const rows = breakerSessions();
-  const s = breakerStats();
+  /* Live-first (BL-04): read the tenant's real per-session risk signals from the
+     audit chain when a database is configured; fall back to the seeded window
+     otherwise, and badge which one is showing. */
+  const [live, setLive] = useState(null); // { rows, stats } | null
+  useEffect(() => {
+    let on = true;
+    fetch("/api/enforce/breaker?tenant=demo")
+      .then(r => r.json())
+      .then(d => { if (on && d && d.enabled) setLive({ rows: d.rows || [], stats: d.stats }); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const usingLive = !!live;
+  const rows = usingLive ? live.rows : breakerSessions();
+  const s = usingLive ? live.stats : breakerStats();
+  const haltRow = rows.find(r => r.state === "halt");
+  const actedRow = rows.find(r => r.acted);
   return <div style={{ animation: "up .3s ease" }}>
     <Head title="Circuit Breaker" sub="Static gates say what an agent may never do. The circuit breaker adds the dynamic half — it watches each agent's risk signal as a session runs and revokes capability in real time the moment it crosses a threshold, before the agent reaches a human gate. Tokens are short-lived (90s) and per-call, so revocation is instant: the agent's tokens hit a revocation list and the next issuance is refused. Every trip is written to the Article 12 chain. This is the continuous, adaptive oversight EU AI Act Art.14 requires." />
     <div style={kpiGrid}>
@@ -782,8 +797,9 @@ export function CircuitBreaker({ showToast }) {
     </Card>
 
     <Card style={{ ...cardPad, marginTop: 14 }}>
-      <Eyebrow>Live sessions · score & state computed from signals</Eyebrow>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 2 }}><Eyebrow>Live sessions · score & state computed from signals</Eyebrow><TelemetryBadge/></div>
       <H3 style={{ marginBottom: 12 }}>What the breaker did, and why</H3>
+      {usingLive && rows.length === 0 && <div style={{ padding: "22px 4px", fontSize: 12, color: T.ink3, fontFamily: F.b }}>No live risk signals recorded yet — as the gateway's guardrails fire (injection, egress, guardrail, rate), each signal appears here grouped by session, and the breaker's score &amp; state are computed from them on the tenant's audit chain.</div>}
       <Table head={["Session", "Agent", "Risk signals", "Score", "Breaker", "Capability revoked", "Art.12"]}>
         {rows.map(r => { const c = tok(r.tone); return <tr key={r.id}>
           <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{r.id}<div style={{ fontSize: 9, color: T.ink4 }}>{r.started}</div></Td>
@@ -795,7 +811,11 @@ export function CircuitBreaker({ showToast }) {
           <Td style={{ fontFamily: F.m, color: r.ledgerRef ? T.green : T.ink4, whiteSpace: "nowrap" }}>{r.ledgerRef || "—"}</Td>
         </tr>; })}
       </Table>
-      {advisor(ar ? <>تُظهِر الجلسة <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> الآلية: {rows.find(r => r.state === "halt") ? "بلغت درجة وكيل إشارة الاحتيال " + rows.find(r => r.state === "halt")?.score + " (حقن + خروج + قفزة حسّاسة)، فأوقف القاطع الجلسة وألغى كل رمز" : "تجاوزت الدرجة العتبة فسُحِبت القدرة"} — قبل أن تبلغ بوابة بشرية، ثم كتب التعثّر في سلسلة المادة 12 مع المالك المُساءَل. البوابة الثابتة لكل أداة لا تستطيع هذا؛ فهي لا تعمل إلا عند الأداة التي كان مسموحاً للوكيل استدعاؤها أصلاً. أُلغِي {s.tokensRevoked} رمزاً داخل عمر {s.ttlSeconds} ثانية عبر {s.acted} جلسة متعثّرة.</> : <>Session <span style={{ fontFamily: F.m }}>{rows.find(r => r.state === "halt")?.id || rows.find(r => r.acted)?.id}</span> shows the mechanism: the {rows.find(r => r.state === "halt") ? "Fraud Signal Agent's score hit " + rows.find(r => r.state === "halt")?.score + " (injection + egress + sensitive spike), so the breaker halted the session and revoked every token" : "score crossed the threshold and capability was pulled"} — before it reached a human gate, then wrote the trip to the Art.12 chain with the accountable owner. A fixed per-tool gate can't do this; it only fires at the tool the agent was already allowed to call. {s.tokensRevoked} tokens were revoked inside the {s.ttlSeconds}s TTL across {s.acted} tripped session{s.acted === 1 ? "" : "s"}.</>)}
+      {advisor(usingLive
+        ? (ar
+            ? <>هذه جلسات حيّة من سلسلة التدقيق. {actedRow ? <>تجاوزت الجلسة <span style={{ fontFamily: F.m }}>{actedRow.id}</span> العتبة (الدرجة {actedRow.score}) فسحب القاطع القدرة{haltRow ? " وأوقف الجلسة" : ""} — قبل بلوغ بوابة بشرية، وكُتِب التعثّر في سلسلة المادة 12.</> : <>لم تتجاوز أي جلسة عتبة القاطع في هذه النافذة.</>} أُلغِي {s.tokensRevoked} رمزاً داخل عمر {s.ttlSeconds} ثانية عبر {s.acted} جلسة.</>
+            : <>These are <b style={{ color: T.ink }}>live sessions</b> from the audit chain — each session's risk signals were emitted by the gateway's guardrails as they fired, and the score &amp; state are computed from them. {actedRow ? <>Session <span style={{ fontFamily: F.m }}>{actedRow.id}</span> crossed the threshold (score {actedRow.score}) and the breaker pulled capability{haltRow ? " and halted the session" : ""} — before it reached a human gate, with the trip written to the Art.12 chain.</> : <>No session crossed a breaker threshold in this window.</>} {s.tokensRevoked} tokens revoked inside the {s.ttlSeconds}s TTL across {s.acted} tripped session{s.acted === 1 ? "" : "s"}.</>)
+        : (ar ? <>تُظهِر الجلسة <span style={{ fontFamily: F.m }}>{haltRow?.id || actedRow?.id}</span> الآلية: {haltRow ? "بلغت درجة وكيل إشارة الاحتيال " + haltRow.score + " (حقن + خروج + قفزة حسّاسة)، فأوقف القاطع الجلسة وألغى كل رمز" : "تجاوزت الدرجة العتبة فسُحِبت القدرة"} — قبل أن تبلغ بوابة بشرية، ثم كتب التعثّر في سلسلة المادة 12 مع المالك المُساءَل. البوابة الثابتة لكل أداة لا تستطيع هذا؛ فهي لا تعمل إلا عند الأداة التي كان مسموحاً للوكيل استدعاؤها أصلاً. أُلغِي {s.tokensRevoked} رمزاً داخل عمر {s.ttlSeconds} ثانية عبر {s.acted} جلسة متعثّرة.</> : <>Session <span style={{ fontFamily: F.m }}>{haltRow?.id || actedRow?.id}</span> shows the mechanism: the {haltRow ? "Fraud Signal Agent's score hit " + haltRow.score + " (injection + egress + sensitive spike), so the breaker halted the session and revoked every token" : "score crossed the threshold and capability was pulled"} — before it reached a human gate, then wrote the trip to the Art.12 chain with the accountable owner. A fixed per-tool gate can't do this; it only fires at the tool the agent was already allowed to call. {s.tokensRevoked} tokens were revoked inside the {s.ttlSeconds}s TTL across {s.acted} tripped session{s.acted === 1 ? "" : "s"}.</>))}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Circuit-breaker trips exported — reconciled to the Article 12 evidence chain")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export breaker trips</button>
       </div>
