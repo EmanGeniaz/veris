@@ -67,6 +67,9 @@ jobs:
       - name: Live tool-call ledger tests (audit-chain -> ledger)
         run: npm run test:enforcelive
 
+      - name: Live egress tests (audit-chain -> egress surface)
+        run: npm run test:egresslive
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build

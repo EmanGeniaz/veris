@@ -36,6 +36,7 @@ export function OPTIONS() {
 async function logVerdict(tenantSlug: string, ev: {
   decision: string; dataClass: string; categories: string[]; rules: string[];
   destination?: string; channel?: string; actor?: string; sha: string;
+  kind?: string; category?: string; reason?: string;
 }) {
   try {
     const prisma = db();
@@ -45,7 +46,11 @@ async function logVerdict(tenantSlug: string, ev: {
     await auditAppend(
       prisma, t.id, `egress-inspect:${ev.decision}`, ev.dataClass,
       JSON.stringify({ channel: ev.channel, actor: ev.actor, destination: ev.destination,
-        categories: ev.categories, rules: ev.rules, sha: ev.sha }),
+        categories: ev.categories, rules: ev.rules, sha: ev.sha,
+        // A destination decision (BL-04) carries kind:"egress" + its true category
+        // and reason so the live Egress surface can render it faithfully; content
+        // DLP verdicts omit these and stay out of that surface.
+        ...(ev.kind ? { kind: ev.kind, category: ev.category, reason: ev.reason } : {}) }),
       ev.actor || ev.channel || "casb",
     );
   } catch { /* logging must never break the response */ }
@@ -74,10 +79,17 @@ export async function POST(req: NextRequest) {
   // context, not an egress target, so it must not be denied by default here.
   if (egressHost) {
     const eg = egressDecision(egressHost);
+    // Faithful egress telemetry (BL-04): record the true destination verdict —
+    // allow / deny / ssrf, with its category and reason — for BOTH outcomes, so
+    // the live Egress surface reflects real attempts, not just denials collapsed
+    // to "block". The egress decision itself is unchanged; this only persists it
+    // truthfully (and tags it kind:"egress" so it is distinguishable from a
+    // content-DLP verdict on the same audit action).
+    await logVerdict(tenant, { decision: eg.decision, dataClass: eg.decision === "allow" ? "Internal" : "Restricted",
+      categories: [], rules: [], destination: egressHost, channel, actor, sha: sha256(text),
+      kind: "egress", category: eg.category, reason: eg.note });
     if (eg.decision !== "allow") {
       const cls = classify(text);
-      await logVerdict(tenant, { decision: "block", dataClass: "Restricted", categories: cls.categories,
-        rules: [], destination: egressHost, channel, actor, sha: sha256(text) });
       return json({
         decision: "block", detector: eg.decision === "ssrf" ? "Egress · SSRF" : "Egress policy",
         destination: egressHost, category: eg.category, reason: eg.note, redacted: "", dataClass: "Restricted", categories: cls.categories,

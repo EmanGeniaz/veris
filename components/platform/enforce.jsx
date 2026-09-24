@@ -663,7 +663,22 @@ export function ToolCallLedger({ showToast }) {
 /* ══════════════ EGRESS POLICY — the containment guarantee ══════════════ */
 export function EgressPolicy({ showToast }) {
   const T_ = useT(); const ar = useLang() === "ar";
-  const s = egressStats();
+  /* Live-first (BL-04): read the tenant's real egress destination decisions from
+     the audit chain when a database is configured; fall back to the seeded window
+     otherwise, and badge which one is showing so a demo window is never mistaken
+     for live traffic. */
+  const [live, setLive] = useState(null); // { rows, stats } | null
+  useEffect(() => {
+    let on = true;
+    fetch("/api/enforce/egress?tenant=demo")
+      .then(r => r.json())
+      .then(d => { if (on && d && d.enabled) setLive({ rows: d.rows || [], stats: d.stats }); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const usingLive = !!live;
+  const events = usingLive ? live.rows : EGRESS_EVENTS;
+  const s = usingLive ? live.stats : egressStats();
   return <div style={{ animation: "up .3s ease" }}>
     <Head title="Egress Policy" sub="The containment guarantee: a successful injection cannot reach money, data, or the internet. Least privilege stops an agent calling a tool it doesn't hold; egress policy stops the tools it does hold from reaching a destination they shouldn't. Enforced on the destination — an allow-list plus named deny categories, never a text classifier — so it holds against a more capable model. Closes data-exfiltration and SSRF against the cloud metadata service." />
     <div style={kpiGrid}>
@@ -674,9 +689,11 @@ export function EgressPolicy({ showToast }) {
       <Kpi l="Allow-list" v={String(s.allowlisted)} c={T.blue} sub="explicit destinations" />
     </div>
     <Card style={{ ...cardPad, marginBottom: 14 }}>
-      <Eyebrow>Egress attempts · destination decisions</Eyebrow><H3 style={{ marginBottom: 12 }}>What the tools tried to reach</H3>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 2 }}><Eyebrow>Egress attempts · destination decisions</Eyebrow><TelemetryBadge/></div>
+      <H3 style={{ marginBottom: 12 }}>What the tools tried to reach</H3>
+      {usingLive && events.length === 0 && <div style={{ padding: "22px 4px", fontSize: 12, color: T.ink3, fontFamily: F.b }}>No live egress attempts recorded yet — as agents reach for destinations through the gateway, each allow / deny / SSRF decision appears here on the tenant's audit chain.</div>}
       <Table head={["Agent", "Tool", "Destination", "Decision", "Why"]}>
-        {EGRESS_EVENTS.map(e => { const m = EGRESS_DECISION_META[e.decision]; return <tr key={e.id}>
+        {events.map(e => { const m = EGRESS_DECISION_META[e.decision] || { label: e.decision, tone: "crit" }; return <tr key={e.id}>
           <Td style={{ fontWeight: 700, color: T.ink }}>{e.agent}</Td>
           <Td style={{ fontFamily: F.m, color: T.ink3 }}>{e.tool}</Td>
           <Td style={{ fontFamily: F.m, color: e.decision === "allow" ? T.ink2 : T.red }}>{e.dest}</Td>
