@@ -19,7 +19,8 @@
     "test:telemetry": "tsx scripts/telemetry-label-test.mjs",
     "test:enforcelive": "tsx scripts/enforce-live-test.mjs",
     "test:egresslive": "tsx scripts/egress-live-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive",
+    "test:memorylive": "tsx scripts/memory-live-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
