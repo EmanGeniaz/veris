@@ -41,6 +41,25 @@ async function logInference(tenantSlug: string, ev: { model: string; agent?: str
   } catch { /* logging must never break the response */ }
 }
 
+/* Governed memory write (BL-04) — append the DLP verdict (allow/mask/refuse) to
+   the audit chain so the live Memory Guardrails surface reflects what agents
+   actually tried to remember. Records governance metadata ONLY — agent, session,
+   kind, data class, masked, written — never the memory content (Restricted
+   content is refused at write and the audit log holds no memory text). Faithful
+   telemetry only: the decision is made by rememberDurable() and is unchanged
+   here. Best-effort, no-ops without a DB. */
+async function logMemory(tenantSlug: string, ev: { decision: string; agent?: string; session?: string; kind?: string; cls?: string; masked?: boolean; written?: boolean }) {
+  try {
+    const prisma = db();
+    if (!prisma) return;
+    const t = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug || "demo") } });
+    if (!t) return;
+    await auditAppend(prisma, t.id, `memory:${ev.decision}`, ev.cls || "—",
+      JSON.stringify({ agent: ev.agent, session: ev.session, kind: ev.kind, class: ev.cls, masked: !!ev.masked, written: !!ev.written }),
+      ev.agent || "gateway");
+  } catch { /* logging must never break the response */ }
+}
+
 /* Egress attempt (BL-04) — append the destination verdict (allow/deny/ssrf) to
    the audit chain so the live Egress surface reflects what the gateway's inline
    egress gate actually decided. Faithful telemetry only: the decision is made by
@@ -258,7 +277,11 @@ export async function POST(req: NextRequest) {
        Restricted content is never persisted, retention/expiry are stamped by
        class. Best-effort so it never breaks the response. */
     let mem: { decision: string; written: boolean } | null = null;
-    try { const mw = await rememberDurable({ ...memScope, kind: "turn", text: guard.masked }); mem = { decision: mw.decision, written: mw.written }; } catch { /* best-effort */ }
+    try {
+      const mw = await rememberDurable({ ...memScope, kind: "turn", text: guard.masked });
+      mem = { decision: mw.decision, written: mw.written };
+      await logMemory(tenant, { decision: mw.decision, agent: memScope.agent, session: memScope.session, kind: "turn", cls: mw.class, masked: !!mw.item?.masked, written: mw.written });
+    } catch { /* best-effort */ }
     /* Runtime guardrails — settle the in-flight count and record latency, so a
        call over the SLA is flagged as a real anomaly signal. */
     let runtime: { latencyMs: number; sloBreach: boolean } | null = null;

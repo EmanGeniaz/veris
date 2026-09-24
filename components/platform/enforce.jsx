@@ -811,8 +811,22 @@ export function CircuitBreaker({ showToast }) {
    the gateway pipeline. */
 export function MemoryGuardrails({ showToast }) {
   const T_ = useT();
-  const rows = seededMemoryLedger();
-  const s = memoryStats(rows);
+  /* Live-first (BL-04): read the tenant's real governed-write decisions from the
+     audit chain when a database is configured; fall back to the seeded window
+     otherwise, and badge which one is showing. The audit rows carry governance
+     metadata only — never memory content. */
+  const [live, setLive] = useState(null); // { rows, stats } | null
+  useEffect(() => {
+    let on = true;
+    fetch("/api/enforce/memory?tenant=demo")
+      .then(r => r.json())
+      .then(d => { if (on && d && d.enabled) setLive({ rows: d.rows || [], stats: d.stats }); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const usingLive = !!live;
+  const rows = usingLive ? live.rows : seededMemoryLedger();
+  const s = usingLive ? live.stats : memoryStats(rows);
   const memDec = d => { const m = MEMORY_DECISION_META[d] || { label: d, tone: "ink3" }; return <Pill c={tok(m.tone)}>{m.label}</Pill>; };
   return <div style={{ animation: "up .3s ease" }}>
     <Head title="Memory Guardrails" sub="Static gates say what an agent may do; memory guardrails say what it may remember and recall. Every write runs the same DLP rulebook as the gateway — Restricted content (secrets / PCI / PHI) is refused outright, PII is masked before storage — and each item is stamped with a class-based retention window. Recall is partitioned by tenant + agent + session and re-checks data class at read time, so a long-running agent never accumulates a private, ungoverned copy of sensitive data. Enforced live in the gateway pipeline." />
@@ -835,8 +849,9 @@ export function MemoryGuardrails({ showToast }) {
     </Card>
 
     <Card style={cardPad}>
-      <Eyebrow>Governed writes · the DLP decision on every memory</Eyebrow>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 2 }}><Eyebrow>Governed writes · the DLP decision on every memory</Eyebrow><TelemetryBadge/></div>
       <H3 style={{ marginBottom: 12 }}>What was remembered, and what was refused</H3>
+      {usingLive && rows.length === 0 && <div style={{ padding: "22px 4px", fontSize: 12, color: T.ink3, fontFamily: F.b }}>No live memory writes recorded yet — as agents remember turns through the gateway, each governed decision (stored / masked / refused) appears here on the tenant's audit chain.</div>}
       <Table head={["Session", "Kind", "Content (as stored)", "Class", "Retention", "Decision"]}>
         {rows.map((r, i) => <tr key={i}>
           <Td style={{ fontFamily: F.m, color: T.ink3, whiteSpace: "nowrap" }}>{r.session}<div style={{ fontSize: 9, color: T.ink4 }}>{r.agent}</div></Td>
@@ -847,7 +862,9 @@ export function MemoryGuardrails({ showToast }) {
           <Td>{memDec(r.decision)}</Td>
         </tr>)}
       </Table>
-      {advisor(<>The Doc agent tried to remember an <b style={{ color: T.ink }}>API key</b> and the CRC agent a <b style={{ color: T.ink }}>card number</b> — both classified Restricted and <b style={{ color: T.ink }}>refused at write</b>, so no ungoverned copy exists to leak later. The customer email was <b style={{ color: T.ink }}>masked</b> before storage. {s.refused} of {s.total} writes were refused; every stored item carries an expiry and lives only inside its tenant/agent/session partition.</>)}
+      {advisor(usingLive
+        ? <>These are <b style={{ color: T.ink }}>live governed writes</b> from the gateway: each memory ran the DLP rulebook at write time — Restricted content <b style={{ color: T.ink }}>refused</b>, PII <b style={{ color: T.ink }}>masked</b> before storage. {s.refused} of {s.total} writes were refused. The audit chain records only the decision and its data class, <b style={{ color: T.ink }}>never the content</b>, and every stored item carries an expiry and lives only inside its tenant/agent/session partition.</>
+        : <>The Doc agent tried to remember an <b style={{ color: T.ink }}>API key</b> and the CRC agent a <b style={{ color: T.ink }}>card number</b> — both classified Restricted and <b style={{ color: T.ink }}>refused at write</b>, so no ungoverned copy exists to leak later. The customer email was <b style={{ color: T.ink }}>masked</b> before storage. {s.refused} of {s.total} writes were refused; every stored item carries an expiry and lives only inside its tenant/agent/session partition.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Memory-guardrail decisions exported — " + s.stored + " stored, " + s.refused + " refused")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export memory decisions</button>
       </div>
