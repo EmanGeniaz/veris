@@ -141,6 +141,17 @@ const fabRows = fabChain([
   check("writer is idempotent + hash-chained (fabricAppend)", /export async function fabricAppend/.test(lib) && /deduped/.test(lib) && /fabricHash\(/.test(lib));
 }
 
+/* ── surface wiring: a dashboard reads the Fabric live-first (WS1 phase 3) ── */
+{
+  const caio = read("components/platform/caio.jsx");
+  check("CAIO surface fetches the live Fabric record", /\/api\/fabric/.test(caio));
+  check("CAIO surface falls back to a demo view", /usingLive\s*\?\s*live\.records\s*:\s*FABRIC_DEMO/.test(caio));
+  check("CAIO surface badges live-vs-demo provenance", /<TelemetryBadge\/>/.test(caio));
+  check("CAIO surface has an honest empty state for live-with-no-records", /No canonical records yet/.test(caio));
+  const prefs = read("lib/dashboard-prefs.js");
+  check("the Evidence Fabric section is registered in the CAIO dashboard", /key:\s*"fabric"/.test(prefs));
+}
+
 const failed = R.filter(([s]) => s === "FAIL");
 for (const [s, n] of R) console.log(`${s}  ${n}`);
 console.log(`\n${R.length - failed.length}/${R.length} passed`);
