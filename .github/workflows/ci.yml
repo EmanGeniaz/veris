@@ -79,6 +79,9 @@ jobs:
       - name: Live circuit-breaker tests (audit-chain -> breaker surface)
         run: npm run test:breakerlive
 
+      - name: Live retrieval tests (audit-chain -> retrieval surface)
+        run: npm run test:retrievallive
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
