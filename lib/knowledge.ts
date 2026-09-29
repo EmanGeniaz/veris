@@ -7,7 +7,7 @@
    All retrieval/scoring runs here — nothing lives in the frontend. */
 
 import { db, dbConfigured } from "./db";
-import { guardPassages } from "@/lib/retrieval-guard";
+import { guardPassages, retrievalDecision, SOURCE_TRUST_TIERS } from "@/lib/retrieval-guard";
 
 type Doc = { id: string; tenant: string; title: string; source: string; content: string; createdAt: number };
 
@@ -80,4 +80,62 @@ export async function retrieve(tenant: string, query: string, k = 4): Promise<Re
      ones, and re-rank by relevance × source trust × recency. */
   const guarded = guardPassages(scored, { nowMs: Date.now() }) as { passages: RetrievedPassage[] };
   return guarded.passages.slice(0, k);
+}
+
+/* The governance decision on one retrieval candidate, for the audit chain and
+   the live Retrieval Guardrails surface. Governance metadata only — the
+   document identifier and the guard's verdict, NEVER the passage text (a
+   snippet can carry the very PII/secret the DLP step blocked). */
+export type RetrievalDecisionMeta = {
+  title: string; source: string; tier: string; trustScore: number;
+  ageDays: number | null; stale: boolean; guardedScore: number;
+  decision: string; reason: string | null; masked: boolean;
+};
+
+/* Reasons that make a dropped candidate worth recording: a real trust / DLP /
+   freshness decision, not low-signal junk (too short / low signal), which is
+   retrieval noise rather than a governance event. */
+const SECURITY_DROP = new Set(["untrusted source", "sensitive content blocked", "expired"]);
+const tierScore = (tier?: string) => (tier && SOURCE_TRUST_TIERS[tier as keyof typeof SOURCE_TRUST_TIERS]?.score) ?? 0;
+
+/* Retrieve exactly as retrieve() does, and additionally return the guard's
+   decision on each governance-relevant candidate: the admitted top-k passages
+   that actually grounded the answer, plus any candidate DROPPED for a trust /
+   DLP / freshness reason (the notable exfil / poison / staleness attempts kept
+   out). The decisions never include passage text. */
+export async function retrieveGoverned(tenant: string, query: string, k = 4): Promise<{ passages: RetrievedPassage[]; decisions: RetrievalDecisionMeta[] }> {
+  const t = terms(query);
+  if (!t.length) return { passages: [], decisions: [] };
+  const docs = await getDocs(tenant);
+  const scored: RetrievedPassage[] = [];
+  for (const d of docs) {
+    for (const c of chunk(d.content)) {
+      const cl = c.toLowerCase();
+      const score = t.reduce((n, term) => n + (cl.includes(term) ? 1 : 0), 0);
+      if (score > 0) scored.push({ docId: d.id, title: d.title, source: d.source, snippet: c.slice(0, 340), score, createdAt: d.createdAt });
+    }
+  }
+  const guarded = guardPassages(scored, { nowMs: Date.now() }) as {
+    passages: Array<RetrievedPassage & { guardedScore?: number; trust?: string; trustScore?: number; ageDays?: number; stale?: boolean; masked?: boolean }>;
+    dropped: Array<RetrievedPassage & { trust?: string; reason?: string }>;
+  };
+  const passages = guarded.passages.slice(0, k);
+  const decisions: RetrievalDecisionMeta[] = [
+    // What grounded the answer (the admitted top-k): admitted / masked / down-weighted.
+    ...passages.map((p) => {
+      const { decision } = retrievalDecision({ blocked: false, chunkOk: true, masked: !!p.masked, stale: !!p.stale });
+      return {
+        title: p.title, source: p.source, tier: p.trust || "unverified", trustScore: p.trustScore ?? tierScore(p.trust),
+        ageDays: p.ageDays ?? null, stale: !!p.stale,
+        guardedScore: p.guardedScore != null ? +Number(p.guardedScore).toFixed(2) : 0,
+        decision, reason: null, masked: !!p.masked,
+      };
+    }),
+    // What was kept out for a security / trust / freshness reason (the notable drops).
+    ...guarded.dropped.filter((p) => SECURITY_DROP.has(String(p.reason))).map((p) => ({
+      title: p.title, source: p.source, tier: p.trust || "unverified", trustScore: tierScore(p.trust),
+      ageDays: null, stale: false, guardedScore: 0, decision: "dropped", reason: p.reason ?? null, masked: false,
+    })),
+  ];
+  return { passages, decisions };
 }

@@ -4,7 +4,7 @@
    disabled and the client keeps its simulated path. */
 import { NextRequest, NextResponse } from "next/server";
 import { knowledgeAssets, acInitiatives, riskRegister } from "@/lib/platform-models";
-import { retrieve } from "@/lib/knowledge";
+import { retrieveGoverned } from "@/lib/knowledge";
 import { evaluateRules, classify, validateResponse } from "@/lib/policy-rules";
 import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
 import { capabilityCheck } from "@/lib/agent-registry";
@@ -91,6 +91,27 @@ async function logRuntime(tenantSlug: string, ev: { decision: string; agent?: st
     if (!t) return;
     await auditAppend(prisma, t.id, `runtime:${ev.decision}`, ev.agent || "runtime",
       JSON.stringify({ agent: ev.agent, session: ev.session, action: ev.action, reason: ev.reason ?? null, inFlight: ev.inFlight ?? null, latencyMs: ev.latencyMs ?? null, breach: !!ev.breach }),
+      ev.agent || "gateway");
+  } catch { /* logging must never break the response */ }
+}
+
+/* Retrieval-guard decision (BL-04) — as RAG grounds an answer, append the
+   guard's verdict on each governance-relevant candidate (admitted / masked /
+   down-weighted / dropped) to the audit chain so the live Retrieval Guardrails
+   surface reflects real retrieval traffic instead of a seeded window. Records
+   governance metadata ONLY — the document identifier, source trust tier,
+   freshness and guarded score — NEVER the passage text (a snippet can carry the
+   very PII/secret the DLP step blocked). Faithful telemetry only: the decision
+   is made by retrieveGoverned()/guardPassages() and is unchanged here.
+   Best-effort, no-ops without a DB. */
+async function logRetrieval(tenantSlug: string, ev: { decision: string; title?: string; source?: string; tier?: string; trustScore?: number; ageDays?: number | null; stale?: boolean; guardedScore?: number; reason?: string | null; agent?: string; session?: string }) {
+  try {
+    const prisma = db();
+    if (!prisma) return;
+    const t = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug || "demo") } });
+    if (!t) return;
+    await auditAppend(prisma, t.id, `retrieval:${ev.decision}`, ev.tier || "unverified",
+      JSON.stringify({ kind: "retrieval", title: ev.title, source: ev.source, tier: ev.tier, trustScore: ev.trustScore, ageDays: ev.ageDays ?? null, stale: !!ev.stale, guardedScore: ev.guardedScore ?? 0, decision: ev.decision, reason: ev.reason ?? null, agent: ev.agent, session: ev.session }),
       ev.agent || "gateway");
   } catch { /* logging must never break the response */ }
 }
@@ -247,7 +268,15 @@ export async function POST(req: NextRequest) {
     }
     /* Retrieve from the tenant's ingested documents (RAG) and merge with the
        structured enterprise context. */
-    const passages = await retrieve(String(tenant || "demo"), guard.masked, 4);
+    const rg = await retrieveGoverned(String(tenant || "demo"), guard.masked, 4);
+    const passages = rg.passages;
+    /* Record the retrieval-guard decision on each governance-relevant candidate
+       (what grounded the answer + what was kept out for trust / DLP / freshness)
+       on the audit chain so the live Retrieval Guardrails surface reflects real
+       RAG traffic. Governance metadata only — never the passage text. */
+    for (const rd of rg.decisions) {
+      await logRetrieval(tenant, { decision: rd.decision, title: rd.title, source: rd.source, tier: rd.tier, trustScore: rd.trustScore, ageDays: rd.ageDays, stale: rd.stale, guardedScore: rd.guardedScore, reason: rd.reason, agent: memScope.agent, session: memScope.session });
+    }
     /* Memory recall — governed: only this tenant/agent/session's own,
        unexpired memories, already class-filtered and PII-masked at write. */
     let memCtx: string[] = [];

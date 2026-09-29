@@ -898,8 +898,22 @@ export function MemoryGuardrails({ showToast }) {
    ranking. Wired live into knowledge.ts retrieve(). */
 export function RetrievalGuardrails({ showToast }) {
   const T_ = useT();
-  const rows = seededRetrievalLedger();
-  const s = retrievalGuardStats(rows);
+  /* Live-first (BL-04): read the tenant's real retrieval-guard decisions from the
+     audit chain when a database is configured; fall back to the seeded window
+     otherwise, and badge which one is showing. The audit rows carry governance
+     metadata only — never the passage text. */
+  const [live, setLive] = useState(null); // { rows, stats } | null
+  useEffect(() => {
+    let on = true;
+    fetch("/api/enforce/retrieval?tenant=demo")
+      .then(r => r.json())
+      .then(d => { if (on && d && d.enabled) setLive({ rows: d.rows || [], stats: d.stats }); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const usingLive = !!live;
+  const rows = usingLive ? live.rows : seededRetrievalLedger();
+  const s = usingLive ? live.stats : retrievalGuardStats(rows);
   const decTone = d => d === "admitted" ? "good" : d === "masked" ? "info" : d === "down-weighted" ? "warn" : "crit";
   const tierTone = t => SOURCE_TRUST_TIERS[t]?.tone || "ink3";
   return <div style={{ animation: "up .3s ease" }}>
@@ -926,19 +940,22 @@ export function RetrievalGuardrails({ showToast }) {
     </Card>
 
     <Card style={cardPad}>
-      <Eyebrow>Governed retrieval · the decision on every candidate passage</Eyebrow>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 2 }}><Eyebrow>Governed retrieval · the decision on every candidate passage</Eyebrow><TelemetryBadge/></div>
       <H3 style={{ marginBottom: 12 }}>What grounded the answer, and what was kept out</H3>
+      {usingLive && rows.length === 0 && <div style={{ padding: "22px 4px", fontSize: 12, color: T.ink3, fontFamily: F.b }}>No live retrievals recorded yet — as agents ground answers through the gateway, each candidate passage's guard decision (admitted / masked / down-weighted / dropped) appears here on the tenant's audit chain.</div>}
       <Table head={["Document", "Source", "Trust", "Age", "Guarded score", "Decision"]}>
         {rows.map((r, i) => <tr key={i}>
           <Td style={{ color: T.ink, fontWeight: 700, maxWidth: 220 }}>{r.title}</Td>
           <Td style={{ fontFamily: F.m, color: T.ink3, maxWidth: 200, wordBreak: "break-all" }}>{r.source}</Td>
           <Td><Pill c={tok(tierTone(r.tier))}>{SOURCE_TRUST_TIERS[r.tier]?.label || r.tier}</Pill></Td>
-          <Td style={{ fontFamily: F.m, color: r.stale ? T.amber : T.ink2, whiteSpace: "nowrap" }}>{r.ageDays}d{r.stale ? " · stale" : ""}</Td>
+          <Td style={{ fontFamily: F.m, color: r.stale ? T.amber : T.ink2, whiteSpace: "nowrap" }}>{r.ageDays == null ? "—" : `${r.ageDays}d`}{r.stale ? " · stale" : ""}</Td>
           <Td style={{ fontFamily: F.m, fontWeight: 900, color: r.guardedScore > 0 ? T.ink : T.ink4 }}>{r.guardedScore || "—"}</Td>
           <Td><Pill c={tok(decTone(r.decision))}>{r.decision}</Pill>{r.reason && <div style={{ fontSize: 8.5, color: T.ink4, fontFamily: F.m, marginTop: 3 }}>{r.reason}</div>}</Td>
         </tr>)}
       </Table>
-      {advisor(<>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
+      {advisor(usingLive
+        ? <>These are <b style={{ color: T.ink }}>live retrieval-guard decisions</b> from the gateway: every candidate passage was classified by source trust, DLP-validated and freshness-checked before it could ground an answer. {s.dropped} of {s.total} candidates were <b style={{ color: T.ink }}>kept out</b> (untrusted source, secret-bearing chunk, or expired); the rest are re-ranked by relevance × trust × recency. The audit chain records the decision and the document's metadata, <b style={{ color: T.ink }}>never the passage text</b>.</>
+        : <>The <b style={{ color: T.ink }}>pastebin</b> dump was dropped as an untrusted source and the <b style={{ color: T.ink }}>vendor note</b> carrying an API key was blocked as secret-bearing — neither reached the prompt. The <b style={{ color: T.ink }}>draft board deck</b> is {rows.find(r => r.stale)?.ageDays || "240"} days old, so it is admitted but down-weighted below the fresh policy. {s.dropped} of {s.total} candidates were kept out entirely; the rest are re-ranked by relevance × trust × recency.</>)}
       <div style={{ marginTop: 12 }}>
         <button onClick={() => showToast && showToast("Retrieval-guard decisions exported — " + s.admitted + " admitted, " + s.dropped + " dropped")} style={{ background: AI_GOLD, border: "none", borderRadius: 11, padding: "10px 17px", color: "#0b0e24", fontSize: 12, fontWeight: 800, fontFamily: F.b, cursor: "pointer" }}>✦ Export retrieval decisions</button>
       </div>
