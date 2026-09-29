@@ -32,6 +32,7 @@ model Tenant {
   taxonomyAdds     TaxonomyAdd[]
   taxonomyRequests TaxonomyRequest[]
   rbacGrants       RbacGrant[]
+  fabricRecords    FabricRecord[]
 }
 
 model User {
@@ -260,6 +261,33 @@ model AuditLog {
   prevHash  String
   hash      String
   createdAt DateTime @default(now())
+}
+
+// Evidence Fabric — the canonical governance record (WS1 / #166). One
+// tenant-scoped, tamper-evident (hash-chained) store of the estate's governed
+// entities. Additive: Discover and Enforce write here through their contracts;
+// existing Evidence/Decision/AuditLog rows are presented as canonical entities
+// by read adapters (no migration). Payload is governance metadata only — never
+// raw sensitive content.
+model FabricRecord {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  kind       String   // AISystem | Assessment | EvidenceRef | Finding | Owner | FrameworkMapping | ShadowAIItem
+  entityId   String   // stable business id of the entity (idempotency + supersede target)
+  source     String   // provenance plane: discover | enforce | genveris | human
+  confidence Float    @default(1)
+  actor      String
+  supersedes String?  // record id this replaces (human-decision-wins conflict)
+  idem       String   // sha256(kind|entityId|source|payload) — idempotent re-ingest
+  payload    String   // JSON canonical entity body (metadata only)
+  prevHash   String
+  hash       String
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, kind])
+  @@index([tenantId, entityId])
+  @@index([tenantId, createdAt])
 }
 
 /* Per-tenant RBAC override: an entry here supersedes the default capability
