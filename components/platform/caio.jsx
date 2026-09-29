@@ -239,6 +239,7 @@ function OverviewTab({go,show=()=>true}){
       <GovPanel/>
       <CompliancePanel compact/>
     </div>}
+    {show("fabric")&&<div style={{marginTop:16}}><FabricPanel/></div>}
     {show("risksincidents")&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16,marginTop:16}}>
       <Card style={cardPad}><Eyebrow>Major &amp; active risks</Eyebrow><H3 style={{marginBottom:12}}>Highest exposure first</H3>
         <Table>{CAIO_RISKS.map(r=><tr key={r.r}><Td style={{fontWeight:700,color:T.ink}}>{r.r}</Td><Td>{r.p}</Td><Td><Pill c={r.gc}>{r.g}</Pill></Td></tr>)}</Table>
@@ -278,6 +279,57 @@ function CompliancePanel({compact}){
     <H3 style={{marginBottom:14}}>ISO checklists · standards · regulatory</H3>
     {COMPLIANCE.map(c=><ScoreRow key={c.k} label={c.k} v={c.v} c={c.c}/>)}
     <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}><Pill c={T.teal}>ISO 42001 certified body</Pill><Pill c={T.blue}>EU AI Act notified</Pill><Pill c={T.violet}>NIST aligned</Pill></div>
+  </Card>;
+}
+/* ══════════════ EVIDENCE FABRIC (WS1 / #166) ══════════════
+   Live-first: reads the tenant's canonical governance record from /api/fabric
+   when a DB is configured, else an honest demo view. Each record is
+   provenance-stamped (which plane wrote it), human-decision-wins, and the whole
+   set is tamper-evident; the record holds governance metadata only. */
+const FABRIC_DEMO=[
+  {kind:"AISystem",     entityId:"AIS-001", provenance:{source:"human",    confidence:1},   fields:{name:"Customer Resolution Copilot", decision:"approved-with-conditions"}},
+  {kind:"AISystem",     entityId:"AIS-002", provenance:{source:"discover", confidence:0.9}, fields:{name:"Fraud Detection Model", tier:"high"}},
+  {kind:"Assessment",   entityId:"ASM-001", provenance:{source:"discover", confidence:0.9}, fields:{of:"AIS-001", kind:"compliance-rating", score:72}},
+  {kind:"EvidenceRef",  entityId:"EVID-14", provenance:{source:"genveris", confidence:1},   fields:{item:"DPIA — Resolution Copilot", status:"approved"}},
+  {kind:"Finding",      entityId:"FND-001", provenance:{source:"enforce",  confidence:1},   fields:{severity:"high", reason:"egress to untrusted host"}},
+  {kind:"ShadowAIItem", entityId:"SHD-003", provenance:{source:"discover", confidence:0.7}, fields:{app:"pastebin summariser", host:"pastebin.com"}},
+];
+function fabricStatsOf(records){
+  const by=k=>records.filter(r=>r.kind===k).length;
+  return {total:records.length, systems:by("AISystem"), assessments:by("Assessment"), evidence:by("EvidenceRef"), findings:by("Finding"), shadow:by("ShadowAIItem"), sources:[...new Set(records.map(r=>r.provenance?.source))], intact:true};
+}
+const FAB_KIND_TONE={AISystem:T.blue, Assessment:AI_GOLD_INK, EvidenceRef:T.teal, Finding:T.red, ShadowAIItem:T.amber, Owner:T.ink3, FrameworkMapping:T.violet};
+const FAB_SRC_TONE=s=>({human:T.violet, enforce:T.teal, discover:AI_GOLD_INK, genveris:T.blue}[s]||T.ink3);
+function fabDetail(f){ if(!f) return "—"; return f.name||f.item||f.reason||f.app||(f.kind&&f.score!=null?`${f.kind} · ${f.score}`:f.decision||f.tier||String(Object.values(f)[0]??"—")); }
+function FabricPanel(){
+  const [live,setLive]=useState(null);
+  useEffect(()=>{let on=true;fetch("/api/fabric?tenant=demo").then(r=>r.json()).then(d=>{if(on&&d&&d.enabled)setLive({records:d.records||[],stats:d.stats});}).catch(()=>{});return()=>{on=false;};},[]);
+  const usingLive=!!live;
+  const records=usingLive?live.records:FABRIC_DEMO;
+  const s=usingLive?live.stats:fabricStatsOf(FABRIC_DEMO);
+  return <Card style={cardPad}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}><Eyebrow>Evidence Fabric · the canonical governance record</Eyebrow><TelemetryBadge/></div>
+    <H3 style={{marginBottom:12}}>One tamper-evident record — Discover · Enforce · GenVeris</H3>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12,marginBottom:14}}>
+      <Kpi l="Records" v={String(s.total)}/>
+      <Kpi l="AI systems" v={String(s.systems)} vc={T.blue}/>
+      <Kpi l="Assessments" v={String(s.assessments)} vc={AI_GOLD_INK}/>
+      <Kpi l="Findings" v={String(s.findings)} vc={T.red}/>
+      <Kpi l="Chain" v={s.intact?"Intact":"Broken"} vc={s.intact?T.green:T.red}/>
+    </div>
+    {usingLive&&records.length===0&&<div style={{padding:"18px 4px",fontSize:11.5,color:T.ink3,fontFamily:F.b}}>No canonical records yet — as Veris Discover ingests the estate and Veris Enforce emits runtime decisions, the governance record appears here on the tenant&apos;s tamper-evident chain.</div>}
+    <Table head={["Kind","Entity","Source","Confidence","Detail"]}>
+      {records.slice(0,8).map((r,i)=><tr key={i}>
+        <Td><Pill c={FAB_KIND_TONE[r.kind]||T.ink3}>{r.kind}</Pill></Td>
+        <Td style={{fontFamily:F.m,color:T.ink3}}>{r.entityId}</Td>
+        <Td><Pill c={FAB_SRC_TONE(r.provenance?.source)}>{r.provenance?.source||"—"}</Pill></Td>
+        <Td style={{fontFamily:F.m}}>{Math.round(((r.provenance?.confidence)??1)*100)}%</Td>
+        <Td style={{color:T.ink}}>{fabDetail(r.fields)}</Td>
+      </tr>)}
+    </Table>
+    <div style={{marginTop:12,padding:"12px 14px",borderRadius:11,background:AI_GOLD+"14",border:`1px solid ${AI_GOLD}33`,fontSize:11,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}>
+      <b style={{color:AI_GOLD_INK}}>Veris Intelligence:</b> every record is provenance-stamped (which plane wrote it) and the set is tamper-evident. Where a human governance decision exists, it wins over a later automated write — and the record holds governance metadata only, never raw content.
+    </div>
   </Card>;
 }
 function IncidentTable(){
