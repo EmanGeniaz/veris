@@ -24,7 +24,8 @@
     "test:breakerlive": "tsx scripts/breaker-live-test.mjs",
     "test:retrievallive": "tsx scripts/retrieval-live-test.mjs",
     "test:fabric": "tsx scripts/fabric-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric",
+    "test:ingest": "tsx scripts/ingest-discover-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"

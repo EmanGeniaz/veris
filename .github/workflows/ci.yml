@@ -85,6 +85,9 @@ jobs:
       - name: Evidence Fabric tests (canonical core — chain, human-wins, adapters)
         run: npm run test:fabric
 
+      - name: Discover ingestion tests (tier gate, metadata-only, provenance)
+        run: npm run test:ingest
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build

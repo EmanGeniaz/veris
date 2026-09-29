@@ -26,6 +26,7 @@
    Existing Evidence/Decision/AuditLog rows are presented as canonical entities
    by read adapters — no migration; the Fabric is additive. */
 import { createHash } from "node:crypto";
+import type { PrismaClient } from "@prisma/client";
 import { auditChainIntact, type AuditRow } from "./enforce-live";
 
 /* The canonical entity kinds (reconciled with the Discover ingestion contract). */
@@ -169,16 +170,8 @@ export function fabricStats(current: CanonicalRecord[], fabricIntact: boolean, a
    Best-effort, tenant-scoped, idempotent, hash-chained. Records the human-wins
    provenance without clobbering (a superseding automated write is still stored,
    but currentByEntity resolves to the human record). No-ops without a DB. */
-type PrismaLike = {
-  fabricRecord: {
-    findFirst: (a: unknown) => Promise<FabricRow | null>;
-    findMany: (a: unknown) => Promise<FabricRow[]>;
-    create: (a: unknown) => Promise<FabricRow>;
-  };
-};
-
 export async function fabricAppend(
-  prisma: PrismaLike,
+  prisma: PrismaClient,
   tenantId: string,
   rec: { kind: FabricKind; entityId: string; source: string; actor: string; confidence?: number; fields: Record<string, unknown>; supersedes?: string | null },
 ): Promise<{ written: boolean; deduped: boolean; row?: FabricRow }> {
