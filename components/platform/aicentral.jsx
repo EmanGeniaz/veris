@@ -694,6 +694,47 @@ registerContent({
   "Decision": "قرار", "Control": "ضابط",
 });
 
+/* ── AI Asset Register from the Evidence Fabric (WS1 / #166) ──────────────
+   Live-first: the canonical AISystem inventory from /api/fabric — the estate as
+   the one governance record shows it (provenance-stamped, human-decision-wins,
+   tamper-evident), fed by Veris Discover ingest. Honest demo fallback otherwise;
+   the seeded model registry below stands in when no DB is configured. */
+const FABRIC_AR_DEMO=[
+  {kind:"AISystem", entityId:"AIS-001", provenance:{source:"discover",confidence:0.9}, fields:{name:"Customer Resolution Copilot", tier:"high"}},
+  {kind:"AISystem", entityId:"AIS-002", provenance:{source:"human",   confidence:1},   fields:{name:"Fraud Detection Model", tier:"high"}},
+  {kind:"AISystem", entityId:"AIS-003", provenance:{source:"discover",confidence:0.7}, fields:{name:"Workforce Skills Navigator", tier:"limited"}},
+];
+const FAR_SRC=s=>s==="human"?T.violet:s==="enforce"?T.teal:s==="discover"?AI_GOLD_INK:T.blue;
+function FabricAssetRegister(){
+  const [live,setLive]=useState(null);
+  useEffect(()=>{let on=true;fetch("/api/fabric?tenant=demo").then(r=>r.json()).then(d=>{if(on&&d&&d.enabled)setLive({records:d.records||[]});}).catch(()=>{});return()=>{on=false;};},[]);
+  const usingLive=!!live;
+  const systems=(usingLive?live.records:FABRIC_AR_DEMO).filter(r=>r.kind==="AISystem");
+  const th={textAlign:"left",padding:"8px 10px",borderBottom:`1px solid ${T.border}`,fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",color:T.ink4,fontFamily:F.m};
+  const td={padding:"9px 10px",borderBottom:`1px solid ${T.border}`};
+  return <Card style={{padding:16,marginBottom:14}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:6}}>
+      <div>
+        <div style={{fontSize:9.5,letterSpacing:"0.14em",textTransform:"uppercase",color:T.ink4,fontWeight:900,fontFamily:F.m}}>AI Asset Register · canonical (Evidence Fabric)</div>
+        <h3 style={{fontSize:14,fontWeight:800,color:T.ink,margin:"4px 0 0",fontFamily:F.b}}>The estate, from the one governance record</h3>
+      </div>
+      <TelemetryBadge/>
+    </div>
+    {usingLive&&systems.length===0&&<div style={{padding:"16px 2px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No systems in the canonical register yet — as Veris Discover ingests the estate and net-new AI is registered, each system appears here on the tenant&apos;s tamper-evident record.</div>}
+    <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11.5,fontFamily:F.b}}>
+      <thead><tr>{["System","Source","Tier","Confidence"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+      <tbody>{systems.slice(0,10).map((r,i)=><tr key={i}>
+        <td style={{...td,color:T.ink,fontWeight:700}}>{r.fields?.name||r.entityId}<div style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{r.entityId}</div></td>
+        <td style={td}><Tag label={r.provenance?.source||"—"} color={FAR_SRC(r.provenance?.source)} bg={FAR_SRC(r.provenance?.source)+"16"}/></td>
+        <td style={{...td,color:T.ink2}}>{r.fields?.tier||"—"}</td>
+        <td style={{...td,color:T.ink2,fontFamily:F.m}}>{Math.round(((r.provenance?.confidence)??1)*100)}%</td>
+      </tr>)}</tbody>
+    </table></div>
+    <div style={{marginTop:10,padding:"10px 12px",borderRadius:10,background:AI_GOLD+"12",border:`1px solid ${AI_GOLD}30`,fontSize:10.5,color:T.ink2,lineHeight:1.6,fontFamily:F.b}}>
+      <b style={{color:AI_GOLD_INK}}>Canonical record:</b> these AISystem entries are provenance-stamped (Discover · human · Enforce), human-decision-wins and tamper-evident. Veris Discover writes them via the Enterprise ingest contract; the seeded model registry below is the demo view.
+    </div>
+  </Card>;
+}
 export function PageModelRegistry({setTab,openInitiative,role="caio",showToast}) {
   /* Initiative-centric registry: Model -> AI System -> Initiative ->
      Business Unit -> Executive owner. A model is never shown without its
@@ -758,6 +799,7 @@ export function PageModelRegistry({setTab,openInitiative,role="caio",showToast})
       <SHead title={T_("AI Model Registry")} sub={T_("Every model in its business context - initiative, executive owner and lifecycle. ISO 42001 C.8.4")}/>
       <button onClick={()=>setCreateOpen(o=>!o)} style={{flexShrink:0,background:createOpen?"transparent":AI_GOLD+"16",border:`1px solid ${AI_GOLD}${createOpen?"55":"45"}`,borderRadius:8,padding:"9px 15px",color:AI_GOLD_INK,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{createOpen?T_("Close"):T_("+ Register model")}</button>
     </div>
+    <FabricAssetRegister/>
     {createOpen&&(()=>{
       const fLabel=l=><span style={{fontSize:9,fontWeight:900,fontFamily:F.m,letterSpacing:"0.1em",textTransform:"uppercase",color:T.ink4}}>{T_(l)}</span>;
       const fieldStyle={background:T.s2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 11px",color:T.ink,fontSize:12,fontFamily:F.b,width:"100%",outline:"none"};
