@@ -169,6 +169,61 @@ During audit mode, discover and document problems first.
 
 ---
 
+# SECURITY BASELINE (mandatory for every change)
+
+These six controls are non-negotiable. Any new or changed code must meet them;
+any existing code that violates them is a defect to fix, not a style nit.
+
+1. **Rate limiting** — Every endpoint has a limit appropriate to its type:
+   strictest on authentication routes (login, signup, password reset, OTP/magic
+   link), moderate on public endpoints (contact/newsletter forms, public APIs),
+   looser on authenticated user actions. Auth routes combine per-IP AND
+   per-account limits and use exponential backoff rather than a hard lockout.
+   All thresholds are configurable (env/config), never hardcoded. Over-limit
+   responses are HTTP 429 with a `Retry-After` header.
+2. **Input validation** — Validate every input (body, query, params, headers,
+   form fields) against a strict schema (type, length, format, enum) and
+   REJECT anything that does not match with a 400. Do not "sanitize and
+   continue". Unknown fields are rejected, not silently accepted.
+3. **Secrets** — No hardcoded API keys, tokens, passwords, or connection
+   strings anywhere in the codebase (including seeds, tests, scripts, docs).
+   Use environment variables. Nothing sensitive is shipped to the frontend
+   (no secrets in `NEXT_PUBLIC_*`/`VITE_*`/client bundles) or committed to git
+   (`.env*` gitignored; only `.env.example` with placeholders).
+4. **Dependency vulnerabilities** — Run a dependency audit (`npm audit`
+   or equivalent). Identify packages with known vulnerabilities, record their
+   severity, and update or replace them where safe to do so. CI fails on
+   high/critical production-dependency advisories.
+5. **Error handling & information leakage** — Users never see stack traces,
+   internal file paths, raw database/ORM errors, or upstream provider errors.
+   Return a generic message (plus a correlation/request id) to the client;
+   log the full error details server-side for debugging.
+6. **File upload safety** — For any upload: validate type by content (magic
+   bytes), not just extension or client-supplied MIME; enforce a size limit
+   before buffering the whole file; store uploads outside the web root / in
+   isolated storage with generated names; uploaded files can never be
+   executed, served as HTML/SVG inline, or evaluated as code.
+
+Before opening a PR, re-check the diff against all six.
+
+In this repo the baseline is implemented by shared helpers — use them, don't
+re-invent them per route:
+
+- `lib/rate-limit.ts` — tiers (`auth` / `public` / `user` / `global`),
+  env-configurable thresholds, per-account backoff, pluggable store.
+- `lib/api-guard.ts` — `limit()`, `parseJson()` (byte-capped + zod),
+  `serverError()` / `logError()`, `safeEqual()`.
+- `lib/api-schemas.ts` — every request body schema.
+- `middleware.ts` — global per-IP backstop on `/api/*`.
+- `scripts/security-baseline-test.mjs` (`npm run test:security`) — the
+  regression suite, including static scans for leaked `e.message` and
+  hardcoded secret fallbacks. `.github/workflows/security-baseline.yml`
+  gates `npm audit` and a secret-pattern scan.
+
+Use the `/security-baseline` skill to audit or remediate against these rules.
+
+---
+
 ## Brand / logo (canonical)
 The official GenVeris logo is the "GenVeris" wordmark with a central metallic emblem — a
 blue-and-silver ribbon forming a diamond/leaf around a four-pointed star, with a small sphere

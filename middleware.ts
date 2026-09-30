@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clientIp, limitFor, rateLimit, rateLimitDisabled } from "@/lib/rate-limit";
 
 /* Server-side route protection for real user workspaces.
  *
@@ -23,7 +24,21 @@ import { NextResponse, type NextRequest } from "next/server";
  * It only activates when real auth is configured (AUTH_SECRET present). On a
  * demo-only deployment it is a no-op, so nothing about the current experience
  * changes. */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
+  /* Every /api/* request gets a generous per-IP backstop limit (security
+     baseline · control 1), so no endpoint is ever unlimited. Route handlers
+     apply their own stricter tier (auth / public / user) on top. Runs in the
+     edge runtime with its own per-instance memory. */
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    if (rateLimitDisabled()) return NextResponse.next();
+    const r = await rateLimit(`global:${clientIp(req.headers)}`, limitFor("global"));
+    if (r.ok) return NextResponse.next();
+    return NextResponse.json(
+      { ok: false, code: "rate_limited", error: `Too many requests. Try again in ${r.retryAfterSec} seconds.`, retryAfterSec: r.retryAfterSec },
+      { status: 429, headers: { "Retry-After": String(r.retryAfterSec) } },
+    );
+  }
+
   if (!process.env.AUTH_SECRET) return NextResponse.next(); // demo-only: nothing to enforce
 
   const parts = req.nextUrl.pathname.split("/").filter(Boolean); // ["workspace", <seg>, ...]
@@ -49,4 +64,4 @@ export function middleware(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export const config = { matcher: ["/workspace/:path*"] };
+export const config = { matcher: ["/workspace/:path*", "/api/:path*"] };

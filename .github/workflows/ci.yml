@@ -100,6 +100,9 @@ jobs:
       - name: AIMS task inbox tests (governance tasks derived from Fabric + audit)
         run: npm run test:wstasks
 
+      - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
+        run: npm run test:security
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build

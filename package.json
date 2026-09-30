@@ -27,9 +27,10 @@
     "test:ingest": "tsx scripts/ingest-discover-test.mjs",
     "test:costlive": "tsx scripts/cost-live-test.mjs",
     "test:assistanthonesty": "tsx scripts/assistant-honesty-test.mjs",
+    "test:security": "tsx scripts/security-baseline-test.mjs",
     "test:wsidentity": "tsx scripts/workspace-identity-test.mjs",
     "test:wstasks": "tsx scripts/workspace-tasks-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks && npm run test:security",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
@@ -39,9 +40,10 @@
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.468.0",
-    "next": "^15.5.20",
+    "next": "^15.5.26",
     "next-auth": "^5.0.0-beta.32",
     "prisma": "^6.19.3",
     "react": "19.0.0",
@@ -49,7 +51,7 @@
     "recharts": "^2.15.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "xlsx": "^0.18.5",
+    "zod": "^3.25.76",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
@@ -66,5 +68,16 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.28"
+    },
+    "exceljs": {
+      "uuid": "^11.1.1"
+    },
+    "@prisma/config": {
+      "deepmerge-ts": "^8.0.2"
+    }
   }
 }

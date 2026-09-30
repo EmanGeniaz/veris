@@ -6,13 +6,17 @@
  * the bundle. The only way to keep the secret out of the client is to check it on
  * the server. This route does exactly that: the password never leaves the server.
  *
- * Set DEMO_PASSWORD in your environment (.env) to override the fallback. The
- * fallback keeps the demo working out-of-the-box; it lives in SERVER code, which
- * is never shipped to the browser. */
+ * Set DEMO_PASSWORD in your environment (.env). There is deliberately NO
+ * fallback: a default password in source is a published password (security
+ * baseline · control 3). Without DEMO_PASSWORD the gate refuses every attempt.
+ *
+ * Brute-force protection (control 1): a per-IP auth-tier rate limit plus
+ * exponential backoff per client after repeated wrong passwords. */
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "govern-with-certainty";
+import { limit, parseJson, tooManyRequests } from "@/lib/api-guard";
+import { demoLoginSchema } from "@/lib/api-schemas";
+import { backoffWaitMs, clearAuthFailures, clientIp, rateLimitDisabled, recordAuthFailure } from "@/lib/rate-limit";
 
 // Constant-time compare so we don't leak the password length/prefix via timing.
 function safeEqual(a: string, b: string): boolean {
@@ -23,7 +27,18 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(req: Request) {
-  const { password } = await req.json().catch(() => ({ password: "" }));
-  const ok = typeof password === "string" && safeEqual(password, DEMO_PASSWORD);
+  const limited = await limit(req, "auth", "demo-login");
+  if (limited) return limited;
+  const who = `demo-login:${clientIp(req.headers)}`;
+  const wait = rateLimitDisabled() ? 0 : await backoffWaitMs(who);
+  if (wait > 0) return tooManyRequests(Math.ceil(wait / 1000));
+
+  const parsed = await parseJson(req, demoLoginSchema, { maxBytes: 2048 });
+  if (!parsed.ok) return parsed.res;
+
+  const expected = process.env.DEMO_PASSWORD;
+  const ok = !!expected && safeEqual(parsed.data.password, expected);
+  if (ok) await clearAuthFailures(who);
+  else await recordAuthFailure(who);
   return NextResponse.json({ ok });
 }

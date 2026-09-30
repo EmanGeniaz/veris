@@ -23,6 +23,7 @@ import { auditAppend } from "@/lib/audit";
 import { fetchWithTimeout, TimeoutError } from "@/lib/http";
 import { validateChatRequest } from "@/lib/gateway-validate";
 import { resolveTenant } from "@/lib/tenant-guard";
+import { limit } from "@/lib/api-guard";
 
 /* Model calls can be slow but must still be bounded — a hung provider must
    never hang the gateway request. */
@@ -144,6 +145,11 @@ function internalContext(q: string): string[] {
 export async function POST(req: NextRequest) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ enabled: false });
+  /* Per-IP limit on the paid model path. The runtime guard below keys on
+     tenant/agent/session from the body, which a caller can rotate; this one
+     keys on the client IP, so rotating `session` can't bypass it. */
+  const limited = await limit(req, "user", "gateway");
+  if (limited) return limited;
   /* Runtime-guard accounting is hoisted so the catch can always settle the
      in-flight count even if the model call throws. */
   let rtAdmitted = false, rtKey = "", rtStart = 0, rtInFlight = 0;

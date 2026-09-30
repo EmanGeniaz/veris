@@ -11,6 +11,7 @@ import { db, dbConfigured } from "@/lib/db";
 import { telemetryMode } from "@/lib/telemetry-source";
 import { resolveTenant } from "@/lib/tenant-guard";
 import { deriveWorkspaceTasks, taskStats } from "@/lib/workspace-tasks";
+import { logError } from "@/lib/api-guard";
 
 export async function GET(req: NextRequest) {
   const prisma = db();
@@ -28,7 +29,9 @@ export async function GET(req: NextRequest) {
     ]);
     const { tasks, intact } = deriveWorkspaceTasks({ fabricRows, auditRows });
     return NextResponse.json({ enabled: true, mode: telemetryMode(dbConfigured()).mode, tasks, stats: taskStats(tasks), intact });
-  } catch {
+  } catch (e) {
+    // Honest fallback to the seeded inbox; the detail stays in the server log.
+    logError(e, "workspace.tasks");
     return NextResponse.json({ enabled: false, mode: telemetryMode(false).mode });
   }
 }

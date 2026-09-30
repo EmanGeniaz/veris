@@ -1,0 +1,55 @@
+name: Security baseline
+
+# Gates two of the six baseline controls that are checkable without running
+# the app (CLAUDE.md → SECURITY BASELINE): known-vulnerable production
+# dependencies, and secrets committed to the tree. The behavioural controls
+# (rate limits, validation, error leakage, uploads) are covered by
+# `npm run test:security` in ci.yml.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  schedule:
+    - cron: "17 6 * * 1" # weekly: new advisories land without a code change
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: npm audit (production deps, fail on high/critical)
+        run: npm audit --omit=dev --audit-level=high
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: No committed .env files
+        run: |
+          bad=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' || true)
+          if [ -n "$bad" ]; then echo "::error::Committed env file(s): $bad"; exit 1; fi
+      - name: No secret-shaped strings in tracked files
+        run: |
+          pattern='(sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{40,}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|AIza[0-9A-Za-z_-]{35})'
+          hits=$(git grep -nIE "$pattern" -- . ':!*.env.example' ':!package-lock.json' || true)
+          if [ -n "$hits" ]; then
+            # Print locations only, never the matched value.
+            echo "$hits" | cut -d: -f1,2 | sed 's/^/::error file=/'
+            echo "::error::Secret-shaped strings found. Move them to environment variables and rotate the exposed credential."
+            exit 1
+          fi
