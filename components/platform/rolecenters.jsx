@@ -1379,9 +1379,9 @@ function PageHead({title,sub}){
 /* Overview dashboard lenses — derived from the role's surfaces (excluding
    playbook, reports and assistant, which are pages rather than lenses).
    Mirrors the CEO/CAIO in-surface tabs so every role is consistent. */
-function Overview({role,cfg,ctx,userName}){
+function Overview({role,cfg,ctx,userName,identity}){
   const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
-  const name=(userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
+  const name=((identity&&identity.name)||userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const [brief,setBrief]=useState(null);
@@ -1424,6 +1424,7 @@ function Overview({role,cfg,ctx,userName}){
         <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{T_(greet)}{ar?"، ":", "}<span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
         <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b,maxWidth:680}}>{T_(cfg.greet)} — {T_(cfg.sub)}</div>
         <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{T_(cfg.thesis)}</div>
+        {identity&&(()=>{const c=identity.live?T.green:AI_GOLD_INK;const bg=identity.live?T.green:AI_GOLD;return <div style={{marginTop:9}}><span title={identity.live?"You are signed in — the workspace shows your identity from the session.":"Illustrative demo persona — not a signed-in user; the data shown is seeded."} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:9.5,fontWeight:900,fontFamily:F.m,letterSpacing:"0.04em",color:c,background:bg+"14",border:`1px solid ${bg}45`,borderRadius:999,padding:"3px 10px"}}><span style={{width:6,height:6,borderRadius:"50%",background:bg,boxShadow:identity.live?`0 0 6px ${bg}88`:"none"}}/>{identity.live?(ar?`مسجّل الدخول: ${identity.email}`:`Signed in as ${identity.email}`):(ar?"شخصية تجريبية · بيانات توضيحية":"Demo persona · illustrative data")}</span></div>;})()}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"12px 20px",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
         <div style={{fontSize:36,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{T_(cfg.hero[0])}</div>
@@ -1458,14 +1459,14 @@ function Overview({role,cfg,ctx,userName}){
   </div>;
 }
 
-export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast,userName}){
+export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast,userName,identity}){
   const [lineage,setLineage]=useState(null);
   const [brief,setBrief]=useState(null);
   const cfg=ROLE_CENTERS[role]; if(!cfg) return null;
   const ctx={role,setTab,setAiCentralView,navigate,showToast,onLineage:(l,v)=>setLineage(l&&typeof l==="object"?l:{label:l,value:v})};
-  if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
+  if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName} identity={identity}/>;
   const s=cfg.surfaces.find(x=>x.id===tab);
-  if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
+  if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName} identity={identity}/>;
   /* Sidebar surface = the deep workspace: registers render in full with
      drill-in drawers, and every metric drills to its lineage. */
   return <div style={{animation:"up .3s ease"}}>

@@ -94,6 +94,9 @@ jobs:
       - name: Assistant honesty tests (live-vs-simulated provenance, no false routing)
         run: npm run test:assistanthonesty
 
+      - name: Workspace identity tests (live signed-in user vs demo persona)
+        run: npm run test:wsidentity
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
