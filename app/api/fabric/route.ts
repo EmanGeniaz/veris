@@ -10,7 +10,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, dbConfigured } from "@/lib/db";
 import { telemetryMode } from "@/lib/telemetry-source";
 import { resolveTenant } from "@/lib/tenant-guard";
-import { fabricView } from "@/lib/evidence-fabric";
+import { fabricView, fabricAppend, type FabricKind } from "@/lib/evidence-fabric";
+import { classify } from "@/lib/policy-rules";
+import { limit, parseJson, serverError } from "@/lib/api-guard";
+import { fabricWriteSchema } from "@/lib/api-schemas";
 
 export async function GET(req: NextRequest) {
   const prisma = db();
@@ -33,5 +36,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ enabled: true, mode: telemetryMode(dbConfigured()).mode, records: shown, stats: view.stats, intact: view.stats.intact });
   } catch {
     return NextResponse.json({ enabled: false, mode: telemetryMode(false).mode });
+  }
+}
+
+/* GenVeris workflow → canonical write (#166). A session-bound governance action
+   appends a canonical FabricRecord (idempotent, hash-chained). Rate-limited (user
+   tier), strict-validated body, tenant bound to the session (BL-01). `source` is
+   constrained to GenVeris-origin values by the schema, so a client can never claim
+   Discover/Enforce provenance; a Secret-class payload is refused (metadata only).
+   No-op without a DB. */
+export async function POST(req: NextRequest) {
+  const limited = await limit(req, "user", "fabric");
+  if (limited) return limited;
+  const parsed = await parseJson(req, fabricWriteSchema);
+  if (!parsed.ok) return parsed.res;
+  const { tenant, kind, entityId, source, actor, confidence, fields, supersedes } = parsed.data;
+  const prisma = db();
+  if (!prisma) return NextResponse.json({ ok: false, enabled: false, mode: telemetryMode(false).mode });
+  try {
+    const { slug } = await resolveTenant({ requestedTenant: tenant });
+    const t = await prisma.tenant.findUnique({ where: { slug } });
+    if (!t) return NextResponse.json({ ok: false, enabled: true, error: "Unknown tenant." }, { status: 404 });
+    // Metadata-only: reject a Secret-class payload (same contract as Discover ingest).
+    if (classify(JSON.stringify(fields)).dataClass === "Restricted") {
+      return NextResponse.json({ ok: false, code: "restricted_payload", error: "Send governance metadata and references, not raw sensitive content." }, { status: 422 });
+    }
+    const r = await fabricAppend(prisma, t.id, { kind: kind as FabricKind, entityId, source, actor: actor || source, confidence, fields, supersedes: supersedes ?? null });
+    return NextResponse.json({ ok: true, written: r.written, deduped: r.deduped, kind, entityId });
+  } catch (e) {
+    return serverError(e, "fabric.write");
   }
 }

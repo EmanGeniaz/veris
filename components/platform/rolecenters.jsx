@@ -1267,6 +1267,10 @@ function NewProject({eye,h3,body,role,showToast}){
   const submit=()=>{
     const name=f.name.trim()||"Untitled AI project";
     pushBus("vz-gw-evidence",{item:`New project request — ${name}`,initiative:name,scope:"Workspace",control:"New project approval",risk:f.purpose||"Employee-proposed initiative",owner:(ROLES[role]||ROLES.employee).name,status:"Pending",approval:"Awaiting manager approval",version:"v1",time:"Just now"});
+    /* GenVeris workflow → canonical write (#166): the proposed system enters the
+       Evidence Fabric as a human-sourced AISystem (status "proposed") so it shows
+       in the canonical estate. Best-effort; a no-op without a DB. */
+    try{fetch("/api/fabric",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tenant:"demo",kind:"AISystem",entityId:`PROP-${Math.random().toString(36).slice(2,8)}`,source:"human",actor:(ROLES[role]||ROLES.employee).name,fields:{name,status:"proposed",tier:"unrated",purpose:f.purpose||""}})}).catch(()=>{});}catch{/* fallback mode */}
     setSent(true);setOpen(false);
     showToast&&showToast(ar?`أُرسِل «${name}» إلى مديرك للموافقة`:`"${name}" sent to your manager for approval`);
   };

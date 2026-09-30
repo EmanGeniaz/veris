@@ -14,6 +14,7 @@ import {
   humanDecisionWins, evidenceToCanonical, auditToCanonical, fabricStats, fabricView, FABRIC_KINDS,
 } from "../lib/evidence-fabric.ts";
 import { auditChainIntact } from "../lib/enforce-live.ts";
+import { fabricWriteSchema } from "../lib/api-schemas.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
@@ -139,6 +140,28 @@ const fabRows = fabChain([
   check("route is honest demo without a DB", /enabled:\s*false/.test(route));
   const lib = read("lib/evidence-fabric.ts");
   check("writer is idempotent + hash-chained (fabricAppend)", /export async function fabricAppend/.test(lib) && /deduped/.test(lib) && /fabricHash\(/.test(lib));
+}
+
+/* ── GenVeris canonical write-path (#166): POST /api/fabric ── */
+{
+  // strict, GenVeris-origin schema
+  check("valid GenVeris write passes", fabricWriteSchema.safeParse({ tenant: "demo", kind: "AISystem", entityId: "PROP-1", source: "human", fields: { name: "Proposed Copilot", status: "proposed" } }).success);
+  check("missing entityId is rejected", !fabricWriteSchema.safeParse({ kind: "AISystem", fields: {} }).success);
+  check("an unknown kind is rejected", !fabricWriteSchema.safeParse({ kind: "Bogus", entityId: "x", fields: {} }).success);
+  check("a client cannot claim discover/enforce provenance", !fabricWriteSchema.safeParse({ kind: "AISystem", entityId: "x", source: "discover", fields: {} }).success);
+  check("source defaults to human (governance decision)", fabricWriteSchema.safeParse({ kind: "Finding", entityId: "x", fields: {} }).data?.source === "human");
+  check("confidence is clamped to 0..1", !fabricWriteSchema.safeParse({ kind: "AISystem", entityId: "x", confidence: 2, fields: {} }).success);
+  check("unknown keys are rejected (strict)", !fabricWriteSchema.safeParse({ kind: "AISystem", entityId: "x", fields: {}, evil: 1 }).success);
+  // route contract
+  const route = read("app/api/fabric/route.ts");
+  check("route has a POST canonical write handler", /export async function POST/.test(route));
+  check("POST is rate-limited (user tier) + strict-validated", /limit\(req,\s*"user"/.test(route) && /parseJson\(req,\s*fabricWriteSchema\)/.test(route));
+  check("POST persists via the idempotent writer", /fabricAppend\(prisma,\s*t\.id/.test(route));
+  check("POST rejects a Secret-class payload (metadata only)", /classify\(JSON\.stringify\(fields\)\)\.dataClass === "Restricted"/.test(route));
+  check("POST reports failures via serverError (no leakage)", /serverError\(e,\s*"fabric\.write"\)/.test(route));
+  // a real GenVeris workflow writes canonically
+  const rc = read("components/platform/rolecenters.jsx");
+  check("proposing an initiative writes a canonical AISystem to the Fabric", /\/api\/fabric/.test(rc) && /kind:"AISystem"/.test(rc) && /status:"proposed"/.test(rc));
 }
 
 /* ── surface wiring: a dashboard reads the Fabric live-first (WS1 phase 3) ── */
