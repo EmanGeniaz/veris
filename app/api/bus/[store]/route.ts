@@ -11,6 +11,8 @@ import { auth, authConfigured } from "@/auth";
 import { auditAppend } from "@/lib/audit";
 import { resolveBusTenant } from "@/lib/bus-tenant";
 import { can, isCap, STORE_REQUIREMENT, STORE_READ_REQUIREMENT, type AccessMatrix } from "@/lib/rbac";
+import { limit, logError, parseJson } from "@/lib/api-guard";
+import { busSchemaFor, type BusStore } from "@/lib/api-schemas";
 
 const STORES = new Set(["evidence", "decisions", "ideas", "taxonomyAdds", "taxonomyRequests", "adminAudit", "rbacPolicy", "policies", "violations"]);
 
@@ -94,6 +96,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ store: str
 export async function POST(req: NextRequest, ctx: { params: Promise<{ store: string }> }) {
   const { store } = await ctx.params;
   if (!STORES.has(store)) return NextResponse.json({ enabled: false }, { status: 404 });
+  const limited = await limit(req, "user", "bus");
+  if (limited) return limited;
   const prisma = db();
   if (!prisma) return NextResponse.json({ enabled: false });
   try {
@@ -107,13 +111,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
     if (need && authConfigured() && !can(role, need.module, need.minCap, overrides)) {
       return NextResponse.json({ enabled: true, ok: false, error: `writing ${store} requires '${need.minCap}' on ${need.module}` }, { status: 403 });
     }
+    /* One strict parse per request: typed, length-capped fields; anything that
+       doesn't match the store's schema is a 400, never coerced into the DB. */
+    const parsed = await parseJson(req, busSchemaFor(store as BusStore), { maxBytes: 32 * 1024 });
+    if (!parsed.ok) return parsed.res;
+    const b = { ...parsed.data };
     if (store === "adminAudit") {
-      const rec = await req.json();
+      const rec = b;
       await auditAppend(prisma, tid, String(rec.action ?? "admin action"), "admin", String(rec.target ?? "").slice(0, 300), identity?.email ?? String(rec.actor ?? "demo-anonymous")).catch(() => {});
       return NextResponse.json({ enabled: true, ok: true });
     }
     if (store === "rbacPolicy") {
-      const g = await req.json();
+      const g = b;
       if (!g.role || !g.module || !isCap(g.capability)) {
         return NextResponse.json({ enabled: true, ok: false, error: "invalid grant" }, { status: 400 });
       }
@@ -125,7 +134,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
       await auditAppend(prisma, tid, "rbac-grant", "admin", `${g.role} · ${g.module} → ${g.capability}`, identity?.email ?? "demo-anonymous").catch(() => {});
       return NextResponse.json({ enabled: true, ok: true });
     }
-    const b = await req.json();
     if (identity) {
       if (store === "taxonomyAdds") { b.addedBy = identity.name; }
       else if (store === "taxonomyRequests") { b.requestedBy = identity.name; }
@@ -180,7 +188,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ store: str
     }
     await auditAppend(prisma, tid, "create", store, String(b.item ?? b.title ?? b.decision ?? "").slice(0, 300), identity?.email ?? "demo-anonymous").catch(() => {});
     return NextResponse.json({ enabled: true, ok: true });
-  } catch {
+  } catch (e) {
+    // The client falls back to localStorage; the detail stays in the server log.
+    logError(e, `bus.${store}.write`);
     return NextResponse.json({ enabled: false });
   }
 }

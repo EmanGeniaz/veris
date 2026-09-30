@@ -5,11 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { seedDemo } from "@/lib/seed-core";
 import { INIT_SQL } from "@/prisma/init-sql";
+import { limit, safeEqual, serverError } from "@/lib/api-guard";
 
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get("token");
+  // Token-guarded admin route: auth-tier rate limit so the token can't be brute-forced.
+  const limited = await limit(req, "auth", "admin-setup");
+  if (limited) return limited;
+  const token = req.nextUrl.searchParams.get("token") ?? "";
   const expected = process.env.VZ_SETUP_TOKEN;
-  if (!expected || token !== expected) return NextResponse.json({ ok: false, error: "setup token missing or wrong" }, { status: 403 });
+  if (!expected || !safeEqual(token, expected)) return NextResponse.json({ ok: false, error: "setup token missing or wrong" }, { status: 403 });
   const prisma = db();
   if (!prisma) return NextResponse.json({ ok: false, error: "DATABASE_URL is not configured - connect the Postgres store first" }, { status: 400 });
   const results: string[] = [];
@@ -23,6 +27,7 @@ export async function GET(req: NextRequest) {
     const tenantId = await seedDemo(prisma);
     return NextResponse.json({ ok: true, ddl: results.length, seededTenant: tenantId });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: "DDL ran but seeding failed: " + String(e).slice(0, 200) }, { status: 500 });
+    // Full error goes to the server log under the returned requestId, never to the client.
+    return serverError(e, "admin.setup.seed");
   }
 }

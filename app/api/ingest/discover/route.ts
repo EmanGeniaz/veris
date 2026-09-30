@@ -13,6 +13,7 @@
    Best-effort per record; returns a per-record summary. Needs a database (the
    Fabric); a demo deploy without one returns 503. */
 import { NextRequest, NextResponse } from "next/server";
+import { limit } from "@/lib/api-guard";
 import { timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { validateDiscoverIngest } from "@/lib/ingest-discover";
@@ -29,6 +30,9 @@ function tokenOk(header: string | null): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  // Machine endpoint (a connector pushes batches) → public-tier per-IP limit.
+  const limited = await limit(req, "public", "ingest-discover");
+  if (limited) return limited;
   // Auth — token must be configured AND match (constant-time).
   if (!INGEST_TOKEN) {
     return NextResponse.json({ ok: false, needsSetup: true, error: "Ingestion is not configured — set VE_INGEST_TOKEN in the deploy env." }, { status: 503 });

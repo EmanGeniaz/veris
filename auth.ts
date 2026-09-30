@@ -5,8 +5,9 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Google from "next-auth/providers/google";
-import { scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, dbConfigured } from "@/lib/db";
+import { backoffWaitMs, clearAuthFailures, rateLimitDisabled, recordAuthFailure } from "@/lib/rate-limit";
 
 export const authConfigured = (): boolean => !!process.env.AUTH_SECRET && dbConfigured();
 
@@ -27,7 +28,11 @@ function verifyPassword(pw: string, stored: string): boolean {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET || "auth-disabled-placeholder",
+  /* No AUTH_SECRET ⇒ auth is disabled (every route checks authConfigured()).
+     The fallback is a random per-process value rather than a constant in
+     source, so even if some path signed a token in that mode it could not be
+     forged (security baseline · control 3). */
+  secret: process.env.AUTH_SECRET || randomBytes(32).toString("hex"),
   /* Trust the deployment host. Auth.js only auto-trusts on Vercel (via the
      VERCEL env var); on a custom domain or any self-managed host it otherwise
      throws UntrustedHost and every sign-in 500s. AUTH_TRUST_HOST still overrides
@@ -39,9 +44,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: { email: {}, password: {} },
       authorize: async (creds) => {
         const prisma = db();
-        if (!prisma || !creds?.email || !creds?.password) return null;
-        const user = await prisma.user.findUnique({ where: { email: String(creds.email) } });
-        if (!user?.passwordHash || !verifyPassword(String(creds.password), user.passwordHash)) return null;
+        if (!prisma || typeof creds?.email !== "string" || typeof creds?.password !== "string") return null;
+        const email = creds.email.trim().toLowerCase();
+        if (!email || email.length > 254 || creds.password.length > 256) return null;
+        /* Per-account exponential backoff (security baseline · control 1). The
+           route gate answers 429 first; this is the backstop for any other
+           path into authorize. While backing off, the password isn't checked. */
+        const acct = `signin:${email}`;
+        if (!rateLimitDisabled() && (await backoffWaitMs(acct)) > 0) return null;
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.passwordHash || !verifyPassword(creds.password, user.passwordHash)) {
+          await recordAuthFailure(acct);
+          return null;
+        }
+        await clearAuthFailures(acct);
         return { id: user.id, email: user.email, name: user.name, role: user.role } as never;
       },
     }),

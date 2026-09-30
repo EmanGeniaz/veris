@@ -19,6 +19,8 @@ import { evaluateRules, classify } from "@/lib/policy-rules";
 import { egressDecision } from "@/lib/egress";
 import { db } from "@/lib/db";
 import { auditAppend } from "@/lib/audit";
+import { limit, parseJson, safeEqual } from "@/lib/api-guard";
+import { inspectSchema } from "@/lib/api-schemas";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -57,16 +59,22 @@ async function logVerdict(tenantSlug: string, ev: {
 }
 
 export async function POST(req: NextRequest) {
+  // 0 · Public endpoint → public-tier per-IP rate limit (security baseline · control 1).
+  const limited = await limit(req, "public", "policy-inspect", CORS);
+  if (limited) return limited;
+
   // 1 · Authn — enforce the shared key only when one is configured.
   const configured = process.env.VZ_INSPECT_KEY;
-  if (configured && req.headers.get("x-veris-key") !== configured) {
+  if (configured && !safeEqual(req.headers.get("x-veris-key") ?? "", configured)) {
     return json({ error: "unauthorized" }, 401);
   }
 
-  let payload: { text?: string; context?: string; egressHost?: string; tenant?: string; actor?: string; channel?: string };
-  try { payload = await req.json(); } catch { return json({ error: "invalid json" }, 400); }
+  // Strict schema: typed, length-capped fields; unknown keys → 400.
+  const parsed = await parseJson(req, inspectSchema, { maxBytes: 512 * 1024, headers: CORS });
+  if (!parsed.ok) return parsed.res;
+  const payload = parsed.data;
 
-  const text = String(payload.text || "").slice(0, 100_000);
+  const text = payload.text ?? "";
   const context = payload.context ? String(payload.context) : "";       // AI host being used (logged only)
   const egressHost = payload.egressHost ? String(payload.egressHost) : ""; // optional: run the egress allow-list
   const tenant = String(payload.tenant || "demo");
