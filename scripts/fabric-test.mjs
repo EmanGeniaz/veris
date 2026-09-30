@@ -150,6 +150,11 @@ const fabRows = fabChain([
   check("CAIO surface has an honest empty state for live-with-no-records", /No canonical records yet/.test(caio));
   const prefs = read("lib/dashboard-prefs.js");
   check("the Evidence Fabric section is registered in the CAIO dashboard", /key:\s*"fabric"/.test(prefs));
+  const ac = read("components/platform/aicentral.jsx");
+  check("AI Asset Register surface fetches the live Fabric record", /\/api\/fabric/.test(ac));
+  check("AI Asset Register falls back to a demo view", /usingLive\?live\.records:FABRIC_AR_DEMO/.test(ac));
+  check("AI Asset Register filters to canonical AISystem records", /kind===?"AISystem"/.test(ac));
+  check("AI Asset Register badges live-vs-demo provenance", /<TelemetryBadge\/>/.test(ac));
 }
 
 const failed = R.filter(([s]) => s === "FAIL");
