@@ -2903,15 +2903,26 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
     {pfTab==="usecases"&&<PageUseCases/>}
   </div>;
   const Gateway=()=>{
-    /* FinOps rollup — every cost figure is computed from the price book
-       (tokens × blended rate) and measured against the budget, not stored. */
-    const cost=costSummary(), head=costHeadline(), spend=providerSpend();
+    /* FinOps rollup — LIVE-FIRST (#181): real spend is derived from the tenant's
+       audit chain (/api/enforce/cost) when a DB is configured; otherwise the
+       seeded price-book window is shown, labelled Demo by the TelemetryBadge. */
+    const [live,setLive]=useState(null);
+    useEffect(()=>{let on=true;fetch("/api/enforce/cost?tenant=demo").then(r=>r.json()).then(d=>{if(on&&d&&d.enabled)setLive(d);}).catch(()=>{});return()=>{on=false;};},[]);
+    const usingLive=!!live;
+    const seedCost=costSummary(), head=costHeadline();
+    const cost = usingLive
+      ? {costMtd:live.totalCost, budgetMtd:live.totalBudget, utilization:live.utilization, overBudget:live.overBudget, blendedPer1M:live.blendedPer1M}
+      : seedCost;
+    const spend = usingLive ? live.providers : providerSpend();
+    const tokensLabel = usingLive ? fmtTokens(live.totalTokens) : head.tokensMtd;
+    const requestsLabel = usingLive ? live.requests : gatewayStats.requestsMtd;
+    const agents = usingLive ? live.agents : null;
     return <div>
     {<div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:14}}>
-      <Metric label="Requests MTD" value={gatewayStats.requestsMtd} sub="All AI interactions governed" color={rc}/>
-      <Metric label="Tokens MTD" value={head.tokensMtd} sub="Metered across all providers" color={T.blue}/>
-      <Metric label="Cost MTD" value={head.costMtd} sub={`${head.utilization}% of ${head.budgetMtd} budget`} color={cost.utilization>100?T.red:cost.utilization>90?T.amber:T.green} score={Math.min(100,cost.utilization)}/>
+      <Metric label="Requests MTD" value={requestsLabel} sub={usingLive?"Governed inferences on the audit chain":"All AI interactions governed"} color={rc}/>
+      <Metric label="Tokens MTD" value={tokensLabel} sub={usingLive?"Metered from the audit chain":"Metered across all providers"} color={T.blue}/>
+      <Metric label="Cost MTD" value={fmtUSD(cost.costMtd)} sub={`${cost.utilization}% of ${fmtUSD(cost.budgetMtd)} budget`} color={cost.utilization>100?T.red:cost.utilization>90?T.amber:T.green} score={Math.min(100,cost.utilization)}/>
       <Metric label="Over budget" value={cost.overBudget.length} sub={cost.overBudget.length?`${cost.overBudget.map(p=>p.name).join(", ")}`:"All providers within cap"} color={cost.overBudget.length?T.red:T.green}/>
       <Metric label="Avg prompt risk" value={gatewayStats.avgRiskScore} sub="0-100 risk scoring" color={T.teal} score={gatewayStats.avgRiskScore}/>
     </div>
@@ -2960,6 +2971,7 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
             <td style={{padding:"11px 12px",minWidth:96}}><Bar value={Math.min(100,p.utilization)} color={p.overBudget?T.red:p.utilization>90?T.amber:T.green}/><div style={{fontSize:9,color:p.overBudget?T.red:T.ink3,marginTop:4,fontFamily:F.m,fontWeight:p.overBudget?800:400}}>{p.utilization}% of {fmtUSD(p.budget)}{p.overBudget?" · over":""}</div></td>
           </tr>)}</tbody>
         </table></div>
+        {usingLive&&spend.length===0&&<div style={{padding:"18px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No governed inferences on the audit chain yet — as traffic flows through the gateway, real spend per provider appears here, priced from the price book.</div>}
       </Card>
       <Card style={{padding:16}}>
         <h3 style={{fontSize:14,color:T.ink,margin:"0 0 12px"}}>{T_("Enforcement policies")}</h3>
@@ -2995,6 +3007,26 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
           <div style={{fontSize:11,color:T.ink2,fontFamily:F.b,lineHeight:1.55}}>{ar?<>يُقاس كل مطالبة عند البوابة. أي طلب واحد يتجاوز <strong style={{color:T.ink}}>6,000 رمز</strong> يُفعّل حارس التكلفة والرموز ويُوجَّه للمراجعة — سياسة العمليات المالية المُنفَّذة مباشرةً، لا بعد الفاتورة.</>:<>Every prompt is metered at the gateway. A single request over <strong style={{color:T.ink}}>6,000 tokens</strong> trips the Cost &amp; Token Guard and is routed to review — the FinOps policy enforced in-line, not after the invoice.</>}</div>
         </div>
       </div>
+    </Card>
+    {/* ── Spend by agent — per-agent attribution the seeded rollup could never
+        give; live from the audit chain, honest note in demo (#181). ── */}
+    <Card style={{padding:0,overflow:"hidden",marginBottom:14}}>
+      <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+        <h3 style={{margin:0,fontSize:14,color:T.ink}}>{T_("Spend by agent — attribution")}</h3><TelemetryBadge/>
+      </div>
+      {usingLive
+        ? (agents&&agents.length
+            ? <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr>{["Agent","Requests","Tokens","Cost MTD"].map(h=><th key={h} style={{textAlign:h==="Agent"?"left":"right",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{T_(h)}</th>)}</tr></thead>
+                <tbody>{agents.map(a=><tr key={a.agent} style={{borderBottom:"1px solid "+T.border}}>
+                  <td style={{padding:"11px 12px",color:T.ink,fontWeight:700,fontFamily:F.m}}>{a.agent}</td>
+                  <td style={{padding:"11px 12px",color:T.ink2,fontFamily:F.m,textAlign:"right"}}>{a.requests.toLocaleString()}</td>
+                  <td style={{padding:"11px 12px",color:T.ink2,fontFamily:F.m,textAlign:"right"}}>{fmtTokens(a.tokens)}</td>
+                  <td style={{padding:"11px 12px",color:T.ink,fontFamily:F.m,fontWeight:800,textAlign:"right"}}>{fmtUSD(a.cost)}</td>
+                </tr>)}</tbody>
+              </table></div>
+            : <div style={{padding:"18px",fontSize:11,color:T.ink3,fontFamily:F.b}}>No governed inferences on the audit chain yet — per-agent spend appears here as agents call through the gateway.</div>)
+        : <div style={{padding:"16px 18px",fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6}}>Per-agent spend attribution is computed live from the tenant&apos;s audit chain. Connect a database to see spend broken down by agent — the seeded demo shows enterprise totals only.</div>}
     </Card>
     <Card style={{padding:0,overflow:"hidden"}}>
       <div style={{padding:"14px 18px",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{margin:0,fontSize:14,color:T.ink}}>{T_("Live prompt log")}</h3><Tag label={T_("Streaming")} color={T.green} bg={T.greenL}/></div>
