@@ -10,6 +10,7 @@ import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
 import { CustomizeMenu } from "./customize-menu";
 import { ROLE_CENTER_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
+import { assistantProvenance, honestSimulatedReply, liveReplySuffix } from "@/lib/assistant-honesty";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* Arabic for the command-center chrome + the employee Overview's top-level text
@@ -1320,6 +1321,53 @@ function Blocks({blocks, ctx}){
   return <>{out}</>;
 }
 
+/* ── Home AI Assistant (#168 / WS3) ───────────────────────────────────────────
+   A real, governed assistant on the employee/manager cockpit Home — the
+   centerpiece, not a dead card a click away. Every ask routes through the same
+   governed gateway (/api/gateway/chat) the full assistant uses, and the reply
+   carries the shared honesty provenance: Governed·Live when a real model
+   answered, Simulated·no model when it was generated locally. Never overclaims. */
+function HomeAssistant({role,ctx}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
+  const [input,setInput]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [turn,setTurn]=useState(null); // {q,text,provenance,pending}
+  const assistantTab=role==="manager"?"mgr_assistant":"emp_assistant";
+  const ask=async()=>{
+    const q=input.trim(); if(!q||busy) return;
+    setBusy(true); setTurn({q,text:"",provenance:null,pending:true});
+    let text,provenance;
+    try{
+      const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:q,tenant:"demo"})});
+      const d=await res.json();
+      if(d&&d.enabled&&!d.blocked&&d.text){text=d.text+liveReplySuffix({ar,source:d.source,masked:!!d.masked});provenance="live";}
+      else if(d&&d.blocked){text=ar?"حُجب الطلب عند حدود المؤسسة بموجب السياسة — لم يغادر شيء مساحة عملك.":"Blocked at the enterprise boundary by policy — nothing left your workspace.";provenance="blocked";}
+      else{text=honestSimulatedReply({ar});provenance="simulated";}
+    }catch{text=honestSimulatedReply({ar});provenance="simulated";}
+    setTurn({q,text,provenance,pending:false}); setInput(""); setBusy(false);
+  };
+  const p=turn&&turn.provenance?assistantProvenance(turn.provenance):null;
+  const pc=p?(p.tone==="live"?T.green:p.tone==="bad"?T.red:p.tone==="demo"?AI_GOLD_INK:T.ink3):T.ink3;
+  return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${AI_GOLD}35`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
+      <div><Eyebrow>{T_("AI Assistant")}</Eyebrow><H3 style={{margin:0}}>{ar?"اسأل مساعدك المحوكَم":"Ask your governed assistant"}</H3></div>
+      <button onClick={()=>ctx.setTab&&ctx.setTab(assistantTab)} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ar?"المساعد الكامل ←":"Open full assistant →"}</button>
+    </div>
+    <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"4px 0 12px",lineHeight:1.6}}>{ar?"يمر كل طلب عبر البوابة — فحص السياسة والتنقيح والأدلة. توضّح الشارة أدناه ما إذا أجاب نموذج مباشر أم محاكاة محلية.":"Every prompt routes through the Gateway — policy checks, redaction and evidence. The badge below says whether a live model or a local simulation answered."}</div>
+    {turn&&<div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",marginBottom:12}}>
+      <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,marginBottom:6}}>{(ar?"أنت: ":"You: ")}{turn.q}</div>
+      {turn.pending
+        ?<div style={{fontSize:11.5,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>{ar?"التوجيه عبر البوابة…":"Routing through the gateway..."}</div>
+        :<><div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{turn.text}</div>
+          {p&&<div title={p.tone==="live"?"A live model answered through the governed gateway.":p.tone==="demo"?"No live model is connected — this reply was generated locally, not by a model.":""} style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}><span style={{width:6,height:6,borderRadius:"50%",background:pc,boxShadow:p.tone==="live"?`0 0 6px ${pc}88`:"none"}}/><span style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:pc,letterSpacing:"0.04em"}}>{ar?p.ar:p.label}</span></div>}</>}
+    </div>}
+    <div style={{display:"flex",gap:9,alignItems:"center"}}>
+      <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder={ar?"اسأل أي شيء — محوكَم عبر البوابة…":"Ask anything — governed through the Gateway..."} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
+      <button onClick={ask} disabled={busy} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:"none",borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{T_("Send")}</button>
+    </div>
+  </Card>;
+}
+
 function PageHead({title,sub}){
   const lang=useLang(); const T_=en=>ts(lang,en);
   return <div style={{marginBottom:16}}>
@@ -1344,7 +1392,9 @@ function Overview({role,cfg,ctx,userName}){
   const queue=facetDomain?initiativesForRole(role):[];
   /* Per-viewer personalization: which landing sections show. "facet" only makes
      sense for roles that have a cross-functional gate, so drop it otherwise. */
-  const sectionCatalog=facetDomain?ROLE_CENTER_SECTIONS:ROLE_CENTER_SECTIONS.filter(s=>s.key!=="facet");
+  const isEmp=role==="employee"||role==="manager";
+  let sectionCatalog=facetDomain?ROLE_CENTER_SECTIONS:ROLE_CENTER_SECTIONS.filter(s=>s.key!=="facet");
+  if(!isEmp) sectionCatalog=sectionCatalog.filter(s=>s.key!=="assistant"); // the Home assistant is an employee/manager cockpit surface
   const [prefs,setPrefs]=useState(()=>loadDashboardPrefs("rolecenter",role,sectionCatalog));
   useEffect(()=>{setPrefs(loadDashboardPrefs("rolecenter",role,sectionCatalog));},[role]); // eslint-disable-line react-hooks/exhaustive-deps
   const show=k=>prefs[k]!==false;
@@ -1396,6 +1446,7 @@ function Overview({role,cfg,ctx,userName}){
     </div>
     <div style={{marginTop:10,animation:"up .2s ease"}}>
       {show("facet")&&<FacetBand/>}
+      {isEmp&&show("assistant")&&<HomeAssistant role={role} ctx={ctx}/>}
       {show("attention")&&<Attn items={cfg.attn} ctx={ctx}/>}
       {show("kpis")&&<Kpis items={cfg.kpis} ctx={lctx}/>}
       {show("panels")&&<Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/>}
