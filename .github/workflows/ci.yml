@@ -91,6 +91,9 @@ jobs:
       - name: Live FinOps tests (audit-chain -> real spend, per-agent attribution)
         run: npm run test:costlive
 
+      - name: Assistant honesty tests (live-vs-simulated provenance, no false routing)
+        run: npm run test:assistanthonesty
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
