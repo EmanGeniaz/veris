@@ -1384,9 +1384,23 @@ function WorkspaceTaskInbox({role,ctx}){
   const [live,setLive]=useState(null);
   useEffect(()=>{let on=true;fetch("/api/workspace/tasks?tenant=demo").then(r=>r.json()).then(d=>{if(on&&d&&d.enabled)setLive({tasks:d.tasks||[],stats:d.stats,intact:d.intact});}).catch(()=>{});return()=>{on=false;};},[]);
   const usingLive=!!live;
-  const tasks=usingLive?live.tasks:WS_TASKS_DEMO;
+  const [acting,setActing]=useState(null);
+  const [done,setDone]=useState({}); // taskId -> { decision, persisted }
+  const tasks=(usingLive?live.tasks:WS_TASKS_DEMO).filter(t=>!done[t.id]);
   const srcColor=s=>s==="discover"?T.blue:s==="human"?T.violet:s==="enforce"?T.teal:s==="genveris"?AI_GOLD_INK:T.ink3;
   const sevColor=s=>s==="high"?T.red:s==="medium"?T.amber:T.ink3;
+  /* Write-back: acknowledge/flag → a task:<decision> row on the tenant's audit
+     chain, which resolves the task (the derivation excludes it next load). */
+  const act=async(t,decision)=>{
+    if(acting) return; setActing(t.id);
+    let persisted=false;
+    try{
+      const res=await fetch("/api/workspace/tasks",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tenant:"demo",taskId:t.id,entityId:t.entityId||t.id,kind:t.kind,decision})});
+      const d=await res.json().catch(()=>null); persisted=!!(d&&d.ok);
+    }catch{/* demo / offline */}
+    setDone(x=>({...x,[t.id]:{decision,persisted}})); setActing(null);
+    if(ctx.showToast) ctx.showToast(persisted?(ar?"سُجِّل على سلسلة التدقيق":"Recorded on the audit chain"):(ar?"محاكاة — لم يُحفظ":"Demo — not persisted"));
+  };
   return <Card style={{padding:"16px 18px",marginBottom:16}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap",marginBottom:4}}>
       <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}><Eyebrow>{ar?"مُسندة من أنظمة الذكاء الاصطناعي":"Assigned from the AIMS"}</Eyebrow><TelemetryBadge/></div>
@@ -1395,14 +1409,19 @@ function WorkspaceTaskInbox({role,ctx}){
     <H3 style={{margin:"0 0 10px"}}>{ar?"صندوق مهام الحوكمة":"Your governance task inbox"}</H3>
     {tasks.length===0
       ?<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,padding:"6px 0 2px"}}>{ar?"لا مهام حوكمة معلّقة — تظهر هنا عندما يرصد نظام ذكاء اصطناعي مسجّل عملاً مطلوباً (تقييم ناقص، أو مخرجات مُصعّدة، أو نتيجة تحتاج معالجة).":"No governance tasks pending — these appear when a registered AI system raises work: a missing assessment, an escalated output, or a finding to remediate."}</div>
-      :<div style={{display:"grid",gap:8}}>{tasks.map(t=><button key={t.id} onClick={()=>ctx.setTab&&ctx.setTab(t.surface)} className="vz-reg-row" style={{textAlign:ar?"right":"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",cursor:"pointer",display:"grid",gap:5}}>
+      :<div style={{display:"grid",gap:8}}>{tasks.map(t=><div key={t.id} style={{textAlign:ar?"right":"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",display:"grid",gap:7}}>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span title={t.severity} style={{width:7,height:7,borderRadius:"50%",background:sevColor(t.severity),flexShrink:0}}/>
           <span style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t.title}</span>
           <span title={ar?"النظام الذي أسند المهمة":"the AI system that raised this"} style={{marginInlineStart:"auto",fontSize:8.5,fontWeight:900,fontFamily:F.m,letterSpacing:"0.05em",textTransform:"uppercase",color:srcColor(t.source),background:srcColor(t.source)+"18",border:`1px solid ${srcColor(t.source)}45`,borderRadius:999,padding:"2px 8px"}}>{t.source}</span>
         </div>
         <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{t.why}</div>
-      </button>)}</div>}
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <button onClick={()=>act(t,"acknowledge")} disabled={acting===t.id} style={{background:T.green+"18",border:`1px solid ${T.green}55`,borderRadius:8,padding:"5px 11px",color:T.green,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:acting?"default":"pointer",opacity:acting===t.id?.6:1}}>{acting===t.id?"…":(ar?"إقرار":"Acknowledge")}</button>
+          <button onClick={()=>act(t,"flag")} disabled={acting===t.id} style={{background:"transparent",border:`1px solid ${T.amber}55`,borderRadius:8,padding:"5px 11px",color:T.amber,fontSize:10.5,fontWeight:800,fontFamily:F.b,cursor:acting?"default":"pointer",opacity:acting===t.id?.6:1}}>{ar?"وسم":"Flag"}</button>
+          <button onClick={()=>ctx.setTab&&ctx.setTab(t.surface)} style={{marginInlineStart:"auto",background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:10.5,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ar?"افتح ←":"Open →"}</button>
+        </div>
+      </div>)}</div>}
   </Card>;
 }
 

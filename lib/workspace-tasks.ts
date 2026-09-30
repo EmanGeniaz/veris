@@ -30,10 +30,23 @@ const SURFACE: Record<TaskKind, string> = { assessment: "emp_projects", finding:
 
 const SEV_RANK: Record<TaskSeverity, number> = { high: 0, medium: 1, low: 2 };
 
+/* Tasks the employee has already actioned: an `task:acknowledge` / `task:flag`
+   row on the audit chain resolves that task, so it leaves the inbox — the
+   action itself is a real, tamper-evident governance record. */
+export function resolvedTaskIds(auditRows: AuditRow[]): Set<string> {
+  const s = new Set<string>();
+  for (const a of auditRows) {
+    if (typeof a.action !== "string" || !a.action.startsWith("task:")) continue;
+    try { const d = JSON.parse(a.detail || "{}"); if (d.taskId) s.add(String(d.taskId)); } catch { /* ignore */ }
+  }
+  return s;
+}
+
 export function deriveWorkspaceTasks(opts: { fabricRows?: FabricRow[]; auditRows?: AuditRow[] }): { tasks: WorkspaceTask[]; intact: boolean } {
   const fabricRows = opts.fabricRows ?? [];
   const auditRows = opts.auditRows ?? [];
   const intact = auditChainIntact(auditRows);
+  const resolved = resolvedTaskIds(auditRows);
   const current = currentByEntity(fabricRows.map(mapFabricRow));
   const tasks: WorkspaceTask[] = [];
 
@@ -86,8 +99,9 @@ export function deriveWorkspaceTasks(opts: { fabricRows?: FabricRow[]; auditRows
     });
   }
 
-  tasks.sort((x, y) => SEV_RANK[x.severity] - SEV_RANK[y.severity]);
-  return { tasks, intact };
+  const open = tasks.filter((t) => !resolved.has(t.id));
+  open.sort((x, y) => SEV_RANK[x.severity] - SEV_RANK[y.severity]);
+  return { tasks: open, intact };
 }
 
 /* KPI rollup for the inbox header. */

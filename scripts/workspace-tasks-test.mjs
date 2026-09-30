@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { deriveWorkspaceTasks, taskStats } from "../lib/workspace-tasks.ts";
+import { deriveWorkspaceTasks, taskStats, resolvedTaskIds } from "../lib/workspace-tasks.ts";
+import { taskActionSchema } from "../lib/api-schemas.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
@@ -70,16 +71,46 @@ const auditRows = auditChain([
   check("never fabricates: tasks come only from real Fabric/audit rows", deriveWorkspaceTasks({ fabricRows: [], auditRows: [] }).tasks.length === 0);
 }
 
+/* ── write-back: acknowledging a task resolves it (leaves the inbox) ── */
+{
+  const ackChain = auditChain([
+    { action: "inference:escalate", entity: "claude-sonnet-5", detail: md({ agent: "agent-doc", tool: "wire" }), actor: "agent-doc" },
+    { action: "task:acknowledge", entity: "FND-1", detail: md({ taskId: "task-fnd-FND-1", kind: "finding" }), actor: "workspace" },
+  ]);
+  check("resolvedTaskIds collects actioned task ids from task:* rows", resolvedTaskIds(ackChain).has("task-fnd-FND-1"));
+  const { tasks, intact } = deriveWorkspaceTasks({ fabricRows, auditRows: ackChain });
+  check("an acknowledged task is excluded from the inbox", !tasks.some((t) => t.id === "task-fnd-FND-1"));
+  check("unactioned tasks (assessment) still appear", tasks.some((t) => t.id === "task-asm-AIS-1"));
+  check("the write-back row keeps the chain intact", intact === true);
+  const flagChain = auditChain([{ action: "task:flag", entity: "AIS-1", detail: md({ taskId: "task-asm-AIS-1", kind: "assessment" }), actor: "workspace" }]);
+  check("flagging also resolves a task from the inbox", !deriveWorkspaceTasks({ fabricRows, auditRows: flagChain }).tasks.some((t) => t.id === "task-asm-AIS-1"));
+}
+
+/* ── task action schema (security baseline · strict validation) ── */
+{
+  check("valid acknowledge body passes", taskActionSchema.safeParse({ tenant: "demo", taskId: "task-fnd-FND-1", entityId: "FND-1", kind: "finding", decision: "acknowledge" }).success);
+  check("a missing taskId is rejected", !taskActionSchema.safeParse({ entityId: "FND-1", kind: "finding", decision: "acknowledge" }).success);
+  check("an unknown decision is rejected", !taskActionSchema.safeParse({ taskId: "t", entityId: "e", kind: "finding", decision: "delete" }).success);
+  check("an unknown kind is rejected", !taskActionSchema.safeParse({ taskId: "t", entityId: "e", kind: "bogus", decision: "flag" }).success);
+  check("unknown keys are rejected (strict)", !taskActionSchema.safeParse({ taskId: "t", entityId: "e", kind: "finding", decision: "flag", evil: 1 }).success);
+}
+
 /* ── route + surface wiring contract ── */
 {
   const route = read("app/api/workspace/tasks/route.ts");
   check("route binds tenant to the session (BL-01 guard)", /resolveTenant\(/.test(route));
   check("route derives tasks from Fabric + audit chain", /deriveWorkspaceTasks\(/.test(route) && /fabricRecord\.findMany/.test(route) && /auditLog\.findMany/.test(route));
   check("route is honest demo without a DB", /enabled:\s*false/.test(route));
+  check("route has a POST write-back handler", /export async function POST/.test(route));
+  check("POST is rate-limited (user tier) + strict-validated", /limit\(req,\s*"user"/.test(route) && /parseJson\(req,\s*taskActionSchema\)/.test(route));
+  check("POST appends a task:<decision> row and is idempotent", /auditAppend\(prisma,\s*t\.id,\s*`task:\$\{decision\}`/.test(route) && /resolvedTaskIds\(existing\)\.has\(taskId\)/.test(route));
+  check("POST reports failures via serverError (no leakage)", /serverError\(e,\s*"workspace\.tasks\.action"\)/.test(route));
   const rc = read("components/platform/rolecenters.jsx");
   check("inbox fetches the live task record", /\/api\/workspace\/tasks/.test(rc));
   check("inbox falls back to a demo view", /usingLive\?live\.tasks:WS_TASKS_DEMO/.test(rc));
   check("inbox badges live-vs-demo provenance", /<TelemetryBadge\/>/.test(rc));
+  check("inbox has acknowledge/flag write-back actions that POST", /act\(t,"acknowledge"\)/.test(rc) && /act\(t,"flag"\)/.test(rc) && /method:"POST"/.test(rc));
+  check("actioned tasks leave the inbox optimistically", /\.filter\(t=>!done\[t\.id\]\)/.test(rc));
   check("inbox stamps each task with its AIMS source", /srcColor\(t\.source\)/.test(rc));
   check("inbox renders on Home for employee/manager, gated + toggleable", /isEmp&&show\("tasks"\)&&<WorkspaceTaskInbox/.test(rc));
   const prefs = read("lib/dashboard-prefs.js");

@@ -68,6 +68,17 @@ export const inspectSchema = z.object({
   channel: text(64).optional(),
 }).strict();
 
+/* AIMS task-inbox write-back: acknowledging or flagging a governance task
+   appends a `task:<decision>` row to the tenant's audit chain (#168). */
+export const taskActionSchema = z.object({
+  tenant: text(64).optional(),
+  taskId: z.string().trim().min(1).max(120),
+  entityId: z.string().trim().min(1).max(120),
+  kind: z.enum(["assessment", "review", "finding"]),
+  decision: z.enum(["acknowledge", "flag"]),
+  note: text(2000).optional(),
+}).strict();
+
 /* ── Persistence bus (see the header note on unknown keys) ── */
 const roles = RBAC_ROLES as [string, ...string[]];
 const modules = MODULES.map(([k]) => k) as [string, ...string[]];
