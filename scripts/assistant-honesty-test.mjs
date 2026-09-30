@@ -74,6 +74,21 @@ const AR = /[؀-ۿ]/;
   check("CI runs the assistant-honesty tests", /test:assistanthonesty/.test(ci));
 }
 
+/* ── surface contract: the governed assistant is on the cockpit Home ── */
+{
+  const rc = read("components/platform/rolecenters.jsx");
+  check("cockpit imports the honesty layer", /from "@\/lib\/assistant-honesty"/.test(rc));
+  check("Home assistant routes through the governed gateway", /HomeAssistant/.test(rc) && /\/api\/gateway\/chat/.test(rc));
+  check("Home assistant upgrades to live ONLY on a real gateway answer", /d\.enabled&&!d\.blocked&&d\.text/.test(rc) && /provenance="live"/.test(rc));
+  check("Home assistant falls back to the honest simulated reply", /honestSimulatedReply\(/.test(rc));
+  check("Home assistant badges the turn's provenance", /assistantProvenance\(turn\.provenance\)/.test(rc));
+  check("Home assistant links to the full assistant surface", /mgr_assistant.*emp_assistant|emp_assistant/.test(rc) && /ctx\.setTab/.test(rc));
+  check("Home assistant renders on Home for employee/manager, gated + toggleable", /isEmp&&show\("assistant"\)&&<HomeAssistant/.test(rc));
+  check("Home assistant surface is not shown to non-employee role centers", /s\.key!=="assistant"/.test(rc));
+  const prefs = read("lib/dashboard-prefs.js");
+  check("the AI Assistant cockpit section is registered", /key:\s*"assistant"/.test(prefs));
+}
+
 const failed = R.filter(([s]) => s === "FAIL");
 for (const [s, n] of R) console.log(`${s}  ${n}`);
 console.log(`\n${R.length - failed.length}/${R.length} passed`);
