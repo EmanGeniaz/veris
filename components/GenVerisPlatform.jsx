@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { T, LIGHT_T, PALETTES, DEFAULT_PALETTE, paletteById, applyPalette, railFor, RC, CSS, ROLES, EXECUTIVE_ROLE_IDS, USER_PROFILES, NAV, CAIO_EXTRA_NAV, CEO_NAV, CAIO_NAV, ROLE_NAV, PLATFORM_NAV_SECTIONS, CEO_NAV_SECTIONS, CAIO_NAV_SECTIONS, ROLE_NAV_SECTIONS, OWNER_SURFACE, AI_CENTRAL_NAV, AC_LEGACY_VIEWS, acAccessFor, AI_GOLD, HITL, F, cleanText, Glyph, Tag, Card, SHead, Toast, BrandLogo, SIDEBAR_W, LOGIN_PROFILES, SEEDED_DEMO_TABS, MODEL_REGISTRY, TEMPLATES } from "./platform/core";
 import { navigateTo } from "@/lib/navigation";
+import { resolveWorkspaceIdentity } from "@/lib/workspace-identity";
 import { acInitiatives, riskRegister, knowledgeAssets } from "@/lib/platform-models";
 import { FRAMEWORKS as SEARCH_FRAMEWORKS } from "@/lib/frameworks";
 import { GLOSSARY as SEARCH_GLOSSARY } from "@/lib/glossary";
@@ -714,6 +715,9 @@ function FreshWorkspaceEmpty({role,tab,aiCentralView,setTab}) {
 
 export default function GenVeris() {
   const [role,setRole]=useState("caio");
+  /* The real signed-in user (from the Auth.js session), captured at sign-in so
+     the workspace can show WHOSE data it is — live identity vs demo persona. */
+  const [authUser,setAuthUser]=useState(null);
   const [tab,setTab]=useState("home");
   const [toast,setToast]=useState({msg:"",vis:false,type:"success"});
   const [hitlCount,setHitlCount]=useState(()=>HITL["caio"].length);
@@ -829,11 +833,15 @@ export default function GenVeris() {
     setTab("home");
     setAiCentralView("dashboard");
     setSessionMode("demo");
+    setAuthUser(null);
     // Clear the session-entry flag so deep links no longer auto-restore after sign-out.
     if(typeof window!=="undefined"){window.sessionStorage.removeItem("genveris.authed");window.history.replaceState(null,"","/");}
   },[]);
   const enterApp=useCallback((profile=LOGIN_PROFILES[0])=>{
     setRole(profile.role);
+    /* Capture the real signed-in identity only for a genuine (non-demo) session;
+       demo/showcase entry leaves it null so the cockpit shows the demo persona. */
+    setAuthUser(profile&&profile.mode&&profile.mode!=="demo"&&profile.email?{name:profile.name,email:profile.email,role:profile.role}:null);
     /* Role-command-center roles (incl. employee/manager) open on their
        Overview (home) rather than a legacy target surface. */
     setTab(ROLE_CENTERS[profile.role]?"home":profile.target);
@@ -1007,7 +1015,7 @@ export default function GenVeris() {
         {!showSeededData&&<FreshWorkspaceEmpty role={role} tab={tab} aiCentralView={aiCentralView} setTab={setTab}/>}
         {showSeededData&&role==="ceo"&&["home","ceoplaybook","ceoportfolio","ceobudget","ceorisk","ceoactions","ceoreporting"].includes(tab)&&<CEOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
         {showSeededData&&role==="caio"&&["home","caioplaybook","caiogov","caioreports","caioincidents","caioaia","caiorisk","caiolibrary"].includes(tab)&&<CAIOCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} showToast={showToast}/>}
-        {showSeededData&&ROLE_CENTERS[role]&&(tab==="home"||ROLE_CENTERS[role].surfaces.some(s=>s.id===tab))&&!ROLE_PAGE_OVERRIDE[tab]&&<RoleCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} setTab={setTab} setAiCentralView={setAiCentralView} navigate={navigate} showToast={showToast}/>}
+        {showSeededData&&ROLE_CENTERS[role]&&(tab==="home"||ROLE_CENTERS[role].surfaces.some(s=>s.id===tab))&&!ROLE_PAGE_OVERRIDE[tab]&&<RoleCommandCenter tab={tab} role={role} userName={userProfiles?.[role]?.name} identity={resolveWorkspaceIdentity({authUser,role,profiles:userProfiles})} setTab={setTab} setAiCentralView={setAiCentralView} navigate={navigate} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="workbench"&&<PageWorkbench role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {showSeededData&&ROLE_PAGE_OVERRIDE[tab]==="myideas"&&<PageMyIdeas role={role} sessionMode={sessionMode} showToast={showToast}/>}
         {ROLE_PAGE_OVERRIDE[tab]==="aiusage"&&<PageAIUsage role={role} sessionMode={sessionMode} showToast={showToast}/>}
