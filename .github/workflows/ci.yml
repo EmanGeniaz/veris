@@ -94,6 +94,12 @@ jobs:
       - name: Assistant honesty tests (live-vs-simulated provenance, no false routing)
         run: npm run test:assistanthonesty
 
+      - name: Workspace identity tests (live signed-in user vs demo persona)
+        run: npm run test:wsidentity
+
+      - name: AIMS task inbox tests (governance tasks derived from Fabric + audit)
+        run: npm run test:wstasks
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 

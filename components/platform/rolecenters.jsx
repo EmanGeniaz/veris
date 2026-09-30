@@ -10,6 +10,8 @@ import { BriefDrawer } from "./initiative-brief";
 import { LineageDrawer } from "./lineage";
 import { CustomizeMenu } from "./customize-menu";
 import { ROLE_CENTER_SECTIONS, loadDashboardPrefs, saveDashboardPrefs } from "@/lib/dashboard-prefs";
+import { assistantProvenance, honestSimulatedReply, liveReplySuffix } from "@/lib/assistant-honesty";
+import { TelemetryBadge } from "./telemetry-badge";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* Arabic for the command-center chrome + the employee Overview's top-level text
@@ -1320,6 +1322,90 @@ function Blocks({blocks, ctx}){
   return <>{out}</>;
 }
 
+/* ── Home AI Assistant (#168 / WS3) ───────────────────────────────────────────
+   A real, governed assistant on the employee/manager cockpit Home — the
+   centerpiece, not a dead card a click away. Every ask routes through the same
+   governed gateway (/api/gateway/chat) the full assistant uses, and the reply
+   carries the shared honesty provenance: Governed·Live when a real model
+   answered, Simulated·no model when it was generated locally. Never overclaims. */
+function HomeAssistant({role,ctx}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
+  const [input,setInput]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [turn,setTurn]=useState(null); // {q,text,provenance,pending}
+  const assistantTab=role==="manager"?"mgr_assistant":"emp_assistant";
+  const ask=async()=>{
+    const q=input.trim(); if(!q||busy) return;
+    setBusy(true); setTurn({q,text:"",provenance:null,pending:true});
+    let text,provenance;
+    try{
+      const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:q,tenant:"demo"})});
+      const d=await res.json();
+      if(d&&d.enabled&&!d.blocked&&d.text){text=d.text+liveReplySuffix({ar,source:d.source,masked:!!d.masked});provenance="live";}
+      else if(d&&d.blocked){text=ar?"حُجب الطلب عند حدود المؤسسة بموجب السياسة — لم يغادر شيء مساحة عملك.":"Blocked at the enterprise boundary by policy — nothing left your workspace.";provenance="blocked";}
+      else{text=honestSimulatedReply({ar});provenance="simulated";}
+    }catch{text=honestSimulatedReply({ar});provenance="simulated";}
+    setTurn({q,text,provenance,pending:false}); setInput(""); setBusy(false);
+  };
+  const p=turn&&turn.provenance?assistantProvenance(turn.provenance):null;
+  const pc=p?(p.tone==="live"?T.green:p.tone==="bad"?T.red:p.tone==="demo"?AI_GOLD_INK:T.ink3):T.ink3;
+  return <Card style={{padding:"16px 18px",marginBottom:16,border:`1px solid ${AI_GOLD}35`}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
+      <div><Eyebrow>{T_("AI Assistant")}</Eyebrow><H3 style={{margin:0}}>{ar?"اسأل مساعدك المحوكَم":"Ask your governed assistant"}</H3></div>
+      <button onClick={()=>ctx.setTab&&ctx.setTab(assistantTab)} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ar?"المساعد الكامل ←":"Open full assistant →"}</button>
+    </div>
+    <div style={{fontSize:11,color:T.ink3,fontFamily:F.b,margin:"4px 0 12px",lineHeight:1.6}}>{ar?"يمر كل طلب عبر البوابة — فحص السياسة والتنقيح والأدلة. توضّح الشارة أدناه ما إذا أجاب نموذج مباشر أم محاكاة محلية.":"Every prompt routes through the Gateway — policy checks, redaction and evidence. The badge below says whether a live model or a local simulation answered."}</div>
+    {turn&&<div style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",marginBottom:12}}>
+      <div style={{fontSize:11,color:T.ink4,fontFamily:F.b,marginBottom:6}}>{(ar?"أنت: ":"You: ")}{turn.q}</div>
+      {turn.pending
+        ?<div style={{fontSize:11.5,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>{ar?"التوجيه عبر البوابة…":"Routing through the gateway..."}</div>
+        :<><div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{turn.text}</div>
+          {p&&<div title={p.tone==="live"?"A live model answered through the governed gateway.":p.tone==="demo"?"No live model is connected — this reply was generated locally, not by a model.":""} style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}><span style={{width:6,height:6,borderRadius:"50%",background:pc,boxShadow:p.tone==="live"?`0 0 6px ${pc}88`:"none"}}/><span style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:pc,letterSpacing:"0.04em"}}>{ar?p.ar:p.label}</span></div>}</>}
+    </div>}
+    <div style={{display:"flex",gap:9,alignItems:"center"}}>
+      <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder={ar?"اسأل أي شيء — محوكَم عبر البوابة…":"Ask anything — governed through the Gateway..."} style={{flex:1,background:T.s2,border:`1px solid ${T.border}`,borderRadius:9,padding:"11px 13px",color:T.ink,fontSize:12,fontFamily:F.b,outline:"none"}}/>
+      <button onClick={ask} disabled={busy} style={{background:`linear-gradient(135deg,${AI_GOLD},#A77B2D)`,border:"none",borderRadius:9,padding:"11px 18px",color:"#111",fontSize:12,fontWeight:900,fontFamily:F.b,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{T_("Send")}</button>
+    </div>
+  </Card>;
+}
+
+/* ── AIMS-assigned task inbox (#168 / WS3) ─────────────────────────────────────
+   Governance work routed into the cockpit from registered AI systems, derived
+   live from the tenant's Evidence Fabric + audit chain (/api/workspace/tasks).
+   Each task carries the AIMS source that raised it. Live-first with an honest
+   demo fallback + empty state; actioning links through to the handling surface. */
+const WS_TASKS_DEMO=[
+  {id:"d1",kind:"review",title:"Review flagged AI output — release notes",why:"The gateway escalated a customer-bound artifact for human review (HITL).",source:"enforce",severity:"high",surface:"emp_tasks"},
+  {id:"d2",kind:"assessment",title:"Complete assessment — Recruitment Assistant",why:"High-tier AI system has no governance assessment on record.",source:"discover",severity:"high",surface:"emp_projects"},
+  {id:"d3",kind:"finding",title:"Resolve finding — PII redaction gap",why:"A finding on Resolution Copilot needs review and remediation.",source:"enforce",severity:"medium",surface:"emp_risk"},
+];
+function WorkspaceTaskInbox({role,ctx}){
+  const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
+  const [live,setLive]=useState(null);
+  useEffect(()=>{let on=true;fetch("/api/workspace/tasks?tenant=demo").then(r=>r.json()).then(d=>{if(on&&d&&d.enabled)setLive({tasks:d.tasks||[],stats:d.stats,intact:d.intact});}).catch(()=>{});return()=>{on=false;};},[]);
+  const usingLive=!!live;
+  const tasks=usingLive?live.tasks:WS_TASKS_DEMO;
+  const srcColor=s=>s==="discover"?T.blue:s==="human"?T.violet:s==="enforce"?T.teal:s==="genveris"?AI_GOLD_INK:T.ink3;
+  const sevColor=s=>s==="high"?T.red:s==="medium"?T.amber:T.ink3;
+  return <Card style={{padding:"16px 18px",marginBottom:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap",marginBottom:4}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}><Eyebrow>{ar?"مُسندة من أنظمة الذكاء الاصطناعي":"Assigned from the AIMS"}</Eyebrow><TelemetryBadge/></div>
+      <button onClick={()=>ctx.setTab&&ctx.setTab(role==="manager"?"mgr_team":"emp_tasks")} style={{background:"transparent",border:"none",color:AI_GOLD_INK,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{ar?"كل المهام ←":"All tasks →"}</button>
+    </div>
+    <H3 style={{margin:"0 0 10px"}}>{ar?"صندوق مهام الحوكمة":"Your governance task inbox"}</H3>
+    {tasks.length===0
+      ?<div style={{fontSize:11,color:T.ink3,fontFamily:F.b,lineHeight:1.6,padding:"6px 0 2px"}}>{ar?"لا مهام حوكمة معلّقة — تظهر هنا عندما يرصد نظام ذكاء اصطناعي مسجّل عملاً مطلوباً (تقييم ناقص، أو مخرجات مُصعّدة، أو نتيجة تحتاج معالجة).":"No governance tasks pending — these appear when a registered AI system raises work: a missing assessment, an escalated output, or a finding to remediate."}</div>
+      :<div style={{display:"grid",gap:8}}>{tasks.map(t=><button key={t.id} onClick={()=>ctx.setTab&&ctx.setTab(t.surface)} className="vz-reg-row" style={{textAlign:ar?"right":"left",background:T.s2,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",cursor:"pointer",display:"grid",gap:5}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span title={t.severity} style={{width:7,height:7,borderRadius:"50%",background:sevColor(t.severity),flexShrink:0}}/>
+          <span style={{fontSize:12,fontWeight:800,color:T.ink,fontFamily:F.b}}>{t.title}</span>
+          <span title={ar?"النظام الذي أسند المهمة":"the AI system that raised this"} style={{marginInlineStart:"auto",fontSize:8.5,fontWeight:900,fontFamily:F.m,letterSpacing:"0.05em",textTransform:"uppercase",color:srcColor(t.source),background:srcColor(t.source)+"18",border:`1px solid ${srcColor(t.source)}45`,borderRadius:999,padding:"2px 8px"}}>{t.source}</span>
+        </div>
+        <div style={{fontSize:10.5,color:T.ink3,fontFamily:F.b,lineHeight:1.5}}>{t.why}</div>
+      </button>)}</div>}
+  </Card>;
+}
+
 function PageHead({title,sub}){
   const lang=useLang(); const T_=en=>ts(lang,en);
   return <div style={{marginBottom:16}}>
@@ -1331,9 +1417,9 @@ function PageHead({title,sub}){
 /* Overview dashboard lenses — derived from the role's surfaces (excluding
    playbook, reports and assistant, which are pages rather than lenses).
    Mirrors the CEO/CAIO in-surface tabs so every role is consistent. */
-function Overview({role,cfg,ctx,userName}){
+function Overview({role,cfg,ctx,userName,identity}){
   const lang=useLang(); const ar=lang==="ar"; const T_=en=>ts(lang,en);
-  const name=(userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
+  const name=((identity&&identity.name)||userName||(ROLES[role]||ROLES.caio).name).split(" ")[0];
   const hour=typeof window!=="undefined"?new Date().getHours():9;
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const [brief,setBrief]=useState(null);
@@ -1344,7 +1430,9 @@ function Overview({role,cfg,ctx,userName}){
   const queue=facetDomain?initiativesForRole(role):[];
   /* Per-viewer personalization: which landing sections show. "facet" only makes
      sense for roles that have a cross-functional gate, so drop it otherwise. */
-  const sectionCatalog=facetDomain?ROLE_CENTER_SECTIONS:ROLE_CENTER_SECTIONS.filter(s=>s.key!=="facet");
+  const isEmp=role==="employee"||role==="manager";
+  let sectionCatalog=facetDomain?ROLE_CENTER_SECTIONS:ROLE_CENTER_SECTIONS.filter(s=>s.key!=="facet");
+  if(!isEmp) sectionCatalog=sectionCatalog.filter(s=>s.key!=="assistant"&&s.key!=="tasks"); // the Home assistant + AIMS task inbox are employee/manager cockpit surfaces
   const [prefs,setPrefs]=useState(()=>loadDashboardPrefs("rolecenter",role,sectionCatalog));
   useEffect(()=>{setPrefs(loadDashboardPrefs("rolecenter",role,sectionCatalog));},[role]); // eslint-disable-line react-hooks/exhaustive-deps
   const show=k=>prefs[k]!==false;
@@ -1374,6 +1462,7 @@ function Overview({role,cfg,ctx,userName}){
         <h1 style={{fontFamily:F.e,fontSize:29,fontWeight:400,color:T.ink,margin:"2px 0 4px"}}>{T_(greet)}{ar?"، ":", "}<span style={{color:AI_GOLD_INK}}>{name}.</span></h1>
         <div style={{color:T.ink3,fontSize:12.5,fontFamily:F.b,maxWidth:680}}>{T_(cfg.greet)} — {T_(cfg.sub)}</div>
         <div style={{fontSize:10.5,color:T.ink4,fontWeight:700,marginTop:6,fontStyle:"italic",fontFamily:F.b}}>{T_(cfg.thesis)}</div>
+        {identity&&(()=>{const c=identity.live?T.green:AI_GOLD_INK;const bg=identity.live?T.green:AI_GOLD;return <div style={{marginTop:9}}><span title={identity.live?"You are signed in — the workspace shows your identity from the session.":"Illustrative demo persona — not a signed-in user; the data shown is seeded."} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:9.5,fontWeight:900,fontFamily:F.m,letterSpacing:"0.04em",color:c,background:bg+"14",border:`1px solid ${bg}45`,borderRadius:999,padding:"3px 10px"}}><span style={{width:6,height:6,borderRadius:"50%",background:bg,boxShadow:identity.live?`0 0 6px ${bg}88`:"none"}}/>{identity.live?(ar?`مسجّل الدخول: ${identity.email}`:`Signed in as ${identity.email}`):(ar?"شخصية تجريبية · بيانات توضيحية":"Demo persona · illustrative data")}</span></div>;})()}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:15,background:`linear-gradient(135deg,#E7BE63,${AI_GOLD} 55%,#B3852F)`,border:"1px solid #F0CE7E",borderRadius:15,padding:"12px 20px",boxShadow:`0 12px 30px ${AI_GOLD}4d,0 0 0 4px ${AI_GOLD}1f`}}>
         <div style={{fontSize:36,fontWeight:800,color:"#221703",letterSpacing:"-0.03em",lineHeight:.9,fontFamily:F.m}}>{T_(cfg.hero[0])}</div>
@@ -1396,6 +1485,8 @@ function Overview({role,cfg,ctx,userName}){
     </div>
     <div style={{marginTop:10,animation:"up .2s ease"}}>
       {show("facet")&&<FacetBand/>}
+      {isEmp&&show("assistant")&&<HomeAssistant role={role} ctx={ctx}/>}
+      {isEmp&&show("tasks")&&<WorkspaceTaskInbox role={role} ctx={ctx}/>}
       {show("attention")&&<Attn items={cfg.attn} ctx={ctx}/>}
       {show("kpis")&&<Kpis items={cfg.kpis} ctx={lctx}/>}
       {show("panels")&&<Blocks blocks={cfg.panels} ctx={{...lctx,deep:false}}/>}
@@ -1407,14 +1498,14 @@ function Overview({role,cfg,ctx,userName}){
   </div>;
 }
 
-export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast,userName}){
+export function RoleCommandCenter({tab="home",role="coo",setTab,setAiCentralView,navigate,showToast,userName,identity}){
   const [lineage,setLineage]=useState(null);
   const [brief,setBrief]=useState(null);
   const cfg=ROLE_CENTERS[role]; if(!cfg) return null;
   const ctx={role,setTab,setAiCentralView,navigate,showToast,onLineage:(l,v)=>setLineage(l&&typeof l==="object"?l:{label:l,value:v})};
-  if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
+  if(tab==="home") return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName} identity={identity}/>;
   const s=cfg.surfaces.find(x=>x.id===tab);
-  if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName}/>;
+  if(!s) return <Overview role={role} cfg={cfg} ctx={ctx} userName={userName} identity={identity}/>;
   /* Sidebar surface = the deep workspace: registers render in full with
      drill-in drawers, and every metric drills to its lineage. */
   return <div style={{animation:"up .3s ease"}}>
