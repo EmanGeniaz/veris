@@ -28,7 +28,8 @@
     "test:costlive": "tsx scripts/cost-live-test.mjs",
     "test:assistanthonesty": "tsx scripts/assistant-honesty-test.mjs",
     "test:wsidentity": "tsx scripts/workspace-identity-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity",
+    "test:wstasks": "tsx scripts/workspace-tasks-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"

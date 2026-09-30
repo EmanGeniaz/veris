@@ -97,6 +97,9 @@ jobs:
       - name: Workspace identity tests (live signed-in user vs demo persona)
         run: npm run test:wsidentity
 
+      - name: AIMS task inbox tests (governance tasks derived from Fabric + audit)
+        run: npm run test:wstasks
+
       # Type-check via the production build (no DATABASE_URL -> demo build, clean no-op DB push).
       - name: Build (type-check)
         run: npx next build
