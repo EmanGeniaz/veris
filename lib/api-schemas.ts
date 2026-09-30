@@ -11,6 +11,7 @@
    database. */
 import { z, type ZodType, type ZodTypeDef } from "zod";
 import { CAPS, MODULES, RBAC_ROLES } from "@/lib/rbac";
+import { FABRIC_KINDS } from "@/lib/evidence-fabric";
 
 const text = (max: number) => z.string().max(max);
 /* Bus mirror fields: a scalar the UI may send as a number or boolean, stored
@@ -66,6 +67,21 @@ export const inspectSchema = z.object({
   tenant: text(64).optional(),
   actor: text(254).optional(),
   channel: text(64).optional(),
+}).strict();
+
+/* GenVeris workflow → canonical Fabric write (#166): a session-bound governance
+   action records a canonical record. `source` is constrained to GenVeris-origin
+   values so a client can never claim source="discover"/"enforce"; the route also
+   rejects Secret-class payloads (metadata, not raw content). */
+export const fabricWriteSchema = z.object({
+  tenant: text(64).optional(),
+  kind: z.enum(FABRIC_KINDS as unknown as [string, ...string[]]),
+  entityId: z.string().trim().min(1).max(120),
+  source: z.enum(["human", "genveris", "reviewer"]).default("human"),
+  actor: text(120).optional(),
+  confidence: z.coerce.number().min(0).max(1).optional(),
+  fields: z.record(z.string(), z.unknown()),
+  supersedes: text(120).optional(),
 }).strict();
 
 /* AIMS task-inbox write-back: acknowledging or flagging a governance task
