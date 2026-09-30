@@ -9,6 +9,7 @@ import { SmartSelect } from "./smartselect";
 import { LineageDrawer } from "./lineage";
 import { inspectPrompt, classify, validateResponse } from "@/lib/policy-rules";
 import { estimateTokens, costOf, fmtUSD } from "@/lib/cost-engine";
+import { assistantProvenance, allowedProvenance, honestSimulatedReply, liveReplySuffix } from "@/lib/assistant-honesty";
 import { useLang, ts, registerContent } from "@/lib/i18n";
 
 /* Arabic chrome for the AI Assistant (employee workspace). Seeded conversation
@@ -188,10 +189,12 @@ export function PageWorkbench({role,sessionMode,showToast}){
       ?(ar
         ?`هذا خارج نطاق حوكمتي. أنا استخبارات فيريس — أساعدك في مبادرات الذكاء الاصطناعي ونماذجه ووكلائه، والمخاطر، والامتثال، والسياسة، والأدلة، وكيفية تشغيل GenVeris. اسألني عن أحدها وسأوجّهه عبر البوابة المُحوكَمة.`
         :`That's outside my governance scope. I'm Veris Intelligence — I help with your AI initiatives, models and agents, risk, compliance, policy, evidence and how to operate GenVeris. Ask me one of those and I'll route it through the governed gateway.`)
-      :(ar
-        ?`${artifact?"تم توليد مسودة":"تم"} باستخدام معرفة المؤسسة قبل أي استدعاء للنموذج — موجَّه إلى ${provider.name} (${route.reason.toLowerCase()}).${guard?" جرى تقنيع البيانات الحسّاسة عند حدود المؤسسة.":""}${artifact?" سُجِّلت المُخرَجات وقرار سياستها في الثقة والأدلة.":""}`
-        :`${artifact?"Draft generated":"Done"} using enterprise knowledge before any model call - routed to ${provider.name} (${route.reason.toLowerCase()}).${guard?" Sensitive data was masked at the enterprise boundary.":""}${artifact?" The artifact and its policy decision were recorded in Trust & Evidence.":""}`);
-    const commit=finalText=>{
+      :honestSimulatedReply({ar,artifact,masked:!!guard});
+    /* Provenance of this turn — starts honest (a local simulation) and is only
+       upgraded to "live" if the governed gateway actually returns a model answer.
+       Never overclaims. */
+    let provKey=blocked?"blocked":offDomain?"declined":"simulated";
+    const commit=(finalText,provenance)=>{
       /* Egress control: validate the model's output before it lands in the
          transcript — redact anything sensitive that slipped through. */
       const rv=blocked?null:validateResponse(finalText);
@@ -203,7 +206,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
       setConvos(cs=>cs.map(c=>c.id!==base.id?c:{...c,lastActivity:"Just now",
         evidenceLinks:c.evidenceLinks+(artifact?1:0),
         policyDecision:blocked?"Blocked by policy":guard?"Allowed with masking":"Allowed with enrichment",
-        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:outText,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null,responseValidation:rv?{ok:rv.ok,findings:rv.findings}:null,meter}]}));
+        messages:[...c.messages,{id:stamp+"a",from:"assistant",text:outText,provenance,enrichedWith:enriched.length?enriched:undefined,guardrail:blocked?{action:"Blocked",detector:guard.detector}:null,responseValidation:rv?{ok:rv.ok,findings:rv.findings}:null,meter}]}));
       setTyped(null);setPhase(null);
       if(blocked)showToast&&showToast(ar?`محجوب بموجب سياسة ${guard.detector}`:`Blocked by ${guard.detector} policy`,"error");
       else if(artifact){recordEvidence(base);showToast&&showToast(T_("Evidence recorded in Trust & Evidence"));}
@@ -220,9 +223,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
         try{
           const res=await fetch("/api/gateway/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:guard?guard.masked:text,tenant:sessionMode||"demo"})});
           const d=await res.json();
-          if(d&&d.enabled&&!d.blocked&&d.text)live=ar
-            ?`${d.text}\n\n— المصدر: ${d.source} · موجَّه عبر بوابة المؤسسة${d.masked?" · جرى تقنيع البيانات الحسّاسة عند الحدود":""}`
-            :`${d.text}\n\n— Source: ${d.source} · routed via the enterprise gateway${d.masked?" · sensitive data masked at the boundary":""}`;
+          if(d&&d.enabled&&!d.blocked&&d.text){live=d.text+liveReplySuffix({ar,source:d.source,masked:!!d.masked});provKey="live";}
         }catch{/* gateway unreachable - simulated path continues */}
       }
       const finalReply=live||reply;
@@ -232,7 +233,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
         pos=Math.min(finalReply.length,pos+3);
         setTyped({convId:base.id,text:finalReply.slice(0,pos)});
         if(pos<finalReply.length)timers.current.push(setTimeout(step,16));
-        else timers.current.push(setTimeout(()=>commit(finalReply),140));
+        else timers.current.push(setTimeout(()=>commit(finalReply,provKey),140));
       };
       step();
     },stages*620+180));
@@ -326,6 +327,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
             <div style={{background:m.from==="user"?AI_GOLD+"14":T.s2,border:`1px solid ${m.from==="user"?AI_GOLD+"30":T.border}`,borderRadius:12,padding:"11px 14px"}}>
               <div style={{fontSize:12,color:T.ink2,fontFamily:F.b,lineHeight:1.65}}>{m.text}</div>
               {m.from==="assistant"&&!m.guardrail&&<AIDisclosure model={provider.name} grounded={!!(m.enrichedWith&&m.enrichedWith.length)}/>}
+              {m.from==="assistant"&&m.provenance&&!m.guardrail&&(()=>{const p=assistantProvenance(m.provenance);const c=p.tone==="live"?T.green:p.tone==="bad"?T.red:p.tone==="demo"?T.amber:T.ink3;return <div title={p.tone==="live"?"A live model answered through the governed gateway.":p.tone==="demo"?"No live model is connected — this reply was generated locally, not by a model.":""} style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}><span style={{width:6,height:6,borderRadius:"50%",background:c,boxShadow:p.tone==="live"?`0 0 6px ${c}88`:"none"}}/><span style={{fontSize:9,fontWeight:800,fontFamily:F.m,color:c,letterSpacing:"0.04em"}}>{ar?p.ar:p.label}</span></div>;})()}
               {m.guardrail&&<div style={{display:"flex",gap:6,alignItems:"center",marginTop:9}}>
                 <span style={{width:6,height:6,borderRadius:"50%",background:gaColor(m.guardrail.action)}}/>
                 <span style={{fontSize:9,fontWeight:800,color:gaColor(m.guardrail.action),fontFamily:F.m}}>{T_(m.guardrail.action)} · {m.guardrail.detector}</span>
@@ -350,7 +352,7 @@ export function PageWorkbench({role,sessionMode,showToast}){
           {phase&&sel&&phase.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>
             <div style={{background:T.s2,border:`1px solid ${AI_GOLD}30`,borderRadius:12,padding:"11px 14px",display:"flex",gap:10,alignItems:"center"}}>
               <span style={{display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:AI_GOLD,animation:`pulse 1.1s ease-in-out ${i*0.18}s infinite`}}/>)}</span>
-              <span style={{fontSize:11,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>{[T_("Checking policy at the boundary..."),T_("Searching enterprise knowledge..."),(ar?`التوجيه إلى ${provider.name}…`:`Routing to ${provider.name}...`)][phase.stageIdx]||T_("Working...")}</span>
+              <span style={{fontSize:11,color:AI_GOLD_INK,fontFamily:F.m,fontWeight:800}}>{[T_("Checking policy at the boundary..."),T_("Searching enterprise knowledge..."),(ar?"التوجيه عبر البوابة…":"Routing through the gateway...")][phase.stageIdx]||T_("Working...")}</span>
             </div>
           </div>}
           {typed&&sel&&typed.convId===sel.id&&<div style={{justifySelf:"start",maxWidth:"78%"}}>

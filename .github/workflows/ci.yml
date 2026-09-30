@@ -88,6 +88,12 @@ jobs:
       - name: Discover ingestion tests (tier gate, metadata-only, provenance)
         run: npm run test:ingest
 
+      - name: Live FinOps tests (audit-chain -> real spend, per-agent attribution)
+        run: npm run test:costlive
+
+      - name: Assistant honesty tests (live-vs-simulated provenance, no false routing)
+        run: npm run test:assistanthonesty
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 
