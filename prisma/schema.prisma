@@ -19,8 +19,13 @@ model Tenant {
   slug        String       @unique
   name        String
   mode        String       @default("clean") // "demo" | "clean"
+  // Small, non-authoritative commercial reference (e.g. "enterprise" | "growth" |
+  // "pilot"). A label only — it never grants a plane. Authorization to a plane is
+  // decided solely by Entitlement rows (default-empty, strictly-Enforce). WS2 #167.
+  plan        String?
   createdAt   DateTime     @default(now())
   users       User[]
+  entitlements Entitlement[]
   initiatives Initiative[]
   risks       Risk[]
   kris        Kri[]
@@ -303,6 +308,26 @@ model RbacGrant {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@unique([tenantId, role, module])
+}
+
+/* Per-tenant plane entitlement (WS2 / #167). Records which separately-purchased
+   planes a tenant owns — e.g. "enforce", "discover". Normalized + auditable: one
+   row per granted plane, carrying who granted it and when. Absence of a row means
+   NOT entitled (default-empty — strictly-Enforce: a tenant without Enforce gets
+   governance + demo only). Server-authoritative: only the operator grant path
+   writes here; data routes never trust a client-supplied entitlement. Modelled on
+   RbacGrant (the other per-tenant normalized grant). */
+model Entitlement {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  plane     String   // "enforce" | "discover"
+  status    String   @default("active") // "active" | "suspended"
+  grantedBy String
+  grantedAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  @@unique([tenantId, plane])
+  @@index([tenantId])
 }
 
 /* ── Policy lifecycle & runtime enforcement (guarded like every store) ── */
