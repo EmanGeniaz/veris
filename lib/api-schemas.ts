@@ -12,6 +12,7 @@
 import { z, type ZodType, type ZodTypeDef } from "zod";
 import { CAPS, MODULES, RBAC_ROLES } from "@/lib/rbac";
 import { FABRIC_KINDS } from "@/lib/evidence-fabric";
+import { PLANES } from "@/lib/entitlements";
 
 const text = (max: number) => z.string().max(max);
 /* Bus mirror fields: a scalar the UI may send as a number or boolean, stored
@@ -83,6 +84,23 @@ export const fabricWriteSchema = z.object({
   fields: z.record(z.string(), z.unknown()),
   supersedes: text(120).optional(),
 }).strict();
+
+/* Operator entitlement grant (WS2 / #167): a platform operator grants, revokes
+   or suspends a tenant's plane entitlement, and/or sets the tenant's small plan
+   reference. Operates on an explicitly named tenant (not session-bound) and is
+   guarded by VZ_ONBOARD_TOKEN at the route — the same server-authoritative admin
+   path as tenant provisioning, so a client can never grant itself a plane.
+   `plane`+`action`, or `plan`, or both — at least one must be present. */
+export const entitlementGrantSchema = z.object({
+  tenant: z.string().trim().toLowerCase().min(1).max(64), // target tenant slug (required for an operator grant)
+  plane: z.enum(PLANES as unknown as [string, ...string[]]).optional(),
+  action: z.enum(["grant", "revoke", "suspend"]).default("grant"),
+  plan: text(40).nullable().optional(), // null clears it; a string sets the plan label
+  actor: text(120).optional(),
+}).strict().refine(
+  (v) => v.plane !== undefined || v.plan !== undefined,
+  { message: "provide a plane (with action) and/or a plan" },
+);
 
 /* AIMS task-inbox write-back: acknowledging or flagging a governance task
    appends a `task:<decision>` row to the tenant's audit chain (#168). */
