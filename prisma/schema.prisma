@@ -26,6 +26,7 @@ model Tenant {
   createdAt   DateTime     @default(now())
   users       User[]
   entitlements Entitlement[]
+  enforceConnection EnforceConnection?
   initiatives Initiative[]
   risks       Risk[]
   kris        Kri[]
@@ -328,6 +329,25 @@ model Entitlement {
   updatedAt DateTime @default(now()) @updatedAt
   @@unique([tenantId, plane])
   @@index([tenantId])
+}
+
+/* Per-tenant Veris Enforce connection (WS2 / #167 sub-task 2). WHERE a tenant's
+   Enforce engine lives and the credential to reach it. The gateway URL is a
+   plain reference (validated https, non-SSRF). The credential is NEVER stored
+   raw: `sealedToken` holds only the AES-256-GCM envelope produced by lib/secrets
+   (an encrypted reference), and no API ever returns it; `credentialFp` is a
+   non-secret fingerprint for display. One connection per tenant. Reaching the
+   engine live is gated by the Enforce entitlement and is wired in sub-task 3. */
+model EnforceConnection {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  gatewayUrl   String
+  sealedToken  String?  // AES-256-GCM sealed credential — encrypted reference, never raw, never returned
+  credentialFp String?  // non-secret fingerprint (hash prefix) for display
+  configuredBy String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 }
 
 /* ── Policy lifecycle & runtime enforcement (guarded like every store) ── */

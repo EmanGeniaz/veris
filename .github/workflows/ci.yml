@@ -103,6 +103,9 @@ jobs:
       - name: Plane entitlement tests (WS2 seam — resolver, grant path, isolation)
         run: npm run test:entitlements
 
+      - name: Enforce connection tests (WS2 seam — secret store, SSRF guard, honest state)
+        run: npm run test:enforceconn
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 

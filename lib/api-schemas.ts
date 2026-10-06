@@ -102,6 +102,22 @@ export const entitlementGrantSchema = z.object({
   { message: "provide a plane (with action) and/or a plan" },
 );
 
+/* Operator Enforce-connection config (WS2 / #167 sub-task 2): a platform operator
+   sets or clears a tenant's Veris Enforce gateway URL + credential. Guarded by
+   VZ_ONBOARD_TOKEN at the route (server-authoritative, like entitlement grants).
+   The token is sealed by lib/secrets before storage and never echoed; on `set`
+   a gatewayUrl is required (and SSRF-validated at the route). */
+export const enforceConnectionSchema = z.object({
+  tenant: z.string().trim().toLowerCase().min(1).max(64),
+  action: z.enum(["set", "clear"]).default("set"),
+  gatewayUrl: text(2048).optional(),
+  token: text(4096).optional(),
+  actor: text(120).optional(),
+}).strict().refine(
+  (v) => v.action !== "set" || (typeof v.gatewayUrl === "string" && v.gatewayUrl.length > 0),
+  { message: "gatewayUrl is required when action is 'set'" },
+);
+
 /* AIMS task-inbox write-back: acknowledging or flagging a governance task
    appends a `task:<decision>` row to the tenant's audit chain (#168). */
 export const taskActionSchema = z.object({
