@@ -27,6 +27,7 @@ model Tenant {
   users       User[]
   entitlements Entitlement[]
   enforceConnection EnforceConnection?
+  agentRuns   AgentRun[]
   initiatives Initiative[]
   risks       Risk[]
   kris        Kri[]
@@ -348,6 +349,29 @@ model EnforceConnection {
   configuredBy String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
+}
+
+/* Governed agent run ledger (#182 §08). One row per monitoring/governance agent
+   run, recording the governed decision (status, mode, whether it needed human
+   approval) and a metadata-only outcome summary. The authoritative decision
+   trail is still the Article-12 audit chain (lib/audit appends an agent:run:*
+   row per run); this ledger is the queryable per-tenant history. No raw content
+   — findings are counts + a short detail. */
+model AgentRun {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  agentId          String
+  trigger          String    // "manual" | "scheduled"
+  status           String    // completed | proposed | blocked | failed
+  mode             String    // live | demo
+  requiresApproval Boolean   @default(false)
+  approvedBy       String?
+  findings         Int       @default(0)
+  detail           String    // metadata-only summary
+  startedAt        DateTime  @default(now())
+  finishedAt       DateTime?
+  @@index([tenantId, agentId, startedAt])
 }
 
 /* ── Policy lifecycle & runtime enforcement (guarded like every store) ── */

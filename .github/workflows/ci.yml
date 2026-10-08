@@ -109,6 +109,9 @@ jobs:
       - name: Connector honesty tests (#182 — vocabulary, no fake Connected, no fabricated spend)
         run: npm run test:connector
 
+      - name: Governed agent runtime tests (#182 §08 — envelope, least-privilege, HITL, scheduler)
+        run: npm run test:agents
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 

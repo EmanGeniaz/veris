@@ -118,6 +118,16 @@ export const enforceConnectionSchema = z.object({
   { message: "gatewayUrl is required when action is 'set'" },
 );
 
+/* Governed agent run (#182 §08): trigger a monitoring/governance agent under the
+   runtime's governance envelope. Session-bound; the server plans the run
+   (entitlement / breaker / HITL / least-privilege) and records it — a client
+   cannot grant an agent more than its declared capabilities. */
+export const agentRunSchema = z.object({
+  tenant: text(64).optional(),
+  agentId: z.string().trim().min(1).max(64),
+  trigger: z.enum(["manual", "scheduled"]).default("manual"),
+}).strict();
+
 /* AIMS task-inbox write-back: acknowledging or flagging a governance task
    appends a `task:<decision>` row to the tenant's audit chain (#168). */
 export const taskActionSchema = z.object({
