@@ -33,7 +33,8 @@
     "test:entitlements": "tsx scripts/entitlements-test.mjs",
     "test:enforceconn": "tsx scripts/enforce-connection-test.mjs",
     "test:connector": "tsx scripts/connector-honesty-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks && npm run test:entitlements && npm run test:enforceconn && npm run test:connector && npm run test:security",
+    "test:agents": "tsx scripts/agent-runtime-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks && npm run test:entitlements && npm run test:enforceconn && npm run test:connector && npm run test:agents && npm run test:security",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
