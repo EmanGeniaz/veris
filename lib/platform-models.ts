@@ -308,14 +308,17 @@ export const acEvidence: ACEvidenceRecord[] = [
   { item: "Retail Banking model review minutes", initiative: "Business Unit board", scope: "Business Unit", control: "CTRL-GRC-044", risk: "Oversight cadence", owner: "BU Governance", status: "Complete", approval: "Approved", version: "v2", time: "2026-06-10 15:40" },
 ];
 
+/* Provider governance posture + demo routing share. Per-provider `costMtd` was
+   removed (#182): it was fabricated spend that no surface read — the rendered
+   FinOps figures are computed by lib/cost-engine and badged Live/Demo. */
 export const gatewayProviders: GatewayProvider[] = [
-  { id: "gw-copilot",  name: "Microsoft Copilot", kind: "Copilot",  status: "Approved",   models: ["Copilot for M365"], routedShare: 34, costMtd: "$18.2K" },
-  { id: "gw-azure",    name: "Azure OpenAI",      kind: "Cloud",    status: "Approved",   models: ["GPT-4o", "o4-mini"], routedShare: 22, costMtd: "$24.6K" },
-  { id: "gw-bedrock",  name: "AWS Bedrock",       kind: "Cloud",    status: "Approved",   models: ["Claude Sonnet", "Titan"], routedShare: 14, costMtd: "$11.9K" },
-  { id: "gw-openai",   name: "OpenAI",            kind: "Frontier", status: "Restricted", models: ["GPT-4o (pilot only)"], routedShare: 6, costMtd: "$4.1K" },
-  { id: "gw-claude",   name: "Claude",            kind: "Frontier", status: "Approved",   models: ["Claude Opus", "Claude Sonnet"], routedShare: 16, costMtd: "$13.4K" },
-  { id: "gw-gemini",   name: "Gemini",            kind: "Frontier", status: "Restricted", models: ["Gemini Pro (eval)"], routedShare: 3, costMtd: "$1.8K" },
-  { id: "gw-internal", name: "Internal Models",   kind: "Internal", status: "Approved",   models: ["risk-scorer-v3", "doc-classifier-v2"], routedShare: 5, costMtd: "$2.2K" },
+  { id: "gw-copilot",  name: "Microsoft Copilot", kind: "Copilot",  status: "Approved",   models: ["Copilot for M365"], routedShare: 34 },
+  { id: "gw-azure",    name: "Azure OpenAI",      kind: "Cloud",    status: "Approved",   models: ["GPT-4o", "o4-mini"], routedShare: 22 },
+  { id: "gw-bedrock",  name: "AWS Bedrock",       kind: "Cloud",    status: "Approved",   models: ["Claude Sonnet", "Titan"], routedShare: 14 },
+  { id: "gw-openai",   name: "OpenAI",            kind: "Frontier", status: "Restricted", models: ["GPT-4o (pilot only)"], routedShare: 6 },
+  { id: "gw-claude",   name: "Claude",            kind: "Frontier", status: "Approved",   models: ["Claude Opus", "Claude Sonnet"], routedShare: 16 },
+  { id: "gw-gemini",   name: "Gemini",            kind: "Frontier", status: "Restricted", models: ["Gemini Pro (eval)"], routedShare: 3 },
+  { id: "gw-internal", name: "Internal Models",   kind: "Internal", status: "Approved",   models: ["risk-scorer-v3", "doc-classifier-v2"], routedShare: 5 },
 ];
 
 
@@ -399,7 +402,7 @@ export const gatewayLog: GatewayLogEntry[] = [
 export const gatewayStats = {
   requestsMtd: "412K",
   tokensMtd: "196M",
-  costMtd: "$76.2K",
+  // costMtd removed (#182) — spend is computed by lib/cost-engine and badged Live/Demo.
   blockedMtd: 563,
   avgRiskScore: 21,
 };

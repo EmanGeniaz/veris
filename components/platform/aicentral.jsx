@@ -5,7 +5,7 @@ import { navigateTo } from "@/lib/navigation";
 import { Cloud, Scale, Target, Workflow } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AC_PHASES, AC_FRAMEWORK_POSTURE, acInitiatives, acPmo, acGuardrails, acCxoAlignment, acEvidence, acFeedback, gatewayProviders, gatewayPolicies, gatewayLog, gatewayStats, gatewayRouting, guardrailDetectors, deploymentModes, gatewayRetention, knowledgeAssets, riskRegister, POLICY_REGISTER } from "@/lib/platform-models";
-import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS } from "./core";
+import { FEEDBACK_DIMS, DEFAULT_FEEDBACK, feedbackAvg, feedbackDecision, decisionColorOf, autoEvidenceFor, T, RC, RCL, ROLES, AI_CENTRAL_NAV, acAccessFor, LIFECYCLE_BANDS, TERMINAL_LIFECYCLE, RETIREMENT_REASONS, AI_GOLD, AI_GOLD_INK, AI_GOLD_L, AI_GOLD_B, AI_ROLLOUT_PROGRAMS, HITL, MODEL_REGISTRY, MATURITY_DOMAINS, USE_CASES, academyEvidenceFor, F, vzDownload, CountUp, IconBox, Tag, PTag, STag, Bar, Ring, Card, SHead, AICentralLogo, INTEGRATIONS, ConnectorTag } from "./core";
 import { providerSpend, costSummary, costHeadline, costOf, fmtUSD, fmtTokens } from "@/lib/cost-engine";
 import { TelemetryBadge } from "./telemetry-badge";
 import { surfacesFor, initiativeById } from "@/lib/initiative-registry";
@@ -1104,7 +1104,7 @@ export function PageIntegrations({role,showToast}){
             <div><div style={{fontSize:13,fontWeight:700,color:T.ink,fontFamily:F.b}}>ServiceNow GRC/ IRM</div><div style={{fontSize:10,color:T.ink4,fontFamily:F.m}}>{SN.instance}</div></div>
           </div>
           <div style={{display:"flex",gap:10,alignItems:"center"}}>
-            <Tag label={T_("Not Connected")} color={T.amber} bg={T.amberL}/>
+            <ConnectorTag state="disconnected"/>
             <button onClick={()=>showToast("OAuth connection requires production identity credentials - unavailable in this workspace","error")} style={{background:rc,color:"#fff",border:"none",borderRadius:7,padding:"7px 16px",fontSize:11,fontWeight:600,fontFamily:F.b}}>{T_("Connect")}</button>
           </div>
         </div>
@@ -1147,7 +1147,7 @@ export function PageIntegrations({role,showToast}){
               <IconBox name={p.name} color={p.color} size={15} style={{width:32,height:32}}/>
               <span style={{fontSize:12,fontWeight:700,color:T.ink,fontFamily:F.b}}>{p.name}</span>
             </div>
-            <Tag label={T_(p.status)} color={T.amber} bg={T.amberL}/>
+            <ConnectorTag state="disconnected"/>
           </div>
           <p style={{fontSize:10,color:T.ink4,fontFamily:F.b,lineHeight:1.6,marginBottom:10}}>{T_("Customer trust requests, security questionnaires, compliance evidence sharing from your CRM pipeline.")}</p>
           <button onClick={()=>showToast("Connector authorisation requires production credentials","error")} style={{width:"100%",background:p.color,color:"#fff",border:"none",borderRadius:7,padding:"8px",fontSize:11,fontWeight:600,fontFamily:F.b}}>{T_("Connect")} {p.name}</button>
@@ -1170,8 +1170,7 @@ export function PageIntegrations({role,showToast}){
     {activeTab==="marketplace"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:10}}>
       {[{name:"Jira",icon:"?",cat:"Task Management",status:"Available",col:"#0052CC"},{name:"Slack",icon:"?",cat:"Notifications",status:"Available",col:"#4A154B"},{name:"Microsoft 365",icon:"?",cat:"Evidence Collection",status:"Available",col:"#0078D4"},{name:"Google Workspace",icon:"?",cat:"Evidence Collection",status:"Available",col:"#4285F4"},{name:"AWS Security",icon:"?",cat:"Cloud Evidence",status:"Coming Q3",col:"#FF9900"},{name:"Azure Defender",icon:"?",cat:"Cloud Evidence",status:"Coming Q3",col:"#0078D4"},{name:"GitHub",icon:"?",cat:"Dev Security",status:"Coming Q3",col:"#6E5494"},{name:"Qualys",icon:"?",cat:"Vulnerability",status:"Coming Q4",col:"#ED1C24"},{name:"Okta",icon:"?",cat:"IAM Evidence",status:"Coming Q4",col:"#007DC1"},{name:"Crowdstrike",icon:"?",cat:"Endpoint Security",status:"Coming Q4",col:"#E01B2D"},{name:"Tenable",icon:"?",cat:"Vulnerability",status:"Roadmap",col:"#00B4C8"},{name:"Splunk",icon:"?",cat:"SIEM Evidence",status:"Roadmap",col:"#65A637"}].map((p,i)=><Card key={p.name} style={{padding:13,animation:`up ${.3+i*.04}s ease both`}}>
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}><IconBox name={`${p.name} ${p.cat}`} color={p.col} size={13} style={{width:28,height:28,borderRadius:7}}/><div><div style={{fontSize:11,fontWeight:700,color:T.ink,fontFamily:F.b}}>{p.name}</div><div style={{fontSize:9,color:T.ink4,fontFamily:F.b}}>{T_(p.cat)}</div></div></div>
-        <Tag label={T_(p.status)} color={p.status==="Available"?T.green:p.status.includes("Q")?T.amber:T.ink3} bg={p.status==="Available"?T.greenL:p.status.includes("Q")?T.amberL:T.ink5}/>
-        {p.status==="Available"&&<button onClick={()=>showToast(p.name+" connection requires production credentials","error")} style={{width:"100%",marginTop:8,background:rc,color:"#fff",border:"none",borderRadius:6,padding:"6px",fontSize:10,fontWeight:600,fontFamily:F.b}}>{T_("Connect")}</button>}
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><ConnectorTag state="roadmap"/>{p.status.startsWith("Coming")&&<span style={{fontSize:9,color:T.ink4,fontFamily:F.m}}>{T_(p.status)}</span>}</div>
       </Card>)}
     </div>}
   </div>;
@@ -2832,12 +2831,12 @@ export function PageAICentral({role,setTab,showToast,view,setView,navNonce,initT
         <thead><tr>{["Provider","Connection","Models","Allowed units","Region","Latency","Role"].map(h=><th key={h} style={{textAlign:"left",padding:"9px 12px",color:T.ink3,fontSize:9,fontFamily:F.m,letterSpacing:"0.12em",textTransform:"uppercase",borderBottom:"1px solid "+T.border}}>{T_(h)}</th>)}</tr></thead>
         <tbody>{gatewayProviders.map((pv,idx)=><tr key={pv.id} style={{borderBottom:"1px solid "+T.border}}>
           <td style={{padding:"11px 12px",color:T.ink,fontWeight:700}}>{pv.name}<div style={{fontSize:9,color:T.ink4,fontWeight:400}}>{pv.kind}</div></td>
-          <td style={{padding:"11px 12px"}}><Tag label={pv.status==="Blocked"?T_("Disconnected"):T_("Connected")} color={pv.status==="Blocked"?T.red:T.green} bg={(pv.status==="Blocked"?T.red:T.green)+"14"}/></td>
+          <td style={{padding:"11px 12px"}}><ConnectorTag state={pv.id==="gw-claude"?"live-when-configured":"disconnected"}/></td>
           <td style={{padding:"11px 12px",color:T.ink2,fontSize:11}}>{pv.models.join(", ")}</td>
           <td style={{padding:"11px 12px",color:T.ink2,fontSize:10}}>{pv.status==="Approved"?T_("All units"):T_("Pilot units only")}</td>
           <td style={{padding:"11px 12px",color:T.ink2,fontSize:10}}>{idx%2===0?"EU / US":"US"}</td>
           <td style={{padding:"11px 12px",color:T.ink3,fontFamily:F.m,fontSize:10}}>{180+idx*45}ms</td>
-          <td style={{padding:"11px 12px"}}>{idx===1?<Tag label={T_("Default")} color={AI_GOLD} bg={AI_GOLD+"16"}/>:idx===6?<Tag label={T_("Fallback")} color={T.blue} bg={T.blue+"16"}/>:<span style={{fontSize:10,color:T.ink4}}>-</span>}</td>
+          <td style={{padding:"11px 12px"}}>{pv.id==="gw-claude"?<Tag label={T_("Default")} color={AI_GOLD} bg={AI_GOLD+"16"}/>:pv.id==="gw-internal"?<Tag label={T_("Fallback")} color={T.blue} bg={T.blue+"16"}/>:<span style={{fontSize:10,color:T.ink4}}>-</span>}</td>
         </tr>)}</tbody>
       </table></div>
     </Card>}
