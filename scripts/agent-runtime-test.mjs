@@ -14,8 +14,9 @@ import {
 } from "../lib/agent-runtime.ts";
 import { nextRunAt, isDue, dueAgents } from "../lib/agent-schedule.ts";
 import { findingSpecsFromTasks } from "../lib/agent-findings.ts";
+import { proposalSpecsFromTasks } from "../lib/agent-proposals.ts";
 import { validate } from "../lib/api-guard.ts";
-import { agentRunSchema } from "../lib/api-schemas.ts";
+import { agentRunSchema, agentApproveSchema } from "../lib/api-schemas.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
@@ -23,7 +24,8 @@ const R = [];
 const check = (name, cond) => { R.push([cond ? "PASS" : "FAIL", name]); };
 
 const monitor = agentById("evidence-gaps");         // available, monitor, no entitlement
-const proposeA = agentById("evidence-freshness");   // planned, propose
+const proposeA = agentById("evidence-freshness");   // available, propose (step 3)
+const planned = agentById("drift-kri");             // planned monitor (not wired yet)
 const actEnforce = agentById("enforce-ingest");     // planned, act, requires enforce
 
 /* ── 1 · registry is honest ── */
@@ -45,14 +47,12 @@ const actEnforce = agentById("enforce-ingest");     // planned, act, requires en
   // circuit breaker open → blocked
   check("breaker open → blocked (safety)", planAgentRun({ agent: monitor, dbConfigured: true, breakerOpen: true }).state === "blocked");
   // planned agent → blocked
-  check("planned agent → blocked (not wired to run)", planAgentRun({ agent: proposeA, dbConfigured: true }).allow === false && planAgentRun({ agent: proposeA, dbConfigured: true }).state === "blocked");
+  check("planned agent → blocked (not wired to run)", planAgentRun({ agent: planned, dbConfigured: true }).allow === false && planAgentRun({ agent: planned, dbConfigured: true }).state === "blocked");
 }
 
 /* ── 3 · propose / act never run autonomously ── */
 {
-  // Make a copy of the planned propose agent as if available, to prove the action-class gate (not the status gate)
-  const proposeAvail = { ...proposeA, status: "available" };
-  const pp = planAgentRun({ agent: proposeAvail, dbConfigured: true });
+  const pp = planAgentRun({ agent: proposeA, dbConfigured: true });
   check("propose agent → requiresApproval, state proposed (never auto-applies)", pp.allow && pp.state === "proposed" && pp.requiresApproval === true);
   const actAvail = { ...actEnforce, status: "available" };
   // act requires the enforce entitlement AND human approval
@@ -66,7 +66,7 @@ const actEnforce = agentById("enforce-ingest");     // planned, act, requires en
 {
   const now = new Date("2026-10-08T12:00:00Z");
   check("manual agent is never auto-due", nextRunAt(actEnforce, null) === null);
-  check("planned agent is never due", isDue(proposeA, null, now) === false);
+  check("planned agent is never due", isDue(planned, null, now) === false);
   check("available auto-cadence agent with no prior run is due now", isDue(monitor, null, now) === true);
   const justRan = new Date("2026-10-08T11:30:00Z"); // 30m ago; daily cadence
   check("recently-run daily agent is not due", isDue(monitor, justRan, now) === false);
@@ -111,6 +111,26 @@ const actEnforce = agentById("enforce-ingest");     // planned, act, requires en
   const run = read("app/api/agents/run/route.ts");
   check("run route raises Findings via fabricAppend, source genveris, under the agent identity", /findingSpecsFromTasks\(/.test(run) && /fabricAppend\(/.test(run) && /kind:\s*"Finding"/.test(run) && /source:\s*"genveris"/.test(run));
   check("Finding write is gated on the granted capability scope (least privilege enforced)", /plan\.capabilityScope\.includes\("fabric:write"\)/.test(run));
+}
+
+/* ── 6c · step 3 — propose agent + HITL approval loop ── */
+{
+  check("evidence-freshness is wired as an available PROPOSE agent", proposeA.status === "available" && proposeA.actionClass === "propose" && proposeA.capabilities.includes("proposal:write"));
+  // only open findings become remediation proposals; assessment/review tasks don't
+  const specs = proposalSpecsFromTasks([
+    { id: "task-fnd-F1", kind: "finding", title: "Resolve finding — drift on AIS-3", why: "", source: "enforce", severity: "high", entityId: "finding:X", surface: "emp_risk" },
+    { id: "task-asm-A2", kind: "assessment", title: "Complete assessment", why: "", source: "fabric", severity: "high", entityId: "AIS-2", surface: "emp_projects" },
+  ], "evidence-freshness");
+  check("proposals come only from open findings, stable id (remediation:<findingId>)", specs.length === 1 && specs[0].entityId === "remediation:finding:X" && specs[0].kind === "remediation");
+  check("proposal fields are metadata only (severity + findingRef, no content)", specs[0].fields.severity === "high" && specs[0].fields.findingRef === "finding:X" && !("content" in specs[0].fields));
+  check("approve schema is strict (proposalId + approve|reject enum)", validate(agentApproveSchema, { proposalId: "p1", decision: "approve" }).ok && !validate(agentApproveSchema, { proposalId: "p1", decision: "maybe" }).ok && !validate(agentApproveSchema, { decision: "approve" }).ok);
+  const run = read("app/api/agents/run/route.ts");
+  check("run route drafts proposals (pending) for a propose agent, gated on proposal:write, no autonomous effect", /actionClass === "propose"/.test(run) && /agentProposal\.create/.test(run) && /status:\s*"pending"/.test(run) && /plan\.capabilityScope\.includes\("proposal:write"\)/.test(run));
+  const approve = read("app/api/agents/approve/route.ts");
+  check("approve route records the decision under the HUMAN identity, not the agent", /identity\?\.email/.test(approve) && /auditAppend\(prisma,\s*t\.id,\s*`proposal:\$\{status\}`/.test(approve) && !/agent:\$\{/.test(approve));
+  check("approve route refuses an already-decided proposal (409) + is baseline", /already \$\{proposal\.status\}/.test(approve) && /status:\s*409/.test(approve) && /limit\(req,\s*"user"/.test(approve) && /serverError\(e,/.test(approve) && !/\be\.message\b/.test(approve));
+  const list = read("app/api/agents/proposals/route.ts");
+  check("proposals queue is session-bound, read-only, honest no-DB", /resolveTenant\(/.test(list) && !/agentProposal\.(create|update|delete)/.test(list) && /enabled:\s*false/.test(list));
 }
 
 /* ── 7 · behavioural — no DB → honest, not fabricated ── */

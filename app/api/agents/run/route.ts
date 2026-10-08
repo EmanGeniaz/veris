@@ -20,6 +20,7 @@ import { entitledPlanes } from "@/lib/entitlements";
 import { agentById, planAgentRun } from "@/lib/agent-runtime";
 import { deriveWorkspaceTasks } from "@/lib/workspace-tasks";
 import { findingSpecsFromTasks } from "@/lib/agent-findings";
+import { proposalSpecsFromTasks } from "@/lib/agent-proposals";
 import { fabricAppend } from "@/lib/evidence-fabric";
 import { auditAppend } from "@/lib/audit";
 import { limit, parseJson, serverError } from "@/lib/api-guard";
@@ -71,6 +72,28 @@ export async function POST(req: NextRequest) {
         }
       }
       detail = `${agent.name}: ${findings} finding(s) — ${written} new, ${deduped} unchanged (${plan.mode})`;
+    } else if (plan.allow && agent.actionClass === "propose" && agent.status === "available") {
+      // Step 3: a propose agent drafts proposals and PARKS them for human
+      // approval — it applies nothing. Each open finding becomes a pending
+      // remediation proposal (idempotent per subject; re-running never
+      // duplicates a pending draft). The run stays "proposed" (requiresApproval).
+      const [fabricRows, auditRows] = await Promise.all([
+        prisma.fabricRecord.findMany({ where: { tenantId: t.id }, orderBy: { createdAt: "asc" } }),
+        prisma.auditLog.findMany({ where: { tenantId: t.id }, orderBy: { createdAt: "asc" } }),
+      ]);
+      const derived = deriveWorkspaceTasks({ fabricRows, auditRows });
+      let drafted = 0;
+      if (plan.capabilityScope.includes("proposal:write")) {
+        for (const p of proposalSpecsFromTasks(derived.tasks, agent.id)) {
+          const existing = await prisma.agentProposal.findUnique({ where: { tenantId_agentId_entityId: { tenantId: t.id, agentId: agent.id, entityId: p.entityId } } });
+          if (existing) continue; // idempotent — a decided or pending proposal already exists
+          await prisma.agentProposal.create({ data: { tenantId: t.id, agentId: agent.id, kind: p.kind, entityId: p.entityId, title: p.title, detail: JSON.stringify(p.fields), status: "pending" } });
+          drafted++;
+        }
+      }
+      findings = drafted;
+      status = "proposed";
+      detail = `${agent.name}: ${drafted} remediation proposal(s) drafted — pending human approval (${plan.mode})`;
     }
 
     const run = await prisma.agentRun.create({
