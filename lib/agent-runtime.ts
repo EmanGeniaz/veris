@@ -39,7 +39,7 @@ export interface AgentDef {
    runnable, never reporting activity they don't produce. Each declares the
    minimum capabilities it needs (least privilege). */
 export const AGENT_REGISTRY: AgentDef[] = [
-  { id: "evidence-gaps", name: "Evidence & assessment monitor", purpose: "Flags high/critical AI systems missing an assessment and open findings; raises governance tasks.", actionClass: "monitor", capabilities: ["fabric:read", "audit:read"], requiresEntitlement: null, cadence: "daily", status: "available" },
+  { id: "evidence-gaps", name: "Evidence & assessment monitor", purpose: "Flags high/critical AI systems missing an assessment and open findings; raises canonical Findings into the Evidence Fabric.", actionClass: "monitor", capabilities: ["fabric:read", "audit:read", "fabric:write"], requiresEntitlement: null, cadence: "daily", status: "available" },
   { id: "drift-kri", name: "Drift & KRI monitor", purpose: "Watches model/behavioural drift and KRI thresholds; raises findings when a threshold is breached.", actionClass: "monitor", capabilities: ["fabric:read", "kri:read"], requiresEntitlement: null, cadence: "hourly", status: "planned" },
   { id: "evidence-freshness", name: "Evidence-freshness agent", purpose: "Flags stale evidence and overdue attestations; proposes refresh tasks to owners.", actionClass: "propose", capabilities: ["fabric:read", "evidence:read", "task:write"], requiresEntitlement: null, cadence: "daily", status: "planned" },
   { id: "policy-review", name: "Policy-review agent", purpose: "Drives the policy lifecycle review cadence; proposes reviews and records acknowledgements.", actionClass: "propose", capabilities: ["policy:read", "task:write"], requiresEntitlement: null, cadence: "weekly", status: "planned" },

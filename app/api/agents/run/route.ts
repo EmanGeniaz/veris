@@ -19,6 +19,8 @@ import { resolveTenant } from "@/lib/tenant-guard";
 import { entitledPlanes } from "@/lib/entitlements";
 import { agentById, planAgentRun } from "@/lib/agent-runtime";
 import { deriveWorkspaceTasks } from "@/lib/workspace-tasks";
+import { findingSpecsFromTasks } from "@/lib/agent-findings";
+import { fabricAppend } from "@/lib/evidence-fabric";
 import { auditAppend } from "@/lib/audit";
 import { limit, parseJson, serverError } from "@/lib/api-guard";
 import { agentRunSchema } from "@/lib/api-schemas";
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest) {
     // breakerOpen is a declared gate; live breaker-signal wiring is a follow-up.
     const plan = planAgentRun({ agent, entitledPlanes: planes, dbConfigured: dbConfigured() });
 
+    const actor = `agent:${agent.id}`;
     let findings = 0;
     let detail = plan.reason;
     let status = plan.state;
@@ -55,10 +58,21 @@ export async function POST(req: NextRequest) {
       const derived = deriveWorkspaceTasks({ fabricRows, auditRows });
       findings = derived.tasks.length;
       status = "completed";
-      detail = `${agent.name}: ${findings} open governance finding(s) (${plan.mode})`;
+      // Step 2: raise each gap as a canonical Finding in the Evidence Fabric —
+      // only when the agent's GRANTED capability scope permits a write (least
+      // privilege enforced, not just declared). Idempotent (fabricAppend dedupes
+      // the unchanged latest-for-entity record) and human-decision-wins is
+      // preserved by the canonical view; metadata only, under the agent identity.
+      let written = 0, deduped = 0;
+      if (plan.capabilityScope.includes("fabric:write")) {
+        for (const spec of findingSpecsFromTasks(derived.tasks, agent.id)) {
+          const r = await fabricAppend(prisma, t.id, { kind: "Finding", entityId: spec.entityId, source: "genveris", actor, confidence: 0.9, fields: spec.fields });
+          if (r.written) written++; else if (r.deduped) deduped++;
+        }
+      }
+      detail = `${agent.name}: ${findings} finding(s) — ${written} new, ${deduped} unchanged (${plan.mode})`;
     }
 
-    const actor = `agent:${agent.id}`;
     const run = await prisma.agentRun.create({
       data: {
         tenantId: t.id, agentId: agent.id, trigger, status, mode: plan.mode,

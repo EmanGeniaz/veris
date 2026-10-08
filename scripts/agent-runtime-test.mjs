@@ -13,6 +13,7 @@ import {
   AGENT_REGISTRY, AGENT_ACTION_CLASSES, AGENT_RUN_STATES, agentById, planAgentRun,
 } from "../lib/agent-runtime.ts";
 import { nextRunAt, isDue, dueAgents } from "../lib/agent-schedule.ts";
+import { findingSpecsFromTasks } from "../lib/agent-findings.ts";
 import { validate } from "../lib/api-guard.ts";
 import { agentRunSchema } from "../lib/api-schemas.ts";
 
@@ -93,6 +94,23 @@ const actEnforce = agentById("enforce-ingest");     // planned, act, requires en
   check("run route is baseline-compliant (user limit, parseJson, serverError, no leak)", /limit\(req,\s*"user"/.test(run) && /parseJson\(req,\s*agentRunSchema/.test(run) && /serverError\(e,/.test(run) && !/\be\.message\b/.test(run));
   check("run route only does read-only work for monitor agents", /actionClass === "monitor"/.test(run) && /deriveWorkspaceTasks\(/.test(run));
   check("run route honest without a DB", /enabled:\s*false/.test(run));
+}
+
+/* ── 6b · step 2 — monitor raises canonical Findings into the Fabric ── */
+{
+  check("the monitor is granted fabric:write (to raise Findings)", monitor.capabilities.includes("fabric:write"));
+  const specs = findingSpecsFromTasks([
+    { id: "T-1", kind: "assessment", title: "High-risk system lacks assessment", why: "", source: "fabric", severity: "high", entityId: "AIS-9", surface: "emp_projects" },
+  ], "evidence-gaps");
+  check("finding entityId is stable + idempotent (finding:<taskId>)", specs[0].entityId === "finding:T-1");
+  check("finding fields are metadata only (title/severity/refs, no raw content)", specs[0].fields.title === "High-risk system lacks assessment" && specs[0].fields.severity === "high" && specs[0].fields.systemRef === "AIS-9" && specs[0].fields.raisedBy === "evidence-gaps" && !("content" in specs[0].fields));
+  check("empty tasks → no finding specs", findingSpecsFromTasks([], "evidence-gaps").length === 0);
+  check("a 'finding'-kind task is NOT re-raised (no growth loop)", findingSpecsFromTasks([
+    { id: "task-fnd-X", kind: "finding", title: "Resolve finding", why: "", source: "enforce", severity: "high", entityId: "finding:Y", surface: "emp_risk" },
+  ], "evidence-gaps").length === 0);
+  const run = read("app/api/agents/run/route.ts");
+  check("run route raises Findings via fabricAppend, source genveris, under the agent identity", /findingSpecsFromTasks\(/.test(run) && /fabricAppend\(/.test(run) && /kind:\s*"Finding"/.test(run) && /source:\s*"genveris"/.test(run));
+  check("Finding write is gated on the granted capability scope (least privilege enforced)", /plan\.capabilityScope\.includes\("fabric:write"\)/.test(run));
 }
 
 /* ── 7 · behavioural — no DB → honest, not fabricated ── */
