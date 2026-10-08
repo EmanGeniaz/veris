@@ -168,7 +168,6 @@ export type GatewayProvider = {
   status: GatewayProviderStatus;
   models: string[];
   routedShare: number;
-  costMtd: string;
 };
 
 export type GatewayPolicy = {

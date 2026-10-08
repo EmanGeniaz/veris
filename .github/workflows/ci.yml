@@ -106,6 +106,9 @@ jobs:
       - name: Enforce connection tests (WS2 seam — secret store, SSRF guard, honest state)
         run: npm run test:enforceconn
 
+      - name: Connector honesty tests (#182 — vocabulary, no fake Connected, no fabricated spend)
+        run: npm run test:connector
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 

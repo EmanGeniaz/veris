@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AC_PHASES, AC_RBAC, acInitiatives, KPI_INSIGHTS, AC_FRAMEWORK_POSTURE } from "@/lib/platform-models";
 import { ROLE_CENTERS } from "@/lib/role-centers";
 import { useLang, ts, registerContent } from "@/lib/i18n";
+import { connectorStateMeta } from "@/lib/connector-status";
 
 /* Arabic strings for shared design-system chrome (AI-interaction disclosure). */
 registerContent({
@@ -1438,6 +1439,25 @@ export function IconBox({name, color=T.blue, size=16, style={}}) {
 export const Tag = ({label, color=T.ink3, bg}) => (
   <span style={{display:"inline-block",background:bg||color+"18",color,border:`1px solid ${color}28`,borderRadius:4,padding:"2px 7px",fontSize:10,fontWeight:600,fontFamily:F.m,letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{cleanText(label)}</span>
 );
+
+/* Connector honesty badge (#182): one truthful state vocabulary for every
+   connector / integration card, so a demo connector never reads as live. The
+   label + liveness come from the pure lib/connector-status; the colour maps a
+   tone onto the active theme here. */
+export const CONNECTOR_TONE = { good: T.green, info: T.blue, warn: T.amber, muted: T.ink3 };
+registerContent({
+  "Connected": "متصل",
+  "Live when configured": "مباشر عند التهيئة",
+  "Requires Enterprise": "يتطلب النسخة المؤسسية",
+  "Roadmap": "خارطة الطريق",
+  "Not connected": "غير متصل",
+});
+export const ConnectorTag = ({ state }) => {
+  const lang = useLang();
+  const m = connectorStateMeta(state);
+  const c = CONNECTOR_TONE[m.tone] || T.ink3;
+  return <span title={m.title}><Tag label={ts(lang, m.label)} color={c} bg={c+"14"}/></span>;
+};
 
 export const priorityColor = p => ({Critical:T.red,High:T.amber,Medium:T.blue,Low:T.ink3,Urgent:T.red,"Awaiting Approval":T.amber}[p]||T.ink3);
 export const priorityBg    = p => ({Critical:T.redL,High:T.amberL,Medium:T.blueL,Low:T.ink5,Urgent:T.redL,"Awaiting Approval":T.amberL}[p]||T.ink5);
