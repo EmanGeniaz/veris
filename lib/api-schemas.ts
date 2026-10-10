@@ -128,6 +128,16 @@ export const agentRunSchema = z.object({
   trigger: z.enum(["manual", "scheduled"]).default("manual"),
 }).strict();
 
+/* HITL approval of a propose-agent proposal (#182 §08 step 3): a human approves
+   or rejects a pending proposal. Session-bound; the decision is attributed to the
+   person, and only an approval has an effect. */
+export const agentApproveSchema = z.object({
+  tenant: text(64).optional(),
+  proposalId: z.string().trim().min(1).max(120),
+  decision: z.enum(["approve", "reject"]),
+  note: text(2000).optional(),
+}).strict();
+
 /* AIMS task-inbox write-back: acknowledging or flagging a governance task
    appends a `task:<decision>` row to the tenant's audit chain (#168). */
 export const taskActionSchema = z.object({
