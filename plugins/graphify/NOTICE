@@ -1,0 +1,24 @@
+graphify plugin for Claude Code
+Copyright 2026 Geniaz.
+
+This plugin redistributes the Claude Code skill and reference documents from
+Graphify (https://github.com/Graphify-Labs/graphify), release 0.9.84:
+
+  Graphify
+  Copyright 2026 Safi Shamsi and the Graphify contributors.
+
+  This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+  Portions of this software were contributed under the MIT License prior to the
+  relicensing and remain available under those terms. The original MIT license
+  text is retained in LICENSE-MIT.
+
+Modifications made by Geniaz:
+  - skills/graphify/SKILL.md (from graphify/skill.md): the package install
+    commands in Step 1 are pinned to graphifyy==0.9.84 instead of installing
+    the latest release, so the Python API the skill calls matches the skill text.
+  - skills/graphify/references/ is copied unchanged from
+    graphify/skills/claude/references/.
+  - hooks/, .mcp.json and .claude-plugin/ are new; they replace what
+    `graphify install` / `graphify claude install` would otherwise write into
+    ~/.claude and the project's settings.
