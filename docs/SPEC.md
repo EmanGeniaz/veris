@@ -4,7 +4,9 @@
 > **DONE** (built + live-tested) · **MODELLED** (built, runs on seeded data — real
 > feed pending) · **LOGIC** (engine/interface built, live enforcement unproven
 > here) · **INFRA** (code exists, needs owner-provisioned environment) ·
-> **TODO** (not started). Updated every cycle alongside the Gantt.
+> **IN PROGRESS** (partly built, remainder blocked or under way) · **TODO** (not started).
+> Updated every cycle alongside the Gantt. Last reconciled against `main` on
+> 2026-10-07 (statuses checked against the code and merged PRs up to #201).
 
 ## A. Object model & spine
 | Feature | Status | Notes |
@@ -30,7 +32,7 @@
 |---|---|---|
 | Policy engine (classify · mask · block · egress) | LOGIC | `lib/policy-rules.ts` — deterministic; real-traffic proof pending |
 | AI Gateway pipeline (`/api/gateway/chat`) | LOGIC | thin path built; needs model keys + real routing to be live |
-| Capability tokens (90s, signed, per-call) | LOGIC | `lib/enforce.js` |
+| Capability tokens (90s, per-call) | LOGIC | `lib/enforce.js` — minted per allowed call, but the "signature" is a non-cryptographic djb2 fingerprint (no secret) and nothing verifies a token yet; the gateway decides tool calls but does not execute them |
 | Egress control (deny-by-default) | LOGIC | modelled destinations; live enforcement needs a deployed proxy/agent |
 | HITL gates + circuit breaker | LOGIC | thresholds + revocation logic built |
 | Tool-Call Ledger (hash chain) | LOGIC | pure-engine hash; server SHA-256 on real DB |
@@ -39,10 +41,14 @@
 ## D. Platform / infrastructure
 | Feature | Status | Notes |
 |---|---|---|
-| Auth.js v5 identity + tenant scoping | INFRA | code done; needs `AUTH_SECRET` + DB (owner) |
+| Auth.js v5 identity + tenant scoping | INFRA | code done (`auth.ts`, `lib/tenant-guard.ts`, server RBAC 403s in `app/api/bus/[store]`); needs `AUTH_SECRET` + DB in the deploy env — #142 |
 | Prisma/Postgres persistence + hash-chain audit | INFRA | schema + adapters done; needs real DB |
 | Multi-tenant provisioning + Super Admin console | INFRA/MODELLED | flows built; real isolation untested at scale |
 | Native XLSX evidence exports | DONE | |
+| Evidence Fabric — canonical, tenant-scoped, hash-chained record | INFRA | core built + tested: `lib/evidence-fabric.ts`, `/api/fabric` GET+POST (#174, #197); Discover ingest sink `/api/ingest/discover` (#176); CAIO panel + AI Asset Register read it (#175, #178). Enforce → Fabric pending (#167) |
+| Live enforcement surfaces from the audit chain (ledger · egress · memory · runtime · breaker · retrieval · cost) | INFRA | built + tested; live only once a DB is provisioned — `/api/enforce/*` read routes, chain re-verified; labelled seeded window when no DB (BL-03/BL-04, #183) |
+| Security baseline (rate limits · validation · secrets · deps · error leakage · uploads) | DONE | `lib/rate-limit.ts`, `lib/api-guard.ts`, `lib/api-schemas.ts`, `npm run test:security`, `.github/workflows/security-baseline.yml` (#185) |
+| Durable retention sweep (physical deletion of expired governed memory) | TODO | `sweepDurable()` exists with no caller and no scheduler — BL-07 / #172 (needs approval) |
 | **Self-host packaging** (Docker/compose, config, install docs, air-gap mode) | TODO | required by D2 |
 
 ## E. UX / readability standard (D5 — acceptance criteria)
@@ -63,17 +69,17 @@ Grandma-readable **and** sophisticated. Hard rules, checked each cycle:
 ## G. Product-line, localisation & regional (locked C1)
 | Feature | Status | Notes |
 |---|---|---|
-| Veris Enforce entitlement gate (`enforceLicensed` per tenant) + locked/live surface states | TODO | D7 · MS 365 / Visio model |
-| Veris Enforce shared core + data contract (`enforceProvider`) | TODO | one implementation, no drift |
+| Veris Enforce entitlement gate (per-tenant plane entitlement) + honest surface states | INFRA | `lib/entitlements.ts` `entitledTo()`, `/api/entitlements`, `/api/admin/entitlements` (#199); per-tenant connection + sealed credential `lib/enforce-connection.ts`, `lib/secrets.ts`, `/api/enforce/connection`, `/api/admin/enforce-connection` (#200). States resolve to not-entitled / awaiting-config / awaiting-connection — **never live yet** |
+| Veris Enforce data contract + live-from-Enforce adapter | IN PROGRESS | contract defined GenVeris-side (`docs/design/enforce-integration-contract.md`, #201); the live adapter + Enforce → Evidence Fabric ingestion (WS2 sub-task 3, #167) are blocked on the Enforce team's OpenAPI spec |
 | Veris Enforce **standalone** product (own repo/deploy, real inline enforcement) | TODO | ❌ not completable here — separate repo + integration |
-| Arabic + RTL i18n scaffolding | TODO | D8 · pilot-first |
-| Arabic pilot surfaces (1–2 full surfaces) | TODO | proves the pattern before rollout |
-| UAE / Dubai regulatory pack (PDPL · DIFC · ADGM · DESC + residency/cloud) | TODO | D9 · computed pack |
+| Arabic + RTL i18n scaffolding | DONE | D8 · `lib/i18n.js`, shell-level RTL toggle (Gantt C4–C5) |
+| Arabic pilot surfaces (1–2 full surfaces) | DONE | `components/platform/arabic-pilot.jsx`; estate-wide content rollout largely done (Gantt C6–C21) — Home/Playbook/Advisor + admin portals remain English |
+| UAE / Dubai regulatory pack (PDPL · DIFC · ADGM · DESC + residency/cloud) | DONE | D9 · `lib/uae-mappings.js` (Gantt C3) |
 
 ## H. Test tooling (locked C1)
 | Feature | Status | Notes |
 |---|---|---|
-| Click-integrity harness — role × surface walk, clickability, **location + console logs + errors**, report | TODO | D10 · milestone M-TEST · gates every later feature |
+| Click-integrity harness — role × surface walk, clickability, **location + console logs + errors**, report | DONE | D10 · `scripts/click-integrity.mjs` → `docs/test-reports/click-integrity.md` (Gantt C2). Not run in CI — it needs a running server |
 
 ## F. Definition of Done (every feature)
 1. In this SPEC. 2. Deterministic engine (D4) + computed posture where relevant (D3).

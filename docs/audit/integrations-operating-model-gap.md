@@ -7,6 +7,18 @@ fabric) and "The GenVeris Operating Model" (a 7-step closed loop) — checked ag
 actual codebase with file-path evidence. Marketing imagery is treated as a claim to
 verify, not as fact.
 
+> **Update 2026-10-07 (post-audit corrections — the findings below are kept as recorded):**
+> - **Cost (§4 Monitor, §6, §7 item 2): resolved.** PR #183 / `lib/cost-live.ts` derive
+>   per-provider and per-agent spend from the tenant's `inference:*` audit-chain rows
+>   (`/api/enforce/cost`). `TOKENS_MTD` in `lib/cost-engine.ts` is now only the labelled
+>   demo-seed fallback used when no database is configured.
+> - **Route tree (§1):** `app/api/` now also has `enforce/cost`, `enforce/connection`,
+>   `entitlements`, `admin/entitlements`, `admin/enforce-connection`, `fabric` (GET + POST)
+>   and `workspace/tasks`. None of them is a per-provider connector, so the §1 conclusion
+>   stands.
+> - **Issues filed from §7:** ServiceNow/Jira hand-off → #180; connector honesty relabel → #182
+>   (both open); cost attribution → #181 (closed by #183).
+
 > **Bottom line.** GenVeris has a genuinely built, live, **single-provider (Anthropic)**
 > governance/enforcement gateway with a real DLP engine, tamper-evident audit chain, HITL
 > gating, capability tokens, an Evidence Fabric, and real Entra/Google SSO options. But the
