@@ -20,11 +20,12 @@
    Visual language: a dark "bridge" that the classic light workspace opens
    into. Brand-derived — the blue/silver ribbon and the four-pointed star of
    the GenVeris emblem become the living Governance Core. */
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, useReducer } from "react";
 import {
   ShieldAlert, Activity, Gavel, Siren, Timer, FileWarning, Wallet, Scale, Mic, MicOff,
   ArrowUp, LayoutGrid, Sparkles, X, ChevronRight, LogOut, Languages, Orbit, Bot, Link2,
   CircleCheck, Layers, Radar, Workflow, Boxes, ArrowLeft, ShieldCheck, Command,
+  Pause, Play, Power, Crosshair, Zap, FlaskConical,
 } from "lucide-react";
 import { HITL, ROLES } from "./core";
 import { deriveBurningIssues, issueSummary, greetingFor, routeIntent } from "../../lib/burning-issues";
@@ -39,6 +40,8 @@ import { AGENT_REGISTRY } from "../../lib/agent-runtime";
 import { INFERENCE_EVENTS, chainIntact } from "../../lib/inference-log";
 import { askGateway } from "../../lib/gateway-client";
 import { honestSimulatedReply } from "../../lib/assistant-honesty";
+import { evaluateAction, ROUTINE, ATTACKS, STAGES, initialFleet, applyEvent, agentStatus, breakerFor, pauseAgent, resumeAgent } from "../../lib/live-showcase";
+import { AI_AGENTS } from "../../lib/agent-registry";
 
 /* ── tokens ─────────────────────────────────────────────────────────────── */
 const XC = {
@@ -74,6 +77,14 @@ const COPY = {
     inFlight: "Initiatives in flight", openRisks: "High+ risks open", approvals: "Your decisions", agentsOn: "Agents available", burningN: "Burning now",
     mic: "Speak your question", micStop: "Stop listening", send: "Ask", suggestions: "Try",
     sevChip: (cr, hi) => `${cr} critical · ${hi} high`, workspace: r => `${r} workspace`,
+    tabOverview: "Overview", tabLive: "Live Security",
+    liveTag: "Live", liveNote: "Live simulation — synthetic agent traffic. Every verdict is computed in real time by GenVeris' policy, authority, egress, runtime, output and circuit-breaker engines.",
+    pause: "Pause stream", play: "Resume stream", processed: "Actions governed", allowedN: "Allowed", maskedN: "Masked", escalatedN: "Sent to a human", blockedN: "Threats blocked", suspendedN: "Agents suspended",
+    pipeline: "Security pipeline · in action", fleet: "Agent fleet · live monitor", lab: "Attack lab", labNote: "Fire an attack — the real engines decide what happens.",
+    own: "Test your own prompt", ownPh: "Type a prompt an agent might send…", runIt: "Run through the pipeline", stream: "Enforcement stream",
+    killSwitch: "Pause agent", resume: "Resume · human decision", decidedBy: "Decided at", reasonL: "Why", waiting: "Waiting for the first action…",
+    status: { idle: "Idle", running: "Running", downscoped: "Downscoped", suspended: "Suspended by breaker", paused: "Paused by human" },
+    watchLive: "Watch security live", ribbon: (a, b, e) => `${a} agents monitored · ${b} threats blocked · ${e} sent to humans`, lastL: "Latest",
   },
   ar: {
     eyebrow: "ذكاء فيرِس", help: "كيف يمكنني مساعدتك؟",
@@ -92,6 +103,14 @@ const COPY = {
     inFlight: "مبادرات قيد التنفيذ", openRisks: "مخاطر عالية مفتوحة", approvals: "قراراتك", agentsOn: "وكلاء متاحون", burningN: "ملحّة الآن",
     mic: "تحدّث بسؤالك", micStop: "إيقاف الاستماع", send: "اسأل", suggestions: "جرّب",
     sevChip: (cr, hi) => `${cr} حرجة · ${hi} عالية`, workspace: r => `مساحة عمل ${r}`,
+    tabOverview: "نظرة عامة", tabLive: "الأمن المباشر",
+    liveTag: "مباشر", liveNote: "محاكاة مباشرة — حركة وكلاء اصطناعية. كل قرار يُحسب لحظياً بمحركات السياسة والصلاحيات والخروج والتشغيل والمخرجات وقاطع الدائرة في GenVeris.",
+    pause: "إيقاف البث", play: "استئناف البث", processed: "إجراءات محوكَمة", allowedN: "مسموح", maskedN: "مقنَّع", escalatedN: "أُحيل إلى إنسان", blockedN: "تهديدات محظورة", suspendedN: "وكلاء موقوفون",
+    pipeline: "خط الأمان · قيد التنفيذ", fleet: "أسطول الوكلاء · مراقبة مباشرة", lab: "مختبر الهجمات", labNote: "أطلق هجوماً — المحركات الحقيقية تقرر النتيجة.",
+    own: "اختبر طلبك الخاص", ownPh: "اكتب طلباً قد يرسله وكيل…", runIt: "مرّره عبر خط الأمان", stream: "سجل التنفيذ",
+    killSwitch: "إيقاف الوكيل", resume: "استئناف (قرار بشري)", decidedBy: "تقرر عند", reasonL: "السبب", waiting: "بانتظار أول إجراء…",
+    status: { idle: "خامل", running: "يعمل", downscoped: "صلاحيات مقلَّصة", suspended: "أوقفه القاطع", paused: "أوقفه إنسان" },
+    watchLive: "شاهد الأمن مباشرة", ribbon: (a, b, e) => `${a} وكلاء تحت المراقبة · ${b} تهديدات محظورة · ${e} أُحيلت إلى البشر`, lastL: "الأحدث",
   },
 };
 
@@ -227,12 +246,42 @@ const CSS = `
 @keyframes gx-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .gx-pulse{animation:gx-pulse 1.8s ease-in-out infinite}
 .gx-rise{animation:gx-rise .6s cubic-bezier(.2,.7,.2,1) both}
-@media (max-width:1200px){.gx-deck{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.gx-deck .gx-mid{grid-column:1/-1;order:-1}}
+.gx-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:14px;border:1px solid ${XC.line};background:rgba(8,20,42,.7)}
+.gx-tabs button{height:34px;padding:0 14px;border-radius:10px;border:0;background:transparent;color:${XC.silver};font:700 13px ${SANS};cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.gx-tabs button[aria-selected="true"]{background:linear-gradient(135deg,#2F7BFF,#1F55D8);color:#fff;box-shadow:0 6px 18px rgba(47,123,255,.35)}
+.gx-live{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;margin-top:16px;align-items:start}
+.gx-banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px;margin-top:16px}
+.gx-counters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:12px}
+.gx-pipeline{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;position:relative;margin:6px 0 4px}
+.gx-stage{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;position:relative;min-width:0}
+.gx-stage::after{content:"";position:absolute;top:22px;inset-inline-start:calc(50% + 24px);width:calc(100% - 48px);height:2px;background:${XC.line}}
+.gx-stage:last-child::after{display:none}
+.gx-stage .node{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;border:1px solid ${XC.line};background:rgba(9,22,44,.85);color:${XC.mute};
+  font:800 11px ${MONO};position:relative;z-index:1;transition:none}
+.gx-stage .lbl{font-size:11.5px;font-weight:700;color:${XC.silver};line-height:1.2}
+.gx-stage .dec{font:700 11px ${MONO};text-transform:uppercase;letter-spacing:.06em}
+.gx-light{animation:gx-light .5s ease both}
+@keyframes gx-light{from{opacity:.25;transform:scale(.86)}to{opacity:1;transform:none}}
+.gx-flowbar{position:absolute;top:21px;height:4px;border-radius:4px;inset-inline-start:6%;background:linear-gradient(90deg,transparent,${XC.cyan},transparent);width:12%;animation:gx-sweep 1.2s ease-out both;pointer-events:none}
+@keyframes gx-sweep{from{inset-inline-start:2%;opacity:1}to{inset-inline-start:86%;opacity:0}}
+.gx-fleet{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.gx-agent{padding:14px;display:flex;flex-direction:column;gap:8px}
+.gx-ticks{display:flex;gap:2px;height:16px;align-items:flex-end}
+.gx-ticks i{flex:1;border-radius:2px;min-width:3px}
+.gx-attack{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.gx-attack button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,84,112,.28);
+  background:rgba(40,10,22,.35);color:${XC.ink};cursor:pointer;text-align:start;font:700 12.5px ${SANS}}
+.gx-attack button:hover{border-color:${XC.crit};box-shadow:0 0 18px rgba(255,84,112,.25)}
+.gx-attack button span{font:500 11px ${SANS};color:${XC.mute}}
+.gx-field{height:38px;border-radius:10px;border:1px solid ${XC.line};background:rgba(8,20,42,.8);color:${XC.ink};font:500 13px ${SANS};padding:0 10px;min-width:0}
+.gx-ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 18px;margin-top:22px}
+@media (max-width:1200px){.gx-deck{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.gx-deck .gx-mid{grid-column:1/-1;order:-1}.gx-live{grid-template-columns:minmax(0,1fr)}.gx-counters{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:768px){
   .gx-wrap{padding:0 16px 32px}.gx-hud{padding:12px 16px;margin:0 -16px;gap:8px}.gx-hud img{height:26px}
   .gx-hide-sm{display:none!important}.gx-deck{grid-template-columns:minmax(0,1fr)}
   .gx-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-pipe{overflow-x:auto;grid-template-columns:repeat(13,64px);padding-bottom:6px}
   .gx-node .orb{width:44px;height:44px}.gx-node .mv{display:none}.gx-node .nm{font-size:11px}
+  .gx-counters{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-pipeline{overflow-x:auto;grid-template-columns:repeat(8,84px);padding-bottom:6px}
 }
 @media (prefers-reduced-motion:reduce){.gx-root *{animation:none!important;transition:none!important}}
 `;
@@ -484,7 +533,7 @@ function IssueCard({ i, c, onOpen, onAsk, idx }) {
 }
 
 /* ── Intelligence Home ──────────────────────────────────────────────────── */
-function IntelligenceHome({ c, data, firstName, role, onOpen, onDeck, onClassic, ask, skipIntro, setSkipIntro }) {
+function IntelligenceHome({ c, data, firstName, role, onOpen, onDeck, onClassic, ask, skipIntro, setSkipIntro, live, onWatchLive }) {
   const { q, setQ, answer, setAnswer, busy, submit } = ask;
   const n = data.issues.length;
   const [hour, setHour] = useState(null);
@@ -516,6 +565,8 @@ function IntelligenceHome({ c, data, firstName, role, onOpen, onDeck, onClassic,
       {n > 0
         ? <div className="gx-issues">{data.issues.map((i, idx) => <IssueCard key={i.id} i={i} c={c} idx={idx} onOpen={onOpen} onAsk={submit} />)}</div>
         : <div className="gx-panel gx-empty"><CircleCheck size={26} color={XC.ok} aria-hidden="true" /><div style={{ fontFamily: SERIF, fontSize: 24, color: XC.ink, margin: "8px 0 6px" }}>{c.allClear}</div>{c.allClearSub}</div>}
+
+      {live && <LiveRibbon c={c} live={live} onWatch={onWatchLive} />}
 
       <div className="gx-cta">
         <button type="button" className="gx-btn gx-btn-primary" onClick={onDeck}><Orbit size={18} aria-hidden="true" />{c.enterDeck}</button>
@@ -828,6 +879,247 @@ function CommandDeck({ c, data, onOpen, ask }) {
   );
 }
 
+/* ── Live security showcase ─────────────────────────────────────────────── */
+const OUTCOME_TONE = { allow: XC.ok, mask: XC.med, flag: XC.med, escalate: XC.gold, block: XC.crit, logged: XC.cyan, skipped: "rgba(131,146,174,.45)" };
+const STATUS_TONE = { idle: XC.mute, running: XC.ok, downscoped: XC.high, suspended: XC.crit, paused: XC.gold };
+const ATTACK_KEYS = Object.keys(ATTACKS);
+
+function emitOne(st, action, now, source) {
+  const ag = st.fleet[action.agent];
+  const ev = evaluateAction(action, { history: ag?.history || [], signals: ag?.signals || [], paused: !!ag?.paused });
+  const e = { ...ev, seq: st.seq + 1, ts: now, source, label: action.label || null };
+  const k = st.counts;
+  const counts = { ...k, total: k.total + 1, [e.outcome]: (k[e.outcome] || 0) + 1, byStage: { ...k.byStage, [e.decidedAt]: (k.byStage[e.decidedAt] || 0) + (e.outcome === "block" || e.outcome === "escalate" ? 1 : 0) } };
+  // A result the user fired stays on the pipeline for a few ticks; background
+  // traffic keeps flowing into the counters and the stream meanwhile.
+  const keep = source === "auto" && st.hold > 0 && st.current;
+  return { ...st, seq: e.seq, fleet: applyEvent(st.fleet, e), events: [...st.events, e].slice(-60), counts, current: keep ? st.current : e };
+}
+function emitBurst(st, action, now, source) {
+  let s2 = st;
+  for (let i = 0; i < (action.burst || 1); i++) s2 = emitOne(s2, action, now, source);
+  return s2;
+}
+function liveReducer(st, act) {
+  switch (act.type) {
+    case "tick": {
+      const t = st.tick + 1;
+      st = { ...st, hold: Math.max(0, (st.hold || 0) - 1) };
+      if (t % 4 === 2) {
+        // Rotate attacks, skipping agents that are already stopped (their
+        // routine traffic still shows the breaker holding them).
+        for (let i = 0; i < ATTACK_KEYS.length; i++) {
+          const key = ATTACK_KEYS[(st.attackIdx + i) % ATTACK_KEYS.length];
+          const a = ATTACKS[key];
+          const status = agentStatus(st.fleet[a.agent]);
+          if (status !== "suspended" && status !== "paused") return { ...emitBurst(st, a, act.now, "auto"), tick: t, attackIdx: st.attackIdx + i + 1 };
+        }
+      }
+      return { ...emitOne(st, ROUTINE[st.routineIdx % ROUTINE.length], act.now, "auto"), tick: t, routineIdx: st.routineIdx + 1 };
+    }
+    case "emit": return { ...emitBurst({ ...st, hold: 0 }, act.action, act.now, act.source || "you"), hold: 3 };
+    case "pause": return { ...st, fleet: pauseAgent(st.fleet, act.id) };
+    case "resume": return { ...st, fleet: resumeAgent(st.fleet, act.id) };
+    case "running": return { ...st, running: act.value };
+    default: return st;
+  }
+}
+function useLiveShowcase() {
+  const [st, dispatch] = useReducer(liveReducer, null, () => ({
+    fleet: initialFleet(), events: [], seq: 0, tick: 0, routineIdx: 0, attackIdx: 0, running: true, current: null, hold: 0,
+    counts: { total: 0, allow: 0, mask: 0, flag: 0, escalate: 0, block: 0, byStage: {} },
+  }));
+  useEffect(() => {
+    if (!st.running) return;
+    const fire = () => { if (typeof document === "undefined" || !document.hidden) dispatch({ type: "tick", now: new Date().toISOString() }); };
+    const first = setTimeout(fire, 400);
+    const id = setInterval(fire, 1700);
+    return () => { clearTimeout(first); clearInterval(id); };
+  }, [st.running]);
+  const emit = useCallback((action, source) => dispatch({ type: "emit", action, source, now: new Date().toISOString() }), []);
+  const suspended = Object.values(st.fleet).filter(a => { const s = agentStatus(a); return s === "suspended" || s === "paused"; }).length;
+  return { st, dispatch, emit, suspended };
+}
+
+function LiveBadge({ c }) {
+  return <span className="gx-chip" style={{ color: XC.crit, borderColor: "rgba(255,84,112,.45)" }}><span className="gx-dot gx-pulse" style={{ background: XC.crit }} />{c.liveTag}</span>;
+}
+
+function Pipeline({ c, ev, counts }) {
+  return (
+    <section className="gx-panel gx-card">
+      <div className="gx-card-h"><ShieldCheck size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.pipeline}</span><span className="gx-spacer" />
+        {ev && <span className="gx-mono" style={{ fontSize: 12, color: XC.mute }}>#{ev.seq}</span>}</div>
+      <div className="gx-pipeline" role="list" aria-label={c.pipeline}>
+        {ev && <span key={`sweep-${ev.seq}`} className="gx-flowbar" aria-hidden="true" />}
+        {STAGES.map((stg, i) => {
+          const s = ev ? ev.stages.find(x => x.id === stg.id) : null;
+          const d = s ? s.decision : null;
+          const col = d ? OUTCOME_TONE[d] : XC.mute;
+          const decisive = ev && ev.decidedAt === stg.id && (d === "block" || d === "escalate" || d === "mask");
+          return (
+            <div key={stg.id} className="gx-stage" role="listitem" title={s ? `${stg.label}: ${s.reason}` : stg.label}>
+              <span key={`${ev ? ev.seq : 0}-${stg.id}`} className={`node ${ev ? "gx-light" : ""}`}
+                style={{ animationDelay: `${i * 110}ms`, borderColor: d && d !== "skipped" ? col : undefined, color: col,
+                  boxShadow: decisive ? `0 0 0 2px ${col}, 0 0 26px ${col}` : d && d !== "skipped" ? `0 0 14px ${col}55` : "none" }}>
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="lbl">{stg.short}</span>
+              <span className="dec" style={{ color: col }}>{d ? (d === "skipped" ? "—" : d) : "·"}</span>
+              {counts.byStage[stg.id] ? <span className="gx-mono" style={{ fontSize: 11, color: XC.mute }}>{counts.byStage[stg.id]} stopped</span> : <span style={{ height: 14 }} />}
+            </div>
+          );
+        })}
+      </div>
+      {ev ? (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 14, alignItems: "start", marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${XC.line}` }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, color: XC.silver }}><b style={{ color: XC.ink }}>{ev.agentName}</b> → <span className="gx-mono">{ev.tool}</span>{ev.dest ? <> → <span className="gx-mono">{ev.dest}</span></> : null}
+              {ev.source === "you" ? <span className="gx-chip" style={{ height: 22, fontSize: 11, marginInlineStart: 8, color: XC.cyan }}>you</span> : null}</div>
+            <div className="gx-mono" style={{ fontSize: 12.5, color: XC.ink, marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>“{ev.outcome === "block" && ev.decidedAt === "dlp" ? "[withheld at the boundary]" : ev.masked}”</div>
+            <div style={{ fontSize: 13, color: XC.silver, marginTop: 8 }}><span style={{ color: XC.mute }}>{c.reasonL}: </span>{ev.reason}{ev.clause ? <span style={{ color: XC.mute }}> · {ev.clause}</span> : null}</div>
+          </div>
+          <div style={{ textAlign: "end" }}>
+            <span className="gx-chip" style={{ color: OUTCOME_TONE[ev.outcome], borderColor: `${OUTCOME_TONE[ev.outcome]}88`, fontSize: 13, height: 32 }}>{ev.outcome.toUpperCase()}</span>
+            <div style={{ fontSize: 11.5, color: XC.mute, marginTop: 6 }}>{c.decidedBy} {STAGES.find(s => s.id === ev.decidedAt)?.label}</div>
+            <div className="gx-mono" style={{ fontSize: 11.5, color: XC.mute, marginTop: 2 }}>{ev.dataClass}</div>
+          </div>
+        </div>
+      ) : <div className="gx-empty" style={{ padding: 12 }}>{c.waiting}</div>}
+    </section>
+  );
+}
+
+function FleetMonitor({ c, fleet, dispatch }) {
+  return (
+    <section className="gx-panel gx-card">
+      <div className="gx-card-h"><Bot size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.fleet}</span></div>
+      <div className="gx-fleet">
+        {AI_AGENTS.map(a => {
+          const s = fleet[a.id]; const status = agentStatus(s); const b = breakerFor(s);
+          const tone = STATUS_TONE[status];
+          const stopped = status === "suspended" || status === "paused";
+          return (
+            <article key={a.id} className="gx-panel gx-agent" style={stopped ? { borderColor: `${tone}88`, boxShadow: `0 0 0 1px ${tone}33, 0 0 30px ${tone}22` } : null}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={`gx-dot ${status === "running" ? "gx-pulse" : ""}`} style={{ background: tone }} />
+                <b style={{ fontSize: 13.5, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</b>
+              </div>
+              <div style={{ fontSize: 12, color: tone, fontWeight: 700 }}>{c.status[status]}</div>
+              <div style={{ fontSize: 12, color: XC.mute, minHeight: 16 }}>{s.last ? <><span className="gx-mono" style={{ color: XC.silver }}>{s.last.tool}</span> · <span style={{ color: OUTCOME_TONE[s.last.outcome] }}>{s.last.outcome}</span></> : a.owner}</div>
+              <div className="gx-ticks" aria-label="Recent decisions">{Array.from({ length: 24 }).map((_, i) => {
+                const o = s.recent[s.recent.length - 24 + i];
+                return <i key={i} style={{ height: o ? (o === "block" ? "100%" : o === "escalate" ? "80%" : o === "mask" ? "60%" : "40%") : "15%", background: o ? OUTCOME_TONE[o] : "rgba(110,160,255,.12)" }} />;
+              })}</div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: XC.mute, marginBottom: 4 }}><span>Breaker · {b.stateLabel}</span><span className="gx-mono">{b.score}</span></div>
+                <div className="gx-bar"><i style={{ width: `${b.score}%`, background: b.score >= 65 ? XC.crit : b.score >= 40 ? XC.high : XC.ok }} /></div>
+              </div>
+              <div style={{ fontSize: 11.5, color: XC.mute, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><span className="gx-mono" style={{ color: XC.silver }}>{s.calls}</span> calls · <span className="gx-mono" style={{ color: s.blocked ? XC.crit : XC.silver }}>{s.blocked}</span> blocked · <span className="gx-mono" style={{ color: s.escalated ? XC.gold : XC.silver }}>{s.escalated}</span> escalated</div>
+              {stopped
+                ? <button type="button" className="gx-btn gx-btn-primary" style={{ height: 32, fontSize: 12 }} onClick={() => dispatch({ type: "resume", id: a.id })} title={c.resume}><Play size={13} aria-hidden="true" /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.resume}</span></button>
+                : <button type="button" className="gx-btn" style={{ height: 32, fontSize: 12 }} onClick={() => dispatch({ type: "pause", id: a.id })}><Power size={13} aria-hidden="true" />{c.killSwitch}</button>}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function AttackLab({ c, emit }) {
+  const [agentId, setAgentId] = useState("agent-crc");
+  const agent = AI_AGENTS.find(a => a.id === agentId) || AI_AGENTS[0];
+  const [tool, setTool] = useState("draft_response");
+  const [text, setText] = useState("");
+  useEffect(() => { if (!agent.tools.some(t => t.name === tool)) setTool(agent.tools[0]?.name || ""); }, [agentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <section className="gx-panel gx-card">
+      <div className="gx-card-h"><Crosshair size={15} color={XC.crit} aria-hidden="true" /><span className="gx-label">{c.lab}</span></div>
+      <div style={{ fontSize: 12.5, color: XC.mute, marginBottom: 10 }}>{c.labNote}</div>
+      <div className="gx-attack">
+        {ATTACK_KEYS.map(k => <button key={k} type="button" onClick={() => emit(ATTACKS[k], "you")}><span style={{ color: XC.crit, font: `800 11px ${MONO}`, letterSpacing: ".08em", textTransform: "uppercase" }}><Zap size={11} aria-hidden="true" /> fire</span>{ATTACKS[k].label}<span>{AI_AGENTS.find(a => a.id === ATTACKS[k].agent)?.name}</span></button>)}
+      </div>
+      <form onSubmit={e => { e.preventDefault(); if (text.trim()) { emit({ agent: agentId, tool, prompt: text.slice(0, 2000) }, "you"); } }} style={{ marginTop: 14, display: "grid", gap: 8 }}>
+        <div className="gx-label" style={{ display: "flex", alignItems: "center", gap: 6 }}><FlaskConical size={13} aria-hidden="true" />{c.own}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
+          <select className="gx-field" value={agentId} onChange={e => setAgentId(e.target.value)} aria-label="Agent">{AI_AGENTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+          <select className="gx-field" value={tool} onChange={e => setTool(e.target.value)} aria-label="Tool">{agent.tools.map(t => <option key={t.name} value={t.name}>{t.name}{t.granted ? "" : " (not granted)"}</option>)}</select>
+        </div>
+        <input className="gx-field" value={text} onChange={e => setText(e.target.value)} placeholder={c.ownPh} maxLength={2000} aria-label={c.own} />
+        <button type="submit" className="gx-btn gx-btn-primary" disabled={!text.trim()} style={{ opacity: text.trim() ? 1 : .55 }}>{c.runIt}<ChevronRight size={14} aria-hidden="true" /></button>
+      </form>
+    </section>
+  );
+}
+
+function EnforcementStream({ c, events }) {
+  const rows = events.slice(-12).reverse();
+  return (
+    <section className="gx-panel gx-card">
+      <div className="gx-card-h"><Activity size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.stream}</span></div>
+      {rows.length ? rows.map(e => (
+        <div key={e.seq} className="gx-row" style={{ alignItems: "flex-start" }}>
+          <span className="gx-mono" style={{ fontSize: 11.5, color: XC.mute, width: 58, flex: "none" }}>{new Date(e.ts).toLocaleTimeString("en-GB")}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.label || e.tool} <span style={{ color: XC.mute }}>· {e.agentName}</span></span>
+            <span style={{ display: "block", fontSize: 12, color: XC.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{STAGES.find(s => s.id === e.decidedAt)?.short} — {e.reason}</span>
+          </span>
+          <span className="gx-chip" style={{ height: 22, fontSize: 11, padding: "0 8px", color: OUTCOME_TONE[e.outcome] }}>{e.outcome}</span>
+        </div>
+      )) : <div className="gx-empty" style={{ padding: 12 }}>{c.waiting}</div>}
+    </section>
+  );
+}
+
+function LiveSecurity({ c, live }) {
+  const { st, dispatch, emit, suspended } = live;
+  const k = st.counts;
+  const tiles = [
+    [c.processed, k.total, XC.electric], [c.allowedN, k.allow, XC.ok], [c.maskedN, k.mask + k.flag, XC.med],
+    [c.escalatedN, k.escalate, XC.gold], [c.blockedN, k.block, XC.crit], [c.suspendedN, suspended, suspended ? XC.crit : XC.ok],
+  ];
+  return (
+    <>
+      <section className="gx-panel gx-banner" aria-live="off">
+        <LiveBadge c={c} />
+        <span style={{ fontSize: 13, color: XC.silver, flex: 1, minWidth: 240 }}>{c.liveNote}</span>
+        <button type="button" className="gx-btn" onClick={() => dispatch({ type: "running", value: !st.running })}>
+          {st.running ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}{st.running ? c.pause : c.play}
+        </button>
+      </section>
+      <div className="gx-counters">
+        {tiles.map(([label, v, col]) => <div key={label} className="gx-panel gx-kpi"><span style={{ fontSize: 11.5, color: XC.mute }}>{label}</span><b style={{ color: col }}>{v}</b></div>)}
+      </div>
+      <div className="gx-live">
+        <div className="gx-col">
+          <Pipeline c={c} ev={st.current} counts={k} />
+          <FleetMonitor c={c} fleet={st.fleet} dispatch={dispatch} />
+        </div>
+        <div className="gx-col">
+          <AttackLab c={c} emit={emit} />
+          <EnforcementStream c={c} events={st.events} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function LiveRibbon({ c, live, onWatch }) {
+  const { st, suspended } = live;
+  const last = [...st.events].reverse().find(e => e.outcome === "block" || e.outcome === "escalate");
+  return (
+    <section className="gx-panel gx-ribbon">
+      <LiveBadge c={c} />
+      <span style={{ fontSize: 14, fontWeight: 700 }}>{c.ribbon(AI_AGENTS.length, st.counts.block, st.counts.escalate)}</span>
+      {suspended > 0 && <span className="gx-chip" style={{ color: XC.crit }}>{suspended} {c.suspendedN.toLowerCase()}</span>}
+      {last && <span style={{ fontSize: 12.5, color: XC.mute, flex: 1, minWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.lastL}: <span style={{ color: OUTCOME_TONE[last.outcome] }}>{last.outcome}</span> · {last.label || last.tool} · {last.agentName}</span>}
+      <span className="gx-spacer" />
+      <button type="button" className="gx-btn gx-btn-primary" onClick={onWatch}><ShieldCheck size={15} aria-hidden="true" />{c.watchLive}<ChevronRight size={14} aria-hidden="true" /></button>
+    </section>
+  );
+}
+
 /* ── shell ──────────────────────────────────────────────────────────────── */
 export function IntelligenceExperience({
   mode = "home", role = "caio", userName = "", seeded = true, lang = "en", setLang = () => {},
@@ -836,6 +1128,8 @@ export function IntelligenceExperience({
   useStyles();
   const c = COPY[lang] || COPY.en;
   const data = useExperienceData({ role, seeded });
+  const live = useLiveShowcase();
+  const [deckView, setDeckView] = useState("overview");
   const [q, setQ] = useState("");
   const [answer, setAnswer] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -862,21 +1156,25 @@ export function IntelligenceExperience({
   const ask = { q, setQ, answer, setAnswer, busy, submit, lang };
   const firstName = String(userName || "").trim().split(/\s+/)[0] || "";
   return (
-    <div ref={rootRef} className="gx-root" dir={lang === "ar" ? "rtl" : "ltr"} lang={lang} data-testid={`gx-${mode}`}>
+    <div ref={rootRef} className="gx-root" dir={lang === "ar" ? "rtl" : "ltr"} lang={lang} data-testid={`gx-${mode}`} data-deck-view={deckView}>
       <div className="gx-wrap">
         <Hud c={c} role={role} seeded={seeded} liveFeed={data.liveFeed} lang={lang} setLang={setLang} mode={mode}
           onHome={() => onMode("home")} onDeck={() => onMode("deck")} onClassic={onClassic} onSignOut={onSignOut} now={now} />
         {mode === "deck"
           ? <>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 22 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 22, flexWrap: "wrap" }}>
                 <button type="button" className="gx-btn gx-btn-icon" onClick={() => onMode("home")} aria-label={c.home}><ArrowLeft size={16} aria-hidden="true" /></button>
                 <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: "clamp(28px,3.4vw,40px)", margin: 0 }}>{c.deck}</h1>
-                <span className="gx-rule" />
+                <span className="gx-rule gx-hide-sm" />
+                <div className="gx-tabs" role="tablist" aria-label={c.deck}>
+                  <button type="button" role="tab" aria-selected={deckView === "overview"} onClick={() => setDeckView("overview")}><Orbit size={14} aria-hidden="true" />{c.tabOverview}</button>
+                  <button type="button" role="tab" aria-selected={deckView === "live"} onClick={() => setDeckView("live")}><span className="gx-dot gx-pulse" style={{ background: XC.crit }} />{c.tabLive}</button>
+                </div>
               </div>
-              <CommandDeck c={c} data={data} onOpen={onOpen} ask={ask} />
+              {deckView === "live" ? <LiveSecurity c={c} live={live} /> : <CommandDeck c={c} data={data} onOpen={onOpen} ask={ask} />}
             </>
           : <IntelligenceHome c={c} data={data} firstName={firstName} role={role} onOpen={onOpen} onDeck={() => onMode("deck")} onClassic={onClassic}
-              ask={ask} skipIntro={skipIntro} setSkipIntro={setSkipIntro} />}
+              ask={ask} skipIntro={skipIntro} setSkipIntro={setSkipIntro} live={live} onWatchLive={() => { setDeckView("live"); onMode("deck"); }} />}
       </div>
     </div>
   );

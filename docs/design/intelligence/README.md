@@ -41,6 +41,44 @@ Sign in ──► Intelligence Home ──► Command Deck
 - **Right:** AI spend this month on a gauge, control coverage (EU AI Act, ISO/IEC 42001, NIST AI RMF, plus Govern/Map/Measure/Manage), and the governed agents with their action class.
 - **Centre, lower:** the ask dock, the 13-phase initiative lifecycle (occupied and blocked phases highlighted) and the evidence chain of custody (hash-linked blocks, with "Chain verified" from the real chain check).
 
+## Live Security (`07`, `08`, `09`): Command Deck → Live Security tab
+This tab answers the request for **live monitoring of the agents** and **security being applied live**.
+
+- **Live banner and counters:** actions governed, allowed, masked, sent to a human, threats blocked and agents suspended. A Pause/Resume control stops and restarts the stream.
+- **Security pipeline in action:** each action lights up the 8 enforcement stages in the order the gateway applies them:
+  Circuit breaker → Input sanitiser → Classify & DLP → Authority & HITL → Egress → Runtime → Output guard → Article 12 log.
+  - The stage that decided glows.
+  - Stages after it are marked *not reached*.
+  - The card shows the agent, the tool, the (masked) prompt, the reason and the **policy clause** that applied.
+- **Agent fleet, live monitor:** one card per agent showing:
+  - status (Running / Downscoped / **Suspended by breaker** / **Paused by human**);
+  - its last action and outcome, and a strip of its last 24 decisions;
+  - its circuit-breaker score and state;
+  - its counters;
+  - a **Pause agent** kill switch, and **Resume · human decision** when the agent is stopped.
+- **Attack lab:** buttons fire a prompt injection, credential leak, card data, exfiltration, SSRF, tool overreach, high-stakes decision, runaway loop or PII in model output. **Test your own prompt** runs any text as any agent and tool through the same pipeline. A result you fire stays on the pipeline for about 5 seconds.
+- **Enforcement stream:** every governed action, with the deciding stage and the reason.
+- **Home ribbon:** a live line ("6 agents monitored · N threats blocked · M sent to humans", plus the latest stop) and **Watch security live**.
+
+**What is live and what is synthetic, stated on screen:**
+- The *traffic* is synthetic, because a demo has no production agents.
+- *Every verdict* is computed in real time by the platform's real engines, run in order by `lib/live-showcase.js`:
+
+| Stage | Engine |
+|---|---|
+| DLP | `evaluateRules` / `classify` |
+| Input sanitiser | `sanitizeInput` |
+| Authority & HITL | `capabilityCheck` + `requiresApproval` |
+| Egress | `egressDecision` |
+| Runtime | `detectLoop` |
+| Output guard | `validateResponse` + `moderateOutput` |
+| Circuit breaker | `computeBreakerSession` |
+
+- Changing a rule or a grant changes what the showcase shows.
+- The circuit breaker really suspends an agent: injection plus exfiltration takes the score past 65. That agent can't act again until a human resumes it.
+- Risk signals age out after sustained clean behaviour.
+- Tests: `scripts/live-showcase-test.mjs` (29 checks, `npm run test:liveshow`, in CI).
+
 ## Design decisions
 
 - **Dark for these two screens only.** The immersive screens use a dark theme derived from the brand (the blue and silver ribbon and the four-pointed star). The classic workspace stays **light**, as `design_Philosophy.md` requires.
@@ -58,4 +96,5 @@ Sign in ──► Intelligence Home ──► Command Deck
 - `components/platform/intelligence.jsx`: the experience (Home, Deck, Governance Core canvas, panels).
 - `lib/burning-issues.js`: pure ranking, role filters, greeting and intent routing.
 - `scripts/burning-issues-test.mjs`: 46 checks (`npm run test:burning`, in CI).
+- `lib/live-showcase.js` + `scripts/live-showcase-test.mjs`: the live enforcement pipeline and fleet reducer (29 checks).
 - `components/GenVerisPlatform.jsx`: experience state, entry from sign-in, the ◆ Intelligence pill and the skip preference.
