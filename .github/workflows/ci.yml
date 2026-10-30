@@ -118,6 +118,9 @@ jobs:
       - name: Live security showcase tests (real engines decide every verdict, breaker suspends until a human resumes)
         run: npm run test:liveshow
 
+      - name: Estate map tests (Command Deck — relationships only from recorded keys, impact traversal)
+        run: npm run test:estate
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 
