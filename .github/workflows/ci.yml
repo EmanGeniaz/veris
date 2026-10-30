@@ -112,6 +112,12 @@ jobs:
       - name: Governed agent runtime tests (#182 §08 — envelope, least-privilege, HITL, scheduler)
         run: npm run test:agents
 
+      - name: Burning issues tests (Intelligence Home — no invented issues, role lenses, ranking, intent routing)
+        run: npm run test:burning
+
+      - name: Live security showcase tests (real engines decide every verdict, breaker suspends until a human resumes)
+        run: npm run test:liveshow
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 

@@ -12,7 +12,7 @@
      `e.message`, `String(e)`, stack traces, file paths, or Prisma/provider
      errors in a response body. */
 import { NextResponse } from "next/server";
-import type { ZodType, ZodTypeDef } from "zod";
+import type { ZodType } from "zod";
 import { clientIp, limitFor, rateLimit, rateLimitDisabled, type Tier } from "@/lib/rate-limit";
 
 export function tooManyRequests(retryAfterSec: number, headers: Record<string, string> = {}) {
@@ -41,7 +41,7 @@ export type Parsed<T> = { ok: true; data: T } | { ok: false; res: NextResponse }
 /* Validation issues name the offending field and the rule it broke — they
    describe the caller's input, never server internals, so they are safe to
    return. */
-export function validate<T>(schema: ZodType<T, ZodTypeDef, unknown>, input: unknown, headers: Record<string, string> = {}): Parsed<T> {
+export function validate<T>(schema: ZodType<T, unknown>, input: unknown, headers: Record<string, string> = {}): Parsed<T> {
   const r = schema.safeParse(input);
   if (r.success) return { ok: true, data: r.data };
   const issues = r.error.issues.slice(0, 10).map((i) => ({ path: i.path.join(".") || "(body)", message: i.message }));
@@ -75,7 +75,7 @@ async function readCapped(req: Request, maxBytes: number): Promise<string | null
 
 export async function parseJson<T>(
   req: Request,
-  schema: ZodType<T, ZodTypeDef, unknown>,
+  schema: ZodType<T, unknown>,
   opts: { maxBytes?: number; headers?: Record<string, string> } = {},
 ): Promise<Parsed<T>> {
   const headers = opts.headers ?? {};
