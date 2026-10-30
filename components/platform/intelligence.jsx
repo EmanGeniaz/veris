@@ -25,17 +25,18 @@ import {
   ShieldAlert, Activity, Gavel, Siren, Timer, FileWarning, Wallet, Scale, Mic, MicOff,
   ArrowUp, LayoutGrid, Sparkles, X, ChevronRight, LogOut, Languages, Orbit, Bot, Link2,
   CircleCheck, Layers, Radar, Workflow, Boxes, ArrowLeft, ShieldCheck, Command,
-  Pause, Play, Power, Crosshair, Zap, FlaskConical,
+  Pause, Play, Power, Crosshair, Zap, FlaskConical, ChevronDown, Network, FileSearch, ListChecks,
 } from "lucide-react";
 import { HITL, ROLES } from "./core";
-import { deriveBurningIssues, issueSummary, greetingFor, routeIntent } from "../../lib/burning-issues";
+import { deriveBurningIssues, issueSummary, greetingFor, routeIntent, briefFor } from "../../lib/burning-issues";
+import { buildEstate, impactOf, governanceOf, LAYERS } from "../../lib/estate-map";
 import { riskRegister, kriRegister, acInitiatives, AC_PHASES } from "../../lib/platform-models";
 import { UNIFIED_INCIDENTS } from "../../lib/convergence";
 import { BREACH_REGISTER, breachClock } from "../../lib/breach-notification";
 import { EVIDENCE_ARTIFACTS } from "../../lib/evidence-freshness";
 import { providerSpend, costSummary, fmtUSD, fmtTokens } from "../../lib/cost-engine";
 import { euAiActStats, iso42001Stats, nistRmfStats, NISTRMF_REQS } from "../../lib/computed-frameworks";
-import { GOVERNANCE_SCORE, GOVERNANCE_DELTA, GOVERNANCE_INPUTS } from "../../lib/governance";
+import { GOVERNANCE_SCORE, GOVERNANCE_INPUTS } from "../../lib/governance";
 import { AGENT_REGISTRY } from "../../lib/agent-runtime";
 import { INFERENCE_EVENTS, chainIntact } from "../../lib/inference-log";
 import { askGateway } from "../../lib/gateway-client";
@@ -45,10 +46,13 @@ import { AI_AGENTS } from "../../lib/agent-registry";
 
 /* ── tokens ─────────────────────────────────────────────────────────────── */
 const XC = {
-  void: "#030914", ink: "#EAF1FF", silver: "#B9C6DB", mute: "#8392AE",
-  blue: "#2F7BFF", electric: "#4FA3FF", cyan: "#5FE1FF", gold: "#E3B862",
-  crit: "#FF5470", high: "#FF9F43", med: "#F2D35B", ok: "#36E2A4",
-  line: "rgba(110,160,255,.16)", lineHi: "rgba(120,180,255,.42)",
+  void: "#0A0E16", surface: "#111724", raised: "#172033", sunk: "#0D121D",
+  ink: "#E7ECF5", silver: "#A6B1C6", mute: "#7C89A1",
+  blue: "#5B93FF", electric: "#7FA7FF", cyan: "#4FD1E8", gold: "#E2B862",
+  crit: "#FF6B80", high: "#FFA45A", med: "#EFD06A", ok: "#62D48E",
+  line: "#243049", lineHi: "#33405C",
+  // provenance grammar: observed, calculated, AI interpretation, recommendation, human decision, verified enforcement
+  pO: "#5CC8A8", pC: "#7FA7FF", pI: "#BE9CFF", pR: "#E2B862", pD: "#EEF1F7", pE: "#4FD1E8",
 };
 const SEV = { critical: XC.crit, high: XC.high, medium: XC.med };
 const KIND_ICON = { approval: Gavel, risk: ShieldAlert, kri: Activity, incident: Siren, breach: Timer, evidence: FileWarning, budget: Wallet, posture: Scale };
@@ -85,6 +89,30 @@ const COPY = {
     killSwitch: "Pause agent", resume: "Resume · human decision", decidedBy: "Decided at", reasonL: "Why", waiting: "Waiting for the first action…",
     status: { idle: "Idle", running: "Running", downscoped: "Downscoped", suspended: "Suspended by breaker", paused: "Paused by human" },
     watchLive: "Watch security live", ribbon: (a, b, e) => `${a} agents monitored · ${b} threats blocked · ${e} sent to humans`, lastL: "Latest",
+    tabBriefs: "Briefs", tabDecisions: "Decisions", tabEstate: "Estate", tabInstruments: "Instruments",
+    pv: { O: "Observed", C: "Calculated", I: "AI interpretation", R: "Recommendation", D: "Human decision", E: "Verified enforcement" },
+    eNote: "Verified enforcement appears only when Veris Enforce confirms a control took effect. Not connected in this workspace.",
+    q: { changed: "What changed", matters: "Why it matters", evidence: "Evidence", unc: "Uncertainty", who: "Who should act", action: "Available action" },
+    unc: { low: "Low", medium: "Medium", high: "High" },
+    briefsLead: (n, cr, hi) => n ? `${n} material ${n === 1 ? "brief" : "briefs"} for your lens · ${cr} critical · ${hi} high` : "Nothing material for your lens right now.",
+    quiet: "Briefs appear only above your role's materiality line. Everything below it stays in the registers, under Instruments.",
+    watch: "Watch", lens: "Evidence lens", lensSource: "Source", lensRecord: "Record", lensNote: "You are seeing this record because your role's lens includes it. Values are shown as recorded.",
+    openSource: "Open source record",
+    decisionsLead: n => n ? `${n} ${n === 1 ? "decision is" : "decisions are"} waiting in your approval queue.` : "No decisions are waiting in your approval queue.",
+    statement: "Decision", recommendation: "Recommendation · prepared, not decided", reasoning: "Prepared reasoning", confidence: "Stated confidence",
+    policyClause: "Policy clause", tier: "Risk tier", timing: "Timing", authority: "Decision authority",
+    authorityText: r => `This decision is in the ${r} approval queue, so it is within your delegated authority. Approving or rejecting is recorded under your identity on the audit chain.`,
+    safeguard: "The recommendation is not an approval. Nothing is applied until a named person decides.",
+    notEnforced: "A decision is not proof of enforcement. Veris Enforce is not connected, so GenVeris cannot verify that a control took effect.",
+    decideIn: "Decide in the approvals workspace", awaitingYou: "Awaiting your decision", safeguards: "Safeguards",
+    estateLead: "What depends on what, drawn only from keys the registers already share. Select anything to see what a change would affect.",
+    estateNote: "Derived view. Typed relationships in the Evidence Fabric are a proposed capability (#166). Names are matched exactly, so a system recorded under two spellings appears twice.",
+    impact: "If this changes", affected: "Affected", govAttached: "Governance on what is affected", dependsOn: "Depends on", usedBy: "Used by", attached: "Governance attached",
+    noImpact: "Nothing in the estate depends on this.", pickHint: "Select a model, data source, agent or AI system.", clear: "Clear",
+    layer: { model: "Models", data: "Data", agent: "Agents", system: "AI systems" },
+    gtype: { risk: "Risks", kri: "KRIs", incident: "Incidents", control: "Controls", policy: "Policies" },
+    instrumentsLead: "The classic instruments, kept for analysis and audit. Open any plane to trace a number to its source.",
+    scoreL: "AI Governance Score", sev: { critical: "Critical", high: "High", medium: "Medium" },
   },
   ar: {
     eyebrow: "ذكاء فيرِس", help: "كيف يمكنني مساعدتك؟",
@@ -111,6 +139,30 @@ const COPY = {
     killSwitch: "إيقاف الوكيل", resume: "استئناف (قرار بشري)", decidedBy: "تقرر عند", reasonL: "السبب", waiting: "بانتظار أول إجراء…",
     status: { idle: "خامل", running: "يعمل", downscoped: "صلاحيات مقلَّصة", suspended: "أوقفه القاطع", paused: "أوقفه إنسان" },
     watchLive: "شاهد الأمن مباشرة", ribbon: (a, b, e) => `${a} وكلاء تحت المراقبة · ${b} تهديدات محظورة · ${e} أُحيلت إلى البشر`, lastL: "الأحدث",
+    tabBriefs: "الموجزات", tabDecisions: "القرارات", tabEstate: "المنظومة", tabInstruments: "الأدوات",
+    pv: { O: "مُلاحَظ", C: "محسوب", I: "تفسير بالذكاء الاصطناعي", R: "توصية", D: "قرار بشري", E: "تنفيذ مُتحقَّق منه" },
+    eNote: "لا يظهر التنفيذ المُتحقَّق منه إلا عندما يؤكد Veris Enforce أن الضابط طُبِّق فعلاً. غير متصل في مساحة العمل هذه.",
+    q: { changed: "ما الذي تغيّر", matters: "لماذا يهم", evidence: "الدليل", unc: "درجة عدم اليقين", who: "من يجب أن يتصرف", action: "الإجراء المتاح" },
+    unc: { low: "منخفضة", medium: "متوسطة", high: "مرتفعة" },
+    briefsLead: (n, cr, hi) => n ? `${n} موجزات جوهرية لدورك · ${cr} حرجة · ${hi} عالية` : "لا يوجد ما هو جوهري لدورك الآن.",
+    quiet: "لا تظهر الموجزات إلا فوق حد الأهمية لدورك. كل ما دونه يبقى في السجلات ضمن الأدوات.",
+    watch: "المتابعة", lens: "عدسة الأدلة", lensSource: "المصدر", lensRecord: "السجل", lensNote: "ترى هذا السجل لأن نطاق دورك يشمله. القيم معروضة كما سُجّلت.",
+    openSource: "افتح السجل المصدر",
+    decisionsLead: n => n ? `${n} قرارات بانتظارك في قائمة الموافقات.` : "لا توجد قرارات بانتظارك في قائمة الموافقات.",
+    statement: "القرار", recommendation: "توصية · مُعدّة وليست قراراً", reasoning: "المبررات المُعدّة", confidence: "الثقة المعلنة",
+    policyClause: "بند السياسة", tier: "مستوى المخاطر", timing: "التوقيت", authority: "صلاحية القرار",
+    authorityText: r => `هذا القرار في قائمة موافقات ${r}، لذا فهو ضمن صلاحياتك المفوّضة. تُسجَّل الموافقة أو الرفض باسمك في سلسلة التدقيق.`,
+    safeguard: "التوصية ليست موافقة. لا يُطبَّق شيء حتى يقرر شخص مُسمّى.",
+    notEnforced: "القرار ليس دليلاً على التنفيذ. Veris Enforce غير متصل، لذا لا يمكن لـ GenVeris التحقق من تطبيق الضابط.",
+    decideIn: "قرّر في مساحة الموافقات", awaitingYou: "بانتظار قرارك", safeguards: "الضمانات",
+    estateLead: "ما الذي يعتمد على ماذا، مرسوم فقط من مفاتيح تتشاركها السجلات أصلاً. اختر أي عنصر لترى ما الذي سيتأثر بتغييره.",
+    estateNote: "عرض مشتق. العلاقات المصنّفة في نسيج الأدلة قدرة مقترحة (#166). تُطابَق الأسماء حرفياً، لذا يظهر النظام المسجّل بتهجئتين مرتين.",
+    impact: "إذا تغيّر هذا", affected: "المتأثر", govAttached: "الحوكمة على ما يتأثر", dependsOn: "يعتمد على", usedBy: "يستخدمه", attached: "الحوكمة المرتبطة",
+    noImpact: "لا شيء في المنظومة يعتمد على هذا.", pickHint: "اختر نموذجاً أو مصدر بيانات أو وكيلاً أو نظام ذكاء اصطناعي.", clear: "مسح",
+    layer: { model: "النماذج", data: "البيانات", agent: "الوكلاء", system: "أنظمة الذكاء الاصطناعي" },
+    gtype: { risk: "المخاطر", kri: "مؤشرات المخاطر", incident: "الحوادث", control: "الضوابط", policy: "السياسات" },
+    instrumentsLead: "الأدوات الكلاسيكية، محفوظة للتحليل والتدقيق. افتح أي مستوى لتتبّع الرقم إلى مصدره.",
+    scoreL: "مؤشر حوكمة الذكاء الاصطناعي", sev: { critical: "حرجة", high: "عالية", medium: "متوسطة" },
   },
 };
 
@@ -135,98 +187,149 @@ const SUGGEST = {
 /* ── styles (scoped .gx-*) ──────────────────────────────────────────────── */
 const CSS = `
 .gx-root{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;color:${XC.ink};font-family:${SANS};z-index:500;
-  background:radial-gradient(1100px 620px at 50% -12%,rgba(47,123,255,.24),transparent 62%),
-  radial-gradient(760px 520px at 92% 108%,rgba(95,225,255,.10),transparent 62%),
-  radial-gradient(640px 420px at 4% 96%,rgba(227,184,98,.07),transparent 60%),${XC.void};-webkit-font-smoothing:antialiased}
-.gx-root::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.32;
-  background-image:linear-gradient(rgba(110,160,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(110,160,255,.07) 1px,transparent 1px);
-  background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 30%,transparent 80%);mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 30%,transparent 80%)}
+  background:radial-gradient(900px 480px at 50% -12%,rgba(91,147,255,.10),transparent 62%),${XC.void};-webkit-font-smoothing:antialiased}
 .gx-wrap{position:relative;max-width:1440px;margin:0 auto;padding:0 24px 40px;overflow-x:clip}
-.gx-hud{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:14px 24px;margin:0 -24px;
-  background:linear-gradient(180deg,rgba(3,9,20,.92),rgba(3,9,20,.55));backdrop-filter:blur(12px);border-bottom:1px solid ${XC.line}}
-.gx-hud img{height:40px;width:auto;display:block}
+.gx-hud{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:12px 24px;margin:0 -24px;
+  background:rgba(10,14,22,.92);backdrop-filter:blur(10px);border-bottom:1px solid ${XC.line}}
+.gx-hud img{height:36px;width:auto;display:block}
 .gx-spacer{flex:1}
 .gx-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;border:1px solid ${XC.line};
-  background:rgba(12,26,50,.6);font-size:12px;font-weight:700;color:${XC.silver};white-space:nowrap}
+  background:${XC.surface};font-size:12px;font-weight:700;color:${XC.silver};white-space:nowrap}
 .gx-dot{width:7px;height:7px;border-radius:50%;flex:none}
-.gx-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:12px;cursor:pointer;
-  font:700 13px ${SANS};color:${XC.ink};background:rgba(14,30,58,.7);border:1px solid ${XC.line};transition:border-color .2s,background .2s,transform .2s}
-.gx-btn:hover{border-color:${XC.lineHi};background:rgba(22,44,84,.8)}
-.gx-btn-primary{background:linear-gradient(135deg,#2F7BFF,#1F55D8);border-color:rgba(140,190,255,.55);box-shadow:0 0 0 1px rgba(95,225,255,.12),0 10px 30px rgba(47,123,255,.35)}
-.gx-btn-primary:hover{background:linear-gradient(135deg,#4189FF,#2763E6)}
+.gx-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 15px;border-radius:11px;cursor:pointer;
+  font:700 13px ${SANS};color:${XC.ink};background:${XC.raised};border:1px solid ${XC.lineHi};transition:border-color .15s,background .15s}
+.gx-btn:hover{border-color:${XC.mute}}
+.gx-btn:disabled{cursor:not-allowed}
+.gx-btn-primary{background:${XC.blue};border-color:${XC.blue};color:#0A0E16}
+.gx-btn-primary:hover{background:#7AA8FF;border-color:#7AA8FF}
+.gx-btn-gold{border-color:${XC.gold};color:${XC.gold};background:rgba(226,184,98,.08)}
 .gx-btn-icon{width:38px;padding:0}
-.gx-root :focus-visible{outline:2px solid ${XC.cyan};outline-offset:2px}
-.gx-label{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:${XC.silver}}
-.gx-panel{position:relative;background:linear-gradient(180deg,rgba(13,28,54,.66),rgba(7,17,34,.66));border:1px solid ${XC.line};border-radius:18px;
-  backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 24px 60px rgba(0,0,0,.35)}
-.gx-panel::before,.gx-panel::after{content:"";position:absolute;width:14px;height:14px;pointer-events:none;border-color:${XC.cyan};opacity:.55}
-.gx-panel::before{top:-1px;left:-1px;border-top:2px solid;border-left:2px solid;border-top-left-radius:18px}
-.gx-panel::after{bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid;border-bottom-right-radius:18px}
+.gx-root :focus-visible{outline:2px solid ${XC.blue};outline-offset:2px}
+.gx-label{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:${XC.mute}}
+.gx-panel{position:relative;background:${XC.surface};border:1px solid ${XC.line};border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.25)}
 .gx-hero{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;padding:40px 0 8px;position:relative}
-.gx-core-bg{position:absolute;top:-170px;left:50%;transform:translateX(-50%);width:min(680px,120vw);aspect-ratio:1;opacity:.5;pointer-events:none}
+.gx-core-bg{position:absolute;top:-170px;left:50%;transform:translateX(-50%);width:min(680px,120vw);aspect-ratio:1;opacity:.32;pointer-events:none}
 .gx-core-bg canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .gx-greet{font-family:${SERIF};font-weight:400;font-size:clamp(34px,5.2vw,64px);line-height:1.05;margin:14px 0 0;letter-spacing:-.01em;text-wrap:balance}
-.gx-greet em{font-style:italic;background:linear-gradient(90deg,${XC.ink},#9CC6FF);-webkit-background-clip:text;background-clip:text;color:transparent}
-.gx-help{font-family:${SERIF};font-size:clamp(26px,3.6vw,44px);color:#9CC6FF;margin:6px 0 0;font-style:italic}
+.gx-greet em{font-style:italic;color:${XC.blue}}
+.gx-help{font-family:${SERIF};font-size:clamp(26px,3.6vw,44px);color:${XC.electric};margin:6px 0 0;font-style:italic}
 .gx-lead{font-size:15px;color:${XC.silver};margin:14px 0 0;max-width:66ch;text-wrap:balance}
-.gx-ask{position:relative;width:min(820px,100%);margin:26px auto 0;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;border-radius:20px;
-  background:rgba(8,20,42,.78);border:1px solid rgba(120,180,255,.30);box-shadow:0 0 0 6px rgba(47,123,255,.06),0 20px 60px rgba(3,9,20,.6);transition:border-color .2s,box-shadow .2s}
-.gx-ask:focus-within{border-color:${XC.cyan};box-shadow:0 0 0 6px rgba(95,225,255,.10),0 0 40px rgba(95,225,255,.18)}
-.gx-ask input{flex:1;min-width:0;height:44px;background:transparent;border:0;outline:none;color:${XC.ink};font:500 16px ${SANS}}
+.gx-ask{position:relative;width:min(820px,100%);margin:26px auto 0;display:flex;align-items:center;gap:8px;padding:7px 7px 7px 16px;border-radius:16px;
+  background:${XC.sunk};border:1px solid ${XC.lineHi};transition:border-color .15s,box-shadow .15s}
+.gx-ask:focus-within{border-color:${XC.blue};box-shadow:0 0 0 4px rgba(91,147,255,.16)}
+.gx-ask input{flex:1;min-width:0;height:42px;background:transparent;border:0;outline:none;color:${XC.ink};font:500 15.5px ${SANS}}
 .gx-ask input::placeholder{color:${XC.mute}}
 .gx-ask input:focus-visible{outline:none}
-.gx-sugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
-.gx-sugg button{height:32px;padding:0 13px;border-radius:999px;border:1px solid ${XC.line};background:rgba(12,26,50,.55);color:${XC.silver};font:600 12.5px ${SANS};cursor:pointer}
+.gx-sugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.gx-sugg button{height:30px;padding:0 12px;border-radius:999px;border:1px solid ${XC.line};background:transparent;color:${XC.silver};font:600 12.5px ${SANS};cursor:pointer}
 .gx-sugg button:hover{border-color:${XC.lineHi};color:${XC.ink}}
-.gx-answer{width:min(820px,100%);margin:16px auto 0;padding:18px 20px;text-align:start}
+.gx-answer{width:min(820px,100%);margin:14px auto 0;padding:16px 18px;text-align:start}
 .gx-answer p{margin:8px 0 0;font-size:14.5px;line-height:1.6;color:${XC.ink};white-space:pre-wrap}
-.gx-sec{display:flex;align-items:center;gap:12px;margin:40px 0 14px}
-.gx-sec{flex-wrap:wrap}
+.gx-sec{display:flex;align-items:center;gap:12px;margin:40px 0 14px;flex-wrap:wrap}
 .gx-sec h2{font-family:${SERIF};font-weight:400;font-size:26px;margin:0;white-space:nowrap}
-.gx-rule{flex:1;height:1px;background:linear-gradient(90deg,${XC.line},transparent)}
+.gx-rule{flex:1;height:1px;background:${XC.line}}
 .gx-issues{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
 .gx-issue{padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px;min-height:236px;overflow:hidden}
-.gx-issue .gx-sev{position:absolute;inset:0 auto 0 0;width:3px;border-radius:18px 0 0 18px}
+.gx-issue .gx-sev{position:absolute;inset:0 auto 0 0;width:3px;border-radius:16px 0 0 16px}
 .gx-issue h3{margin:0;font-size:15.5px;font-weight:800;line-height:1.3;text-wrap:balance}
 .gx-issue .why{font-size:13px;line-height:1.5;color:${XC.silver};display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .gx-metric{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px dashed ${XC.line};margin-top:auto}
 .gx-metric b{font-family:${MONO};font-size:15px;color:${XC.ink};font-variant-numeric:tabular-nums}
 .gx-acts{display:flex;gap:8px;flex-wrap:wrap}
-.gx-acts .gx-btn{height:32px;font-size:12.5px;padding:0 12px;border-radius:10px}
+.gx-acts .gx-btn{height:32px;font-size:12.5px;padding:0 12px;border-radius:9px}
 .gx-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin:34px 0 0}
-.gx-cta .gx-btn{height:46px;padding:0 22px;font-size:14px;border-radius:14px}
+.gx-cta .gx-btn{height:46px;padding:0 22px;font-size:14px;border-radius:13px}
 .gx-check{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:${XC.mute};cursor:pointer;margin-top:14px}
 .gx-check input{accent-color:${XC.blue};width:15px;height:15px}
 .gx-empty{padding:28px;text-align:center;color:${XC.silver};font-size:14px}
 /* deck */
-.gx-deck{display:grid;grid-template-columns:320px minmax(0,1fr) 340px;gap:16px;margin-top:18px;align-items:start}
-.gx-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.gx-deckhead{display:flex;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap}
+.gx-deckhead h1{font-family:${SERIF};font-weight:400;font-size:clamp(28px,3.4vw,40px);margin:0}
+.gx-tabs{display:inline-flex;gap:2px;padding:4px;border-radius:13px;border:1px solid ${XC.line};background:${XC.sunk};max-width:100%;overflow-x:auto}
+.gx-tabs button{height:34px;padding:0 13px;border-radius:9px;border:1px solid transparent;background:transparent;color:${XC.silver};font:700 13px ${SANS};cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.gx-tabs button[aria-selected="true"]{background:${XC.raised};border-color:${XC.lineHi};color:${XC.ink};box-shadow:inset 0 -2px 0 ${XC.blue}}
+.gx-dock{margin-top:16px}
+.gx-dock .gx-ask{margin:0;width:100%}
+.gx-dock .gx-answer{width:100%}
+.gx-legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:${XC.silver};margin-top:12px}
+.gx-legend .gx-pv{margin:0 5px 0 0;vertical-align:middle}
+.gx-pv{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;border-radius:5px;font:800 10.5px/1 ${MONO};
+  vertical-align:.3em;margin-inline-start:3px;border:1px solid currentColor;background:color-mix(in srgb,currentColor 12%,transparent)}
+.gx-claim{color:${XC.ink}}
+.gx-two{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;margin-top:16px;align-items:start}
+.gx-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 .gx-card{padding:16px 16px 14px}
 .gx-card-h{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.gx-orbit{position:relative;width:min(640px,100%);aspect-ratio:1;margin:0 auto}
-.gx-orbit>canvas{position:absolute;inset:0;width:100%;height:100%}
-.gx-orbit>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-.gx-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.gx-center .n{font-family:${SERIF};font-size:clamp(46px,7vw,76px);line-height:1;text-shadow:0 0 30px rgba(95,225,255,.45)}
-.gx-node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:${XC.ink};cursor:pointer;padding:0;font-family:${SANS}}
-.gx-node .orb{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,rgba(120,180,255,.35),rgba(10,24,48,.92) 70%);
-  border:1px solid ${XC.lineHi};box-shadow:0 0 22px rgba(47,123,255,.35);transition:transform .25s,box-shadow .25s}
-.gx-node:hover .orb,.gx-node[aria-pressed="true"] .orb{transform:scale(1.08);box-shadow:0 0 0 2px ${XC.cyan},0 0 34px rgba(95,225,255,.55)}
-.gx-node .nm{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-.gx-node .mv{font:600 12px ${MONO};color:${XC.silver}}
-.gx-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:8px}
-.gx-kpi{padding:12px 12px 10px;text-align:start}
+.gx-brief{overflow:hidden}
+.gx-brief-h{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:14px 16px;background:none;border:0;color:inherit;text-align:start;cursor:pointer;font:inherit}
+.gx-brief-h:hover h3{color:${XC.electric}}
+.gx-brief-h h3{margin:3px 0 0;font-size:15px;font-weight:800;line-height:1.35}
+.gx-brief[data-open="true"]{border-color:${XC.lineHi}}
+.gx-sevbar{width:4px;align-self:stretch;border-radius:4px}
+.gx-six{display:grid;gap:0;border-top:1px solid ${XC.line}}
+.gx-six > div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;padding:10px 16px;border-top:1px solid rgba(36,48,73,.6);font-size:13.5px;color:${XC.silver}}
+.gx-six > div:first-child{border-top:0}
+.gx-six > div > b{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${XC.mute};padding-top:3px}
+.gx-why{padding:10px 16px 14px;font-size:12px;color:${XC.mute};font-style:italic;border-top:1px dashed ${XC.line}}
+.gx-unc{display:inline-flex;gap:2px;vertical-align:middle;margin-inline-end:6px}
+.gx-unc i{width:8px;height:8px;border-radius:2px;background:${XC.lineHi}}
+.gx-linkbtn{background:none;border:0;padding:0;color:${XC.electric};font:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:${XC.lineHi};text-underline-offset:3px;text-align:start}
+.gx-linkbtn:hover{text-decoration-color:${XC.electric}}
+.gx-lens{position:fixed;top:0;bottom:0;inset-inline-end:0;width:min(440px,100%);z-index:520;background:${XC.surface};border-inline-start:1px solid ${XC.lineHi};
+  box-shadow:-24px 0 60px rgba(0,0,0,.4);display:flex;flex-direction:column}
+.gx-lens header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid ${XC.line}}
+.gx-lens .body{padding:16px;overflow:auto;display:grid;gap:14px;font-size:13.5px}
+.gx-scrim{position:fixed;inset:0;z-index:510;background:rgba(5,8,14,.5)}
+.gx-kv{display:grid;grid-template-columns:130px minmax(0,1fr);gap:8px 12px;font-size:13px;margin:0}
+.gx-kv dt{color:${XC.mute}}.gx-kv dd{margin:0;color:${XC.ink};overflow-wrap:anywhere}
+.gx-note{font-size:12.5px;line-height:1.5;color:${XC.silver};border:1px solid ${XC.line};border-radius:12px;padding:10px 12px;background:${XC.sunk}}
+.gx-note.warn{border-color:rgba(255,164,90,.45);background:rgba(255,164,90,.06)}
+.gx-dec{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.gx-dlist{display:grid;gap:8px}
+.gx-dlist button{text-align:start;border:1px solid ${XC.line};border-radius:12px;background:${XC.surface};padding:11px 13px;cursor:pointer;color:inherit;font:inherit}
+.gx-dlist button[aria-current="true"]{border-color:${XC.blue};box-shadow:inset 3px 0 0 ${XC.blue}}
+.gx-ws section{padding:14px 18px;border-top:1px solid ${XC.line}}
+.gx-ws section:first-child{border-top:0}
+.gx-ws h3{font-family:${SERIF};font-weight:400;font-size:24px;margin:6px 0 0;line-height:1.2}
+.gx-ws .gx-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.gx-estate{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;margin-top:16px;align-items:start}
+.gx-gwrap{border:1px solid ${XC.line};border-radius:16px;background:${XC.sunk};overflow-x:auto}
+.gx-gwrap svg{display:block;min-width:860px;width:100%;height:auto}
+.gx-gnode{cursor:pointer}
+.gx-gnode rect{fill:${XC.surface};stroke:${XC.lineHi};stroke-width:1}
+.gx-gnode .t{fill:${XC.ink};font:700 11.5px ${SANS}}
+.gx-gnode .s{fill:${XC.mute};font:600 9.5px ${MONO}}
+.gx-gnode:hover rect,.gx-gnode:focus-visible rect{stroke:${XC.electric}}
+.gx-gnode:focus-visible{outline:none}
+.gx-gnode.sel rect{stroke:${XC.blue};stroke-width:2}
+.gx-gnode.hit rect{stroke:${XC.high};stroke-width:1.6;fill:#1d1a1c}
+.gx-gnode.dim{opacity:.3}
+.gx-gedge{fill:none;stroke:${XC.lineHi};stroke-width:1.1}
+.gx-gedge.hit{stroke:${XC.high};stroke-width:1.8}
+.gx-gedge.dim{opacity:.18}
+.gx-glabel{fill:${XC.mute};font:800 10px ${SANS};letter-spacing:.14em}
+.gx-ilist{display:grid;gap:6px}
+.gx-ilist > div{font-size:12.5px;color:${XC.silver};padding:8px 10px;border-radius:10px;background:${XC.sunk};border:1px solid ${XC.line}}
+.gx-ilist > div b{display:block;color:${XC.ink};font-size:12.5px;margin-bottom:2px}
+.gx-instr{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;margin-top:16px;align-items:start}
+.gx-planes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gx-planes button{display:grid;gap:3px;text-align:start;padding:11px 12px;border-radius:12px;border:1px solid ${XC.line};background:${XC.sunk};color:inherit;cursor:pointer;font:inherit}
+.gx-planes button[aria-pressed="true"]{border-color:${XC.blue}}
+.gx-planes .nm{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.gx-planes .mv{font:600 12.5px ${MONO};color:${XC.silver}}
+.gx-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}
+.gx-kpi{padding:12px 12px 10px;text-align:start;box-shadow:none}
 .gx-kpi b{display:block;font-family:${MONO};font-size:22px;font-variant-numeric:tabular-nums;margin-top:4px}
-.gx-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(110,160,255,.08);font-size:13px}
+.gx-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(36,48,73,.7);font-size:13px}
 .gx-row:first-of-type{border-top:0}
 .gx-rowbtn{width:100%;background:none;border:0;color:inherit;text-align:start;cursor:pointer;font:inherit;padding:0}
-.gx-rowbtn:hover .t{color:${XC.cyan}}
+.gx-rowbtn:hover .t{color:${XC.electric}}
 .gx-mono{font-family:${MONO};font-variant-numeric:tabular-nums}
-.gx-bar{height:6px;border-radius:999px;background:rgba(110,160,255,.12);overflow:hidden}
+.gx-bar{height:6px;border-radius:999px;background:${XC.raised};overflow:hidden}
 .gx-bar i{display:block;height:100%;border-radius:999px}
 .gx-pipe{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));align-items:center;margin:4px 0 2px;padding:0 6px}
 .gx-ph{display:grid;grid-template-rows:20px 22px 20px;justify-items:center;align-items:center;position:relative;min-width:0}
-.gx-ph .pt{grid-row:2;width:16px;height:16px;border-radius:50%;border:1px solid ${XC.lineHi};background:rgba(10,24,48,.9);display:grid;place-items:center;
+.gx-ph .pt{grid-row:2;width:16px;height:16px;border-radius:50%;border:1px solid ${XC.lineHi};background:${XC.sunk};display:grid;place-items:center;
   font:800 10px ${MONO};color:${XC.void};position:relative;z-index:1}
 .gx-ph .pt.on{width:22px;height:22px}
 .gx-ph .pn{font-size:11px;color:${XC.mute};line-height:1;white-space:nowrap}
@@ -235,20 +338,13 @@ const CSS = `
 .gx-ph::before{content:"";position:absolute;top:31px;inset-inline-start:50%;width:100%;height:1px;background:${XC.line}}
 .gx-ph:last-child::before{display:none}
 .gx-chainrow{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-bottom:4px}
-.gx-blk{flex:1 1 0;min-width:140px;padding:12px;border-radius:14px;border:1px solid ${XC.line};background:rgba(9,22,44,.7)}
-.gx-link{flex:none;display:grid;place-items:center;color:${XC.cyan};opacity:.8}
-.gx-drill{padding:18px}
-.gx-dock{position:relative}
-.gx-dock .gx-ask{margin-top:0}
-.gx-flow{stroke-dasharray:4 8;animation:gx-flow 2.4s linear infinite}
-@keyframes gx-flow{to{stroke-dashoffset:-48}}
+.gx-blk{flex:1 1 0;min-width:140px;padding:12px;border-radius:12px;border:1px solid ${XC.line};background:${XC.sunk}}
+.gx-link{flex:none;display:grid;place-items:center;color:${XC.mute}}
+.gx-drill{padding:16px;margin-top:12px;box-shadow:none;background:${XC.sunk}}
 @keyframes gx-pulse{0%,100%{opacity:1}50%{opacity:.35}}
-@keyframes gx-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes gx-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .gx-pulse{animation:gx-pulse 1.8s ease-in-out infinite}
-.gx-rise{animation:gx-rise .6s cubic-bezier(.2,.7,.2,1) both}
-.gx-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:14px;border:1px solid ${XC.line};background:rgba(8,20,42,.7)}
-.gx-tabs button{height:34px;padding:0 14px;border-radius:10px;border:0;background:transparent;color:${XC.silver};font:700 13px ${SANS};cursor:pointer;display:inline-flex;align-items:center;gap:7px}
-.gx-tabs button[aria-selected="true"]{background:linear-gradient(135deg,#2F7BFF,#1F55D8);color:#fff;box-shadow:0 6px 18px rgba(47,123,255,.35)}
+.gx-rise{animation:gx-rise .45s cubic-bezier(.2,.7,.2,1) both}
 .gx-live{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;margin-top:16px;align-items:start}
 .gx-banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px;margin-top:16px}
 .gx-counters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -256,32 +352,36 @@ const CSS = `
 .gx-stage{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;position:relative;min-width:0}
 .gx-stage::after{content:"";position:absolute;top:22px;inset-inline-start:calc(50% + 24px);width:calc(100% - 48px);height:2px;background:${XC.line}}
 .gx-stage:last-child::after{display:none}
-.gx-stage .node{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;border:1px solid ${XC.line};background:rgba(9,22,44,.85);color:${XC.mute};
+.gx-stage .node{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;border:1px solid ${XC.line};background:${XC.sunk};color:${XC.mute};
   font:800 11px ${MONO};position:relative;z-index:1;transition:none}
 .gx-stage .lbl{font-size:11.5px;font-weight:700;color:${XC.silver};line-height:1.2}
 .gx-stage .dec{font:700 11px ${MONO};text-transform:uppercase;letter-spacing:.06em}
-.gx-light{animation:gx-light .5s ease both}
-@keyframes gx-light{from{opacity:.25;transform:scale(.86)}to{opacity:1;transform:none}}
-.gx-flowbar{position:absolute;top:21px;height:4px;border-radius:4px;inset-inline-start:6%;background:linear-gradient(90deg,transparent,${XC.cyan},transparent);width:12%;animation:gx-sweep 1.2s ease-out both;pointer-events:none}
-@keyframes gx-sweep{from{inset-inline-start:2%;opacity:1}to{inset-inline-start:86%;opacity:0}}
+.gx-light{animation:gx-light .4s ease both}
+@keyframes gx-light{from{opacity:.25}to{opacity:1}}
+.gx-flowbar{position:absolute;top:21px;height:3px;border-radius:3px;inset-inline-start:6%;background:${XC.blue};opacity:.6;width:10%;animation:gx-sweep 1.2s ease-out both;pointer-events:none}
+@keyframes gx-sweep{from{inset-inline-start:2%;opacity:.7}to{inset-inline-start:86%;opacity:0}}
 .gx-fleet{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.gx-agent{padding:14px;display:flex;flex-direction:column;gap:8px}
+.gx-agent{padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:none;background:${XC.sunk}}
 .gx-ticks{display:flex;gap:2px;height:16px;align-items:flex-end}
 .gx-ticks i{flex:1;border-radius:2px;min-width:3px}
 .gx-attack{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.gx-attack button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,84,112,.28);
-  background:rgba(40,10,22,.35);color:${XC.ink};cursor:pointer;text-align:start;font:700 12.5px ${SANS}}
-.gx-attack button:hover{border-color:${XC.crit};box-shadow:0 0 18px rgba(255,84,112,.25)}
+.gx-attack button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:11px;border:1px solid rgba(255,107,128,.3);
+  background:rgba(255,107,128,.05);color:${XC.ink};cursor:pointer;text-align:start;font:700 12.5px ${SANS}}
+.gx-attack button:hover{border-color:${XC.crit}}
 .gx-attack button span{font:500 11px ${SANS};color:${XC.mute}}
-.gx-field{height:38px;border-radius:10px;border:1px solid ${XC.line};background:rgba(8,20,42,.8);color:${XC.ink};font:500 13px ${SANS};padding:0 10px;min-width:0}
+.gx-field{height:38px;border-radius:10px;border:1px solid ${XC.lineHi};background:${XC.sunk};color:${XC.ink};font:500 13px ${SANS};padding:0 10px;min-width:0}
 .gx-ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 18px;margin-top:22px}
-@media (max-width:1200px){.gx-deck{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.gx-deck .gx-mid{grid-column:1/-1;order:-1}.gx-live{grid-template-columns:minmax(0,1fr)}.gx-counters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1200px){.gx-two,.gx-estate,.gx-instr,.gx-live{grid-template-columns:minmax(0,1fr)}.gx-counters,.gx-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:860px){.gx-dec{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:768px){
-  .gx-wrap{padding:0 16px 32px}.gx-hud{padding:12px 16px;margin:0 -16px;gap:8px}.gx-hud img{height:26px}
-  .gx-hide-sm{display:none!important}.gx-deck{grid-template-columns:minmax(0,1fr)}
-  .gx-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-pipe{overflow-x:auto;grid-template-columns:repeat(13,64px);padding-bottom:6px}
-  .gx-node .orb{width:44px;height:44px}.gx-node .mv{display:none}.gx-node .nm{font-size:11px}
-  .gx-counters{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-pipeline{overflow-x:auto;grid-template-columns:repeat(8,84px);padding-bottom:6px}
+  .gx-wrap{padding:0 16px 32px}.gx-hud{padding:10px 16px;margin:0 -16px;gap:8px}.gx-hud img{height:26px}
+  .gx-hide-sm{display:none!important}
+  .gx-kpis,.gx-counters{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-planes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gx-pipe{overflow-x:auto;grid-template-columns:repeat(13,64px);padding-bottom:6px}
+  .gx-pipeline{overflow-x:auto;grid-template-columns:repeat(8,84px);padding-bottom:6px}
+  .gx-six > div{grid-template-columns:minmax(0,1fr);gap:3px}
+  .gx-ws .gx-grid2{grid-template-columns:minmax(0,1fr)}
+  .gx-kv{grid-template-columns:minmax(0,1fr);gap:2px}.gx-kv dd{margin-bottom:6px}
 }
 @media (prefers-reduced-motion:reduce){.gx-root *{animation:none!important;transition:none!important}}
 `;
@@ -404,6 +504,10 @@ function useExperienceData({ role, seeded }) {
     } : { approvals };
     const issues = deriveBurningIssues(sources, { role, limit: 5 });
     const allIssues = deriveBurningIssues(sources, { role, limit: 12 });
+    const briefs = allIssues.map(i => briefFor(i, { role }));
+    const estate = seeded
+      ? buildEstate({ initiatives: acInitiatives, agents: AI_AGENTS, risks: riskRegister, kris: kriRegister, incidents: UNIFIED_INCIDENTS })
+      : { nodes: [], edges: [] };
     const openRisks = seeded ? riskRegister.filter(r => /critical|high/i.test(r.level) && !/complete|monitored|closed/i.test(r.status)) : [];
     const initiatives = seeded ? acInitiatives : [];
     const cost = seeded ? costSummary() : null;
@@ -417,7 +521,7 @@ function useExperienceData({ role, seeded }) {
       return { fn, met: rows.filter(r => r.status === "Met").length, total: rows.length };
     });
     return {
-      issues, allIssues, summary: issueSummary(allIssues), approvals, openRisks, initiatives, cost, spendRows,
+      issues, allIssues, briefs, estate, summary: issueSummary(allIssues), approvals, openRisks, initiatives, cost, spendRows,
       events, intact, liveFeed: !!live, agentsAvail, stale, decisions, nistFns,
       assurance: seeded ? [
         { id: "eu", name: "EU AI Act", ...eu }, { id: "iso", name: "ISO/IEC 42001", ...iso }, { id: "nist", name: "NIST AI RMF", ...nist },
@@ -494,13 +598,15 @@ function AskBar({ c, lang, value, setValue, onSubmit, busy, big = true }) {
 }
 
 function AnswerPanel({ c, answer, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => { if (answer) ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }, [answer?.q, answer?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!answer) return null;
   const tone = answer.kind === "live" ? XC.ok : answer.kind === "blocked" ? XC.crit : XC.gold;
   const label = answer.kind === "live" ? c.liveAnswer : answer.kind === "blocked" ? c.blocked : answer.kind === "pending" ? c.thinking : c.simulated;
   return (
-    <section className="gx-panel gx-answer gx-rise" aria-live="polite">
+    <section ref={ref} className="gx-panel gx-answer gx-rise" aria-live="polite">
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span className="gx-chip"><span className={`gx-dot ${answer.kind === "pending" ? "gx-pulse" : ""}`} style={{ background: answer.kind === "pending" ? XC.cyan : tone }} />{label}</span>
+        <span className="gx-chip"><span className={`gx-dot ${answer.kind === "pending" ? "gx-pulse" : ""}`} style={{ background: answer.kind === "pending" ? XC.cyan : tone }} />{label}{answer.kind === "live" ? <Pv p="I" c={c} /> : null}</span>
         <span style={{ fontSize: 13, color: XC.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>“{answer.q}”</span>
         <button type="button" className="gx-btn gx-btn-icon" onClick={onClose} aria-label={c.close} style={{ width: 32, height: 32 }}><X size={15} aria-hidden="true" /></button>
       </div>
@@ -515,7 +621,7 @@ function IssueCard({ i, c, onOpen, onAsk, idx }) {
   const col = SEV[i.severity] || XC.med;
   return (
     <article className="gx-panel gx-issue gx-rise" style={{ animationDelay: `${idx * 70}ms` }} aria-label={`${i.severity} — ${i.title}`}>
-      <span className="gx-sev" style={{ background: col, boxShadow: `0 0 18px ${col}` }} />
+      <span className="gx-sev" style={{ background: col }} />
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ display: "grid", placeItems: "center", width: 30, height: 30, borderRadius: 9, background: `${col}1f`, border: `1px solid ${col}55` }}><Icon size={15} color={col} aria-hidden="true" /></span>
         <span className="gx-label" style={{ color: col }}>{i.severity}</span>
@@ -579,7 +685,331 @@ function IntelligenceHome({ c, data, firstName, role, onOpen, onDeck, onClassic,
   );
 }
 
-/* ── Command Deck ───────────────────────────────────────────────────────── */
+/* ── Command Deck ───────────────────────────────────────────────────────
+   One environment, five lenses on the same governed records:
+   Briefs (what changed and what to do), Decisions (your approval queue as
+   decision workspaces), Estate (what depends on what), Instruments (the
+   classic panels, for analysis) and Live Security (the Enforce lens).
+   Every claim carries a provenance mark, and every record opens its source. */
+const PV_TONE = { O: XC.pO, C: XC.pC, I: XC.pI, R: XC.pR, D: XC.pD, E: XC.pE };
+const UNC_TONE = { low: XC.ok, medium: XC.med, high: XC.high };
+
+function Pv({ p, c }) {
+  if (!p) return null;
+  return <span className="gx-pv" style={{ color: PV_TONE[p] }} title={c.pv[p]} aria-label={c.pv[p]}>{p}</span>;
+}
+function Claims({ list, c }) {
+  return <>{list.map(([t, p], k) => <span key={k}>{k ? " " : ""}<bdi className="gx-claim">{t}</bdi><Pv p={p} c={c} /></span>)}</>;
+}
+function Legend({ c }) {
+  return (
+    <div className="gx-legend" aria-label="Provenance">
+      {["O", "C", "I", "R", "D", "E"].map(p => <span key={p} title={p === "E" ? c.eNote : undefined}><Pv p={p} c={c} />{c.pv[p]}</span>)}
+    </div>
+  );
+}
+function Unc({ level, c }) {
+  const n = level === "low" ? 1 : level === "medium" ? 2 : 3;
+  const col = UNC_TONE[level] || XC.mute;
+  return <><span className="gx-unc" aria-hidden="true">{[0, 1, 2].map(i => <i key={i} style={i < n ? { background: col } : null} />)}</span><b style={{ color: col, fontWeight: 700 }}>{c.unc[level] || level}</b></>;
+}
+
+/* Evidence lens: the record behind a claim, as recorded, without leaving the deck. */
+function EvidenceLens({ c, ev, seeded, onClose, onOpen }) {
+  const closeRef = useRef(null);
+  useEffect(() => {
+    if (!ev) return;
+    closeRef.current?.focus();
+    const k = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [ev, onClose]);
+  if (!ev) return null;
+  return (
+    <>
+      <div className="gx-scrim" onClick={onClose} aria-hidden="true" />
+      <aside className="gx-lens" role="dialog" aria-modal="true" aria-label={c.lens} data-testid="gx-lens">
+        <header>
+          <FileSearch size={16} color={XC.electric} aria-hidden="true" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="gx-label">{c.lens}</div>
+            <div style={{ fontWeight: 800, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
+          </div>
+          <button ref={closeRef} type="button" className="gx-btn gx-btn-icon" onClick={onClose} aria-label={c.close} style={{ width: 32, height: 32 }}><X size={15} aria-hidden="true" /></button>
+        </header>
+        <div className="body">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span className="gx-chip"><Pv p="O" c={c} />{c.pv.O}</span>
+            {seeded && <span className="gx-chip"><span className="gx-dot" style={{ background: XC.gold }} />{c.demo}</span>}
+          </div>
+          <dl className="gx-kv">
+            <dt>{c.lensSource}</dt><dd>{ev.source}</dd>
+            <dt>{c.lensRecord}</dt><dd className="gx-mono">{ev.ref}</dd>
+            {ev.facts.map(([k, v]) => <div key={k} style={{ display: "contents" }}><dt>{k}</dt><dd>{v}</dd></div>)}
+          </dl>
+          <div className="gx-note">{c.lensNote}</div>
+          {ev.action && <div className="gx-acts"><button type="button" className="gx-btn" onClick={() => { onClose(); onOpen(ev.action); }}>{c.openSource}<ChevronRight size={14} aria-hidden="true" /></button></div>}
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function BriefCard({ b, c, open, onToggle, onLens, onOpen, onAsk }) {
+  const col = SEV[b.severity] || XC.med;
+  const Icon = KIND_ICON[b.kind] || ShieldAlert;
+  return (
+    <article className="gx-panel gx-brief" data-open={open} data-testid="gx-brief">
+      <button type="button" className="gx-brief-h" aria-expanded={open} onClick={onToggle}>
+        <span className="gx-sevbar" style={{ background: col }} aria-hidden="true" />
+        <span style={{ minWidth: 0 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: XC.mute }}>
+            <Icon size={13} color={col} aria-hidden="true" /><span style={{ color: col, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".1em", fontSize: 11 }}>{c.sev[b.severity] || b.severity}</span>
+            <span>· <bdi>{b.evidence.source}</bdi></span>
+          </span>
+          <h3 dir="auto">{b.title}</h3>
+        </span>
+        <ChevronDown size={18} color={XC.mute} aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {open && (
+        <>
+          <div className="gx-six">
+            <div><b>{c.q.changed}</b><span><Claims list={b.changed} c={c} /></span></div>
+            <div><b>{c.q.matters}</b><span><Claims list={b.matters} c={c} /></span></div>
+            <div><b>{c.q.evidence}</b><span><button type="button" className="gx-linkbtn" dir="auto" onClick={() => onLens(b)}>{b.evidence.source} · {b.evidence.ref}</button></span></div>
+            <div><b>{c.q.unc}</b><span><Unc level={b.uncertainty.level} c={c} /> — <bdi>{b.uncertainty.why}</bdi></span></div>
+            <div><b>{c.q.who}</b><bdi style={b.ownerMissing ? { color: XC.crit, fontWeight: 700 } : { color: XC.ink }}>{b.who}</bdi></div>
+            <div><b>{c.q.action}</b><span className="gx-acts">
+              <button type="button" className="gx-btn gx-btn-primary" onClick={() => onOpen(b.action)}>{b.action.label}<ChevronRight size={14} aria-hidden="true" /></button>
+              {b.ask && <button type="button" className="gx-btn" onClick={() => onAsk(b.ask)}><Sparkles size={13} aria-hidden="true" />{c.askAbout}</button>}
+            </span></div>
+          </div>
+          <div className="gx-why" dir="auto">{b.shownBecause}</div>
+        </>
+      )}
+    </article>
+  );
+}
+
+function BriefsView({ c, data, onOpen, onLens, ask, live, onWatchLive }) {
+  const [open, setOpen] = useState(data.briefs[0]?.id || null);
+  const s = data.summary;
+  return (
+    <div className="gx-two">
+      <div className="gx-col">
+        <div style={{ fontSize: 14, color: XC.silver }}>{c.briefsLead(data.briefs.length, s.critical, s.high)}</div>
+        {data.briefs.length
+          ? data.briefs.map(b => <BriefCard key={b.id} b={b} c={c} open={open === b.id} onToggle={() => setOpen(open === b.id ? null : b.id)}
+              onLens={onLens} onOpen={onOpen} onAsk={ask.submit} />)
+          : <div className="gx-panel gx-empty"><CircleCheck size={26} color={XC.ok} aria-hidden="true" /><div style={{ fontFamily: SERIF, fontSize: 24, color: XC.ink, margin: "8px 0 6px" }}>{c.allClear}</div>{c.allClearSub}</div>}
+      </div>
+      <aside className="gx-col">
+        <section className="gx-panel gx-card">
+          <div className="gx-card-h"><Radar size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.watch}</span></div>
+          {[["critical", s.critical], ["high", s.high], ["medium", s.medium]].map(([k, v]) => (
+            <div key={k} className="gx-row"><span className="gx-dot" style={{ background: SEV[k] }} /><span style={{ flex: 1 }}>{c.sev[k]}</span><b className="gx-mono">{v}</b></div>
+          ))}
+          <p style={{ fontSize: 12.5, color: XC.mute, lineHeight: 1.5, margin: "10px 0 0" }}>{c.quiet}</p>
+        </section>
+        <section className="gx-panel gx-card">
+          <div className="gx-card-h"><ListChecks size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.tabDecisions}</span></div>
+          <div style={{ fontSize: 13, color: XC.silver }}>{c.decisionsLead(data.approvals.length)}</div>
+        </section>
+        {live && (
+          <section className="gx-panel gx-card">
+            <div className="gx-card-h"><LiveBadge c={c} /></div>
+            <div style={{ fontSize: 13, color: XC.silver }}>{c.ribbon(AI_AGENTS.length, live.st.counts.block, live.st.counts.escalate)}</div>
+            <div className="gx-acts" style={{ marginTop: 10 }}><button type="button" className="gx-btn" onClick={onWatchLive}><ShieldCheck size={14} aria-hidden="true" />{c.watchLive}</button></div>
+          </section>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+/* Decision workspaces over the role's real approval queue. Deciding stays in
+   the approvals workspace (recorded under the person, on the audit chain);
+   this view separates what was prepared from what is yours to decide. */
+function DecisionsView({ c, data, role, onOpen, ask }) {
+  const list = data.approvals;
+  const [sel, setSel] = useState(list[0]?.id || null);
+  const d = list.find(x => x.id === sel) || list[0];
+  const R = ROLES[role];
+  if (!d) return <div className="gx-panel gx-empty" style={{ marginTop: 16 }}><CircleCheck size={26} color={XC.ok} aria-hidden="true" /><div style={{ marginTop: 8 }}>{c.decisionsLead(0)}</div></div>;
+  const conf = typeof d.conf === "number" ? d.conf : null;
+  const level = conf == null ? "medium" : conf >= 85 ? "low" : conf >= 70 ? "medium" : "high";
+  return (
+    <div className="gx-dec">
+      <div className="gx-dlist" role="list">
+        <div style={{ fontSize: 13, color: XC.silver, marginBottom: 2 }}>{c.decisionsLead(list.length)}</div>
+        {list.map(x => (
+          <button key={x.id} type="button" role="listitem" aria-current={x.id === d.id} onClick={() => setSel(x.id)}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11.5, color: XC.mute }}>
+              <span className="gx-dot" style={{ background: SEV[String(x.risk).toLowerCase()] || XC.med }} />{x.risk} · {x.time}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 13.5, marginTop: 4, lineHeight: 1.35 }}>{String(x.title).trim()}</div>
+          </button>
+        ))}
+      </div>
+      <article className="gx-panel gx-ws" data-testid="gx-decision">
+        <section>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span className="gx-chip" style={{ color: XC.gold }}><span className="gx-dot" style={{ background: XC.gold }} />{c.awaitingYou}</span>
+            <span className="gx-chip">{c.tier} · {d.risk}</span>
+            <span className="gx-chip">{c.timing} · {d.time}</span>
+          </div>
+          <h3>{String(d.title).trim()}<Pv p="O" c={c} /></h3>
+        </section>
+        <section>
+          <div className="gx-label" style={{ color: XC.gold }}>{c.recommendation}</div>
+          <p style={{ margin: "8px 0 0", fontSize: 14.5, color: XC.ink, lineHeight: 1.55 }}>{d.action}<Pv p="R" c={c} /></p>
+          <div className="gx-grid2" style={{ marginTop: 12 }}>
+            <div><div className="gx-label">{c.reasoning}</div><p style={{ margin: "6px 0 0", fontSize: 13.5, color: XC.silver, lineHeight: 1.5 }}>{d.reasoning}<Pv p="I" c={c} /></p></div>
+            <div><div className="gx-label">{c.confidence}</div><p style={{ margin: "6px 0 0", fontSize: 13.5, color: XC.silver }}><Unc level={level} c={c} />{conf != null ? <span className="gx-mono"> · {conf}%</span> : null}<Pv p="I" c={c} /></p></div>
+          </div>
+        </section>
+        <section className="gx-grid2">
+          <div><div className="gx-label">{c.policyClause}</div><p style={{ margin: "6px 0 0", fontSize: 13.5, color: XC.ink }}>{d.clause}<Pv p="O" c={c} /></p></div>
+          <div><div className="gx-label">{c.authority}</div><p style={{ margin: "6px 0 0", fontSize: 13.5, color: XC.silver, lineHeight: 1.5 }}>{c.authorityText(R ? R.label : String(role).toUpperCase())}<Pv p="C" c={c} /></p></div>
+        </section>
+        <section>
+          <div className="gx-label" style={{ marginBottom: 8 }}>{c.safeguards}</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div className="gx-note">{c.safeguard}</div>
+            <div className="gx-note warn"><Pv p="E" c={c} /> {c.notEnforced}</div>
+          </div>
+        </section>
+        <section className="gx-acts">
+          <button type="button" className="gx-btn gx-btn-gold" onClick={() => onOpen({ nav: { type: "approval" } })}><Gavel size={14} aria-hidden="true" />{c.decideIn}<ChevronRight size={14} aria-hidden="true" /></button>
+          <button type="button" className="gx-btn" onClick={() => ask.submit(`Summarise the decision "${String(d.title).trim()}" and what I should weigh before approving.`)}><Sparkles size={13} aria-hidden="true" />{c.askAbout}</button>
+        </section>
+      </article>
+    </div>
+  );
+}
+
+/* Estate: layered dependency map with impact on selection. */
+const COLS = LAYERS; // model · data · agent · system
+const trunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+function EstateView({ c, data }) {
+  const est = data.estate;
+  const [sel, setSel] = useState(null);
+  const byId = useMemo(() => new Map(est.nodes.map(n => [n.id, n])), [est]);
+  const layout = useMemo(() => {
+    const W = 1000, colW = W / COLS.length, nodeW = 196, rowH = 46, top = 56;
+    const pos = {};
+    let rows = 0;
+    COLS.forEach((t, ci) => {
+      const ns = est.nodes.filter(n => n.type === t).sort((a, b) => a.label.localeCompare(b.label));
+      rows = Math.max(rows, ns.length);
+      ns.forEach((n, ri) => { pos[n.id] = { x: ci * colW + (colW - nodeW) / 2, y: top + ri * rowH, w: nodeW, h: 36 }; });
+    });
+    return { W, H: top + rows * rowH + 16, pos, colW };
+  }, [est]);
+  if (!est.nodes.length) return <div className="gx-panel gx-empty" style={{ marginTop: 16 }}>{c.awaiting}</div>;
+  const imp = sel ? impactOf(est, sel) : null;
+  const hit = imp ? new Set([sel, ...imp.affected]) : null;
+  const dep = est.edges.filter(e => e.kind === "dep" && layout.pos[e.from] && layout.pos[e.to]);
+  const onPath = e => imp && hit.has(e.from) && hit.has(e.to);
+  const govCount = id => { const g = governanceOf(est, id); return ["risk", "incident"].map(t => g[t]?.length ? `${g[t].length} ${t === "risk" ? "risk" : "inc"}` : "").filter(Boolean).join(" · "); };
+  const node = byId.get(sel);
+  const pick = t => est.nodes.find(n => n.type === t)?.id;
+  return (
+    <>
+      <p style={{ fontSize: 14, color: XC.silver, margin: "16px 0 0", maxWidth: "80ch" }}>{c.estateLead}</p>
+      <div className="gx-estate">
+        <div className="gx-gwrap">
+          <svg viewBox={`0 0 ${layout.W} ${layout.H}`} role="img" aria-label={c.tabEstate} data-testid="gx-estate">
+            {COLS.map((t, i) => <text key={t} className="gx-glabel" x={i * layout.colW + (layout.colW - 196) / 2} y="32">{c.layer[t].toUpperCase()}</text>)}
+            {dep.map(e => {
+              const a = layout.pos[e.to], b = layout.pos[e.from];
+              const [x1, y1, x2, y2] = a.x < b.x ? [a.x + a.w, a.y + a.h / 2, b.x, b.y + b.h / 2] : [a.x, a.y + a.h / 2, b.x + b.w, b.y + b.h / 2];
+              const mx = (x1 + x2) / 2;
+              const cls = imp ? (onPath(e) ? "hit" : "dim") : "";
+              return <path key={`${e.from}-${e.to}`} className={`gx-gedge ${cls}`} d={`M${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}><title>{`${byId.get(e.from)?.label} ${e.rel} ${byId.get(e.to)?.label}`}</title></path>;
+            })}
+            {est.nodes.filter(n => layout.pos[n.id]).map(n => {
+              const p = layout.pos[n.id];
+              const cls = sel === n.id ? "sel" : imp ? (hit.has(n.id) ? "hit" : "dim") : "";
+              const sub = n.type === "system" ? govCount(n.id) : n.type === "agent" ? (n.record?.owner || "") : "";
+              return (
+                <g key={n.id} className={`gx-gnode ${cls}`} tabIndex={0} role="button" aria-pressed={sel === n.id} aria-label={`${c.layer[n.type]}: ${n.label}`}
+                  onClick={() => setSel(sel === n.id ? null : n.id)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel(sel === n.id ? null : n.id); } }}>
+                  <rect x={p.x} y={p.y} width={p.w} height={p.h} rx="9" />
+                  <text className="t" x={p.x + 10} y={p.y + (sub ? 15 : 22)}>{trunc(n.label, 28)}</text>
+                  {sub && <text className="s" x={p.x + 10} y={p.y + 28}>{trunc(sub, 32)}</text>}
+                  <title>{n.label}</title>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+        <aside className="gx-panel gx-card" aria-live="polite">
+          {!node ? (
+            <>
+              <div className="gx-card-h"><Network size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.impact}</span></div>
+              <p style={{ fontSize: 13.5, color: XC.silver, margin: 0 }}>{c.pickHint}</p>
+              <div className="gx-acts" style={{ marginTop: 12 }}>
+                {["model", "data", "agent"].map(t => pick(t) && <button key={t} type="button" className="gx-btn" onClick={() => setSel(pick(t))}>{trunc(byId.get(pick(t)).label, 22)}</button>)}
+              </div>
+              <div className="gx-note" style={{ marginTop: 14 }}>{c.estateNote}</div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="gx-label">{c.layer[node.type]}</span><span className="gx-spacer" />
+                <button type="button" className="gx-btn" style={{ height: 30, fontSize: 12 }} onClick={() => setSel(null)}>{c.clear}</button>
+              </div>
+              <h3 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 22, margin: "6px 0 10px", lineHeight: 1.2 }}>{node.label}<Pv p="O" c={c} /></h3>
+              <EstateRelations c={c} est={est} byId={byId} id={node.id} />
+              <div className="gx-label" style={{ margin: "14px 0 8px" }}>{c.impact} · {c.affected} <Pv p="C" c={c} /></div>
+              {imp.affected.length ? (
+                <div className="gx-ilist">
+                  {COLS.map(t => {
+                    const ids = imp.affected.filter(x => byId.get(x)?.type === t);
+                    if (!ids.length) return null;
+                    return <div key={t}><b>{c.layer[t]} · {ids.length}</b>{ids.map(x => {
+                      const path = imp.paths[x] || [];
+                      const last = path[path.length - 1];
+                      const via = last?.exposed ? `read by ${byId.get(last.from)?.label}` : path.slice(0, -1).map(e => byId.get(e.from)?.label).filter(Boolean).reverse().join(", ");
+                      return <span key={x} style={{ display: "block" }}>{byId.get(x).label}{via ? <span style={{ color: XC.mute }}> · {last?.exposed ? via : `via ${via}`}</span> : null}</span>;
+                    })}</div>;
+                  })}
+                </div>
+              ) : <div style={{ fontSize: 13, color: XC.mute }}>{c.noImpact}</div>}
+              {imp.governance.length > 0 && (
+                <>
+                  <div className="gx-label" style={{ margin: "14px 0 8px" }}>{c.govAttached}</div>
+                  <div className="gx-ilist">
+                    {["incident", "risk", "kri", "control", "policy"].map(t => {
+                      const ids = imp.governance.filter(x => byId.get(x)?.type === t);
+                      if (!ids.length) return null;
+                      return <div key={t}><b>{c.gtype[t]} · {ids.length}</b>{ids.slice(0, 6).map(x => <span key={x} style={{ display: "block" }}>{byId.get(x).label}</span>)}{ids.length > 6 ? <span style={{ color: XC.mute }}>+{ids.length - 6}</span> : null}</div>;
+                    })}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </aside>
+      </div>
+    </>
+  );
+}
+function EstateRelations({ c, est, byId, id }) {
+  const deps = est.edges.filter(e => e.kind === "dep" && e.from === id).map(e => `${e.rel} ${byId.get(e.to)?.label}`);
+  const users = est.edges.filter(e => e.kind === "dep" && e.to === id).map(e => byId.get(e.from)?.label);
+  const g = governanceOf(est, id);
+  return (
+    <div style={{ display: "grid", gap: 6, fontSize: 13, color: XC.silver }}>
+      {deps.length > 0 && <div><b style={{ color: XC.ink }}>{c.dependsOn}:</b> {deps.join("; ")}</div>}
+      {users.length > 0 && <div><b style={{ color: XC.ink }}>{c.usedBy}:</b> {users.join("; ")}</div>}
+      {Object.keys(g).length > 0 && <div><b style={{ color: XC.ink }}>{c.attached}:</b> {Object.entries(g).map(([t, ns]) => `${ns.length} ${c.gtype[t].toLowerCase()}`).join(" · ")}</div>}
+    </div>
+  );
+}
+
+/* ── Instruments: the classic panels, kept for analysis ── */
 function planesFor(data, c) {
   const cov = data.assurance.length ? Math.round(data.assurance.reduce((s, a) => s + a.score, 0) / data.assurance.length) : null;
   const blocks = data.decisions.block || 0, masks = data.decisions.mask || 0;
@@ -610,48 +1040,14 @@ function planesFor(data, c) {
   ];
 }
 
-function PlaneOrbit({ c, data, selected, setSelected }) {
-  const planes = planesFor(data, c);
-  const pos = planes.map((p, i) => {
-    const ang = (-90 + i * (360 / planes.length)) * Math.PI / 180;
-    return { ...p, x: 50 + 41 * Math.cos(ang), y: 50 + 41 * Math.sin(ang) };
-  });
-  return (
-    <div className="gx-orbit">
-      <CoreCanvas alert={data.summary.critical} />
-      <svg viewBox="0 0 100 100" aria-hidden="true" className="gx-lines">
-        {pos.map(p => (
-          <line key={p.id} x1="50" y1="50" x2={p.x} y2={p.y} className="gx-flow" stroke={selected === p.id ? XC.cyan : "rgba(120,180,255,.35)"} strokeWidth={selected === p.id ? 0.45 : 0.25} />
-        ))}
-      </svg>
-      <div className="gx-center">
-        <div className="gx-label" style={{ color: XC.cyan }}>{c.core}</div>
-        <div className="n">{data.initiatives.length ? GOVERNANCE_SCORE : "—"}</div>
-        <div style={{ fontSize: 12, color: XC.silver, marginTop: 4 }}>{c.score}{data.initiatives.length ? <span className="gx-mono" style={{ color: XC.ok }}> · +{GOVERNANCE_DELTA}</span> : null}</div>
-      </div>
-      {pos.map(p => {
-        const Icon = p.icon;
-        return (
-          <button key={p.id} type="button" className="gx-node" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-pressed={selected === p.id}
-            onClick={() => setSelected(selected === p.id ? null : p.id)} aria-label={`${p.name}: ${p.metric}`}>
-            <span className="orb"><Icon size={20} color={p.tone} aria-hidden="true" /></span>
-            <span className="nm">{p.name}</span>
-            <span className="mv">{p.metric}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function DrillPanel({ c, plane, onOpen, onAsk, onClose }) {
   if (!plane) return null;
   const Icon = plane.icon;
   return (
-    <section className="gx-panel gx-drill gx-rise" aria-label={`${plane.name} detail`}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <Icon size={18} color={plane.tone} aria-hidden="true" />
-        <h3 style={{ margin: 0, fontFamily: SERIF, fontWeight: 400, fontSize: 24 }}>{plane.name}</h3>
+    <section className="gx-panel gx-drill" aria-label={`${plane.name} detail`}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <Icon size={17} color={plane.tone} aria-hidden="true" />
+        <h3 style={{ margin: 0, fontFamily: SERIF, fontWeight: 400, fontSize: 22 }}>{plane.name}</h3>
         <span className="gx-spacer" />
         <button type="button" className="gx-btn gx-btn-icon" onClick={onClose} aria-label={c.close} style={{ width: 32, height: 32 }}><X size={15} aria-hidden="true" /></button>
       </div>
@@ -669,7 +1065,7 @@ function SpendGauge({ c, cost, rows }) {
   const util = cost ? cost.utilization : null;
   const pct = util == null ? 0 : Math.min(util, 140) / 140;
   const col = util == null ? XC.mute : util >= 100 ? XC.crit : util >= 85 ? XC.high : XC.ok;
-  const A0 = 200, SWEEP = 140; // arc from 200° through 340°
+  const A0 = 200, SWEEP = 140;
   const arc = (r, a0, a1) => {
     const p = a => [50 + r * Math.cos(a * Math.PI / 180), 55 + r * Math.sin(a * Math.PI / 180)];
     const [x0, y0] = p(a0), [x1, y1] = p(a1);
@@ -677,11 +1073,11 @@ function SpendGauge({ c, cost, rows }) {
   };
   return (
     <section className="gx-panel gx-card">
-      <div className="gx-card-h"><Wallet size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.spend}</span></div>
+      <div className="gx-card-h"><Wallet size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.spend}</span><span className="gx-spacer" /><Pv p="C" c={c} /></div>
       {cost ? <>
         <svg viewBox="0 0 100 62" role="img" aria-label={`${util}% of budget used`} style={{ width: "100%", display: "block" }}>
-          <path d={arc(40, A0, A0 + SWEEP)} stroke="rgba(110,160,255,.14)" strokeWidth="7" fill="none" strokeLinecap="round" />
-          <path d={arc(40, A0, A0 + Math.max(2, SWEEP * pct))} stroke={col} strokeWidth="7" fill="none" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 4px ${col})` }} />
+          <path d={arc(40, A0, A0 + SWEEP)} stroke={XC.raised} strokeWidth="7" fill="none" strokeLinecap="round" />
+          <path d={arc(40, A0, A0 + Math.max(2, SWEEP * pct))} stroke={col} strokeWidth="7" fill="none" strokeLinecap="round" />
           <text x="50" y="46" textAnchor="middle" fill={XC.ink} style={{ font: `400 15px ${SERIF}` }}>{fmtUSD(cost.costMtd)}</text>
           <text x="50" y="56" textAnchor="middle" fill={XC.silver} style={{ font: `700 4.6px ${SANS}`, letterSpacing: ".1em" }}>{util}% {c.of.toUpperCase()}</text>
         </svg>
@@ -697,14 +1093,14 @@ function SpendGauge({ c, cost, rows }) {
 function AssurancePanel({ c, data }) {
   return (
     <section className="gx-panel gx-card">
-      <div className="gx-card-h"><ShieldCheck size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.assurance}</span></div>
+      <div className="gx-card-h"><ShieldCheck size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.assurance}</span><span className="gx-spacer" /><Pv p="C" c={c} /></div>
       {data.assurance.length ? <>
         {data.assurance.map(a => {
           const col = a.score >= 85 ? XC.ok : a.score >= 70 ? XC.med : XC.high;
           return (
             <div key={a.id} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}><span>{a.name}</span><b className="gx-mono" style={{ color: col }}>{a.score}%</b></div>
-              <div className="gx-bar"><i style={{ width: `${a.score}%`, background: `linear-gradient(90deg,${XC.blue},${col})` }} /></div>
+              <div className="gx-bar"><i style={{ width: `${a.score}%`, background: col }} /></div>
               <div style={{ fontSize: 11.5, color: XC.mute, marginTop: 5 }}>{a.met} met · {a.partial} partial · {a.gap} gap</div>
             </div>
           );
@@ -712,7 +1108,7 @@ function AssurancePanel({ c, data }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 6, marginTop: 4 }}>
           {data.nistFns.map(f => {
             const full = f.met === f.total;
-            return <div key={f.fn} style={{ textAlign: "center", padding: "8px 4px", borderRadius: 10, border: `1px solid ${XC.line}`, background: "rgba(9,22,44,.6)" }}>
+            return <div key={f.fn} style={{ textAlign: "center", padding: "8px 4px", borderRadius: 10, border: `1px solid ${XC.line}`, background: XC.sunk }}>
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: XC.silver }}>{f.fn}</div>
               <div className="gx-mono" style={{ fontSize: 12.5, color: full ? XC.ok : XC.med, marginTop: 3 }}>{f.met}/{f.total}</div>
             </div>;
@@ -727,12 +1123,12 @@ function AssurancePanel({ c, data }) {
 function AgentConstellation({ c }) {
   return (
     <section className="gx-panel gx-card">
-      <div className="gx-card-h"><Bot size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.agents}</span></div>
+      <div className="gx-card-h"><Bot size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.agents}</span></div>
       {AGENT_REGISTRY.map(a => {
         const on = a.status === "available";
         return (
           <div key={a.id} className="gx-row">
-            <span className={`gx-dot ${on ? "gx-pulse" : ""}`} style={{ background: on ? XC.cyan : "rgba(131,146,174,.45)" }} />
+            <span className="gx-dot" style={{ background: on ? XC.ok : XC.lineHi }} />
             <span style={{ flex: 1, minWidth: 0, color: on ? XC.ink : XC.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</span>
             <span className="gx-chip" style={{ height: 22, fontSize: 11, padding: "0 8px", color: a.actionClass === "monitor" ? XC.silver : XC.gold }}>{a.actionClass}</span>
           </div>
@@ -743,34 +1139,12 @@ function AgentConstellation({ c }) {
   );
 }
 
-function IssueQueue({ c, issues, onOpen }) {
-  return (
-    <section className="gx-panel gx-card">
-      <div className="gx-card-h"><Radar size={15} color={XC.crit} aria-hidden="true" /><span className="gx-label">{c.queue}</span><span className="gx-spacer" /><span className="gx-mono" style={{ fontSize: 12, color: XC.mute }}>{issues.length}</span></div>
-      {issues.length ? issues.map(i => {
-        const Icon = KIND_ICON[i.kind] || ShieldAlert, col = SEV[i.severity];
-        return (
-          <div key={i.id} className="gx-row">
-            <button type="button" className="gx-rowbtn" onClick={() => onOpen(i.action)} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <Icon size={15} color={col} aria-hidden="true" style={{ flex: "none", marginTop: 2 }} />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span className="t" style={{ display: "block", fontWeight: 700, lineHeight: 1.35 }}>{i.title}</span>
-                <span style={{ display: "block", fontSize: 12, color: XC.mute, marginTop: 2 }}>{i.metric.label}: <span className="gx-mono">{i.metric.value}</span></span>
-              </span>
-            </button>
-          </div>
-        );
-      }) : <div className="gx-empty" style={{ padding: 12 }}><CircleCheck size={18} color={XC.ok} aria-hidden="true" /> {c.allClear}</div>}
-    </section>
-  );
-}
-
 const DECISION_TONE = { allow: XC.ok, mask: XC.med, block: XC.crit, escalate: XC.high };
 function LiveFeed({ c, events, live }) {
   const rows = events.slice(-8).reverse();
   return (
     <section className="gx-panel gx-card">
-      <div className="gx-card-h"><Activity size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.feed}</span><span className="gx-spacer" />{live && <span className="gx-dot gx-pulse" style={{ background: XC.ok }} />}</div>
+      <div className="gx-card-h"><Activity size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.feed}</span><span className="gx-spacer" /><Pv p="O" c={c} />{live && <span className="gx-dot gx-pulse" style={{ background: XC.ok }} />}</div>
       {rows.length ? rows.map((e, k) => {
         const d = String(e.decision || e.action || "").replace(/^inference:/, "");
         return (
@@ -792,7 +1166,7 @@ function ChainStrip({ c, events, intact }) {
   const blocks = events.slice(-4);
   return (
     <section className="gx-panel gx-card">
-      <div className="gx-card-h"><Link2 size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.chain}</span><span className="gx-spacer" />
+      <div className="gx-card-h"><Link2 size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.chain}</span><span className="gx-spacer" />
         {intact != null && <span className="gx-chip" style={{ color: intact ? XC.ok : XC.crit }}>{intact ? <CircleCheck size={13} aria-hidden="true" /> : <ShieldAlert size={13} aria-hidden="true" />}{intact ? c.verified : c.broken}</span>}</div>
       {blocks.length ? (
         <div className="gx-chainrow">
@@ -803,7 +1177,7 @@ function ChainStrip({ c, events, intact }) {
                 <div className="gx-mono" style={{ fontSize: 11.5, color: XC.mute }}>#{e.seq ?? k + 1} · {String(e.ts || e.createdAt || "").slice(11, 19)}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, margin: "6px 0 4px" }}>{(e.decision || e.action || "event").toString()} · {e.tool || e.entity || "inference"}</div>
                 <div style={{ fontSize: 12, color: XC.silver }}>{e.dataClass || ""}{e.model ? ` · ${e.model}` : ""}</div>
-                <div className="gx-mono" style={{ fontSize: 11.5, color: XC.cyan, marginTop: 8 }}>hash {String(e.hash || "").slice(0, 10) || "—"}…</div>
+                <div className="gx-mono" style={{ fontSize: 11.5, color: XC.electric, marginTop: 8 }}>hash {String(e.hash || "").slice(0, 10) || "—"}…</div>
               </div>
             </div>
           ))}
@@ -816,17 +1190,17 @@ function ChainStrip({ c, events, intact }) {
 function Lifecycle({ c, initiatives }) {
   return (
     <section className="gx-panel gx-card">
-      <div className="gx-card-h"><Workflow size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.lifecycle}</span></div>
+      <div className="gx-card-h"><Workflow size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.lifecycle}</span></div>
       <div className="gx-pipe">
         {AC_PHASES.map((ph, idx) => {
           const here = initiatives.filter(i => i.phaseIndex === idx);
           const blocked = here.some(i => i.blockedBy);
-          const col = here.length ? (blocked ? XC.high : XC.cyan) : null;
+          const col = here.length ? (blocked ? XC.high : XC.blue) : null;
           const tip = here.length ? here.map(i => `${i.name}${i.blockedBy ? ` — blocked: ${i.blockedBy}` : ""}`).join("\n") : ph.objective;
           return (
             <div key={ph.id} className="gx-ph" title={tip} aria-label={`${ph.name}: ${here.length} initiative(s)${blocked ? ", blocked at gate" : ""}`}>
               <span className={`pn ${idx % 2 ? "up" : "dn"} ${here.length ? "on" : ""}`}>{ph.name}</span>
-              <span className={`pt ${here.length ? "on" : ""}`} style={col ? { background: col, borderColor: col, boxShadow: `0 0 14px ${col}` } : null}>{here.length || ""}</span>
+              <span className={`pt ${here.length ? "on" : ""}`} style={col ? { background: col, borderColor: col } : null}>{here.length || ""}</span>
             </div>
           );
         })}
@@ -835,36 +1209,37 @@ function Lifecycle({ c, initiatives }) {
   );
 }
 
-function CommandDeck({ c, data, onOpen, ask }) {
+function Instruments({ c, data, onOpen, ask }) {
   const [selected, setSelected] = useState(null);
-  const plane = selected ? planesFor(data, c).find(p => p.id === selected) : null;
+  const planes = planesFor(data, c);
+  const plane = selected ? planes.find(p => p.id === selected) : null;
   const kpis = [
-    [c.inFlight, data.initiatives.length, XC.electric], [c.openRisks, data.openRisks.length, data.openRisks.length ? XC.crit : XC.ok],
-    [c.approvals, data.approvals.length, data.approvals.length ? XC.gold : XC.ok], [c.agentsOn, data.agentsAvail.length, XC.cyan],
-    [c.burningN, data.summary.total, data.summary.critical ? XC.crit : XC.ok],
+    [c.scoreL, data.initiatives.length ? GOVERNANCE_SCORE : "—", XC.ink, "C"],
+    [c.inFlight, data.initiatives.length, XC.electric, "O"], [c.openRisks, data.openRisks.length, data.openRisks.length ? XC.crit : XC.ok, "O"],
+    [c.approvals, data.approvals.length, data.approvals.length ? XC.gold : XC.ok, "O"], [c.agentsOn, data.agentsAvail.length, XC.cyan, "O"],
+    [c.burningN, data.summary.total, data.summary.critical ? XC.crit : XC.ok, "C"],
   ];
   return (
     <>
-      <div className="gx-deck">
+      <p style={{ fontSize: 14, color: XC.silver, margin: "16px 0 0" }}>{c.instrumentsLead}</p>
+      <div className="gx-kpis">
+        {kpis.map(([k, v, col, p]) => <div key={k} className="gx-panel gx-kpi"><span style={{ fontSize: 11.5, color: XC.mute }}>{k}<Pv p={p} c={c} /></span><b style={{ color: col }}>{v}</b></div>)}
+      </div>
+      <div className="gx-instr">
         <div className="gx-col">
-          <IssueQueue c={c} issues={data.allIssues} onOpen={onOpen} />
-          <LiveFeed c={c} events={data.events} live={data.liveFeed} />
-        </div>
-        <div className="gx-col gx-mid">
-          <section className="gx-panel gx-card" style={{ padding: "18px 18px 16px" }}>
-            <div className="gx-card-h"><Boxes size={15} color={XC.cyan} aria-hidden="true" /><span className="gx-label">{c.planes}</span></div>
-            <PlaneOrbit c={c} data={data} selected={selected} setSelected={setSelected} />
-            <div className="gx-kpis">
-              {kpis.map(([k, v, col]) => <div key={k} className="gx-panel gx-kpi"><span style={{ fontSize: 11.5, color: XC.mute }}>{k}</span><b style={{ color: col }}>{v}</b></div>)}
+          <section className="gx-panel gx-card">
+            <div className="gx-card-h"><Boxes size={15} color={XC.electric} aria-hidden="true" /><span className="gx-label">{c.planes}</span></div>
+            <div className="gx-planes">
+              {planes.map(p => { const Icon = p.icon; return (
+                <button key={p.id} type="button" aria-pressed={selected === p.id} onClick={() => setSelected(selected === p.id ? null : p.id)}>
+                  <span className="nm"><Icon size={14} color={p.tone} aria-hidden="true" />{p.name}</span><span className="mv">{p.metric}</span>
+                </button>); })}
             </div>
+            <DrillPanel c={c} plane={plane} onOpen={onOpen} onAsk={ask.submit} onClose={() => setSelected(null)} />
           </section>
-          <DrillPanel c={c} plane={plane} onOpen={onOpen} onAsk={ask.submit} onClose={() => setSelected(null)} />
-          <div className="gx-dock">
-            <AskBar c={c} lang={ask.lang} value={ask.q} setValue={ask.setQ} onSubmit={ask.submit} busy={ask.busy} big={false} />
-            <AnswerPanel c={c} answer={ask.answer} onClose={() => ask.setAnswer(null)} />
-          </div>
           <Lifecycle c={c} initiatives={data.initiatives} />
           <ChainStrip c={c} events={data.events} intact={data.intact} />
+          <LiveFeed c={c} events={data.events} live={data.liveFeed} />
         </div>
         <div className="gx-col">
           <SpendGauge c={c} cost={data.cost} rows={data.spendRows} />
@@ -942,7 +1317,7 @@ function useLiveShowcase() {
 }
 
 function LiveBadge({ c }) {
-  return <span className="gx-chip" style={{ color: XC.crit, borderColor: "rgba(255,84,112,.45)" }}><span className="gx-dot gx-pulse" style={{ background: XC.crit }} />{c.liveTag}</span>;
+  return <span className="gx-chip" style={{ color: XC.crit, borderColor: "rgba(255,107,128,.45)" }}><span className="gx-dot gx-pulse" style={{ background: XC.crit }} />{c.liveTag}</span>;
 }
 
 function Pipeline({ c, ev, counts }) {
@@ -961,7 +1336,7 @@ function Pipeline({ c, ev, counts }) {
             <div key={stg.id} className="gx-stage" role="listitem" title={s ? `${stg.label}: ${s.reason}` : stg.label}>
               <span key={`${ev ? ev.seq : 0}-${stg.id}`} className={`node ${ev ? "gx-light" : ""}`}
                 style={{ animationDelay: `${i * 110}ms`, borderColor: d && d !== "skipped" ? col : undefined, color: col,
-                  boxShadow: decisive ? `0 0 0 2px ${col}, 0 0 26px ${col}` : d && d !== "skipped" ? `0 0 14px ${col}55` : "none" }}>
+                  boxShadow: decisive ? `0 0 0 2px ${col}` : "none", background: decisive ? `${col}22` : undefined }}>
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span className="lbl">{stg.short}</span>
@@ -1000,7 +1375,7 @@ function FleetMonitor({ c, fleet, dispatch }) {
           const tone = STATUS_TONE[status];
           const stopped = status === "suspended" || status === "paused";
           return (
-            <article key={a.id} className="gx-panel gx-agent" style={stopped ? { borderColor: `${tone}88`, boxShadow: `0 0 0 1px ${tone}33, 0 0 30px ${tone}22` } : null}>
+            <article key={a.id} className="gx-panel gx-agent" style={stopped ? { borderColor: tone, boxShadow: `inset 3px 0 0 ${tone}` } : null}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className={`gx-dot ${status === "running" ? "gx-pulse" : ""}`} style={{ background: tone }} />
                 <b style={{ fontSize: 13.5, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</b>
@@ -1009,7 +1384,7 @@ function FleetMonitor({ c, fleet, dispatch }) {
               <div style={{ fontSize: 12, color: XC.mute, minHeight: 16 }}>{s.last ? <><span className="gx-mono" style={{ color: XC.silver }}>{s.last.tool}</span> · <span style={{ color: OUTCOME_TONE[s.last.outcome] }}>{s.last.outcome}</span></> : a.owner}</div>
               <div className="gx-ticks" aria-label="Recent decisions">{Array.from({ length: 24 }).map((_, i) => {
                 const o = s.recent[s.recent.length - 24 + i];
-                return <i key={i} style={{ height: o ? (o === "block" ? "100%" : o === "escalate" ? "80%" : o === "mask" ? "60%" : "40%") : "15%", background: o ? OUTCOME_TONE[o] : "rgba(110,160,255,.12)" }} />;
+                return <i key={i} style={{ height: o ? (o === "block" ? "100%" : o === "escalate" ? "80%" : o === "mask" ? "60%" : "40%") : "15%", background: o ? OUTCOME_TONE[o] : XC.raised }} />;
               })}</div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: XC.mute, marginBottom: 4 }}><span>Breaker · {b.stateLabel}</span><span className="gx-mono">{b.score}</span></div>
@@ -1129,7 +1504,10 @@ export function IntelligenceExperience({
   const c = COPY[lang] || COPY.en;
   const data = useExperienceData({ role, seeded });
   const live = useLiveShowcase();
-  const [deckView, setDeckView] = useState("overview");
+  const [deckView, setDeckView] = useState("briefs");
+  const [lensEv, setLensEv] = useState(null);
+  const openLens = useCallback(b => setLensEv({ title: b.title, source: b.evidence.source, ref: b.evidence.ref, facts: b.evidence.facts, action: b.action }), []);
+  const closeLens = useCallback(() => setLensEv(null), []);
   const [q, setQ] = useState("");
   const [answer, setAnswer] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -1162,16 +1540,31 @@ export function IntelligenceExperience({
           onHome={() => onMode("home")} onDeck={() => onMode("deck")} onClassic={onClassic} onSignOut={onSignOut} now={now} />
         {mode === "deck"
           ? <>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 22, flexWrap: "wrap" }}>
+              <div className="gx-deckhead">
                 <button type="button" className="gx-btn gx-btn-icon" onClick={() => onMode("home")} aria-label={c.home}><ArrowLeft size={16} aria-hidden="true" /></button>
-                <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: "clamp(28px,3.4vw,40px)", margin: 0 }}>{c.deck}</h1>
+                <h1>{c.deck}</h1>
                 <span className="gx-rule gx-hide-sm" />
                 <div className="gx-tabs" role="tablist" aria-label={c.deck}>
-                  <button type="button" role="tab" aria-selected={deckView === "overview"} onClick={() => setDeckView("overview")}><Orbit size={14} aria-hidden="true" />{c.tabOverview}</button>
+                  {[["briefs", Radar, c.tabBriefs], ["decisions", Gavel, c.tabDecisions], ["estate", Network, c.tabEstate], ["instruments", LayoutGrid, c.tabInstruments]].map(([k, Icon, label]) => (
+                    <button key={k} type="button" role="tab" aria-selected={deckView === k} onClick={() => setDeckView(k)}><Icon size={14} aria-hidden="true" />{label}
+                      {k === "decisions" && data.approvals.length ? <span className="gx-mono" style={{ fontSize: 11, color: XC.gold }}>{data.approvals.length}</span> : null}</button>
+                  ))}
                   <button type="button" role="tab" aria-selected={deckView === "live"} onClick={() => setDeckView("live")}><span className="gx-dot gx-pulse" style={{ background: XC.crit }} />{c.tabLive}</button>
                 </div>
               </div>
-              {deckView === "live" ? <LiveSecurity c={c} live={live} /> : <CommandDeck c={c} data={data} onOpen={onOpen} ask={ask} />}
+              {deckView !== "live" && (
+                <div className="gx-dock">
+                  <AskBar c={c} lang={lang} value={q} setValue={setQ} onSubmit={submit} busy={busy} big={false} />
+                  <AnswerPanel c={c} answer={answer} onClose={() => setAnswer(null)} />
+                  <Legend c={c} />
+                </div>
+              )}
+              {deckView === "live" ? <LiveSecurity c={c} live={live} />
+                : deckView === "decisions" ? <DecisionsView c={c} data={data} role={role} onOpen={onOpen} ask={ask} />
+                : deckView === "estate" ? <EstateView c={c} data={data} />
+                : deckView === "instruments" ? <Instruments c={c} data={data} onOpen={onOpen} ask={ask} />
+                : <BriefsView c={c} data={data} onOpen={onOpen} onLens={openLens} ask={ask} live={live} onWatchLive={() => setDeckView("live")} />}
+              <EvidenceLens c={c} ev={lensEv} seeded={seeded} onClose={closeLens} onOpen={onOpen} />
             </>
           : <IntelligenceHome c={c} data={data} firstName={firstName} role={role} onOpen={onOpen} onDeck={() => onMode("deck")} onClassic={onClassic}
               ask={ask} skipIntro={skipIntro} setSkipIntro={setSkipIntro} live={live} onWatchLive={() => { setDeckView("live"); onMode("deck"); }} />}
