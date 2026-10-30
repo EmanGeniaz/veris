@@ -9,7 +9,7 @@
    or `at`. For the bus, only the known fields are validated and persisted;
    everything else is dropped (zod's default strip) and never reaches the
    database. */
-import { z, type ZodType, type ZodTypeDef } from "zod";
+import { z, type ZodType } from "zod";
 import { CAPS, MODULES, RBAC_ROLES } from "@/lib/rbac";
 import { FABRIC_KINDS } from "@/lib/evidence-fabric";
 import { PLANES } from "@/lib/entitlements";
@@ -178,4 +178,4 @@ export type BusStore = keyof typeof busSchemas;
 /* A validated bus record: only the store's known scalar fields. */
 export type BusRecord = Record<string, string | number | undefined>;
 export const busSchemaFor = (store: BusStore) =>
-  busSchemas[store] as unknown as ZodType<BusRecord, ZodTypeDef, unknown>;
+  busSchemas[store] as unknown as ZodType<BusRecord, unknown>;
