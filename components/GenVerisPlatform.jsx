@@ -48,6 +48,7 @@ const ROLE_PAGE_OVERRIDE={emp_assistant:"workbench",mgr_assistant:"workbench",em
   ciso_paas:"paas",cgo_paas:"paas",caio_templates:"templatelib",cgo_templates:"templatelib"};
 const vzLoading=()=><div style={{padding:60,textAlign:"center",color:"#636B8A",fontSize:12,fontFamily:"Manrope"}}>Loading…</div>;
 const ExecAssistant=dynamic(()=>import("./platform/advisor").then(m=>m.ExecAssistant),{ssr:false,loading:vzLoading});
+const IntelligenceExperience=dynamic(()=>import("./platform/intelligence").then(m=>m.IntelligenceExperience),{ssr:false,loading:()=><div style={{position:"fixed",inset:0,background:"#030914"}}/>});
 const PageHome=dynamic(()=>import("./platform/dashboard").then(m=>m.PageHome),{ssr:false,loading:vzLoading});
 const CEOCommandCenter=dynamic(()=>import("./platform/ceo").then(m=>m.CEOCommandCenter),{ssr:false,loading:vzLoading});
 const CAIOCommandCenter=dynamic(()=>import("./platform/caio").then(m=>m.CAIOCommandCenter),{ssr:false,loading:vzLoading});
@@ -758,6 +759,15 @@ export default function GenVeris() {
   const [acNavNonce,setAcNavNonce]=useState(0);
   const [hasEntered,setHasEntered]=useState(false);
   const [sessionMode,setSessionMode]=useState("demo");
+  /* Intelligence experience: after a sign-in from the entry screen the user
+     lands on "How may I help you?" + burning issues ("home"), can step into
+     the interactive Command Deck ("deck"), and can drop to the classic
+     dashboard ("classic") at any time. Deep links restore straight to the
+     classic page they name. A per-browser preference skips the intro. */
+  const [experience,setExperience]=useState("classic");
+  const [skipIntro,setSkipIntroState]=useState(false);
+  useEffect(()=>{ if(typeof window==="undefined")return; try{ setSkipIntroState(window.localStorage.getItem("genveris.experience")==="classic"); }catch{} },[]);
+  const setSkipIntro=v=>{ setSkipIntroState(v); try{ if(v) window.localStorage.setItem("genveris.experience","classic"); else window.localStorage.removeItem("genveris.experience"); }catch{} };
   useEffect(()=>{hydrateBus().finally(()=>hydrateTaxonomy());},[]);
   const [userProfiles,setUserProfiles]=useState(()=>{
     if(typeof window==="undefined")return USER_PROFILES;
@@ -830,6 +840,7 @@ export default function GenVeris() {
   const switchRole=r=>{setRole(r);const scoped=r==="employee"||r==="manager";setTab(!scoped&&tab==="aicentral"?"aicentral":"home");setHitlCount((HITL[r]||[]).length);};
   const signOut=useCallback(()=>{
     setHasEntered(false);
+    setExperience("classic");
     setTab("home");
     setAiCentralView("dashboard");
     setSessionMode("demo");
@@ -929,11 +940,40 @@ export default function GenVeris() {
   const seededSession=sessionMode==="demo"||sessionMode==="aicentral";
   const showSeededData=seededSession||!SEEDED_DEMO_TABS.has(tab);
 
-  if(!hasEntered)return <BrandEntryShell theme={theme} onEnter={enterApp}/>;
+  /* Entry from the sign-in screen opens the Intelligence experience (unless the
+     user chose to skip it); the standalone AI Central and Super Admin consoles
+     keep their own landing. */
+  const enterFromLogin=profile=>{
+    enterApp(profile);
+    let skip=false;
+    try{ skip=window.localStorage.getItem("genveris.experience")==="classic"; }catch{}
+    const mode=profile?.mode;
+    setExperience(!skip&&mode!=="aicentral"&&mode!=="superadmin"&&profile?.role!=="superadmin"?"home":"classic");
+  };
+  if(!hasEntered)return <BrandEntryShell theme={theme} onEnter={enterFromLogin}/>;
 
   /* Super Admin is a self-contained platform-operator console — it does not use
      the role sidebar / nav system, so render it full-page on its own. */
   if(role==="superadmin")return <><PageSuperAdmin onSignOut={signOut} showToast={showToast}/>{toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}</>;
+
+  if(experience!=="classic"){
+    /* Leaving the experience for a specific destination: open the classic
+       shell on that page through the same Navigation Registry everything
+       else uses, so the destination is identical to a sidebar click. */
+    const openDest=(dest={})=>{
+      setExperience("classic");
+      if(dest.nav&&dest.nav.type){ navigate(dest.nav.type,dest.nav.ctx||{}); return; }
+      if(dest.tab==="aicentral"){ setTab("aicentral"); if(dest.view)setAiCentralView(dest.view); return; }
+      setTab(dest.tab||"home");
+    };
+    return <LangContext.Provider value={lang}>
+      {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
+      <IntelligenceExperience mode={experience} role={role} seeded={seededSession} lang={lang} setLang={setLang}
+        userName={authUser?.name||userProfiles?.[role]?.name||R?.name||""}
+        onMode={setExperience} onClassic={()=>{setExperience("classic");setTab("home");}} onOpen={openDest} onSignOut={signOut}
+        skipIntro={skipIntro} setSkipIntro={setSkipIntro}/>
+    </LangContext.Provider>;
+  }
 
   return <LangContext.Provider value={lang}><div dir={rtl?"rtl":"ltr"} lang={lang} style={{display:"flex",minHeight:"100vh",background:T.bg}}>
     {toast.vis&&<Toast msg={toast.msg} type={toast.type}/>}
@@ -961,6 +1001,7 @@ export default function GenVeris() {
         </div>}
         {sessionMode==="aicentral"&&tab!=="aicentral"&&<button type="button" onClick={()=>setTab("aicentral")} style={{background:AI_GOLD+"18",border:`1px solid ${AI_GOLD}45`,borderRadius:8,padding:"5px 14px",color:AI_GOLD,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap"}}>&#8592; Back to AI Central</button>}
         <div style={{marginInlineStart:"auto",display:"flex",alignItems:"center",gap:10}}>
+          {sessionMode!=="aicentral"&&<button type="button" data-testid="vz-open-intelligence" onClick={()=>setExperience("home")} title={rtl?"ذكاء فيرِس ومنصة القيادة":"Veris Intelligence & Command Deck"} aria-label={rtl?"افتح ذكاء فيرِس":"Open Veris Intelligence"} style={{display:"inline-flex",alignItems:"center",gap:6,background:"linear-gradient(135deg,#0B1A33,#13306A)",border:"1px solid #2F7BFF66",borderRadius:20,padding:"5px 12px",color:"#DCE9FF",fontSize:11,fontWeight:800,fontFamily:F.b,cursor:"pointer",whiteSpace:"nowrap",boxShadow:"0 4px 14px rgba(47,123,255,.25)"}}><span aria-hidden="true" style={{color:"#5FE1FF"}}>◆</span>{isMobile?"":(rtl?"الذكاء":"Intelligence")}</button>}
           {!isMobile&&<div style={{display:"flex",gap:2,background:theme==="light"?T.s2:T.bg,borderRadius:8,padding:2,border:`1px solid ${T.border}`}}>
             {LANGS.map(l=>{const on=lang===l.code;return <button key={l.code} type="button" aria-label={`Language: ${l.label}`} onClick={()=>setLang(l.code)} style={{background:on?AI_GOLD:"transparent",border:"none",borderRadius:6,padding:"4px 9px",color:on?"#241703":T.ink3,fontSize:11,fontWeight:900,fontFamily:F.b,cursor:"pointer"}}>{l.code==="ar"?"ع":"EN"}</button>;})}
           </div>}

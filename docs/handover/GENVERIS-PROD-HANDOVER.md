@@ -189,7 +189,7 @@ GenVeris is an **Enterprise AI Governance control plane**: *"the control plane w
   - Breach clocks; data-subject rights.
   - **Scale / Continue / Improve / Retire** decisions, where a failing risk score vetoes the outcome; governed retirement reasons.
 - **Design philosophy** (`veris/design_Philosophy.md`):
-  - Light mode only. Token-only colours. WCAG AA.
+  - Light mode only. Token-only colours. WCAG AA. **Exception (owner decision, 2026-10-30):** the Intelligence Home and Command Deck (F-22A/B) use a dark, brand-derived immersive theme; the classic workspace stays light. Tokens are in `docs/design/intelligence/README.md`.
   - Deterministic rendering. "Reflow, never clip" down to 390 px.
   - Minimum text sizes 14 / 12 / 11 px.
   - Arabic/RTL first (D8). UAE/Dubai pack (D9).
@@ -242,6 +242,8 @@ Each row has an ID so QA can trace it.
 | F-20 | EN/AR language toggle, RTL | Partial; many screens not translated; Arabic text still says "VerisZone" | **100% of strings** in EN and AR through gettext-style catalogues. `<html lang dir>` set correctly. Arabic brand name corrected. | `lib/i18n.js` |
 | F-21 | Palettes and theming | 12 palettes, light mode only | Same tokens (§6.10); user preference saved on the server. | `core.jsx` `T`, `PALETTES` |
 | F-22 | HITL count pill (top bar) | Seeded counts | Real count of pending approvals assigned to the user. | `core.jsx` `HITL` |
+| F-22A | **Intelligence Home: the first screen after sign-in** (owner request, 2026-10-30) | Built in the demo: `docs/design/intelligence/` (spec + screenshots) | **This replaces the regular dashboard as the landing screen.** "How may I help you?" ask bar: explicit "open …" requests navigate directly; everything else goes through the governed gateway with provenance labels; voice input where the browser supports it. Below it, the top 5 **burning issues** ranked through the role's filter (approvals, high/critical risks, KRI breaches, open incidents, breach-notification clocks, stale evidence, budget overruns, coverage gaps), computed from **tenant data only**. Each issue has why, metric, owner, one action and "Ask about this". Empty tenant shows "All clear". Buttons to the Command Deck and the classic dashboard. A per-user "skip on sign-in" preference, **saved server-side** in PROD. | `components/platform/intelligence.jsx`, `lib/burning-issues.js` (+ `scripts/burning-issues-test.mjs`, 46 checks) |
+| F-22B | **Command Deck** (interactive dashboard) | Built in the demo | Governance Core (score with lineage) with six orbiting planes (Portfolio, Risk, Compliance, Runtime, Agents, Evidence) → drill panel → "Open in classic workspace". KPI strip, burning queue, live inference feed, AI spend gauge, control coverage (EU AI Act / ISO 42001 / NIST AI RMF + Govern/Map/Measure/Manage), governed agents, 13-phase lifecycle with blocked gates, and the evidence chain of custody (real chain verification). **Every value from tenant data**; empty states when there is none. Always one click from the classic dashboard and back (◆ Intelligence pill in the classic top bar). | same |
 
 ### 5.3 Persona command centres (every number computed from tenant data)
 
