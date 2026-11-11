@@ -430,7 +430,7 @@ registerContent({
   "GPAI exposure register · every GenAI system": "سجل التعرّض للذكاء الاصطناعي العام · كل نظام ذكاء اصطناعي توليدي",
   "Modified · shared beyond the team · derived exposure": "مُعدَّل · مُشارَك خارج الفريق · تعرّض مُشتق",
   "Modified?": "مُعدَّل؟", "Shared beyond team?": "مُشارَك خارج الفريق؟", "Exposure": "التعرّض", "Obligation": "الالتزام",
-  "Document Summarisation AI": "ذكاء تلخيص المستندات",
+  "Doc Summarisation AI": "ذكاء تلخيص المستندات", "Document Summarisation AI": "ذكاء تلخيص المستندات",
   "Foundation LLM, fine-tuned on support transcripts": "نموذج لغوي أساسي، مضبوط دقيقاً على محادثات الدعم",
   "Foundation LLM, lightly fine-tuned": "نموذج لغوي أساسي، مضبوط دقيقاً بشكل خفيف",
   "Foundation LLM via API — not modified": "نموذج لغوي أساسي عبر واجهة برمجية — غير مُعدَّل",

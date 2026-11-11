@@ -87,6 +87,28 @@ const has = (from, to, rel) => est.edges.some(e => e.from === from && e.to === t
   check("governanceOf groups by type", (g.risk || []).length === 2 && (g.kri || []).length === 1 && (g.control || []).length === 1 && (g.policy || []).length === 1);
   check("governanceOf on a node with none → empty", Object.keys(governanceOf(est, "model:model-y")).length === 0);
 }
+{ // seeded registers: every record names a registered system, so nothing appears twice
+  const { PORTFOLIO } = await import("../lib/portfolio.js");
+  const { acInitiatives, riskRegister, kriRegister } = await import("../lib/platform-models.ts");
+  const { UNIFIED_INCIDENTS } = await import("../lib/convergence.js");
+  const { AI_AGENTS } = await import("../lib/agent-registry.ts");
+  const gpai = Object.values(await import("../lib/gpai.js")).find(v => Array.isArray(v) && v.length && "gpai" in v[0]) || [];
+  const registered = new Set(PORTFOLIO.map(p => p.name));
+  const named = [
+    ...riskRegister.map(r => [`risk ${r.id}`, r.system]),
+    ...UNIFIED_INCIDENTS.map(i => [`incident ${i.id}`, i.system]),
+    ...AI_AGENTS.map(a => [`agent ${a.id}`, a.initiative]),
+    ...gpai.map(g => [`gpai ${g.initiativeId}`, g.system]),
+  ];
+  const stray = named.filter(([, n]) => !registered.has(n));
+  check(`every seeded system name is a registered portfolio system${stray.length ? ` (stray: ${stray.map(([w, n]) => `${w}="${n}"`).join(", ")})` : ""}`, stray.length === 0);
+  check("gpai rows cover at least one system (guards the lookup)", gpai.length > 0);
+  const seeded = buildEstate({ initiatives: acInitiatives, agents: AI_AGENTS, risks: riskRegister, kris: kriRegister, incidents: UNIFIED_INCIDENTS });
+  const labels = seeded.nodes.filter(n => n.type === "system").map(n => n.label);
+  check("seeded estate has no duplicate system nodes", new Set(labels).size === labels.length);
+  const loose = s => s.toLowerCase().replace(/\b(ai|model)\b/g, "").replace(/document/g, "doc").replace(/[^a-z]/g, "");
+  check("seeded estate has no near-duplicate system names", new Set(labels.map(loose)).size === labels.length);
+}
 { // determinism
   const again = buildEstate({ initiatives, agents, risks, kris, incidents });
   check("deterministic: same input → same estate", JSON.stringify(again) === JSON.stringify(est));
