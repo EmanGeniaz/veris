@@ -81,13 +81,17 @@ Every claim carries a mark, and a legend sits under the ask line:
   - The particle-orbit Governance Core was removed from the deck. It remains only as the quiet background on the Home screen.
 - **Live Security** (`07`, `09`): unchanged in behaviour (below), restyled to the calm palette.
 
-### Known data discrepancy surfaced by the Estate view
+### Data discrepancy surfaced by the Estate view (resolved)
 
-The seeded registers name two systems inconsistently:
-- "Doc Summarisation AI" (agent registry) vs "Document Summarisation AI" (risk register);
-- "Predictive Maintenance" (incidents) vs "Predictive Maintenance AI" (risks).
+The Estate view matches system names exactly, so it surfaced two systems recorded under two spellings:
+- "Document Summarisation AI" was used for "Doc Summarisation AI" (`pf-doc`), in risk RSK-011 and the GPAI register.
+- "Predictive Maintenance AI" was used for "Predictive Maintenance" (`pf-maint`), in risk RSK-012.
 
-Names are matched exactly, so each appears twice. That is deliberate: guessing would hide a real data-quality gap. The fix belongs in the source registers.
+Those records now use the portfolio register's names (`lib/portfolio.js` is the system of record). Their `initiativeId` stays null, because a risk's initiative id must point to a governed initiative and `pf-*` systems don't have one yet.
+
+`scripts/estate-map-test.mjs` now checks the seeded registers:
+- every risk, incident, agent and GPAI row names a registered portfolio system;
+- the seeded estate has no duplicate or near-duplicate system nodes.
 
 ## Live Security (`07`, `09`): Command Deck → Live Security tab
 This tab answers the request for **live monitoring of the agents** and **security being applied live**.
@@ -146,6 +150,6 @@ This tab answers the request for **live monitoring of the agents** and **securit
 - `components/platform/intelligence.jsx`: the experience (Home, and the Deck's Briefs, Decisions, Estate, Instruments and Live Security lenses, plus the evidence lens).
 - `lib/burning-issues.js`: pure ranking, role filters, `briefFor()` (six questions with provenance), greeting and intent routing.
 - `scripts/burning-issues-test.mjs`: 64 checks (`npm run test:burning`, in CI).
-- `lib/estate-map.js` + `scripts/estate-map-test.mjs`: the estate map and impact traversal, built only from recorded keys (38 checks, `npm run test:estate`, in CI).
+- `lib/estate-map.js` + `scripts/estate-map-test.mjs`: the estate map and impact traversal, built only from recorded keys (42 checks, including seeded-register name integrity, `npm run test:estate`, in CI).
 - `lib/live-showcase.js` + `scripts/live-showcase-test.mjs`: the live enforcement pipeline and fleet reducer (29 checks).
 - `components/GenVerisPlatform.jsx`: experience state, entry from sign-in, the ◆ Intelligence pill and the skip preference.
