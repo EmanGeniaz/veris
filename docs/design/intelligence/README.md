@@ -32,16 +32,64 @@ Sign in ──► Intelligence Home ──► Command Deck
   - Each card shows why it matters, the metric behind it, the owner, one primary action and "Ask about this".
 - **Empty state:** a workspace with no records shows "All clear". Nothing is invented.
 
-## Command Deck (`02`, `03`, `05`)
+## Command Deck (`02`, `03`, `05`, `08`, `10`, `11`)
 
-- **Governance Core:** a canvas particle sphere with the emblem's four-pointed star at its heart, and the AI Governance Score in the centre.
-- **Six planes** orbit the core: Portfolio, Risk, Compliance, Runtime, Agents and Evidence. Clicking one opens a drill panel with its numbers, a note, **Open in classic workspace** and **Ask Veris**.
-- **KPI strip:** initiatives in flight, open high-or-critical risks, your decisions, available agents, and issues burning now.
-- **Left:** the burning queue (all ranked issues) and a live inference feed (allow / mask / block / escalate).
-- **Right:** AI spend this month on a gauge, control coverage (EU AI Act, ISO/IEC 42001, NIST AI RMF, plus Govern/Map/Measure/Manage), and the governed agents with their action class.
-- **Centre, lower:** the ask dock, the 13-phase initiative lifecycle (occupied and blocked phases highlighted) and the evidence chain of custody (hash-linked blocks, with "Chain verified" from the real chain check).
+The deck follows the Operating Environment concept: calm, evidence-cited, and authority-aware. It is no longer a holographic dashboard. It is one environment with five lenses on the same governed records, plus a shared ask line.
 
-## Live Security (`07`, `08`, `09`): Command Deck → Live Security tab
+### Provenance grammar
+
+Every claim carries a mark, and a legend sits under the ask line:
+
+| Mark | Class | Used for |
+|---|---|---|
+| **O** | Observed | A recorded value: a register row, an audit event, a policy clause |
+| **C** | Calculated | Deterministic over records: residual score, breach clock, coverage, impact |
+| **I** | AI interpretation | Gateway answers, and the prepared reasoning and confidence on an approval |
+| **R** | Recommendation | The prepared action on an approval |
+| **D** | Human decision | Recorded in the approvals workspace, under the person |
+| **E** | Verified enforcement | Never shown as achieved. Veris Enforce is not connected, and the deck says so |
+
+### Lenses
+
+- **Briefs** (default, `02`):
+  - Every ranked burning issue is answered as six questions: **what changed, why it matters, evidence, uncertainty, who should act, available action**.
+  - Each brief also says **why it was shown** (severity, role lens, overdue or worsening, priority score).
+  - Briefs come from `briefFor()` in `lib/burning-issues.js`. They are register-derived, so they carry only O and C marks and low uncertainty. Only approvals carry I and R.
+  - A missing owner is shown as a gap in red ("No owner recorded"), never filled in.
+- **Evidence lens** (`10`):
+  - Clicking a brief's evidence opens a drawer with the source register, record id and the recorded fields.
+  - It is marked Observed, and carries the Demo data chip when seeded.
+  - "Open source record" goes to the classic page. Escape closes it.
+- **Decisions** (`08`): the role's real approval queue, shown as decision workspaces. Each one separates:
+  - the statement (O);
+  - the **recommendation · prepared, not decided** (R);
+  - the prepared reasoning and stated confidence (I, with uncertainty);
+  - the policy clause (O);
+  - decision authority (C).
+
+  Two safeguards are always shown:
+  - "The recommendation is not an approval."
+  - "A decision is not proof of enforcement — Veris Enforce is not connected" (E).
+
+  Deciding stays in the approvals workspace, where it is recorded under the person on the audit chain. The deck adds no new decision API.
+- **Estate** (`03`):
+  - A layered map (Models → Data → Agents → AI systems) built by `lib/estate-map.js`, **only from keys the registers already share**: `initiativeId`, agent `model` / `dataScopes` / granted tool `control`, initiative `controls` / `policies`, and exact system names.
+  - Selecting a node shows what it depends on, what uses it, the governance attached, and the **impact if it changes**. Impact is a reverse traversal (C), with the path for each affected item, the data an affected agent reads, and the risks, KRIs, incidents, controls and policies on everything affected.
+  - It is labelled as a derived view: typed relationships in the Evidence Fabric are proposed (#166).
+- **Instruments** (`11`):
+  - The previous deck panels are kept for analysis: KPI strip (with marks), the six planes as a grid with drill-down and "Open in classic workspace", the 13-phase lifecycle, evidence chain of custody, live inference feed, AI spend, control coverage and governed agents.
+  - The particle-orbit Governance Core was removed from the deck. It remains only as the quiet background on the Home screen.
+- **Live Security** (`07`, `09`): unchanged in behaviour (below), restyled to the calm palette.
+
+### Known data discrepancy surfaced by the Estate view
+
+The seeded registers name two systems inconsistently:
+- "Doc Summarisation AI" (agent registry) vs "Document Summarisation AI" (risk register);
+- "Predictive Maintenance" (incidents) vs "Predictive Maintenance AI" (risks).
+
+Names are matched exactly, so each appears twice. That is deliberate: guessing would hide a real data-quality gap. The fix belongs in the source registers.
+
+## Live Security (`07`, `09`): Command Deck → Live Security tab
 This tab answers the request for **live monitoring of the agents** and **security being applied live**.
 
 - **Live banner and counters:** actions governed, allowed, masked, sent to a human, threats blocked and agents suspended. A Pause/Resume control stops and restarts the stream.
@@ -81,10 +129,12 @@ This tab answers the request for **live monitoring of the agents** and **securit
 
 ## Design decisions
 
-- **Dark for these two screens only.** The immersive screens use a dark theme derived from the brand (the blue and silver ribbon and the four-pointed star). The classic workspace stays **light**, as `design_Philosophy.md` requires.
-  - Ground `#030914`, brand blue `#2F7BFF`, signal cyan `#5FE1FF`, silver `#B9C6DB`, gold `#E3B862` (AI and human-decision accents).
-  - Severity colours: critical `#FF5470`, high `#FF9F43`, medium `#F2D35B`, ok `#36E2A4`.
-- **Type:** DM Serif Display for the greeting and section titles, Manrope for UI text, the system monospace for data and hashes. All fonts are self-hosted.
+- **Dark for these screens only, calm rather than holographic.** The immersive screens use a dark theme. The classic workspace stays **light**, as `design_Philosophy.md` requires.
+  - Ground `#0A0E16`, surface `#111724`, brand blue `#5B93FF`, gold `#E2B862` (recommendations and human-decision moments only).
+  - Severity colours: critical `#FF6B80`, high `#FFA45A`, medium `#EFD06A`, ok `#62D48E`.
+  - Provenance colours: O `#5CC8A8`, C `#7FA7FF`, I `#BE9CFF`, R `#E2B862`, D `#EEF1F7`, E `#4FD1E8`.
+  - No grid backdrop, glows, corner brackets or gradient buttons. Motion only shows causality: a brief expanding, the impact path lighting, a pipeline stage deciding.
+- **Type:** DM Serif Display for the greeting, titles and decision statements, Manrope for UI text, the system monospace for identifiers, figures and hashes. All fonts are self-hosted.
 - **Accessibility and layout:** visible focus, `prefers-reduced-motion` (the core renders one static frame), reflow down to 390 px with no horizontal scroll, RTL mirroring.
 - **Honesty:**
   - Seeded showcase data carries a **Demo data** chip.
@@ -93,8 +143,9 @@ This tab answers the request for **live monitoring of the agents** and **securit
 
 ## Code
 
-- `components/platform/intelligence.jsx`: the experience (Home, Deck, Governance Core canvas, panels).
-- `lib/burning-issues.js`: pure ranking, role filters, greeting and intent routing.
-- `scripts/burning-issues-test.mjs`: 46 checks (`npm run test:burning`, in CI).
+- `components/platform/intelligence.jsx`: the experience (Home, and the Deck's Briefs, Decisions, Estate, Instruments and Live Security lenses, plus the evidence lens).
+- `lib/burning-issues.js`: pure ranking, role filters, `briefFor()` (six questions with provenance), greeting and intent routing.
+- `scripts/burning-issues-test.mjs`: 64 checks (`npm run test:burning`, in CI).
+- `lib/estate-map.js` + `scripts/estate-map-test.mjs`: the estate map and impact traversal, built only from recorded keys (38 checks, `npm run test:estate`, in CI).
 - `lib/live-showcase.js` + `scripts/live-showcase-test.mjs`: the live enforcement pipeline and fleet reducer (29 checks).
 - `components/GenVerisPlatform.jsx`: experience state, entry from sign-in, the ◆ Intelligence pill and the skip preference.

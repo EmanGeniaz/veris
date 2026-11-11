@@ -7,7 +7,7 @@
 // Dynamic import: Node's CJS named-export detection misses some of this module's
 // exports after tsx's transform; a namespace import always sees all of them.
 const {
-  deriveBurningIssues, issueSummary, greetingFor, routeIntent, kriBreached, isOverdueText, ROLE_LENS,
+  deriveBurningIssues, issueSummary, greetingFor, routeIntent, kriBreached, isOverdueText, ROLE_LENS, briefFor, PROVENANCE,
 } = await import("../lib/burning-issues.js");
 const { breachClock } = await import("../lib/breach-notification.js");
 
@@ -126,6 +126,35 @@ const all = { approvals: approvals.caio, risks, kris, incidents, breaches, breac
   check("unknown destination falls through to the assistant", routeIntent("open the pod bay doors") === null);
   check("Arabic 'open the risk register' routes to Risk Center", routeIntent("افتح سجل المخاطر")?.nav?.type === "risk");
   check("Arabic question is not hijacked as navigation", routeIntent("ما أكبر المخاطر التي تحتاج قراري؟") === null);
+}
+
+/* ── briefs: six questions, provenance marks, no invented decision or enforcement ── */
+{
+  const issues = deriveBurningIssues(all, { role: "caio", limit: 50 });
+  const briefs = issues.map(i => briefFor(i, { role: "caio" }));
+  const claims = b => [...b.changed, ...b.matters];
+  check("every issue yields a brief", briefs.length === issues.length && briefs.every(Boolean));
+  check("every brief answers all six questions", briefs.every(b => b.changed.length && b.matters.length && b.evidence && b.uncertainty && b.who && b.action));
+  check("every brief says why it was shown", briefs.every(b => /^Shown because: /.test(b.shownBecause) && b.shownBecause.includes("CAIO lens")));
+  check("marks are only known provenance classes or framing (null)", briefs.every(b => claims(b).every(([, p]) => p === null || p in PROVENANCE)));
+  check("no brief claims a human decision or verified enforcement", briefs.every(b => claims(b).every(([, p]) => p !== "D" && p !== "E")));
+  check("register-derived briefs carry no AI interpretation", briefs.filter(b => b.kind !== "approval").every(b => claims(b).every(([, p]) => p !== "I" && p !== "R")));
+  check("register-derived briefs are low uncertainty", briefs.filter(b => b.kind !== "approval" && b.kind !== "kri").every(b => b.uncertainty.level === "low"));
+  const ap = briefs.find(b => b.kind === "approval");
+  check("approval reasoning is marked as AI interpretation", ap && ap.matters.some(([, p]) => p === "I"));
+  check("approval brief says it is in your queue and overdue", ap && /approval queue/.test(ap.shownBecause) && /overdue/.test(ap.shownBecause));
+  check("evidence carries its source register and facts", briefs.every(b => b.evidence.source && Array.isArray(b.evidence.facts)));
+  const risk = briefs.find(b => b.id === "risk:RSK-1");
+  check("risk evidence facts include residual and owner", risk && risk.evidence.facts.some(([k, v]) => k === "Residual" && v === "12") && risk.evidence.facts.some(([k]) => k === "Executive owner"));
+  check("residual is marked calculated", risk && risk.changed.some(([t, p]) => /Residual/.test(t) && p === "C"));
+  check("empty fact values are dropped", briefs.every(b => b.evidence.facts.every(([, v]) => String(v).trim() !== "")));
+  const kri = briefs.find(b => b.id === "kri:K1");
+  check("worsening KRI is named in why-shown", kri && /worsening/.test(kri.shownBecause));
+  const noOwner = briefFor({ ...issues.find(i => i.kind === "risk"), owner: "" }, { role: "cro" });
+  check("missing owner is shown as a gap, not filled in", noOwner.who === "No owner recorded" && noOwner.ownerMissing === true);
+  check("low-confidence recommendation is high uncertainty", briefFor({ ...issues.find(i => i.kind === "approval"), conf: 55 }).uncertainty.level === "high");
+  check("unrecorded confidence is medium uncertainty", briefFor({ ...issues.find(i => i.kind === "approval"), conf: null }).uncertainty.level === "medium");
+  check("briefFor(null) → null", briefFor(null) === null && briefFor({}) === null);
 }
 
 const failed = R.filter(([s]) => s === "FAIL");
