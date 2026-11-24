@@ -50,7 +50,7 @@ Every claim carries a mark, and a legend sits under the ask line:
 | **E** | Verified enforcement | Never shown as achieved. Veris Enforce is not connected, and the deck says so |
 
 ### Lenses
-- **Mission Control** (first tab): a control-room overview in a neon glass style, scoped to this tab only (the other lenses keep the calm palette).
+- **Mission Control** (first and default tab): a control-room overview in a neon glass style, scoped to this tab only (the other lenses keep the calm palette).
   - **Four figures:** AI systems in production, open high and critical risks, decisions awaiting you, and governed agent actions this session (with a live sparkline). There are no "vs yesterday" trends, because the workspace keeps no daily history for those figures.
   - **Today's governance queue:** your approvals, most severe first, then overdue and due evidence. An approval opens Decisions; an evidence item opens Evidence freshness.
   - **Live estate map:** a tilted floor of models → data → agents → AI systems, from `lib/estate-map.js`. Each AI system's height shows its risk and incident load. Every action on the deck's live enforcement stream travels along the links, and a red burst marks where an engine stopped it. Agents show running, downscoped, suspended or paused. Clicking a node shows what a change would affect. The traffic is synthetic and the verdicts are real, and the tab says so.

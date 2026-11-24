@@ -1893,7 +1893,7 @@ export function IntelligenceExperience({
   const c = COPY[lang] || COPY.en;
   const data = useExperienceData({ role, seeded });
   const live = useLiveShowcase();
-  const [deckView, setDeckView] = useState("briefs");
+  const [deckView, setDeckView] = useState("mission");
   const [lensEv, setLensEv] = useState(null);
   const openLens = useCallback(b => setLensEv({ title: b.title, source: b.evidence.source, ref: b.evidence.ref, facts: b.evidence.facts, action: b.action }), []);
   const closeLens = useCallback(() => setLensEv(null), []);
