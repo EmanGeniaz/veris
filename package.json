@@ -51,7 +51,7 @@
     "exceljs": "^4.4.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^1.73.0",
-    "next": "^15.5.28",
+    "next": "^15.5.29",
     "next-auth": "^5.0.0-beta.32",
     "prisma": "^6.19.3",
     "react": "19.3.1",
@@ -67,12 +67,12 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.6.2",
     "eslint": "^9.17.0",
-    "eslint-config-next": "^15.5.28",
+    "eslint-config-next": "^15.5.29",
     "postcss": "^8.5.33",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.15",
-    "typescript": "^5.7.2"
+    "typescript": "~6.0.3"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -85,7 +85,8 @@
       "uuid": "^11.1.1"
     },
     "@prisma/config": {
-      "deepmerge-ts": "^8.0.2"
+      "deepmerge-ts": "^8.0.2",
+      "effect": "^3.22.5"
     },
     "source-map-js": "^1.2.2"
   }
