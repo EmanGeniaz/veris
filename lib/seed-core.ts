@@ -48,6 +48,14 @@ export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
         kris: r.kris, desc: r.desc, treatment: r.treatment as object, aiRecommendation: r.aiRecommendation,
       },
     });
+    // Refresh the system name on a re-run, so a corrected reference name
+    // (e.g. aligned to the portfolio register) reaches already-seeded rows.
+    // Only this field, only this tenant's row, and only when it differs:
+    // nothing else a tenant may have recorded is overwritten.
+    await prisma.risk.updateMany({
+      where: { id: r.id, tenantId: tenant.id, NOT: { system: r.system } },
+      data: { system: r.system },
+    });
   }
   if (mode === "demo") for (const k of kriRegister) {
     await prisma.kri.upsert({
@@ -59,7 +67,12 @@ export async function seedDemo(prisma: PrismaClient, spec: TenantSpec = {}) {
     });
   }
   if (mode === "demo") for (const a of knowledgeAssets) {
-    await prisma.knowledgeAsset.create({
+    // Knowledge assets have generated ids, so match on tenant + title + source
+    // to keep a re-run from inserting the same asset again.
+    const seeded = await prisma.knowledgeAsset.findFirst({
+      where: { tenantId: tenant.id, title: a.title, sourceRef: a.sourceRef }, select: { id: true },
+    });
+    if (!seeded) await prisma.knowledgeAsset.create({
       data: { tenantId: tenant.id, title: a.title, kind: a.kind, addedBy: a.addedBy,
         sourceRef: a.sourceRef, reuseCount: a.reuseCount ?? 0 },
     });

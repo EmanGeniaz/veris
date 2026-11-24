@@ -121,6 +121,9 @@ jobs:
       - name: Estate map tests (Command Deck — relationships only from recorded keys, impact traversal)
         run: npm run test:estate
 
+      - name: Seed refresh tests (re-run corrects system names only, tenant-scoped, no duplicate knowledge assets)
+        run: npm run test:seed
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 
