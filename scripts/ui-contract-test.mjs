@@ -70,6 +70,18 @@ const check = (name, cond) => { R.push([cond ? "PASS" : "FAIL", name]); };
   check("click-integrity harness uses the stable skip hook", /data-testid="vz-tour-skip"/.test(harness));
 }
 
+/* ── Brand · GenVeris only ──
+   VerisZone was rebranded to GenVeris (Sep 2026). No product source, copy
+   (EN or AR) or shipped asset may carry the old name. Docs may mention it as
+   history, and live domains are a separate DNS decision, so they're excluded. */
+{
+  const { execSync } = await import("node:child_process");
+  const files = execSync("git ls-files app components lib public auth.ts middleware.ts", { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+  const old = /veris\s*zone|فير[ِ]?ي?س زون/i;
+  const hits = files.filter(f => old.test(f) || (/\.(jsx?|tsx?|mjs|css|svg|json|html)$/.test(f) && old.test(read(f).replace(/https?:\/\/[\w.-]*veriszone\.com/gi, ""))));
+  check(`no VerisZone brand left in product code, copy or assets${hits.length ? ` (found in: ${hits.join(", ")})` : ""}`, hits.length === 0);
+}
+
 const failed = R.filter(([s]) => s === "FAIL");
 for (const [s, n] of R) console.log(`${s}  ${n}`);
 console.log(`\n${R.length - failed.length}/${R.length} passed`);

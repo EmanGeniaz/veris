@@ -25,7 +25,7 @@ import {
   ShieldAlert, Activity, Gavel, Siren, Timer, FileWarning, Wallet, Scale, Mic, MicOff,
   ArrowUp, LayoutGrid, Sparkles, X, ChevronRight, LogOut, Languages, Orbit, Bot, Link2,
   CircleCheck, Layers, Radar, Workflow, Boxes, ArrowLeft, ShieldCheck, Command,
-  Pause, Play, Power, Crosshair, Zap, FlaskConical, ChevronDown, Network, FileSearch, ListChecks,
+  Pause, Play, Power, Crosshair, Zap, FlaskConical, ChevronDown, Network, FileSearch, ListChecks, Gauge, FileText,
 } from "lucide-react";
 import { HITL, ROLES } from "./core";
 import { deriveBurningIssues, issueSummary, greetingFor, routeIntent, briefFor } from "../../lib/burning-issues";
@@ -43,6 +43,8 @@ import { askGateway } from "../../lib/gateway-client";
 import { honestSimulatedReply } from "../../lib/assistant-honesty";
 import { evaluateAction, ROUTINE, ATTACKS, STAGES, initialFleet, applyEvent, agentStatus, breakerFor, pauseAgent, resumeAgent } from "../../lib/live-showcase";
 import { AI_AGENTS } from "../../lib/agent-registry";
+import { PORTFOLIO } from "../../lib/portfolio";
+import { systemsInProduction, riskBreakdown, governanceQueue, liveSeries, estateLayout, spendShare } from "../../lib/mission-control";
 
 /* ── tokens ─────────────────────────────────────────────────────────────── */
 const XC = {
@@ -113,6 +115,19 @@ const COPY = {
     gtype: { risk: "Risks", kri: "KRIs", incident: "Incidents", control: "Controls", policy: "Policies" },
     instrumentsLead: "The classic instruments, kept for analysis and audit. Open any plane to trace a number to its source.",
     scoreL: "AI Governance Score", sev: { critical: "Critical", high: "High", medium: "Medium" },
+    tabMission: "Mission Control", mcSystems: "AI systems in production", mcSystemsSub: (t, b) => `${t} in the portfolio · ${b} in build`,
+    mcRisks: "High & critical risks open", mcRisksSub: (cr, hi) => `${cr} critical · ${hi} high`,
+    mcDecisions: "Decisions awaiting you", mcDecisionsSub: (cr, ev) => `${cr} critical · ${ev} evidence items due`,
+    mcActions: "Governed agent actions", mcActionsSub: (a, s) => `${a} allowed · ${s} stopped this session`,
+    mcQueue: "Today's governance queue", mcQueueAll: "View full queue", mcItems: n => `${n} items`, mcQueueEmpty: "Nothing is waiting on you today.",
+    mcMap: "Live estate map", mcMapSub: "Models → data → agents → AI systems · every governed action, judged in real time",
+    mcMapNote: "Live simulation · verdicts by the real engines", mcLoad: "Risk and incident load", mcPick: "If this changes, it affects:",
+    mcAgents: "Agents", mcSystemsN: "AI systems", mcData: "Data sources exposed", mcGovOn: "Risks · incidents on them", mcRecorded: "Built only from links the registers record.",
+    mcOverview: "Governance overview", mcFresh: "Evidence fresh", mcInstr: "View instruments",
+    mcBriefs: "Material briefs", mcBriefsAll: "View all briefs", mcAnalytics: "Analytics", mcRiskLevels: "Risk register by level", mcRisksWord: "risks",
+    mcOpenHigh: n => `${n} high or critical still open`, mcLive: "Governed agent actions", mcSpend: "AI spend by provider", mcMtd: "Month to date",
+    mcBudget: (c, b, u) => `${c} of ${b} · ${u}% of monthly AI budget`, mcOfBudget: u => `${u}% of budget`, mcAllowed: "allowed", mcStopped: "stopped",
+    mcOutcome: { allow: "Allowed", mask: "Masked", flag: "Flagged", escalate: "Sent to a human", block: "Blocked" },
   },
   ar: {
     eyebrow: "ذكاء فيرِس", help: "كيف يمكنني مساعدتك؟",
@@ -163,6 +178,19 @@ const COPY = {
     gtype: { risk: "المخاطر", kri: "مؤشرات المخاطر", incident: "الحوادث", control: "الضوابط", policy: "السياسات" },
     instrumentsLead: "الأدوات الكلاسيكية، محفوظة للتحليل والتدقيق. افتح أي مستوى لتتبّع الرقم إلى مصدره.",
     scoreL: "مؤشر حوكمة الذكاء الاصطناعي", sev: { critical: "حرجة", high: "عالية", medium: "متوسطة" },
+    tabMission: "غرفة التحكم", mcSystems: "أنظمة ذكاء اصطناعي في الإنتاج", mcSystemsSub: (t, b) => `${t} في المحفظة · ${b} قيد البناء`,
+    mcRisks: "مخاطر عالية وحرجة مفتوحة", mcRisksSub: (cr, hi) => `${cr} حرجة · ${hi} عالية`,
+    mcDecisions: "قرارات بانتظارك", mcDecisionsSub: (cr, ev) => `${cr} حرجة · ${ev} أدلة مستحقة`,
+    mcActions: "إجراءات الوكلاء المحوكَمة", mcActionsSub: (a, s) => `${a} مسموح · ${s} أُوقفت في هذه الجلسة`,
+    mcQueue: "قائمة الحوكمة اليوم", mcQueueAll: "عرض القائمة كاملة", mcItems: n => `${n} عناصر`, mcQueueEmpty: "لا شيء بانتظارك اليوم.",
+    mcMap: "خريطة المنظومة المباشرة", mcMapSub: "النماذج ← البيانات ← الوكلاء ← أنظمة الذكاء الاصطناعي · كل إجراء محوكَم يُقيَّم لحظياً",
+    mcMapNote: "محاكاة مباشرة · القرارات من المحركات الحقيقية", mcLoad: "حِمل المخاطر والحوادث", mcPick: "إذا تغيّر هذا فإنه يؤثر على:",
+    mcAgents: "الوكلاء", mcSystemsN: "أنظمة الذكاء الاصطناعي", mcData: "مصادر بيانات مكشوفة", mcGovOn: "المخاطر · الحوادث عليها", mcRecorded: "مبني فقط من الروابط المسجّلة في السجلات.",
+    mcOverview: "نظرة عامة على الحوكمة", mcFresh: "أدلة محدّثة", mcInstr: "عرض الأدوات",
+    mcBriefs: "موجزات جوهرية", mcBriefsAll: "عرض كل الموجزات", mcAnalytics: "التحليلات", mcRiskLevels: "سجل المخاطر حسب المستوى", mcRisksWord: "مخاطر",
+    mcOpenHigh: n => `${n} عالية أو حرجة لا تزال مفتوحة`, mcLive: "إجراءات الوكلاء المحوكَمة", mcSpend: "إنفاق الذكاء الاصطناعي حسب المزوّد", mcMtd: "هذا الشهر",
+    mcBudget: (c, b, u) => `${c} من ${b} · ${u}% من ميزانية الشهر`, mcOfBudget: u => `${u}% من الميزانية`, mcAllowed: "مسموح", mcStopped: "أُوقف",
+    mcOutcome: { allow: "مسموح", mask: "مقنَّع", flag: "مُعلَّم", escalate: "أُحيل إلى إنسان", block: "محظور" },
   },
 };
 
@@ -371,6 +399,67 @@ const CSS = `
 .gx-attack button span{font:500 11px ${SANS};color:${XC.mute}}
 .gx-field{height:38px;border-radius:10px;border:1px solid ${XC.lineHi};background:${XC.sunk};color:${XC.ink};font:500 13px ${SANS};padding:0 10px;min-width:0}
 .gx-ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 18px;margin-top:22px}
+/* Mission Control: a neon control-room lens, scoped to .gx-mc so the calm deck is untouched */
+.gx-mc{--mc-glass:linear-gradient(180deg,rgba(18,33,66,.72),rgba(13,24,50,.66));--mc-edge:rgba(120,170,255,.16);--mc-edge-hi:rgba(130,185,255,.42);--mc-violet:#8B5CFF;--mc-cyan:#4FD1FF;display:grid;gap:16px;margin-top:16px}
+.gx-mc .mc-glass{background:var(--mc-glass);border:1px solid var(--mc-edge);border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 24px 60px rgba(0,0,0,.4),0 0 40px rgba(47,123,255,.07)}
+.gx-mc .mc-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.gx-mc .mc-h h3{margin:0;font:600 15.5px/1.25 ${SANS}}
+.gx-mc .mc-sub{font-size:12px;color:${XC.mute}}
+.gx-mc .mc-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.gx-mc .mc-kpi{padding:15px 17px 13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:end;position:relative;overflow:hidden}
+.gx-mc .mc-kpi .l{grid-column:1/-1;font-size:12.5px;color:${XC.silver};font-weight:700}
+.gx-mc .mc-kpi .v{font:600 36px/1.05 ${MONO};margin-top:6px}
+.gx-mc .mc-kpi .s{grid-column:1/-1;font-size:12px;color:${XC.mute};margin-top:4px}
+.gx-mc .mc-kpi svg{width:104px;height:42px;display:block}
+.gx-mc .mc-mid{display:grid;grid-template-columns:268px minmax(0,1fr) 300px;gap:16px;align-items:start}
+.gx-mc .mc-col{display:grid;gap:16px;min-width:0}
+.gx-mc .mc-card{padding:16px}
+.gx-mc .mc-qi{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;padding:11px 12px;border-radius:14px;border:1px solid var(--mc-edge);background:rgba(8,18,40,.55);position:relative;overflow:hidden;cursor:pointer;text-align:start;width:100%;color:inherit;font:inherit;margin-top:10px}
+.gx-mc .mc-qi:first-of-type{margin-top:0}
+.gx-mc .mc-qi:hover{border-color:var(--mc-edge-hi)}
+.gx-mc .mc-qi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--bar);box-shadow:0 0 14px var(--bar)}
+.gx-mc .mc-qi .when{grid-column:1/-1;font:600 12px ${MONO};color:var(--bar)}
+.gx-mc .mc-qi .ico{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--mc-edge);color:var(--bar)}
+.gx-mc .mc-qi b{display:block;font-size:13px;line-height:1.3}
+.gx-mc .mc-qi span.w{display:block;font-size:11.5px;color:${XC.mute}}
+.gx-mc .mc-grad{width:100%;margin-top:12px;border:0;color:#fff;background:linear-gradient(90deg,#3B5BFF,#8B5CFF);box-shadow:0 8px 24px rgba(91,92,255,.32)}
+.gx-mc .mc-map{padding:16px 16px 12px;min-width:0}
+.gx-mc .mc-floor{position:relative;height:clamp(360px,44vw,540px);margin:0 -6px;border-radius:14px;overflow:hidden}
+.gx-mc .mc-floor canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.gx-mc .mc-pop{position:absolute;min-width:210px;max-width:280px;padding:10px 12px;border-radius:13px;border:1px solid var(--mc-edge-hi);background:rgba(8,16,36,.9);font-size:12.5px;pointer-events:none;transform:translate(-50%,calc(-100% - 16px));transition:left .35s ease,top .35s ease}
+.gx-mc .mc-pop .t{font:600 11px ${MONO};color:${XC.mute}}
+.gx-mc .mc-detail{position:absolute;inset-inline-end:12px;top:12px;width:min(290px,calc(100% - 24px));padding:12px 13px;border-radius:13px;border:1px solid var(--mc-edge-hi);background:rgba(8,16,36,.94);font-size:12.5px;z-index:2}
+.gx-mc .mc-detail .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(120,170,255,.1);color:${XC.silver}}
+.gx-mc .mc-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:11.5px;color:${XC.mute};margin-top:10px}
+.gx-mc .mc-legend span{display:inline-flex;align-items:center;gap:6px}
+.gx-mc .mc-ring{display:grid;place-items:center;position:relative;margin:4px auto 4px;width:164px;height:164px}
+.gx-mc .mc-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.gx-mc .mc-ring>div{text-align:center;position:relative}
+.gx-mc .mc-track{height:6px;border-radius:999px;background:rgba(120,170,255,.12);overflow:hidden}
+.gx-mc .mc-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#2F7BFF,var(--mc-cyan));box-shadow:0 0 12px rgba(79,209,255,.55)}
+.gx-mc .mc-ai{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 11px;padding:10px 2px;border:0;border-top:1px solid rgba(120,170,255,.08);background:none;cursor:pointer;text-align:start;width:100%;color:inherit;font:inherit}
+.gx-mc .mc-ai:first-of-type{border-top:0}
+.gx-mc .mc-ai .ic{grid-row:span 2;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.gx-mc .mc-ai b{font-size:13px;line-height:1.3}
+.gx-mc .mc-ai .meta{grid-column:2;font-size:11.5px;color:${XC.mute}}
+.gx-mc .mc-ai .sev{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.gx-mc .mc-six{grid-column:1/-1;display:grid;gap:6px;margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(8,16,36,.7);border:1px solid var(--mc-edge);font-size:12px;color:${XC.silver}}
+.gx-mc .mc-six b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${XC.mute};font-weight:800}
+.gx-mc .mc-ana{padding:18px}
+.gx-mc .mc-ana-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.25fr) minmax(0,1fr);gap:14px}
+.gx-mc .mc-sc{padding:14px;border-radius:15px;border:1px solid var(--mc-edge);background:rgba(8,18,40,.5);min-width:0}
+.gx-mc .mc-donut{display:grid;grid-template-columns:140px minmax(0,1fr);gap:14px;align-items:center}
+.gx-mc .mc-donut .dw{position:relative;width:140px;height:140px}
+.gx-mc .mc-donut svg{width:140px;height:140px;transform:rotate(-90deg)}
+.gx-mc .mc-donut .ctr{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.gx-mc .mc-lg{display:grid;gap:8px;font-size:12.5px}
+.gx-mc .mc-lg div{display:flex;align-items:center;gap:8px}
+.gx-mc .mc-lg b{margin-inline-start:auto;font-family:${MONO}}
+.gx-mc .mc-line svg{width:100%;height:180px;display:block;overflow:visible}
+@media (max-width:1280px){.gx-mc .mc-mid{grid-template-columns:minmax(0,1fr) 300px}.gx-mc .mc-left{grid-column:1/-1;order:3}}
+@media (max-width:1100px){.gx-mc .mc-ana-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.gx-mc .mc-ana-grid>:nth-child(2){grid-column:1/-1;order:3}}
+@media (max-width:860px){.gx-mc .mc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-mc .mc-mid,.gx-mc .mc-ana-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.gx-mc .mc-kpi .v{font-size:28px}.gx-mc .mc-kpi svg{width:76px}.gx-mc .mc-donut{grid-template-columns:minmax(0,1fr)}.gx-mc .mc-donut .dw{margin:0 auto}}
 @media (max-width:1200px){.gx-two,.gx-estate,.gx-instr,.gx-live{grid-template-columns:minmax(0,1fr)}.gx-counters,.gx-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:860px){.gx-dec{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:768px){
@@ -521,6 +610,7 @@ function useExperienceData({ role, seeded }) {
       return { fn, met: rows.filter(r => r.status === "Met").length, total: rows.length };
     });
     return {
+      portfolio: seeded ? PORTFOLIO : [], risks: seeded ? riskRegister : [], evidence: seeded ? EVIDENCE_ARTIFACTS : [],
       issues, allIssues, briefs, estate, summary: issueSummary(allIssues), approvals, openRisks, initiatives, cost, spendRows,
       events, intact, liveFeed: !!live, agentsAvail, stale, decisions, nistFns,
       assurance: seeded ? [
@@ -1495,6 +1585,305 @@ function LiveRibbon({ c, live, onWatch }) {
   );
 }
 
+/* ── Mission Control: the control-room lens ─────────────────────────────
+   One screen for the whole estate: the four figures that matter, today's
+   queue, a live map of models, data, agents and AI systems with every
+   governed action flowing through it, the governance score, material briefs
+   and analytics. Every figure comes from lib/mission-control.js over the
+   same records the other lenses use; the live map and chart read the deck's
+   real enforcement stream (synthetic traffic, real verdicts). */
+const MC_OUT = { allow: XC.ok, mask: XC.med, flag: XC.med, escalate: XC.gold, block: XC.crit };
+const MC_SEV = { critical: XC.crit, high: XC.high, medium: "#8B5CFF", low: XC.mute, overdue: XC.crit, due: "#8B5CFF" };
+const mcTrunc = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+function McSpark({ pts, col }) {
+  if (pts.length < 2) return <span />;
+  const max = Math.max(1, ...pts);
+  const d = pts.map((v, i) => `${(i / (pts.length - 1)) * 100 + 2},${40 - (v / max) * 32}`).join(" ");
+  return (
+    <svg viewBox="0 0 104 42" aria-hidden="true">
+      <polygon points={`2,42 ${d} 102,42`} fill={col} opacity=".18" />
+      <polyline points={d} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 4px ${col})` }} />
+    </svg>
+  );
+}
+
+function EstateFloor({ c, data, live }) {
+  const wrapRef = useRef(null), canvasRef = useRef(null), popRef = useRef(null);
+  const reduced = usePrefersReducedMotion();
+  const layout = useMemo(() => estateLayout(data.estate), [data.estate]);
+  const [sel, setSel] = useState(null);
+  const [showLoad, setShowLoad] = useState(true);
+  const [last, setLast] = useState(null);
+  const state = useRef({ pulses: [], bursts: [], seen: 0, W: 0, H: 0, sel: null, showLoad: true, fleet: live.st.fleet, last: null });
+  state.current.sel = sel; state.current.showLoad = showLoad; state.current.fleet = live.st.fleet;
+  const byId = useMemo(() => new Map(layout.nodes.map(n => [n.id, n])), [layout]);
+  const impact = useMemo(() => (sel ? impactOf(data.estate, sel) : null), [sel, data.estate]);
+
+  // new enforcement events → pulses along the estate links
+  useEffect(() => {
+    const S = state.current;
+    const fresh = live.st.events.filter(e => e.seq > S.seen);
+    if (!fresh.length) return;
+    S.seen = fresh[fresh.length - 1].seq;
+    const now = performance.now();
+    for (const ev of fresh.slice(-6)) {
+      const a = byId.get(`agent:${ev.agent}`); if (!a) continue;
+      const run = layout.edges.find(e => e.to === a.id && e.rel === "runs"); const use = layout.edges.find(e => e.from === a.id && e.rel === "uses");
+      const sys = run ? byId.get(run.from) : null, model = use ? byId.get(use.to) : null, col = MC_OUT[ev.outcome] || XC.cyan;
+      if (sys) S.pulses.push({ from: sys, to: a, col, t: now, dur: 700, then: ev.outcome === "block" ? "burst" : model ? "model" : null, a, m: model });
+      else if (ev.outcome === "block") S.bursts.push({ n: a, col, t: now });
+      else if (model) S.pulses.push({ from: a, to: model, col, t: now, dur: 700 });
+    }
+    S.last = fresh[fresh.length - 1]; setLast(S.last);
+  }, [live.st.events, byId, layout]);
+
+  useEffect(() => {
+    const cv = canvasRef.current; if (!cv) return;
+    const ctx = cv.getContext("2d"); const S = state.current;
+    const proj = (u, v) => { const top = S.H * .1, bot = S.H * .94; return [S.W / 2 + (u - .5) * S.W * (.62 + .38 * v), top + Math.pow(v, 1.12) * (bot - top), .62 + .38 * v]; };
+    S.proj = proj;
+    const size = () => { const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1); S.W = r.width; S.H = r.height; cv.width = S.W * dpr; cv.height = S.H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    const hitSet = id => { const set = new Set([id]); let f = [id]; while (f.length) { const nx = []; for (const x of f) for (const e of layout.edges) if (e.to === x && !set.has(e.from)) { set.add(e.from); nx.push(e.from); } f = nx; }
+      for (const e of layout.edges) if (set.has(e.from) && byId.get(e.from)?.type === "agent" && byId.get(e.to)?.type === "data") set.add(e.to); return set; };
+    let raf = 0;
+    const draw = now => {
+      const { W, H } = S; ctx.clearRect(0, 0, W, H); ctx.direction = "ltr";
+      const g = ctx.createLinearGradient(0, H * .1, 0, H); g.addColorStop(0, "rgba(20,40,90,0)"); g.addColorStop(1, "rgba(30,60,140,.32)");
+      const c1 = proj(0, 0), c2 = proj(1, 0), c3 = proj(1, 1.08), c4 = proj(0, 1.08);
+      ctx.beginPath(); ctx.moveTo(c1[0], c1[1]); ctx.lineTo(c2[0], c2[1]); ctx.lineTo(c3[0], c3[1]); ctx.lineTo(c4[0], c4[1]); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = "rgba(90,140,255,.10)"; ctx.lineWidth = 1;
+      for (let i = 0; i <= 16; i++) { const a = proj(i / 16, 0), b = proj(i / 16, 1.08); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+      for (let j = 0; j <= 12; j++) { const v = j / 12 * 1.08, a = proj(0, v), b = proj(1, v); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+      ctx.font = `800 10px ${SANS}`; ctx.textAlign = "center"; ctx.fillStyle = "rgba(166,177,198,.8)";
+      [["model", c.layer.model], ["data", c.layer.data], ["agent", c.layer.agent], ["system", c.layer.system]].forEach(([t, l]) => { const n = layout.nodes.find(x => x.type === t); if (n) { const p = proj(n.u, .02); ctx.fillText(String(l).toUpperCase(), p[0], p[1] - 4); } });
+      const hit = S.sel ? hitSet(S.sel) : null;
+      for (const e of layout.edges) { const a = byId.get(e.from), b = byId.get(e.to), pa = proj(a.u, a.v), pb = proj(b.u, b.v), on = hit && hit.has(a.id) && hit.has(b.id);
+        ctx.strokeStyle = on ? "rgba(255,164,90,.9)" : hit ? "rgba(79,140,255,.08)" : "rgba(79,160,255,.28)"; ctx.lineWidth = on ? 2.2 : 1.2; ctx.shadowColor = on ? XC.high : "#4FA3FF"; ctx.shadowBlur = on ? 10 : 6;
+        ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); const mx = (pa[0] + pb[0]) / 2; ctx.bezierCurveTo(mx, pa[1], mx, pb[1], pb[0], pb[1]); ctx.stroke(); ctx.shadowBlur = 0; }
+      for (const n of layout.nodes) {
+        const [x, y, s] = proj(n.u, n.v); ctx.globalAlpha = hit && !hit.has(n.id) ? .25 : 1;
+        if (n.type === "system") { const l = layout.load[n.id]; const load = l ? l.risk + l.incident : 0; const h = S.showLoad ? (10 + load * 9) * s : 10 * s, w = 22 * s;
+          const col = load >= 3 ? XC.crit : load >= 1 ? XC.high : "#4FD1FF";
+          ctx.fillStyle = col + "33"; ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.shadowColor = col; ctx.shadowBlur = 14;
+          ctx.beginPath(); ctx.moveTo(x - w / 2, y); ctx.lineTo(x - w / 2, y - h); ctx.lineTo(x, y - h - 6 * s); ctx.lineTo(x + w / 2, y - h); ctx.lineTo(x + w / 2, y); ctx.lineTo(x, y + 6 * s); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+          ctx.fillStyle = XC.ink; ctx.font = `700 ${Math.round(10 + 2 * s)}px ${SANS}`; ctx.textAlign = "left"; ctx.fillText(mcTrunc(n.label, 22), x + w / 2 + 6, y - h / 2);
+          if (S.showLoad && load) { ctx.fillStyle = col; ctx.font = `600 ${Math.round(9 + s)}px ${MONO}`; ctx.fillText(`${l.risk} risk · ${l.incident} inc`, x + w / 2 + 6, y - h / 2 + 13); }
+          n.hit = [x, y - 12, 16];
+        } else if (n.type === "agent") { const r = 15 * s, py = y - 30 * s, st = agentStatus(S.fleet[n.id.slice(6)]); const col = st === "suspended" ? XC.crit : st === "paused" ? XC.gold : st === "downscoped" ? XC.high : "#4FA3FF";
+          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, py + r); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(x, y, 7 * s, 3 * s, 0, 0, Math.PI * 2); ctx.fillStyle = col + "66"; ctx.fill();
+          ctx.shadowColor = col; ctx.shadowBlur = 18; ctx.beginPath(); ctx.arc(x, py, r, 0, Math.PI * 2); ctx.fillStyle = "#0B1736"; ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0;
+          const ini = n.label.replace(/Agent/i, "").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+          ctx.fillStyle = XC.ink; ctx.font = `700 ${Math.round(10 * s + 2)}px ${SANS}`; ctx.textAlign = "center"; ctx.fillText(ini, x, py + 4 * s);
+          ctx.font = `700 ${Math.round(9 + 2 * s)}px ${SANS}`; ctx.fillStyle = XC.silver; ctx.fillText(mcTrunc(n.label.replace(/ Agent$/, ""), 20), x, py - r - 6);
+          if (st !== "running" && st !== "idle") { ctx.fillStyle = col; ctx.font = `800 ${Math.round(8 + s)}px ${SANS}`; ctx.fillText(st.toUpperCase(), x, py + r + 12); }
+          n.hit = [x, py, r + 6];
+        } else { const r = (n.type === "model" ? 7 : 5) * s, col = n.type === "model" ? "#8B5CFF" : "#4FD1FF";
+          ctx.shadowColor = col; ctx.shadowBlur = 12; ctx.fillStyle = col; ctx.beginPath();
+          if (n.type === "model") { ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); } else ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(166,177,198,.9)"; ctx.font = `600 ${Math.round(9 + 2 * s)}px ${SANS}`; ctx.textAlign = "left"; ctx.fillText(mcTrunc(n.label.replace(/ · via Gateway/, ""), 18), x + r + 6, y + 4);
+          n.hit = [x, y, 16];
+        }
+        if (S.sel === n.id) { ctx.strokeStyle = "#4FD1FF"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.hit[0], n.hit[1], n.hit[2] + 4, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.globalAlpha = 1;
+      }
+      for (let i = S.pulses.length - 1; i >= 0; i--) { const p = S.pulses[i], k = (now - p.t) / p.dur;
+        if (k >= 1) { S.pulses.splice(i, 1); if (p.then === "burst") S.bursts.push({ n: p.a, col: p.col, t: now }); else if (p.then === "model" && p.m) S.pulses.push({ from: p.a, to: p.m, col: p.col, t: now, dur: 650 }); continue; }
+        const a = proj(p.from.u, p.from.v), b = proj(p.to.u, p.to.v), ay = p.from.type === "agent" ? a[1] - 30 * a[2] : a[1], by = p.to.type === "agent" ? b[1] - 30 * b[2] : b[1];
+        ctx.shadowColor = p.col; ctx.shadowBlur = 16; ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * k, ay + (by - ay) * k, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+      for (let i = S.bursts.length - 1; i >= 0; i--) { const b = S.bursts[i], k = (now - b.t) / 900; if (k >= 1) { S.bursts.splice(i, 1); continue; }
+        const [x, y, s] = proj(b.n.u, b.n.v); ctx.strokeStyle = b.col; ctx.globalAlpha = 1 - k; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y - 30 * s, 16 * s + k * 26, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      if (S.last && popRef.current) { const n = byId.get(`agent:${S.last.agent}`); if (n) { const [x, y, s] = proj(n.u, n.v); const ph = popRef.current.offsetHeight || 110; popRef.current.style.left = `${Math.max(115, Math.min(W - 115, x))}px`; popRef.current.style.top = `${Math.max(ph + 22, y - 48 * s)}px`; } }
+      if (!reduced) raf = requestAnimationFrame(draw);
+    };
+    size(); raf = requestAnimationFrame(draw);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => { size(); if (reduced) requestAnimationFrame(draw); }) : null;
+    ro?.observe(cv);
+    S.redraw = () => { if (reduced) requestAnimationFrame(draw); };
+    return () => { cancelAnimationFrame(raf); ro?.disconnect(); };
+  }, [layout, byId, reduced, c]);
+  useEffect(() => { state.current.redraw?.(); }, [sel, showLoad, last]);
+
+  const onClick = e => { const r = canvasRef.current.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    const n = layout.nodes.find(n => n.hit && Math.hypot(n.hit[0] - mx, n.hit[1] - my) < n.hit[2]); setSel(n && sel !== n.id ? n.id : null); };
+  const selNode = sel ? byId.get(sel) : null;
+  const cnt = t => (impact ? impact.affected.filter(x => byId.get(x)?.type === t).length : 0);
+  const govOn = impact ? [...impact.affected, sel].reduce((m, x) => { const l = layout.load[x]; if (l) { m.risk += l.risk; m.incident += l.incident; } return m; }, { risk: 0, incident: 0 }) : null;
+  const ev = last; const evCol = ev ? (MC_OUT[ev.outcome] || XC.cyan) : XC.cyan;
+  return (
+    <section className="mc-glass mc-map" aria-label={c.mcMap}>
+      <div className="mc-h"><div style={{ minWidth: 0 }}><h3>{c.mcMap}</h3><div className="mc-sub">{c.mcMapSub}</div></div><span className="gx-spacer" />
+        <button type="button" className="gx-btn gx-btn-icon" onClick={() => live.dispatch({ type: "running", value: !live.st.running })} aria-label={live.st.running ? c.pause : c.play} title={live.st.running ? c.pause : c.play}>
+          {live.st.running ? <Pause size={15} aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}</button>
+        <button type="button" className="gx-btn gx-btn-icon" onClick={() => setShowLoad(v => !v)} aria-pressed={showLoad} aria-label={c.mcLoad} title={c.mcLoad}><Layers size={15} aria-hidden="true" /></button>
+      </div>
+      <div className="mc-floor" ref={wrapRef}>
+        <canvas ref={canvasRef} onClick={onClick} data-testid="mc-floor" aria-label={`${c.mcMap}: ${c.mcMapSub}`} />
+        {ev && <div className="mc-pop" ref={popRef}>
+          <div className="t">#{ev.seq} · {ev.dataClass || "—"}</div>
+          <b style={{ display: "block", fontSize: 13.5, margin: "2px 0" }}>{ev.agentName}</b>
+          <div className="gx-mono" style={{ color: XC.silver }}>{ev.label || ev.tool}</div>
+          <div className="gx-mono" style={{ color: evCol, fontWeight: 700, fontSize: 11.5, marginTop: 4, letterSpacing: ".05em", textTransform: "uppercase" }}>
+            <span className="gx-dot" style={{ background: evCol, display: "inline-block", marginInlineEnd: 6 }} />{c.mcOutcome[ev.outcome] || ev.outcome} · {STAGES.find(s => s.id === ev.decidedAt)?.label || ev.decidedAt}</div>
+          <div style={{ color: XC.silver, marginTop: 4, lineHeight: 1.4 }}>{mcTrunc(ev.reason || "", 110)}</div>
+        </div>}
+        {selNode && <div className="mc-detail" data-testid="mc-detail">
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="gx-chip" style={{ height: 22 }}>{c.layer[selNode.type]}</span><span className="gx-spacer" />
+            <button type="button" className="gx-btn gx-btn-icon" style={{ width: 28, height: 28 }} onClick={() => setSel(null)} aria-label={c.close}><X size={14} aria-hidden="true" /></button></div>
+          <div style={{ font: `600 15px ${SANS}`, margin: "6px 0" }}>{selNode.label}</div>
+          <div style={{ color: XC.mute, marginBottom: 4 }}>{c.mcPick}</div>
+          <div className="row"><span>{c.mcAgents}</span><b className="gx-mono">{cnt("agent")}</b></div>
+          <div className="row"><span>{c.mcSystemsN}</span><b className="gx-mono">{cnt("system")}</b></div>
+          <div className="row"><span>{c.mcData}</span><b className="gx-mono">{cnt("data")}</b></div>
+          <div className="row"><span>{c.mcGovOn}</span><b className="gx-mono">{govOn.risk} · {govOn.incident}</b></div>
+          <div style={{ fontSize: 11, color: XC.mute, marginTop: 6 }}>{c.mcRecorded}</div>
+        </div>}
+      </div>
+      <div className="mc-legend">
+        {["allow", "mask", "escalate", "block"].map(k => <span key={k}><span className="gx-dot" style={{ background: MC_OUT[k] }} />{c.mcOutcome[k]}</span>)}
+        <span className="gx-spacer" /><span className="gx-chip"><span className="gx-dot gx-pulse" style={{ background: XC.crit }} />{c.mcMapNote}</span>
+      </div>
+    </section>
+  );
+}
+
+function MissionControl({ c, data, live, onOpen, setDeckView }) {
+  const st = live.st;
+  const sys = useMemo(() => systemsInProduction(data.portfolio), [data.portfolio]);
+  const risks = useMemo(() => riskBreakdown(data.risks), [data.risks]);
+  const queue = useMemo(() => governanceQueue({ approvals: data.approvals, evidence: data.evidence }, { limit: 5 }), [data.approvals, data.evidence]);
+  const series = useMemo(() => liveSeries(st.events, { window: 30 }), [st.events]);
+  const spend = useMemo(() => spendShare(data.spendRows, { limit: 4 }), [data.spendRows]);
+  const [openBrief, setOpenBrief] = useState(null);
+  const allowed = st.counts.allow, stopped = st.counts.block;
+  const kpis = [
+    [c.mcSystems, sys.inProduction, c.mcSystemsSub(sys.total, sys.inBuild), "#4FD1FF", null],
+    [c.mcRisks, risks.openCritical + risks.openHigh, c.mcRisksSub(risks.openCritical, risks.openHigh), XC.crit, null],
+    [c.mcDecisions, data.approvals.length, c.mcDecisionsSub(data.approvals.filter(a => /critical/i.test(a.risk)).length, data.stale.length), XC.gold, null],
+    [c.mcActions, st.counts.total, c.mcActionsSub(allowed, stopped), "#8B5CFF", series.slice(-16).map(p => p.total)],
+  ];
+  const fresh = data.evidence.length - data.stale.length;
+  const R = 70, C = 2 * Math.PI * R;
+  const levels = [["Critical", XC.crit], ["High", XC.high], ["Medium", "#8B5CFF"]];
+  // live chart geometry
+  const LW = 540, LH = 180, pl = 30, pr = 10, pt = 12, pb = 24;
+  const maxV = Math.max(10, ...series.map(p => Math.max(p.allowed, p.stopped)));
+  const step = Math.pow(10, Math.floor(Math.log10(maxV))), top = Math.ceil(maxV / step) * step;
+  const lx = i => pl + (i / 29) * (LW - pl - pr), ly = v => pt + (1 - v / top) * (LH - pt - pb);
+  const path = k => series.map((p, i) => `${i ? "L" : "M"}${lx(i)},${ly(p[k])}`).join(" ");
+  const end = series[series.length - 1];
+  return (
+    <div className="gx-mc" data-testid="mission-control">
+      <section className="mc-kpis" aria-label={c.tabMission}>
+        {kpis.map(([l, v, sub, col, sp]) => (
+          <article key={l} className="mc-glass mc-kpi"><span className="l">{l}</span><span className="v" style={{ textShadow: `0 0 24px ${col}55` }}>{v}</span>
+            {sp ? <McSpark pts={sp} col={col} /> : <span />}<span className="s">{sub}</span></article>
+        ))}
+      </section>
+
+      <section className="mc-mid">
+        <div className="mc-col mc-left">
+          <section className="mc-glass mc-card" aria-label={c.mcQueue}>
+            <div className="mc-h"><h3>{c.mcQueue}</h3><span className="gx-spacer" /><span className="gx-chip" style={{ height: 22 }}>{c.mcItems(queue.length)}</span></div>
+            {queue.length ? queue.map(q => {
+              const bar = MC_SEV[q.tone] || XC.blue;
+              return (
+                <button key={q.id} type="button" className="mc-qi" style={{ "--bar": bar }} onClick={() => (q.kind === "approval" ? setDeckView("decisions") : onOpen({ tab: "freshness" }))}>
+                  <span className="when">{q.when}</span>
+                  <span className="ico">{q.kind === "approval" ? <Gavel size={15} aria-hidden="true" /> : <FileText size={15} aria-hidden="true" />}</span>
+                  <span><b>{q.title}</b><span className="w">{q.who}</span></span>
+                </button>
+              );
+            }) : <div className="gx-empty" style={{ padding: 12 }}><CircleCheck size={18} color={XC.ok} aria-hidden="true" /> {c.mcQueueEmpty}</div>}
+            <button type="button" className="gx-btn mc-grad" onClick={() => setDeckView("decisions")}>{c.mcQueueAll}</button>
+          </section>
+        </div>
+
+        <EstateFloor c={c} data={data} live={live} />
+
+        <div className="mc-col">
+          <section className="mc-glass mc-card" aria-label={c.mcOverview}>
+            <div className="mc-h"><h3>{c.mcOverview}</h3><span className="gx-spacer" /><Pv p="C" c={c} /></div>
+            {data.assurance.length ? <>
+              <div className="mc-ring">
+                <svg viewBox="0 0 164 164" aria-hidden="true"><defs><linearGradient id="mcRing" x1="0" x2="1"><stop offset="0" stopColor="#2F7BFF" /><stop offset="1" stopColor="#8B5CFF" /></linearGradient></defs>
+                  <circle cx="82" cy="82" r={R} fill="none" stroke="rgba(120,170,255,.12)" strokeWidth="11" />
+                  <circle cx="82" cy="82" r={R} fill="none" stroke="url(#mcRing)" strokeWidth="11" strokeLinecap="round" strokeDasharray={`${C * GOVERNANCE_SCORE / 100} ${C}`} style={{ filter: "drop-shadow(0 0 8px rgba(79,140,255,.8))" }} /></svg>
+                <div><div className="gx-mono" style={{ font: `600 42px/1 ${MONO}` }}>{GOVERNANCE_SCORE}</div><div style={{ fontSize: 11.5, color: XC.silver, marginTop: 4, maxWidth: 112, marginInline: "auto", lineHeight: 1.3, textWrap: "balance" }}>{c.score}</div></div>
+              </div>
+              <div style={{ display: "grid", gap: 11, marginTop: 6 }}>
+                {[...data.assurance.map(a => [a.name, a.score, `${a.score}%`]), [c.mcFresh, data.evidence.length ? Math.round(fresh / data.evidence.length * 100) : 0, `${fresh}/${data.evidence.length}`]].map(([l, p, v]) => (
+                  <div key={l}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span>{l}</span><b className="gx-mono">{v}</b></div><div className="mc-track"><i style={{ width: `${p}%` }} /></div></div>
+                ))}
+                <div style={{ fontSize: 11, color: XC.mute }}>{c.notClaim}</div>
+              </div>
+            </> : <div className="gx-empty" style={{ padding: 12 }}>{c.awaiting}</div>}
+            <button type="button" className="gx-btn mc-grad" onClick={() => setDeckView("instruments")}>{c.mcInstr}</button>
+          </section>
+          <section className="mc-glass mc-card" aria-label={c.mcBriefs}>
+            <div className="mc-h"><h3>{c.mcBriefs}</h3><span className="gx-spacer" /><span className="gx-chip" style={{ height: 22 }}>{data.briefs.length}</span></div>
+            {data.briefs.length ? data.briefs.slice(0, 4).map(b => {
+              const col = SEV[b.severity] || XC.med, open = openBrief === b.id, Icon = KIND_ICON[b.kind] || ShieldAlert;
+              return (
+                <button key={b.id} type="button" className="mc-ai" aria-expanded={open} onClick={() => setOpenBrief(open ? null : b.id)}>
+                  <span className="ic" style={{ background: `${col}22`, color: col, boxShadow: `0 0 14px ${col}55` }}><Icon size={14} aria-hidden="true" /></span>
+                  <b dir="auto">{b.title}</b><span className="sev" style={{ color: col }}>{c.sev[b.severity] || b.severity}</span>
+                  <span className="meta" dir="auto">{b.evidence.source} · {b.who}</span>
+                  {open && <span className="mc-six">
+                    <span><b>{c.q.changed}</b><Claims list={b.changed} c={c} /></span>
+                    <span><b>{c.q.matters}</b><Claims list={b.matters} c={c} /></span>
+                    <span><b>{c.q.evidence}</b><bdi>{b.evidence.source} · {b.evidence.ref}</bdi></span>
+                    <span><b>{c.q.unc}</b><Unc level={b.uncertainty.level} c={c} /> — <bdi>{b.uncertainty.why}</bdi></span>
+                  </span>}
+                </button>
+              );
+            }) : <div className="gx-empty" style={{ padding: 12 }}><CircleCheck size={18} color={XC.ok} aria-hidden="true" /> {c.allClear}</div>}
+            <button type="button" className="gx-btn mc-grad" onClick={() => setDeckView("briefs")}>{c.mcBriefsAll}</button>
+          </section>
+        </div>
+      </section>
+
+      <section className="mc-glass mc-ana" aria-label={c.mcAnalytics}>
+        <div className="mc-h"><h3 style={{ fontSize: 17 }}>{c.mcAnalytics}</h3></div>
+        <div className="mc-ana-grid">
+          <div className="mc-sc"><div className="mc-h"><h3 style={{ fontSize: 13.5 }}>{c.mcRiskLevels}</h3><span className="gx-spacer" /><Pv p="O" c={c} /></div>
+            {risks.total ? <div className="mc-donut">
+              <div className="dw"><svg viewBox="0 0 140 140" role="img" aria-label={levels.map(([k]) => `${risks[k]} ${k}`).join(", ")}>
+                <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(120,170,255,.08)" strokeWidth="15" />
+                {(() => { let off = 0; const CC = 2 * Math.PI * 56; return levels.map(([k, col]) => { const len = CC * risks[k] / risks.total; const el = <circle key={k} cx="70" cy="70" r="56" fill="none" stroke={col} strokeWidth="15" strokeDasharray={`${Math.max(0, len - 3)} ${CC}`} strokeDashoffset={-off} style={{ filter: `drop-shadow(0 0 6px ${col}88)` }} />; off += len; return el; }); })()}
+              </svg><div className="ctr"><div><b className="gx-mono" style={{ display: "block", font: `600 32px/1 ${MONO}` }}>{risks.total}</b><span style={{ fontSize: 11.5, color: XC.mute }}>{c.mcRisksWord}</span></div></div></div>
+              <div className="mc-lg">{levels.map(([k, col]) => <div key={k}><span className="gx-dot" style={{ background: col, boxShadow: `0 0 8px ${col}` }} />{c.sev[k.toLowerCase()] || k}<b>{Math.round(risks[k] / risks.total * 100)}%</b></div>)}
+                <div style={{ color: XC.mute, fontSize: 11.5 }}>{c.mcOpenHigh(risks.openCritical + risks.openHigh)}</div></div>
+            </div> : <div className="gx-empty" style={{ padding: 12 }}>{c.awaiting}</div>}
+          </div>
+          <div className="mc-sc mc-line"><div className="mc-h"><h3 style={{ fontSize: 13.5 }}>{c.mcLive}</h3><span className="gx-spacer" /><LiveBadge c={c} /></div>
+            <svg viewBox={`0 0 ${LW} ${LH}`} role="img" aria-label={end ? `${end.allowed} ${c.mcAllowed}, ${end.stopped} ${c.mcStopped}` : c.waiting} data-testid="mc-live-chart">
+              {[0, .25, .5, .75, 1].map(f => <g key={f}><line x1={pl} x2={LW - pr} y1={ly(top * f)} y2={ly(top * f)} stroke="rgba(120,170,255,.09)" /><text x={pl - 8} y={ly(top * f) + 4} textAnchor="end" fill={XC.mute} fontSize="10" fontFamily="ui-monospace, monospace">{Math.round(top * f)}</text></g>)}
+              {series.length > 1 ? <>
+                <path d={path("allowed")} fill="none" stroke={XC.ok} strokeWidth="2.2" style={{ filter: `drop-shadow(0 0 5px ${XC.ok})` }} />
+                <path d={path("stopped")} fill="none" stroke={XC.crit} strokeWidth="2.2" style={{ filter: `drop-shadow(0 0 5px ${XC.crit})` }} />
+                <circle cx={lx(series.length - 1)} cy={ly(end.allowed)} r="4" fill={XC.ok} /><circle cx={lx(series.length - 1)} cy={ly(end.stopped)} r="4" fill={XC.crit} />
+                <text x={Math.min(LW - 70, lx(series.length - 1) + 8)} y={ly(end.allowed) - 6} fill={XC.ok} fontSize="11" fontFamily="ui-monospace, monospace">{end.allowed} {c.mcAllowed}</text>
+                <text x={Math.min(LW - 70, lx(series.length - 1) + 8)} y={ly(end.stopped) + 14} fill={XC.crit} fontSize="11" fontFamily="ui-monospace, monospace">{end.stopped} {c.mcStopped}</text>
+              </> : <text x={LW / 2} y={LH / 2} textAnchor="middle" fill={XC.mute} fontSize="12">{c.waiting}</text>}
+            </svg>
+          </div>
+          <div className="mc-sc"><div className="mc-h"><h3 style={{ fontSize: 13.5 }}>{c.mcSpend}</h3><span className="gx-spacer" /><span className="gx-chip" style={{ height: 22 }}>{c.mcMtd}</span></div>
+            {spend.length ? <div style={{ display: "grid", gap: 12 }}>
+              {spend.map(p => <div key={p.id}><div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, marginBottom: 5 }}>
+                <span>{p.name}{p.overBudget ? <span className="gx-chip" style={{ height: 18, fontSize: 10, marginInlineStart: 6, color: XC.crit }}>{c.mcOfBudget(p.utilization)}</span> : null}</span><b className="gx-mono">{p.share}%</b></div>
+                <div className="mc-track"><i style={{ width: `${p.cost / spend[0].cost * 100}%`, ...(p.overBudget ? { background: `linear-gradient(90deg,#FF7A59,${XC.crit})` } : null) }} /></div></div>)}
+              {data.cost && <div style={{ fontSize: 11.5, color: XC.mute }}>{c.mcBudget(fmtUSD(data.cost.costMtd), fmtUSD(data.cost.budgetMtd), data.cost.utilization)}</div>}
+            </div> : <div className="gx-empty" style={{ padding: 12 }}>{c.awaiting}</div>}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 /* ── shell ──────────────────────────────────────────────────────────────── */
 export function IntelligenceExperience({
   mode = "home", role = "caio", userName = "", seeded = true, lang = "en", setLang = () => {},
@@ -1504,7 +1893,7 @@ export function IntelligenceExperience({
   const c = COPY[lang] || COPY.en;
   const data = useExperienceData({ role, seeded });
   const live = useLiveShowcase();
-  const [deckView, setDeckView] = useState("briefs");
+  const [deckView, setDeckView] = useState("mission");
   const [lensEv, setLensEv] = useState(null);
   const openLens = useCallback(b => setLensEv({ title: b.title, source: b.evidence.source, ref: b.evidence.ref, facts: b.evidence.facts, action: b.action }), []);
   const closeLens = useCallback(() => setLensEv(null), []);
@@ -1545,7 +1934,7 @@ export function IntelligenceExperience({
                 <h1>{c.deck}</h1>
                 <span className="gx-rule gx-hide-sm" />
                 <div className="gx-tabs" role="tablist" aria-label={c.deck}>
-                  {[["briefs", Radar, c.tabBriefs], ["decisions", Gavel, c.tabDecisions], ["estate", Network, c.tabEstate], ["instruments", LayoutGrid, c.tabInstruments]].map(([k, Icon, label]) => (
+                  {[["mission", Gauge, c.tabMission], ["briefs", Radar, c.tabBriefs], ["decisions", Gavel, c.tabDecisions], ["estate", Network, c.tabEstate], ["instruments", LayoutGrid, c.tabInstruments]].map(([k, Icon, label]) => (
                     <button key={k} type="button" role="tab" aria-selected={deckView === k} onClick={() => setDeckView(k)}><Icon size={14} aria-hidden="true" />{label}
                       {k === "decisions" && data.approvals.length ? <span className="gx-mono" style={{ fontSize: 11, color: XC.gold }}>{data.approvals.length}</span> : null}</button>
                   ))}
@@ -1560,6 +1949,7 @@ export function IntelligenceExperience({
                 </div>
               )}
               {deckView === "live" ? <LiveSecurity c={c} live={live} />
+                : deckView === "mission" ? <MissionControl c={c} data={data} live={live} onOpen={onOpen} setDeckView={setDeckView} />
                 : deckView === "decisions" ? <DecisionsView c={c} data={data} role={role} onOpen={onOpen} ask={ask} />
                 : deckView === "estate" ? <EstateView c={c} data={data} />
                 : deckView === "instruments" ? <Instruments c={c} data={data} onOpen={onOpen} ask={ask} />

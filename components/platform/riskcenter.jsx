@@ -19,7 +19,7 @@ import { useLang, ts, registerContent } from "@/lib/i18n";
 registerContent({
   // ── chrome / labels ──
   "Initiative": "المبادرة",
-  "GenVeris proprietary governance engines · run automatically per initiative": "محرّكات حوكمة مملوكة لفيرِس زون · تعمل تلقائياً لكل مبادرة",
+  "GenVeris proprietary governance engines · run automatically per initiative": "محرّكات حوكمة مملوكة لـ GenVeris · تعمل تلقائياً لكل مبادرة",
   "Risks on register": "المخاطر في السجل",
   "Critical / high open": "الحرجة/العالية المفتوحة",
   "Treatments in progress": "المعالجات قيد التنفيذ",

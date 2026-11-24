@@ -124,6 +124,9 @@ jobs:
       - name: Seed refresh tests (re-run corrects system names only, tenant-scoped, no duplicate knowledge assets)
         run: npm run test:seed
 
+      - name: Mission Control tests (Command Deck — figures only from records, live series, map layout)
+        run: npm run test:mission
+
       - name: Security baseline tests (rate limits, validation, secrets, deps, error leakage, uploads)
         run: npm run test:security
 

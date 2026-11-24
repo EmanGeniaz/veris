@@ -9,6 +9,17 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    # Majors the toolchain cannot take yet. Revisit when the blockers below ship support.
+    ignore:
+      # TypeScript 7 is the native (Go) compiler and drops the JS compiler API that
+      # Next.js uses to load next.config.ts and type-check; typescript-eslint also
+      # supports only <6.1. Stay on 6.0.x until both support 7.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # ESLint 10: eslint-config-next pulls eslint-plugin-react, -jsx-a11y and
+      # -import, which still declare eslint <=9 as a peer, so npm ci fails.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

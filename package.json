@@ -38,7 +38,8 @@
     "test:liveshow": "tsx scripts/live-showcase-test.mjs",
     "test:estate": "tsx scripts/estate-map-test.mjs",
     "test:seed": "tsx scripts/seed-refresh-test.mjs",
-    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks && npm run test:entitlements && npm run test:enforceconn && npm run test:connector && npm run test:agents && npm run test:burning && npm run test:liveshow && npm run test:estate && npm run test:seed && npm run test:security",
+    "test:mission": "tsx scripts/mission-control-test.mjs",
+    "test:unit": "npm run test:selfcheck && npm run test:rbac && npm run test:engines && npm run test:ui && npm run test:robustness && npm run test:tenant && npm run test:dashboard && npm run test:identity && npm run test:telemetry && npm run test:enforcelive && npm run test:egresslive && npm run test:memorylive && npm run test:runtimelive && npm run test:breakerlive && npm run test:retrievallive && npm run test:fabric && npm run test:ingest && npm run test:costlive && npm run test:assistanthonesty && npm run test:wsidentity && npm run test:wstasks && npm run test:entitlements && npm run test:enforceconn && npm run test:connector && npm run test:agents && npm run test:burning && npm run test:liveshow && npm run test:estate && npm run test:seed && npm run test:mission && npm run test:security",
     "test": "npm run test:unit && npm run typecheck",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
@@ -51,7 +52,7 @@
     "exceljs": "^4.4.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^1.73.0",
-    "next": "^15.5.28",
+    "next": "^15.5.29",
     "next-auth": "^5.0.0-beta.32",
     "prisma": "^6.19.3",
     "react": "19.3.1",
@@ -67,12 +68,12 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.6.2",
     "eslint": "^9.17.0",
-    "eslint-config-next": "^15.5.28",
+    "eslint-config-next": "^15.5.29",
     "postcss": "^8.5.33",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.15",
-    "typescript": "^5.7.2"
+    "typescript": "~6.0.3"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -85,7 +86,8 @@
       "uuid": "^11.1.1"
     },
     "@prisma/config": {
-      "deepmerge-ts": "^8.0.2"
+      "deepmerge-ts": "^8.0.2",
+      "effect": "^3.22.5"
     },
     "source-map-js": "^1.2.2"
   }
