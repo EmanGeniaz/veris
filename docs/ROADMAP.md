@@ -1,5 +1,6 @@
 # GenVeris — Roadmap
 
+> Last reconciled against `main` on 2026-10-07.
 > Forward horizons. The Gantt (`docs/GANTT.md`) tracks the committed milestones;
 > this shows the direction beyond them. Honest about what needs a real
 > environment. Updated as horizons shift. **"Here?"** = completable/verifiable in
@@ -8,24 +9,27 @@
 ## Now (in flight / next up)
 | Item | Milestone | Here? |
 |------|-----------|-------|
-| Click-integrity test harness (location + logs + clickability gate) | M-TEST | ✅ |
-| UAE / Dubai regulatory pack | M-UAE | ✅ |
-| Arabic + RTL pilot (i18n scaffolding + 1–2 surfaces) | M-AR | ✅ |
+| Veris Enforce live-from-Enforce adapter + Enforce → Evidence Fabric (WS2 sub-task 3, #167) — blocked on the Enforce team's OpenAPI spec | M-ENF | ⚠️ |
+| Provision deploy-env secrets so auth, RBAC and live telemetry run in production (#142) — owner/ops | M4 | ❌ |
 | Readability & type lock | M-UX | ✅ |
-| Data-subject-rights lifecycle (consent · DSAR · erasure) | M2 | ✅ |
+| Arabic rollout — remaining English surfaces (Home/Playbook/Advisor, admin portals) | M-AR | ✅ |
+
+Done since this roadmap was written: click-integrity harness (M-TEST), UAE/Dubai pack (M-UAE),
+Arabic pilot + most surfaces (M-AR), data-subject-rights lifecycle (M2), Enforce entitlement
+model + connection (#199, #200) — see `docs/GANTT.md`.
 
 ## Next (buildable here, sequenced after Now)
 | Item | Notes | Here? |
 |------|-------|-------|
-| Veris Enforce product-line — shared core + data contract + per-tenant entitlement gate + locked/live states | The MS 365 / Visio model (D7). Standalone repo/deploy is separate. | ⚠️ |
-| Arabic rollout — remaining surfaces, RTL polish, Arabic numerals/dates | After pilot proves the pattern | ✅ |
+| Durable retention reaper (BL-07, #172) | Scoped; needs owner approval (production infra + retention policy) | ✅ (build) |
+| Connector honesty relabel (#182) + Enforce → ServiceNow/Jira hand-off (#180) | From the integrations gap audit | ✅ / ⚠️ |
+| WS4 enforced AI-PMO phase gates (#169) · WS5 Veris Intelligence personas (#170) · WS6 role-center scope (#171, needs a product decision) | Not started | ✅ |
 | Governance depth — retire remaining honest Partials via real controls | Rolling; never relabels | ✅ |
 | More regional packs as customers require | Same computed-pack pattern | ✅ |
 
 ## Later (needs real environment / owner / integration)
 | Item | Blocked on | Here? |
 |------|-----------|-------|
-| Real backend live — auth + Postgres + tenant isolation + server RBAC | Owner infra (`AUTH_SECRET`, `DATABASE_URL`, `DIRECT_URL`) | ⚠️ |
 | Gateway live — model keys + real routing + policy enforcement on live inference | Owner keys + real traffic | ⚠️ |
 | **Veris Enforce standalone** — its own repo, deploy, and **real inline enforcement** (egress proxy/agent, capability broker, extension in a real network) | Separate repo + customer integration | ❌ |
 | Self-host packaging — Docker/compose, config, install docs, air-gap, UAE data-residency deploy | After backend lands | ✅ (build) / ⚠️ (verify) |
