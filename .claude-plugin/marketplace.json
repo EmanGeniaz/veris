@@ -1,0 +1,18 @@
+{
+  "name": "geniaz",
+  "owner": {
+    "name": "Geniaz"
+  },
+  "metadata": {
+    "description": "Claude Code plugins used by the GenVeris team."
+  },
+  "plugins": [
+    {
+      "name": "graphify",
+      "source": "./plugins/graphify",
+      "description": "Turn a codebase into a queryable knowledge graph and answer codebase questions from it (graphify 0.9.84).",
+      "version": "0.9.84",
+      "category": "development"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "description": "Nudge Claude toward `graphify query` instead of raw grep/read when a graph exists for the project.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/graphify-guard.sh\" search",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/graphify-guard.sh\" read",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
